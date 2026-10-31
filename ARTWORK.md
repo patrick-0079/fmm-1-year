@@ -2,6 +2,22 @@
 
 工具：内置 `image_gen`；素材已保存到项目内，不依赖生成服务运行。
 
+## 当前采用的低饱和版本
+
+当前网页使用 `src/assets/room-calm.webp`、`src/assets/garden-calm.webp` 和 `src/assets/nemu-sprites.webp`。对应 PNG 原图保留在同目录。卧室和花园根据用户降低粉色占比的反馈，通过内置 imagegen 从原场景生成颜色编辑版本，保留地图几何和物件位置。
+
+### room-calm.png 编辑提示词
+
+```text
+Edit this existing pixel-art game room for a calmer, less visually tiring palette. Change ONLY colors, saturation, and soft ambient lighting. Preserve the EXACT room layout, viewpoint, object positions, object sizes, camera boundaries, furniture silhouettes, window, rug, cake, bed, desk, television and floor geometry, since game collisions and interaction points are already implemented. The current room has far too much saturated pink. Recolor the large floor area into pale natural ash wood / warm honey oatmeal beige, the walls into warm ivory, and most textiles into cream with dusty lavender details. Keep muted dusty rose ONLY as small accents on the cake, bed quilt trim, hair-themed decorations and a few flowers, never bright magenta. Keep the night window muted indigo and warm moonlight. Use soft sage green plants for visual relief. Low-to-medium saturation, gently warm lighting, clean visible pixel art detail and adequate object separation. A restful cozy ASMR anniversary bedroom, primarily ivory, light wood, soft gray lavender, sage, with a small amount of dusty blush. Do not darken the whole scene, do not add haze or blur. No new objects, no removed objects, no changes to positions, no text, no UI, no characters. Keep original 3:2 image composition exactly.
+```
+
+### garden-calm.png 编辑提示词
+
+```text
+Edit this existing top-down pixel-art anniversary garden game map for a calmer, less visually tiring palette. Change ONLY colors, saturation, and soft ambient lighting. Preserve the EXACT geometry, viewpoint, framing, house location and door position, all paths, all props, all trees, all bridges, screen and blue TV sign positions, balloon stall position and fireworks position; gameplay interaction positions already match this image. The current scene is overwhelmingly saturated pink. Make the large path and heart paving pale warm sandstone / light beige, the house primarily warm ivory and natural light wood with dusty lavender roof, and the grass naturally muted sage green. Change about two thirds of the pink tree foliage to soft natural sage / olive green, leaving a few pale cherry-blossom pink trees as accent at the corners. Desaturate remaining pink decorations to dusty rose. Keep the small television signs a gentle blue, the stream soft slate blue, string lights warm cream rather than vivid yellow/orange. A peaceful twilight garden with more color breathing room, low-to-medium saturation, natural muted greens, warm ivory, light stone, gray lavender, and limited dusty blush accents. Preserve readable pixel texture and clear contrast without bright magenta or neon lighting. Do not introduce haze or blur, do not make scene much darker. No added or removed objects, no repositioning, no labels, no text, no UI, no characters. Keep exact original 3:2 image layout.
+```
+
 ## 室内场景 `src/assets/room.png`
 
 提示词：粉色 ASMR 主播一周年的温暖像素卧室，3:2 横幅，俯视 RPG 视角，正交投影；上墙中央月夜窗户，左上复古粉色电视、右上粉色床铺和床边电台，左边书桌与信件相册，中央小圆桌与单蜡烛草莓蛋糕，左下气球，右下礼盒，中央保留通行空间。奶油白、粉色、淡紫，星月灯串、柔和木地板，无文字、角色、水印或界面。

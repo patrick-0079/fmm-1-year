@@ -2,7 +2,7 @@ import sharp from "sharp";
 import { fileURLToPath } from "node:url";
 
 const directory = new URL("../src/assets/", import.meta.url);
-for (const name of ["room", "garden", "nemu-sprites"]) {
+for (const name of ["room-calm", "garden-calm", "nemu-sprites"]) {
   const source = fileURLToPath(new URL(`${name}.png`, directory));
   const output = fileURLToPath(new URL(`${name}.webp`, directory));
   const options =

@@ -1,0 +1,7 @@
+{
+  "name": "fmm-1-year",
+  "compatibility_date": "2026-10-31",
+  "assets": {
+    "directory": "./dist",
+  },
+}

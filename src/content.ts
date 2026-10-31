@@ -21,6 +21,16 @@ export const anniversary = {
   bilibili: "https://space.bilibili.com/3546844953054084",
 };
 
+// 按展示顺序排列；后续增加制作人只需在数组末尾追加名字。
+export const producers = [
+  "派大星",
+  "Kerry",
+  "苏颜",
+  "卿取之于蓝",
+  "正号",
+  "千羽",
+];
+
 // 将媒体放进 public/media/，src 填写 /media/文件名。空数组会显示正式占位界面。
 export const collections: Record<string, Collection> = {
   letters: {

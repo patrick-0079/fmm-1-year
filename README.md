@@ -1,6 +1,6 @@
 # 芙眠眠一周年 · 晚安小世界
 
-粉色像素风 H5 周年探索游戏。控制 Q 版眠眠，在室内小屋和室外花园之间探索；全部逻辑在浏览器内运行，不需要后端、数据库或服务端函数。
+柔和奶油色、浅木色与灰紫色搭配少量粉色点缀的像素风 H5 周年探索游戏。控制 Q 版眠眠，在室内小屋和室外花园之间探索；全部逻辑在浏览器内运行，不需要后端、数据库或服务端函数。
 
 ## 开发和构建
 
@@ -28,6 +28,8 @@ npm run preview
 
 吹蜡烛采用长按操作，不请求麦克风权限。音效默认关闭；真实媒体由访客主动点击播放。探索记录只保存在当前浏览器，不会上传。
 
+页面不提供文字输入、留言提交、文件上传或录制功能。信件与媒体是维护者写入项目的只读内容；弹幕屏只播放按钮选择的预设祝福，不会发送到 B 站或任何服务器。
+
 ## 添加留言、图片、音频和视频
 
 已接入 `ref/素材/Kerry/留言.txt` 的真实祝福，图片、音频、视频仍展示占位界面。将媒体放入 `public/media/`，在 `src/content.ts` 的对应 `items` 中填入内容，然后重新构建。侧栏会自动显示内容数量。
@@ -50,7 +52,37 @@ npm run preview
 
 `src/content.ts` 还包含首播日、周年日和 B 站主页链接。`src/world.ts` 定义地图尺寸、碰撞与互动点；`src/activities.ts` 实现周年小游戏。
 
-## Cloudflare Pages
+## 制作人名单
+
+当前按顺序展示：派大星、Kerry、苏颜、卿取之于蓝、正号、千羽。名单在 `src/content.ts` 的 `producers` 数组中；后续在数组末尾追加名字并重新构建即可。
+
+## Cloudflare 部署
+
+以下两种方式都部署纯静态网页。选择一种即可；游戏没有后端处理逻辑。
+
+### Workers Git 构建界面（有“创建新令牌”的界面）
+
+仓库中已加入 `wrangler.jsonc`，将 `dist/` 作为静态资源目录，不配置服务端入口、数据库或存储绑定。
+
+| 配置项                       | 填写方式                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------- |
+| 项目名称                     | `fmm-1-year`（如自行改名，同时修改 `wrangler.jsonc` 的 `name`）                                   |
+| 仓库                         | `patrick-0079/fmm-1-year`                                                                         |
+| 生产分支                     | `main`                                                                                            |
+| 构建命令（可选）             | `npm run build`。虽然界面标注可选，本项目需要构建，必须填写。                                     |
+| 部署命令                     | `npx wrangler deploy`                                                                             |
+| 启用预览构建                 | 开启；非生产分支用于预览。                                                                        |
+| 预览命令（如显示）           | 保留默认 `npx wrangler preview`。                                                                 |
+| 使用 Cloudflare Access 保护  | 面向粉丝公开访问时关闭。开启会要求受保护地址的访客登录。若开关注明仅保护预览，则只影响预览地址。  |
+| 高级设置 → 根目录            | `/`，即仓库根目录。                                                                               |
+| 高级设置 → API 令牌          | 保留“创建新令牌 / 将自动创建新令牌”，由 Cloudflare 自动管理部署凭据；不需要在网页代码里填写令牌。 |
+| 构建变量名称                 | `NODE_VERSION`                                                                                    |
+| 构建变量值                   | `24`                                                                                              |
+| 其他变量、Secrets 与存储绑定 | 留空。                                                                                            |
+
+本地可执行 `npx wrangler deploy --dry-run` 验证静态部署配置；实际部署仍由你在 Cloudflare 中完成。
+
+### Pages Git 构建界面（有“构建输出目录”的界面）
 
 连接 GitHub 仓库 `patrick-0079/fmm-1-year`，填写：
 
@@ -63,7 +95,11 @@ npm run preview
 | 根目录    | 留空（仓库根目录）         |
 | Node 版本 | 环境变量 `NODE_VERSION=24` |
 
-也可以把本地构建的 `dist` 目录直接上传到 Pages。无需 Workers、Functions、API Key 或其他环境变量。
+如显示预览构建则开启；公开纪念站的 Access 保护关闭。Pages 的预览 Access 开关仅保护预览部署，默认不会保护正式 `pages.dev` 或自定义域名。
+
+也可以把本地构建的 `dist` 目录直接上传到 Pages。Pages 这条路径无需部署命令、Functions 或手动设置 API 令牌。
+
+官方配置依据：[Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)、[Workers 静态资源](https://developers.cloudflare.com/workers/static-assets/get-started/)、[Pages 构建配置](https://developers.cloudflare.com/pages/configuration/build-configuration/)、[Pages 预览访问控制](https://developers.cloudflare.com/pages/configuration/preview-deployments/)。
 
 ## 纪念内容与素材
 

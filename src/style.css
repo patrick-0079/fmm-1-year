@@ -1,12 +1,12 @@
 :root {
   font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
-  color: #674f5e;
-  background: #fff8fa;
+  color: #545660;
+  background: #f7f6f2;
   font-synthesis: none;
-  --ink: #624653;
-  --muted: #9c7e8e;
-  --pink: #cb7898;
-  --line: #eddde5;
+  --ink: #4e535e;
+  --muted: #85818c;
+  --pink: #a28d9d;
+  --line: #e2dfdf;
   --blue: #73b4c9;
   --cream: #fffbf5;
 }
@@ -16,15 +16,14 @@
 body {
   margin: 0;
   background:
-    radial-gradient(ellipse at 6% 11%, #fce8f0 0, transparent 36%),
-    radial-gradient(ellipse at 95% 65%, #f2edf8 0, transparent 35%), #fff9fb;
+    radial-gradient(ellipse at 6% 11%, #f0eee8 0, transparent 36%),
+    radial-gradient(ellipse at 95% 65%, #eeeef3 0, transparent 35%), #f8f7f3;
 }
 button,
 a {
   -webkit-tap-highlight-color: transparent;
 }
-button,
-input {
+button {
   font: inherit;
 }
 button {
@@ -88,10 +87,10 @@ a .icon {
   height: 43px;
   display: grid;
   place-items: center;
-  background: #f5d3df;
-  box-shadow: 4px 4px 0 #ebbacd;
+  background: #e3e6df;
+  box-shadow: 4px 4px 0 #d0d7cc;
   border-radius: 9px;
-  color: #bd6b8b;
+  color: #7b8a7e;
 }
 .brand-mark .icon {
   width: 25px;
@@ -160,15 +159,15 @@ a .icon {
   letter-spacing: 1.5px;
   font-weight: 750;
   margin: 0;
-  color: #634657;
+  color: #535460;
 }
 .page-intro h1 span {
-  color: #ba7494;
+  color: #9b7f93;
 }
 .intro-copy {
   font-size: 13px;
   line-height: 1.8;
-  color: #a38496;
+  color: #8c8190;
   margin: 12px 0 0;
   letter-spacing: 0.25px;
 }
@@ -211,7 +210,7 @@ a .icon {
   top: -12px;
   right: 14px;
   color: #c88aa5;
-  background: #fff9fb;
+  background: #f8f7f3;
   padding: 0 5px;
 }
 .date-stamp .icon {
@@ -225,18 +224,18 @@ a .icon {
   align-items: start;
 }
 .game-window {
-  border: 1px solid #dcb4c6;
+  border: 1px solid #ccc6d0;
   border-radius: 11px;
   overflow: hidden;
-  background: #fffafc;
+  background: #fcfbf8;
   box-shadow:
-    0 6px 0 #f1dce6,
+    0 6px 0 #e6e2e7,
     0 15px 45px #aa6a8b0b;
 }
 .window-bar {
   height: 44px;
-  background: #f8e8ef;
-  border-bottom: 1px solid #dcb4c6;
+  background: #eeecec;
+  border-bottom: 1px solid #ccc6d0;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -292,7 +291,7 @@ a .icon {
   position: relative;
   aspect-ratio: 3/2;
   overflow: hidden;
-  background: #d89eb7;
+  background: #bab4bc;
   isolation: isolate;
 }
 .scene-wrap canvas {
@@ -356,7 +355,7 @@ a .icon {
 .scene-transition {
   position: absolute;
   inset: 0;
-  background: #f9e5ed;
+  background: #efede8;
   opacity: 0;
   transition: opacity 0.2s;
   pointer-events: none;
@@ -384,7 +383,7 @@ a .icon {
   box-shadow: 0 3px 10px #4c2a4933;
 }
 .nearby-prompt kbd {
-  color: #69445c;
+  color: #5f5b6e;
   background: #fae8ef;
   border: 0;
 }
@@ -395,7 +394,7 @@ a .icon {
 .intro-screen {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, #69425974, #79537257), #7650632b;
+  background: linear-gradient(90deg, #3c40576b, #4a506746), #4d566529;
   backdrop-filter: blur(2px);
   display: flex;
   flex-direction: column;
@@ -500,7 +499,7 @@ kbd {
   border: 1px solid #dfcad6;
   border-bottom-width: 2px;
   border-radius: 3px;
-  background: #fffafc;
+  background: #fcfbf8;
   color: #a17a91;
   padding: 2px;
 }
@@ -523,7 +522,7 @@ kbd {
   display: none;
 }
 .journal {
-  background: #fffdfb;
+  background: #fffdf8;
   border: 1px solid #e7d9e1;
   border-radius: 9px;
   padding: 24px 20px 18px;
@@ -537,7 +536,7 @@ kbd {
   width: 6px;
   border: 1px solid #dbc0cf;
   border-radius: 5px;
-  background: #fff9fb;
+  background: #f8f7f3;
   position: absolute;
   top: -10px;
 }
@@ -561,7 +560,7 @@ kbd {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #7b596d;
+  color: #686273;
 }
 .journal-heading h2 .icon {
   width: 15px;
@@ -570,7 +569,7 @@ kbd {
 }
 .journal-heading > p {
   font-size: 10px;
-  color: #b49aaa;
+  color: #928894;
   margin: 9px 0 22px;
 }
 .task-list {
@@ -584,7 +583,7 @@ kbd {
   text-align: left;
   gap: 10px;
   border: 1px solid #eee2e8;
-  background: #fffdfb;
+  background: #fffdf8;
   border-radius: 6px;
   padding: 11px 9px;
   transition:
@@ -629,14 +628,14 @@ kbd {
   font-size: 11px;
   font-weight: 600;
   display: block;
-  color: #8a687d;
+  color: #756b7d;
   letter-spacing: 0.3px;
 }
 .task-label small {
   font-size: 9px;
   display: block;
   margin-top: 5px;
-  color: #baa1af;
+  color: #9c92a0;
 }
 .task-check {
   width: 12px;
@@ -672,7 +671,7 @@ kbd {
   justify-content: space-between;
   align-items: center;
   font-size: 10px;
-  color: #b49aab;
+  color: #938a97;
 }
 .journal-progress strong {
   font:
@@ -698,7 +697,7 @@ kbd {
 .journal-progress p {
   font-size: 9px;
   line-height: 1.8;
-  color: #b69cab;
+  color: #948b98;
   margin: 9px 0 0;
 }
 .journal-divider {
@@ -710,7 +709,7 @@ kbd {
 .journal-divider span {
   position: relative;
   top: -10px;
-  background: #fffdfb;
+  background: #fffdf8;
   padding: 0 8px;
   color: #cbb1c0;
   font-size: 15px;
@@ -724,7 +723,7 @@ kbd {
 }
 .memory-heading-small > span {
   font-size: 9px;
-  color: #bfa7b5;
+  color: #9d94a0;
 }
 .memory-shortcuts {
   display: grid;
@@ -734,7 +733,7 @@ kbd {
 }
 .memory-shortcuts button {
   border: 1px dashed #e7dce4;
-  background: #fffdfb;
+  background: #fffdf8;
   padding: 11px 5px;
   border-radius: 5px;
   display: flex;
@@ -757,7 +756,7 @@ kbd {
 }
 .memory-shortcuts small {
   font-size: 8px;
-  color: #c0a7b6;
+  color: #9e95a2;
 }
 .journal-note {
   display: flex;
@@ -777,7 +776,7 @@ kbd {
 .journal-note p {
   font-size: 9px;
   line-height: 1.9;
-  color: #b39aab;
+  color: #8b8491;
   margin: 0;
 }
 .world-note {
@@ -803,7 +802,7 @@ kbd {
 .world-note p {
   font-size: 11px;
   line-height: 1.9;
-  color: #b49aab;
+  color: #938a97;
   letter-spacing: 0.4px;
   margin: 8px 0;
 }
@@ -838,7 +837,7 @@ footer > span {
     9px "Courier New",
     monospace;
   letter-spacing: 0.8px;
-  color: #b89eae;
+  color: #958b9a;
   display: flex;
   gap: 4px;
   align-items: center;
@@ -850,7 +849,7 @@ footer .icon {
 }
 footer p {
   font-size: 9px;
-  color: #c2adbb;
+  color: #a69ba9;
   margin: 0;
   flex: 1;
 }
@@ -883,21 +882,21 @@ footer .reset-button {
   height: 15px;
 }
 .button.primary {
-  background: #bd7798;
+  background: #6e8477;
   color: #fff9f8;
-  border-color: #b56f90;
-  box-shadow: 0 3px 0 #9d5e7e;
+  border-color: #617769;
+  box-shadow: 0 3px 0 #53665a;
 }
 .button.primary:hover:not(:disabled) {
-  background: #ad668a;
+  background: #607668;
   transform: translateY(-1px);
 }
 .button.primary:active:not(:disabled) {
   transform: translateY(2px);
-  box-shadow: 0 1px 0 #9d5e7e;
+  box-shadow: 0 1px 0 #53665a;
 }
 .button.secondary {
-  background: #fffafc;
+  background: #fcfbf8;
   border-color: #e5cdda;
   color: #a47c94;
 }
@@ -922,7 +921,7 @@ footer .reset-button {
 }
 .modal-card {
   position: relative;
-  background: #fffafc;
+  background: #fcfbf8;
   border: 1px solid #e6bfce;
   box-shadow: 0 7px 0 #c98fa58c;
   border-radius: 12px;
@@ -935,7 +934,7 @@ footer .reset-button {
   top: 15px;
   width: 30px;
   height: 30px;
-  background: #f6e5ee;
+  background: #ece9ee;
   z-index: 2;
 }
 .modal-heading {
@@ -953,7 +952,7 @@ footer .reset-button {
   letter-spacing: 1px;
   font-weight: 650;
   margin: 0;
-  color: #825b74;
+  color: #686274;
   line-height: 1.5;
 }
 .modal-heading p {
@@ -1465,7 +1464,7 @@ footer .reset-button {
   padding: 12px 10px;
   text-align: left;
   border: 1px solid #eadbe4;
-  background: #fffdfb;
+  background: #fffdf8;
   border-radius: 5px;
   font-size: 12px;
   color: #ab859e;
@@ -1479,7 +1478,7 @@ footer .reset-button {
 .memory-detail {
   padding: 20px;
   border: 1px solid #eddeea;
-  background: #fffdfb;
+  background: #fffdf8;
   border-radius: 7px;
   min-width: 0;
 }
@@ -1537,8 +1536,8 @@ footer .reset-button {
   border: 1px dashed #d9b6cc;
   background: repeating-linear-gradient(
     0deg,
-    #fffafc,
-    #fffafc 25px,
+    #fcfbf8,
+    #fcfbf8 25px,
     #f7e7f1 26px
   );
   text-align: center;
@@ -1598,7 +1597,7 @@ footer .reset-button {
   border: 1px solid #ecdce6;
   padding: 19px;
   border-radius: 7px;
-  background: #fffdfb;
+  background: #fffdf8;
 }
 .help-grid > div > span {
   color: #c190ae;
@@ -1918,7 +1917,7 @@ footer .reset-button {
     justify-content: space-between;
     padding: 16px 22px 18px;
     border-top: 1px solid #f0e0e9;
-    background: #fdf4f8;
+    background: #f2f1ed;
     user-select: none;
     -webkit-user-select: none;
     gap: 16px;
@@ -1933,7 +1932,7 @@ footer .reset-button {
   .dpad button {
     border: 1px solid #dfc4d4;
     border-bottom-width: 3px;
-    background: #fffafc;
+    background: #fcfbf8;
     border-radius: 6px;
     color: #b58a9f;
     font-size: 18px;
@@ -1982,7 +1981,7 @@ footer .reset-button {
   }
   .touch-hint span {
     font-size: 9px;
-    color: #c3adbb;
+    color: #9d96a1;
   }
   .touch-interact {
     width: 69px;
@@ -2054,7 +2053,7 @@ footer .reset-button {
     width: 31px;
     height: 31px;
     border-radius: 6px;
-    box-shadow: 3px 3px 0 #ebbacd;
+    box-shadow: 3px 3px 0 #d0d7cc;
   }
   .brand-mark .icon {
     width: 21px;
@@ -2617,5 +2616,84 @@ footer .reset-button {
   }
   .scene-wrap canvas {
     image-rendering: pixelated;
+  }
+}
+
+.credits {
+  margin-top: 42px;
+  padding: 34px 24px 31px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+.credits-heading .eyebrow {
+  font-size: 9px;
+  color: #9a929e;
+  letter-spacing: 1.5px;
+  margin-bottom: 10px;
+}
+.credits h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  color: #686273;
+}
+.credits-heading p {
+  font-size: 11px;
+  color: #938a97;
+  line-height: 1.9;
+  margin: 12px 0 24px;
+}
+.producer-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 12px 27px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.producer-list li {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  font-size: 13px;
+  color: #77707d;
+  line-height: 1.8;
+}
+.producer-list .icon {
+  width: 10px;
+  height: 10px;
+  color: #b3acbb;
+}
+.credits-footnote {
+  display: block;
+  font-size: 10px;
+  color: #a49aa8;
+  margin-top: 25px;
+  letter-spacing: 1px;
+}
+.credits + footer {
+  margin-top: 0;
+}
+@media (max-width: 540px) {
+  .credits {
+    margin-top: 28px;
+    padding: 28px 12px;
+  }
+  .credits h2 {
+    font-size: 17px;
+  }
+  .producer-list {
+    gap: 12px 22px;
+  }
+  .producer-list li {
+    font-size: 12px;
+  }
+  .credits-heading p {
+    font-size: 10px;
+  }
+  .credits-footnote {
+    font-size: 9px;
   }
 }

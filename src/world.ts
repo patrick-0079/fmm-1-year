@@ -1,5 +1,5 @@
-import roomUrl from "./assets/room.webp";
-import gardenUrl from "./assets/garden.webp";
+import roomUrl from "./assets/room-calm.webp";
+import gardenUrl from "./assets/garden-calm.webp";
 import spriteUrl from "./assets/nemu-sprites.webp";
 import { canStand, movePlayer, type Point, type Rect } from "./core";
 
