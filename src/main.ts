@@ -1,23 +1,15 @@
 import "./style.css";
-import { anniversary, collections, producers, encouragements } from "./content";
-import { GAME_IDS, SAVE_KEY, readProgress } from "./core";
+import { anniversary, collections, producers } from "./content";
 import { escapeHtml, icon } from "./icons";
-import { Modal } from "./modal";
-import { World, scenes, type SceneId } from "./world";
-import { Activities } from "./activities";
-import { openCollection } from "./media";
-import { chime, setSound } from "./sound";
-import spriteUrl from "./assets/nemu-sprites.webp";
 
-let saved: string | null = null;
-try {
-  saved = localStorage.getItem(SAVE_KEY);
-} catch {
-  /* A private browser can still play without persistence. */
-}
-let progress = readProgress(saved);
-let started = false;
 const tasks = [
+  {
+    id: "courage",
+    title: "带着勇气出发",
+    subtitle: "点亮星灯 · 摘一朵勇气之花",
+    icon: "heart",
+    scene: "challenge",
+  },
   {
     id: "cake",
     title: "分一口甜甜",
@@ -42,7 +34,7 @@ const tasks = [
   {
     id: "fireworks",
     title: "点亮这片夜空",
-    subtitle: "送眠眠三朵烟花",
+    subtitle: "送芙芙三朵烟花",
     icon: "star",
     scene: "garden",
   },
@@ -57,33 +49,33 @@ const memories = [
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   <div class="page-shell">
     <header class="site-header">
-      <a class="brand" href="#" aria-label="芙眠眠一周年首页"><span class="brand-mark">${icon("heart")}</span><span>眠眠的晚安小世界<small>NEMU’S LITTLE WORLD</small></span></a>
-      <div class="header-right"><span class="anniversary-tag">${icon("star")} 1st Anniversary</span><a class="bili-link" href="${anniversary.bilibili}" target="_blank" rel="noopener noreferrer">${icon("tv")} 去见眠眠 <span>↗</span></a></div>
+      <a class="brand" href="#" aria-label="芙眠眠一周年首页"><span class="brand-mark">${icon("heart")}</span><span>芙芙的晚安小世界<small>FUFU’S LITTLE WORLD</small></span></a>
+      <div class="header-right"><span class="anniversary-tag">${icon("star")} 1st Anniversary</span><a class="bili-link" href="${anniversary.bilibili}" target="_blank" rel="noopener noreferrer">${icon("tv")} 去见芙芙 <span>↗</span></a></div>
     </header>
     <main>
       <section class="page-intro">
         <div><p class="eyebrow">A LITTLE ADVENTURE, A WHOLE YEAR OF GOOD NIGHTS</p><h1>把一整年的晚安，<span>变成一场小冒险。</span></h1><p class="intro-copy">欢迎来到芙眠眠的周年小世界。慢慢走，快乐藏在每个小角落。</p></div>
-        <div class="date-stamp"><span>和眠眠一起</span><strong>ONE LOVELY YEAR</strong><small>${anniversary.start} — ${anniversary.end}</small><i>${icon("heart")}</i></div>
+        <div class="date-stamp"><span>和芙芙一起</span><strong>ONE LOVELY YEAR</strong><small>${anniversary.start} — ${anniversary.end}</small><i>${icon("heart")}</i></div>
       </section>
       <div class="adventure-layout">
-        <section class="game-window" aria-label="眠眠的像素小世界">
-          <div class="window-bar"><div class="window-dots"><i></i><i></i><i></i></div><span>nemu’s little world / 周年特别篇</span><div class="window-tools"><button class="icon-button sound-toggle" aria-label="开启游戏音效" title="游戏音效">${icon("mute")}</button><button class="icon-button help-button" aria-label="查看操作说明" title="操作说明">?</button></div></div>
+        <section class="game-window" aria-label="芙芙的像素小世界">
+          <div class="window-bar"><div class="window-dots"><i></i><i></i><i></i></div><span>fufu’s little world / 周年特别篇</span><div class="window-tools"><button class="music-toggle icon-button" aria-label="关闭背景音乐" title="背景音乐">♫</button><button class="icon-button sound-toggle" aria-label="开启游戏音效" title="游戏音效">${icon("mute")}</button><button class="icon-button help-button" aria-label="查看操作说明" title="操作说明">?</button></div></div>
           <div class="scene-wrap">
             <canvas id="world" tabindex="0" aria-label="像素探索场景。使用 WASD 或方向键移动，E 或空格互动；也可点击地面行走，点击发光标记互动。">浏览器需要支持 Canvas 才能游玩。</canvas>
             <div class="scene-top"><span class="location-pill">${icon("moon")} <span id="location-name">ROOM 01 · 晚安小屋</span></span><button class="map-switch" title="切换到另一个场景">周年花园 ${icon("arrow")}</button></div>
-            <span class="checkpoint-pill">${icon("star")} 复活点 · <span id="checkpoint-name">枕边星灯</span></span>
-            <div class="nearby-prompt" hidden><span></span><kbd>E</kbd><span class="prompt-verb">互动</span></div>
-            <div class="intro-screen"><div class="intro-stars">✧ <span>✦</span> ✧</div><span class="intro-pill">芙眠眠 · 直播一周年纪念</span><h2>今晚的快乐，<br>等你来发现。</h2><p>一间温暖小屋，一座星光花园。<br>还有藏在角落里的，一点点喜欢。</p><button class="button primary enter-button" disabled>正在点亮小世界…</button><small>没有倒计时，慢慢探索就好 ♡</small></div>
+            <span class="time-pill" role="timer" aria-live="off">☀ 08:00 · 白昼</span><span class="checkpoint-pill">${icon("star")} 复活点 · <span id="checkpoint-name">枕边星灯</span></span>
+            <div class="activity-hud" hidden><div class="activity-heading"><span class="activity-status" role="status" aria-live="polite"></span><button class="activity-close" aria-label="结束当前互动，回到地图">收起 ×</button></div><div class="activity-actions"></div></div><div class="revive-strip" hidden role="status"></div><div class="nearby-prompt" hidden><span></span><kbd>E</kbd><span class="prompt-verb">互动</span></div>
+            <div class="intro-screen"><div class="intro-stars">✧ <span>✦</span> ✧</div><span class="intro-pill">芙眠眠 · 直播一周年纪念</span><h2>今晚的快乐，<br>等你来发现。</h2><p>一间温暖小屋，两座缤纷花园。<br>还有藏在角落里的，一点点喜欢。</p><button class="button primary enter-button" disabled>正在点亮小世界…</button><small>点击开始会播放轻柔音乐 · 可随时关闭 ♡</small></div>
             <div class="scene-transition" aria-hidden="true"></div>
           </div>
-          <div class="game-bottom"><div class="desktop-instructions"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span><span><kbd>E</kbd> 互动</span><i></i><span>也可以点地面走动、点标记探索</span></div><span class="exploration-count">${icon("star")} <span id="explored">0</span>/10 个角落</span></div>
-          <p class="journey-legend">${icon("star")} 靠近星灯点亮复活点 <span>·</span> 小心路上的缎带、石头、迷雾和风</p>
+          <nav class="scene-nav" aria-label="地图导航"><button data-scene="room">01 晚安小屋</button><button data-scene="garden">02 周年花园</button><button data-scene="challenge">03 勇气花园</button><div class="volume-tools"><button class="volume-down" aria-label="降低游戏音量">−</button><span class="volume-value">45%</span><button class="volume-up" aria-label="提高游戏音量">＋</button></div></nav><div class="garden-pocket"><span>${icon("gift")}<span class="bag-count">苹果 0 · 花朵 0 · 星屑 0</span></span><button class="crown-toggle" aria-pressed="false">戴上花冠</button><span class="day-hint">十分钟一昼夜 · 找长椅休息，等一场黄昏和星夜</span></div><section class="map-reader" aria-label="地图物件阅读区" hidden></section><p class="inline-help" hidden>用 WASD、方向键或下方方向键移动，也可以点击地面行走。点击发光标记会自动走近互动。蛋糕、礼物和烟花都在地图里操作；按 Esc 收起互动。勇气花园里有四种小挫折，走近星灯会记住复活点。进度只保存在当前浏览器。</p><div class="game-bottom"><div class="desktop-instructions"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span><span><kbd>E</kbd> 互动</span><i></i><span>也可以点地面走动、点标记探索</span></div><span class="exploration-count">${icon("star")} <span id="explored">0</span>/11 个角落</span></div>
+          <p class="journey-legend">${icon("star")} 靠近星灯点亮复活点 <span>·</span> 勇气花园里藏着小挫折，小屋与周年花园安心玩</p>
           <div class="touch-controls"><div class="dpad" aria-label="移动方向键"><button data-direction="0,-1" class="dpad-up" aria-label="向上移动">↑</button><button data-direction="-1,0" class="dpad-left" aria-label="向左移动">←</button><span>${icon("heart")}</span><button data-direction="1,0" class="dpad-right" aria-label="向右移动">→</button><button data-direction="0,1" class="dpad-down" aria-label="向下移动">↓</button></div><div class="touch-hint">走近发光的小物件<br><span>或者直接点标记</span></div><button class="touch-interact">${icon("star")}<span>互动</span></button></div>
         </section>
         <aside class="journal" aria-label="庆典手账">
           <div class="journal-heading"><span class="eyebrow">TONIGHT’S LITTLE WISHES</span><h2>今晚的小心愿 ${icon("heart")}</h2><p>做一点小事，收集一点快乐。</p></div>
           <div class="task-list">${tasks.map((task, i) => `<button class="task" data-task="${task.id}"><span class="task-icon task-color-${i}">${icon(task.icon)}</span><span class="task-label"><strong>${task.title}</strong><small>${task.subtitle}</small></span><span class="task-check" aria-hidden="true"></span></button>`).join("")}</div>
-          <div class="journal-progress"><div><span>庆典心愿</span><strong id="completed">0 / 4</strong></div><div class="progress-track"><span></span></div><p id="progress-note">第一份快乐，会藏在哪里呢？</p></div>
+          <div class="journal-progress"><div><span>庆典心愿</span><strong id="completed">0 / 5</strong></div><div class="progress-track"><span></span></div><p id="progress-note">第一份快乐，会藏在哪里呢？</p></div>
           <div class="journal-divider"><span>✧</span></div>
           <div class="memory-heading-small"><h3>留一格，给回忆</h3><span>慢慢收集，慢慢珍藏</span></div>
           <div class="memory-shortcuts">${memories.map((memory) => `<button data-memory="${memory.id}">${icon(memory.icon)}<span>${collections[memory.id].title}</span><small>${collections[memory.id].items.length ? `${collections[memory.id].items.length} ${memory.unit}` : memory.empty}</small></button>`).join("")}</div>
@@ -93,291 +85,8 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
       <section class="world-note"><span>${icon("tv")} 小电视也来庆祝啦</span><p>穿过小屋的门，到花园发一条弹幕、放飞一只气球，<br class="desktop-break">再为这场相遇，点亮一片小小的星空。</p><button class="text-button garden-link">去花园看看 ${icon("arrow")}</button></section>
       <section class="credits" aria-labelledby="credits-title"><div class="credits-heading"><span class="eyebrow">MADE TOGETHER, WITH LOVE</span><h2 id="credits-title">制作人名单</h2><p>谢谢每一份心意，让这场小冒险成为可能。</p></div><ul class="producer-list">${producers.map((name) => `<li>${icon("star")}<span>${escapeHtml(name)}</span></li>`).join("")}</ul><span class="credits-footnote">一起，把晚安变成一份礼物。</span></section>
     </main>
-    <footer><span>MADE WITH ${icon("heart")} FOR 芙眠眠</span><p>粉丝制作的一周年纪念礼物 · 愿下一个晚安，依然有你。</p><button class="text-button reset-button">重新探索</button></footer>
+    <footer><span>MADE WITH ${icon("heart")} FOR 芙眠眠</span><p>粉丝制作的一周年纪念礼物 · 愿下一个晚安，依然有你。</p><button class="text-button reset-button">重新探索</button><span class="reset-confirmation" hidden>清除本机进度？<button class="reset-confirm map-action">重新开始</button><button class="reset-cancel map-action">保留进度</button></span></footer>
   </div><div class="toast" role="status" aria-live="polite"></div><div class="confetti-layer" aria-hidden="true"></div>`;
 
-const modal = new Modal();
-const world = new World(document.querySelector("#world")!);
-let toastTimeout: ReturnType<typeof setTimeout>;
-function toast(text: string) {
-  const element = document.querySelector(".toast")!;
-  element.textContent = text;
-  element.classList.add("visible");
-  clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => element.classList.remove("visible"), 3200);
-}
-function save() {
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(progress));
-  } catch {
-    /* Saving is optional. */
-  }
-}
-function updateProgress() {
-  world.visited = progress.visited;
-  document.querySelector("#explored")!.textContent = String(
-    progress.visited.length,
-  );
-  document.querySelector("#completed")!.textContent =
-    `${progress.completed.length} / 4`;
-  document.querySelector<HTMLElement>(".progress-track span")!.style.width =
-    `${(progress.completed.length / 4) * 100}%`;
-  for (const task of tasks) {
-    const button = document.querySelector<HTMLButtonElement>(
-      `[data-task="${task.id}"]`,
-    )!;
-    const done = progress.completed.includes(task.id);
-    button.classList.toggle("done", done);
-    button.setAttribute(
-      "aria-label",
-      `${task.title}${done ? "，已完成，可以重玩" : "，前往探索"}`,
-    );
-  }
-  document.querySelector("#progress-note")!.textContent =
-    progress.completed.length === 4
-      ? "心愿集齐啦！愿往后的每一天都甜甜的。"
-      : progress.completed.length
-        ? "快乐正在一点点装满。继续去冒险吧。"
-        : "第一份快乐，会藏在哪里呢？";
-  const sound = document.querySelector<HTMLButtonElement>(".sound-toggle")!;
-  sound.innerHTML = icon(progress.sound ? "sound" : "mute");
-  sound.setAttribute(
-    "aria-label",
-    progress.sound ? "关闭游戏音效" : "开启游戏音效",
-  );
-  sound.setAttribute("aria-pressed", String(progress.sound));
-}
-function celebrate() {
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const layer = document.querySelector(".confetti-layer")!;
-  for (let i = 0; i < 32; i++) {
-    const bit = document.createElement("i");
-    bit.style.cssText = `--x:${Math.random() * 100}vw;--delay:${Math.random() * 0.35}s;--rotation:${Math.random() * 360}deg;background:${["#e98daf", "#c5b5e1", "#e7c179", "#9bcdd3"][i % 4]}`;
-    layer.append(bit);
-    bit.addEventListener("animationend", () => bit.remove());
-  }
-}
-const activities = new Activities(modal, {
-  complete(id) {
-    if (!progress.completed.includes(id)) {
-      progress.completed.push(id);
-      save();
-      updateProgress();
-      chime(true);
-    }
-  },
-  celebrate,
-});
-modal.onChange = (open) => {
-  world.paused = open || !started;
-  world.clearInput();
-};
-world.onToast = toast;
-world.onCheckpoint = (point, activated) => {
-  document.querySelector("#checkpoint-name")!.textContent = point.title;
-  if (activated) {
-    toast(`复活点已点亮：${point.title}`);
-    chime();
-  }
-};
-let encouragementIndex = 0;
-world.onRespawn = ({ trap, checkpoint }) => {
-  const entry = encouragements.length
-    ? encouragements[encouragementIndex++ % encouragements.length]
-    : undefined;
-  const body = modal.open(
-    "回到亮着灯的地方",
-    `在「${trap.title}」旁绊了一下，已回到${checkpoint.title}。`,
-    "A LITTLE SETBACK, ANOTHER BEGINNING",
-  );
-  body.innerHTML = `<div class="revive-card"><div class="revive-light">${icon("star")}</div><span class="empty-tag">${entry ? "A LITTLE ENCOURAGEMENT" : "鼓励留言 · 待添加"}</span><h3>${escapeHtml(entry?.title || "这里，留给一句加油的话")}</h3><p class="revive-message">${escapeHtml(entry?.message || "鼓励的话正在准备中。\n先在星灯旁休息一下，再继续这场小冒险吧。")}</p>${entry?.author ? `<span class="revive-author">来自 ${escapeHtml(entry.author)}</span>` : ""}</div><p class="small-note">带着已经收集的心愿与回忆，继续探索。</p><div class="quest-actions"><button class="button primary">${icon("heart")} 重新出发</button></div>`;
-  body.querySelector("button")!.addEventListener("click", () => {
-    modal.close();
-    world.canvas.focus({ preventScroll: true });
-  });
-};
-world.onNearby = (spot) => {
-  const prompt = document.querySelector<HTMLElement>(".nearby-prompt")!;
-  prompt.hidden = !spot;
-  if (spot) prompt.querySelector("span")!.textContent = spot.title;
-};
-world.onScene = (scene) => {
-  document.querySelector("#location-name")!.textContent =
-    scene === "room" ? "ROOM 01 · 晚安小屋" : "GARDEN 02 · 周年花园";
-  document.querySelector(".map-switch")!.innerHTML =
-    `${scene === "room" ? "周年花园" : "晚安小屋"} ${icon("arrow")}`;
-};
-function transition(scene: SceneId) {
-  if (world.busy) return;
-  const overlay = document.querySelector(".scene-transition")!;
-  overlay.classList.add("active");
-  world.paused = true;
-  world.clearInput();
-  setTimeout(() => {
-    world.switchScene(scene);
-    overlay.classList.remove("active");
-    world.paused = modal.isOpen || !started;
-  }, 200);
-}
-function interact(id: string) {
-  if (id === "door") {
-    transition(world.scene === "room" ? "garden" : "room");
-    return;
-  }
-  if (!progress.visited.includes(id)) {
-    progress.visited.push(id);
-    save();
-    updateProgress();
-  }
-  chime();
-  if (id === "cake") activities.cake();
-  else if (id === "gifts") activities.gifts();
-  else if (id === "balloons") activities.balloons();
-  else if (id === "fireworks") activities.fireworks();
-  else if (id === "danmaku") activities.danmaku();
-  else if (id === "bili") {
-    const body = modal.open(
-      "叮！抵达小电视打卡站",
-      "从一个晚安开始，走到属于眠眠的一周年。",
-      "BILIBILI INSPIRED · FAN CELEBRATION",
-    );
-    body.innerHTML = `<div class="bili-postcard"><span class="postcard-stamp">${icon("tv")}</span><div class="portrait-sprite" style="background-image:url('${spriteUrl}')"></div><span class="postcard-date">${anniversary.start} — ${anniversary.end}</span><h3>这里，有你的一份晚安。</h3><p>芙眠眠，直播一周年快乐！</p></div><div class="quest-actions"><a class="button primary" href="${anniversary.bilibili}" target="_blank" rel="noopener noreferrer">${icon("tv")} 去 B 站见眠眠 ↗</a></div><p class="small-note">粉丝制作的纪念小站，与哔哩哔哩官方无关</p>`;
-  } else openCollection(modal, id);
-}
-world.onInteract = interact;
-const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
-function begin() {
-  if (enter.disabled) return;
-  started = true;
-  document.querySelector(".intro-screen")!.classList.add("dismissed");
-  world.paused = false;
-  if (progress.sound) {
-    try {
-      setSound(true);
-    } catch {
-      progress.sound = false;
-      updateProgress();
-    }
-  }
-  world.canvas.focus({ preventScroll: true });
-  chime(true);
-}
-enter.addEventListener("click", begin);
-world
-  .load()
-  .then(() => {
-    enter.disabled = false;
-    enter.innerHTML = `开始小冒险 ${icon("arrow")}`;
-  })
-  .catch((error) => {
-    enter.textContent = "加载失败，点击刷新";
-    enter.disabled = false;
-    enter.addEventListener("click", () => location.reload(), { once: true });
-    toast(String(error));
-  });
-
-document.querySelector(".sound-toggle")!.addEventListener("click", () => {
-  try {
-    setSound(!progress.sound);
-    progress.sound = !progress.sound;
-    chime();
-    save();
-    updateProgress();
-  } catch {
-    toast("当前浏览器暂时无法播放音效，仍可继续探索。");
-  }
-});
-function help() {
-  const body = modal.open(
-    "慢慢走，快乐就在附近",
-    "这是一个没有时间限制的小冒险。",
-    "HOW TO PLAY",
-  );
-  body.innerHTML = `<div class="help-grid"><div><span>${icon("heart")}</span><h3>成为小小的眠眠</h3><p>电脑用 WASD 或方向键移动，手机用下方方向键。也可以直接点地面，让眠眠走过去。</p></div><div><span>${icon("star")}</span><h3>点亮复活的星灯</h3><p>靠近地上的星灯，就会记住这个复活点。花园中央还有一盏心愿星灯，记得去点亮它。</p></div><div><span>${icon("moon")}</span><h3>挫折也是旅途的一部分</h3><p>路上的绊脚缎带、石头、迷雾和回旋风会让你回到最近点亮的星灯。在那里休息一下，再重新出发。</p></div><div><span>${icon("cake")}</span><h3>带着快乐继续探索</h3><p>绊倒后已经完成的心愿与回忆仍然保留。吹蜡烛、拆礼物、气球和烟花，都在等你。</p></div></div><p class="help-footnote">按 E、空格或互动键探索发光物件。点击标记会自动绕开家具和陷阱；也可以直接点陷阱体验一次重新出发。探索记录仅保存在本机。</p>`;
-}
-document.querySelector(".help-button")!.addEventListener("click", help);
-document.querySelector(".map-switch")!.addEventListener("click", () => {
-  if (world.busy) return;
-  if (!started) begin();
-  transition(world.scene === "room" ? "garden" : "room");
-});
-document.querySelector(".garden-link")!.addEventListener("click", () => {
-  if (world.busy) return;
-  if (!started) begin();
-  transition("garden");
-  world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
-});
-document.querySelectorAll<HTMLButtonElement>("[data-task]").forEach((button) =>
-  button.addEventListener("click", () => {
-    if (world.busy) return;
-    if (!started) begin();
-    if (!started) return;
-    const task = tasks.find((task) => task.id === button.dataset.task)!;
-    const scene = task.scene as SceneId;
-    if (scene !== world.scene) world.switchScene(scene);
-    world.visit(task.id);
-    world.canvas.focus({ preventScroll: true });
-  }),
-);
-document
-  .querySelectorAll<HTMLButtonElement>("[data-memory]")
-  .forEach((button) =>
-    button.addEventListener("click", () => {
-      if (world.busy) return;
-      if (!started) begin();
-      if (!started) return;
-      if (world.scene !== "room") world.switchScene("room");
-      world.visit(button.dataset.memory!);
-    }),
-  );
-document
-  .querySelectorAll<HTMLButtonElement>("[data-direction]")
-  .forEach((button) => {
-    const [x, y] = button.dataset.direction!.split(",").map(Number);
-    button.addEventListener("pointerdown", (e) => {
-      if (!started || modal.isOpen) return;
-      e.preventDefault();
-      button.setPointerCapture(e.pointerId);
-      button.classList.add("pressed");
-      world.setTouch(x, y);
-    });
-    for (const event of ["pointerup", "pointercancel", "lostpointercapture"])
-      button.addEventListener(event, () => {
-        button.classList.remove("pressed");
-        world.setTouch(0, 0);
-      });
-  });
-document
-  .querySelector(".touch-interact")!
-  .addEventListener("click", () => world.interact());
-document.querySelector(".reset-button")!.addEventListener("click", () => {
-  const body = modal.open(
-    "重新打开这份礼物？",
-    "会清除当前浏览器的探索和心愿记录，所有小游戏都可以重新开始。",
-    "A FRESH LITTLE ADVENTURE",
-  );
-  body.innerHTML = `<div class="quest-actions"><button class="button secondary keep-progress">继续这次冒险</button><button class="button primary reset-confirm">重新探索</button></div>`;
-  body
-    .querySelector(".keep-progress")!
-    .addEventListener("click", () => modal.close());
-  body.querySelector(".reset-confirm")!.addEventListener("click", () => {
-    progress = { visited: [], completed: [], sound: progress.sound };
-    save();
-    updateProgress();
-    world.switchScene("room");
-    modal.close();
-    toast("新的小冒险开始啦。");
-  });
-});
-document.addEventListener("visibilitychange", () => {
-  world.clearInput();
-});
-updateProgress();
-// Keep the discoverable scene definitions imported at compile time so content and world stay in sync.
-for (const id of GAME_IDS)
-  if (
-    !Object.values(scenes).some((scene) =>
-      scene.spots.some((spot) => spot.id === id),
-    )
-  )
-    throw new Error(`Missing activity: ${id}`);
+import { mountGame } from "./application";
+mountGame(tasks);

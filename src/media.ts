@@ -1,8 +1,13 @@
 import { collections } from "./content";
 import { escapeHtml, icon } from "./icons";
-import { Modal } from "./modal";
+import { duckMusic } from "./sound";
+export interface CollectionSurface {
+  open(title: string, subtitle: string, label: string): HTMLElement;
+  close(): void;
+  onCleanup(cleanup: () => void): void;
+}
 
-export function openCollection(modal: Modal, id: string) {
+export function openCollection(modal: CollectionSurface, id: string) {
   const collection = collections[id];
   if (!collection) return;
   const body = modal.open(
@@ -29,6 +34,7 @@ export function openCollection(modal: Modal, id: string) {
       media.removeAttribute("src");
       media.load();
       media = null;
+      duckMusic(false);
     }
   };
   const select = (index: number) => {
@@ -62,6 +68,9 @@ export function openCollection(modal: Modal, id: string) {
         if (player instanceof HTMLVideoElement) player.playsInline = true;
         element = player;
         media = player;
+        player.addEventListener("play", () => duckMusic(true));
+        for (const event of ["pause", "ended"])
+          player.addEventListener(event, () => duckMusic(false));
       }
       element.src = item.src;
       content.append(element);

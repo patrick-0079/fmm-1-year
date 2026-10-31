@@ -7,7 +7,9 @@ test("corrupt or unexpected saved data cannot break a new visit", () => {
     assert.deepEqual(readProgress(value), {
       visited: [],
       completed: [],
-      sound: false,
+      sound: true,
+      bgm: true,
+      volume: 0.45,
     });
   }
   assert.deepEqual(
@@ -22,6 +24,8 @@ test("corrupt or unexpected saved data cannot break a new visit", () => {
       visited: ["cake", "danmaku"],
       completed: ["cake"],
       sound: false,
+      bgm: false,
+      volume: 0.45,
     },
   );
 });

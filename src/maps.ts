@@ -1,5 +1,5 @@
 import type { Checkpoint, Geometry, Hazard, Point } from "./core.ts";
-export type SceneId = "room" | "garden";
+export type SceneId = "room" | "garden" | "challenge";
 export interface Hotspot {
   id: string;
   title: string;
@@ -8,6 +8,7 @@ export interface Hotspot {
   approach: Point;
   color?: string;
   radius?: number;
+  portal?: SceneId;
 }
 export interface Scene extends Geometry {
   title: string;
@@ -114,16 +115,7 @@ export const scenes: Record<SceneId, Scene> = {
       ]),
     ],
     checkpoints: [{ id: "room-light", title: "枕边星灯", x: 300, y: 310 }],
-    hazards: [
-      {
-        id: "ribbon",
-        title: "绊脚缎带",
-        kind: "ribbon",
-        x: 400,
-        y: 286,
-        radius: 14,
-      },
-    ],
+    hazards: [],
     spots: [
       {
         id: "cake",
@@ -179,6 +171,7 @@ export const scenes: Record<SceneId, Scene> = {
       },
       {
         id: "door",
+        portal: "garden",
         title: "去周年花园",
         x: 300,
         y: 373,
@@ -284,35 +277,11 @@ export const scenes: Record<SceneId, Scene> = {
       { id: "garden-entry", title: "启程星灯", x: 450, y: 175 },
       { id: "garden-heart", title: "心愿星灯", x: 450, y: 415 },
     ],
-    hazards: [
-      {
-        id: "stone",
-        title: "小小绊脚石",
-        kind: "stone",
-        x: 450,
-        y: 480,
-        radius: 16,
-      },
-      {
-        id: "mist",
-        title: "迷路的小雾",
-        kind: "mist",
-        x: 599,
-        y: 351,
-        radius: 20,
-      },
-      {
-        id: "wind",
-        title: "回旋小风",
-        kind: "wind",
-        x: 298,
-        y: 348,
-        radius: 17,
-      },
-    ],
+    hazards: [],
     spots: [
       {
         id: "door",
+        portal: "room",
         title: "回晚安小屋",
         x: 446,
         y: 116,
@@ -353,6 +322,170 @@ export const scenes: Record<SceneId, Scene> = {
         radius: 85,
         color: "#66bfd8",
       },
+      {
+        id: "garden-gate",
+        title: "去勇气花园",
+        portal: "challenge",
+        x: 450,
+        y: 563,
+        approach: { x: 450, y: 550 },
+        color: "#89b77c",
+      },
+    ],
+  },
+  challenge: {
+    title: "勇气花园",
+    width: 900,
+    height: 600,
+    bounds: { x: 105, y: 100, w: 690, h: 425 },
+    spawn: { x: 450, y: 510 },
+    walls: [],
+    checkpoints: [
+      { id: "courage-entry", title: "出发星灯", x: 450, y: 510 },
+      { id: "courage-middle", title: "勇气星灯", x: 610, y: 315 },
+      { id: "courage-end", title: "向阳星灯", x: 450, y: 125 },
+    ],
+    hazards: [
+      {
+        id: "ribbon",
+        title: "绊脚缎带",
+        kind: "ribbon",
+        x: 335,
+        y: 438,
+        radius: 17,
+      },
+      {
+        id: "stone",
+        title: "小小绊脚石",
+        kind: "stone",
+        x: 325,
+        y: 356,
+        radius: 18,
+      },
+      {
+        id: "mist",
+        title: "迷路的小雾",
+        kind: "mist",
+        x: 605,
+        y: 254,
+        radius: 23,
+      },
+      {
+        id: "wind",
+        title: "回旋小风",
+        kind: "wind",
+        x: 466,
+        y: 195,
+        radius: 20,
+      },
+    ],
+    spots: [
+      {
+        id: "return-gate",
+        title: "回周年花园",
+        portal: "garden",
+        x: 450,
+        y: 530,
+        approach: { x: 450, y: 510 },
+        color: "#67c2d8",
+      },
+      {
+        id: "courage",
+        title: "摘一朵勇气之花",
+        x: 450,
+        y: 100,
+        approach: { x: 450, y: 125 },
+        radius: 52,
+        color: "#e4b458",
+      },
     ],
   },
 };
+
+// Flat collectible patches do not block feet; only the new apple-tree trunks do.
+for (const id of ["garden", "challenge"] as const) {
+  const outdoor = scenes[id];
+  const tree = id === "garden" ? { x: 315, y: 235 } : { x: 705, y: 392 };
+  const flowers = id === "garden" ? { x: 548, y: 410 } : { x: 225, y: 267 };
+  const drop = id === "garden" ? { x: 560, y: 365 } : { x: 295, y: 225 };
+  const bench = id === "garden" ? { x: 385, y: 420 } : { x: 560, y: 430 };
+  outdoor.walls.push({
+    label: "苹果树树干",
+    x: tree.x - 8,
+    y: tree.y + 13,
+    w: 16,
+    h: 13,
+  });
+  outdoor.walls.push({
+    label: "休息长椅",
+    x: bench.x - 21,
+    y: bench.y + 1,
+    w: 42,
+    h: 15,
+  });
+  outdoor.spots.push(
+    {
+      id: "apple",
+      title: "摘一颗苹果",
+      x: tree.x,
+      y: tree.y,
+      approach: { x: tree.x + 30, y: tree.y + 31 },
+      radius: 65,
+      color: "#e99585",
+    },
+    {
+      id: "flowers",
+      title: "采一朵小花",
+      x: flowers.x,
+      y: flowers.y,
+      approach: { x: flowers.x, y: flowers.y + 23 },
+      radius: 50,
+      color: "#eaa7bc",
+    },
+    {
+      id: "drop",
+      title: "捡起闪亮掉落物",
+      x: drop.x,
+      y: drop.y,
+      approach: { x: drop.x, y: drop.y + 15 },
+      radius: 38,
+      color: "#e4c776",
+    },
+    {
+      id: "rest",
+      title: "在花园里歇一会",
+      x: id === "garden" ? 385 : 560,
+      y: id === "garden" ? 420 : 430,
+      approach: id === "garden" ? { x: 385, y: 442 } : { x: 560, y: 452 },
+      radius: 50,
+      color: "#97c9ce",
+    },
+    {
+      id: "dew",
+      title: "清晨彩蛋 · 晨露花",
+      x: 510,
+      y: 180,
+      approach: { x: 510, y: 205 },
+      radius: 45,
+      color: "#b5e2e6",
+    },
+    {
+      id: "sunset",
+      title: "黄昏彩蛋 · 金色小纸船",
+      x: 755,
+      y: 383,
+      approach: { x: 735, y: 395 },
+      radius: 48,
+      color: "#edc375",
+    },
+    {
+      id: "firefly",
+      title: "星夜彩蛋 · 萤火心愿",
+      x: 375,
+      y: 285,
+      approach: { x: 375, y: 308 },
+      radius: 48,
+      color: "#e8dd8f",
+    },
+  );
+}

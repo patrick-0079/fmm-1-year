@@ -1,10 +1,11 @@
-import roomUrl from "./assets/room-colorful.webp";
+import roomUrl from "./assets/room-interactive.webp";
 import gardenUrl from "./assets/garden-colorful.webp";
+import challengeUrl from "./assets/courage-garden.webp";
 import spriteUrl from "./assets/nemu-sprites.webp";
+import { spriteFrames } from "./sprite-frames";
 import {
   advancePath,
   findPath,
-  fitSprite,
   movePlayer,
   touchingHazard,
   PLAYER_RADIUS,
@@ -19,7 +20,7 @@ export interface RespawnEvent {
   checkpoint: Checkpoint;
   scene: SceneId;
 }
-const art = { room: roomUrl, garden: gardenUrl };
+const art = { room: roomUrl, garden: gardenUrl, challenge: challengeUrl };
 
 export class World {
   canvas: HTMLCanvasElement;
@@ -27,6 +28,8 @@ export class World {
   scene: SceneId = "room";
   player: Point = { ...scenes.room.spawn };
   private camera: Point = { x: 0, y: 0 };
+  private zoom = 1;
+  private focus: { point: Point; zoom: number } | null = null;
   private images = new Map<string, HTMLImageElement>();
   private keys = new Set<string>();
   private touch: Point = { x: 0, y: 0 };
@@ -41,6 +44,7 @@ export class World {
   private checkpointId: Record<SceneId, string> = {
     room: "room-light",
     garden: "garden-entry",
+    challenge: "courage-entry",
   };
   private stumble: {
     started: number;
@@ -59,6 +63,17 @@ export class World {
   onToast: (text: string) => void = () => {};
   onCheckpoint: (point: Checkpoint, activated: boolean) => void = () => {};
   onRespawn: (event: RespawnEvent) => void = () => {};
+  onDraw: (context: CanvasRenderingContext2D, time: number) => void = () => {};
+  onTick: (dt: number, time: number) => void = () => {};
+  onPointer: (type: string, point: Point) => boolean = () => false;
+  onStep: () => void = () => {};
+  onEnvironment: (context: CanvasRenderingContext2D, time: number) => void =
+    () => {};
+  onLighting: (context: CanvasRenderingContext2D) => void = () => {};
+  onEffects: (context: CanvasRenderingContext2D) => void = () => {};
+  available: (spot: Hotspot) => boolean = () => true;
+  flowerCrown = false;
+  private stepDistance = 0;
   private nearbyId = "";
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -78,6 +93,8 @@ export class World {
       )
         return;
       const key = e.key.toLowerCase();
+      if (key === " " && (e.target as Element).closest("button,a,audio,video"))
+        return;
       if (
         [
           "arrowup",
@@ -110,14 +127,15 @@ export class World {
       if (document.hidden) this.clearInput();
     });
     canvas.addEventListener("pointerdown", (e) => {
-      if (this.paused || this.busy) return;
       canvas.focus({ preventScroll: true });
-      const rect = canvas.getBoundingClientRect();
-      const point = {
-        x: ((e.clientX - rect.left) / rect.width) * 600 + this.camera.x,
-        y: ((e.clientY - rect.top) / rect.height) * 400 + this.camera.y,
-      };
+      const point = this.pointerPoint(e);
+      if (this.onPointer("down", point)) {
+        canvas.setPointerCapture(e.pointerId);
+        return;
+      }
+      if (this.paused || this.busy) return;
       const spot = this.config.spots
+        .filter((s) => this.available(s))
         .map((s) => ({
           s,
           d: Math.hypot(s.x - point.x, this.markerY(s) - point.y),
@@ -136,6 +154,32 @@ export class World {
         spot || checkpoint ? undefined : hazard?.id,
       );
     });
+    for (const type of ["pointermove", "pointerup", "pointercancel"] as const)
+      canvas.addEventListener(type, (e) =>
+        this.onPointer(type.replace("pointer", ""), this.pointerPoint(e)),
+      );
+  }
+  private pointerPoint(e: PointerEvent): Point {
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      x:
+        (((e.clientX - rect.left) / rect.width) * 600) / this.zoom +
+        this.camera.x,
+      y:
+        (((e.clientY - rect.top) / rect.height) * 400) / this.zoom +
+        this.camera.y,
+    };
+  }
+  setFocus(point: Point | null, zoom = 1) {
+    this.focus = point ? { point, zoom } : null;
+    this.canvas.parentElement!.classList.toggle("inspecting", !!point);
+    this.updateCamera();
+  }
+  project(point: Point): Point {
+    return {
+      x: (point.x - this.camera.x) * this.zoom,
+      y: (point.y - this.camera.y) * this.zoom,
+    };
   }
   get config() {
     return scenes[this.scene];
@@ -152,7 +196,7 @@ export class World {
   }
   async load() {
     await Promise.all(
-      [roomUrl, gardenUrl, spriteUrl].map(
+      [roomUrl, gardenUrl, challengeUrl, spriteUrl].map(
         (url) =>
           new Promise<void>((resolve, reject) => {
             const image = new Image();
@@ -184,6 +228,7 @@ export class World {
   switchScene(scene: SceneId) {
     if (this.busy) return;
     this.clearInput();
+    this.setFocus(null);
     this.scene = scene;
     this.player = { ...scenes[scene].spawn };
     this.facing = 0;
@@ -221,6 +266,7 @@ export class World {
   private nearest() {
     return (
       this.config.spots
+        .filter((s) => this.available(s))
         .map((s) => ({
           s,
           d: Math.hypot(this.player.x - s.x, this.player.y - s.y),
@@ -233,6 +279,7 @@ export class World {
     const dt = Math.min((timestamp - (this.last || timestamp)) / 1000, 0.05);
     this.last = timestamp;
     this.time = timestamp / 1000;
+    this.onTick(document.hidden ? 0 : dt, this.time);
     if (!this.paused && !document.hidden) this.update(dt);
     this.updateCamera();
     this.draw();
@@ -291,6 +338,11 @@ export class World {
     const dx = this.player.x - before.x,
       dy = this.player.y - before.y;
     this.walking = Math.hypot(dx, dy) > 0.01;
+    this.stepDistance += Math.hypot(dx, dy);
+    if (this.stepDistance > 22) {
+      this.stepDistance = 0;
+      this.onStep();
+    }
     if (this.walking)
       this.facing =
         Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 2 : 1) : dy > 0 ? 0 : 3;
@@ -334,11 +386,25 @@ export class World {
     }
   }
   private updateCamera() {
+    this.zoom = this.focus?.zoom ?? 1;
+    const center = this.focus?.point ?? this.player;
     this.camera.x = Math.round(
-      Math.max(0, Math.min(this.config.width - 600, this.player.x - 300)),
+      Math.max(
+        0,
+        Math.min(
+          this.config.width - 600 / this.zoom,
+          center.x - 300 / this.zoom,
+        ),
+      ),
     );
     this.camera.y = Math.round(
-      Math.max(0, Math.min(this.config.height - 400, this.player.y - 200)),
+      Math.max(
+        0,
+        Math.min(
+          this.config.height - 400 / this.zoom,
+          center.y - 200 / this.zoom,
+        ),
+      ),
     );
   }
   private markerY(spot: Hotspot) {
@@ -355,10 +421,11 @@ export class World {
     c.fillStyle = "#f4dfbc";
     c.fillRect(0, 0, 600, 400);
     const background = this.images.get(art[this.scene]);
-    if (background)
-      c.drawImage(background, -this.camera.x, -this.camera.y, width, height);
     c.save();
+    c.scale(this.zoom, this.zoom);
     c.translate(-this.camera.x, -this.camera.y);
+    if (background) c.drawImage(background, 0, 0, width, height);
+    this.onEnvironment(c, this.time);
     if (this.scene === "room") {
       c.fillStyle = "#8171b0";
       c.fillRect(274, 368, 52, 11);
@@ -368,6 +435,8 @@ export class World {
     this.drawCheckpoints();
     this.drawHazards();
     for (const spot of this.config.spots) {
+      if (!this.available(spot)) continue;
+      if (this.focus) continue;
       const y = this.markerY(spot);
       c.fillStyle = "#fff8ed";
       c.fillRect(spot.x - 6, y - 6, 12, 12);
@@ -402,10 +471,13 @@ export class World {
     c.ellipse(x, y, 11, 3.5, 0, 0, Math.PI * 2);
     c.fill();
     if (sprite) {
-      const sw = sprite.width / 3,
-        sh = sprite.height / 4,
-        size = fitSprite(sw, sh),
-        col = this.walking ? 1 + (Math.floor(this.time * 7) % 2) : 0;
+      const col = this.walking ? 1 + (Math.floor(this.time * 7) % 2) : 0;
+      const frame = spriteFrames[this.facing * 3 + col];
+      const scaleFactor = 43 / 330;
+      const size = {
+        width: frame.w * scaleFactor,
+        height: frame.h * scaleFactor,
+      };
       c.save();
       c.translate(x, y);
       let scale = 1;
@@ -419,17 +491,31 @@ export class World {
       c.scale(scale, scale);
       c.drawImage(
         sprite,
-        col * sw,
-        this.facing * sh,
-        sw,
-        sh,
+        frame.x,
+        frame.y,
+        frame.w,
+        frame.h,
         -size.width / 2,
-        -size.height * 0.96,
+        -size.height,
         size.width,
         size.height,
       );
       c.restore();
     }
+    if (this.flowerCrown) {
+      for (let i = 0; i < 3; i++) {
+        const fx = x - 7 + i * 7,
+          fy = y - 41 - Math.sin((i / 2) * Math.PI) * 2;
+        c.fillStyle = ["#ffb6ca", "#dac4ff", "#fff5bd"][i];
+        c.fillRect(fx - 2, fy - 3, 4, 6);
+        c.fillRect(fx - 3, fy - 2, 6, 4);
+        c.fillStyle = "#e4ae59";
+        c.fillRect(fx - 1, fy - 1, 2, 2);
+      }
+    }
+    this.onDraw(c, this.time);
+    this.onLighting(c);
+    this.onEffects(c);
     if (this.debug) this.drawDebug();
     c.restore();
   }
@@ -583,6 +669,6 @@ export class World {
     c.stroke();
     c.restore();
     if (this.debugOutput)
-      this.debugOutput.textContent = `${this.scene} · feet ${this.player.x.toFixed(1)},${this.player.y.toFixed(1)} · checkpoint ${this.activeCheckpoint.id} · sprite 48×48 · ${this.busy ? "stumble" : this.paused ? "paused" : "walk"} · path ${this.path.length}`;
+      this.debugOutput.textContent = `${this.scene} · feet ${this.player.x.toFixed(1)},${this.player.y.toFixed(1)} · checkpoint ${this.activeCheckpoint.id} · camera ${this.camera.x},${this.camera.y} ×${this.zoom} · sprite height 43 / exact crop · ${this.busy ? "stumble" : this.paused ? "paused" : "walk"} · path ${this.path.length}`;
   }
 }

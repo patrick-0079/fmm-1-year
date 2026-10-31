@@ -33,11 +33,19 @@ export interface Progress {
   visited: string[];
   completed: string[];
   sound: boolean;
+  bgm: boolean;
+  volume: number;
 }
 export const SAVE_KEY = "nemu-anniversary-v1";
 export const PLAYER_RADIUS = 5;
 export const PLAYER_SPEED = 78;
-export const GAME_IDS = ["cake", "gifts", "balloons", "fireworks"] as const;
+export const GAME_IDS = [
+  "cake",
+  "gifts",
+  "balloons",
+  "fireworks",
+  "courage",
+] as const;
 export const EVENT_IDS = [
   ...GAME_IDS,
   "letters",
@@ -49,11 +57,17 @@ export const EVENT_IDS = [
 ];
 
 export function readProgress(raw: string | null): Progress {
-  const clean: Progress = { visited: [], completed: [], sound: false };
+  const clean: Progress = {
+    visited: [],
+    completed: [],
+    sound: true,
+    bgm: true,
+    volume: 0.45,
+  };
   if (!raw) return clean;
   try {
     const data: unknown = JSON.parse(raw);
-    if (!data || typeof data !== "object") return clean;
+    if (!data || typeof data !== "object" || Array.isArray(data)) return clean;
     const p = data as Partial<Progress>;
     const valid = (list: unknown, allowed: readonly string[]) =>
       Array.isArray(list)
@@ -70,6 +84,11 @@ export function readProgress(raw: string | null): Progress {
       visited: valid(p.visited, EVENT_IDS),
       completed: valid(p.completed, GAME_IDS),
       sound: p.sound === true,
+      bgm: typeof p.bgm === "boolean" ? p.bgm : p.sound === true,
+      volume:
+        typeof p.volume === "number" && Number.isFinite(p.volume)
+          ? Math.max(0, Math.min(1, p.volume))
+          : 0.45,
     };
   } catch {
     return clean;
