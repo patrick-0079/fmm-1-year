@@ -2,9 +2,25 @@
 
 工具：内置 `image_gen`；素材已保存到项目内，不依赖生成服务运行。
 
-## 当前采用的低饱和版本
+## 当前采用的多彩版本
 
-当前网页使用 `src/assets/room-calm.webp`、`src/assets/garden-calm.webp` 和 `src/assets/nemu-sprites.webp`。对应 PNG 原图保留在同目录。卧室和花园根据用户降低粉色占比的反馈，通过内置 imagegen 从原场景生成颜色编辑版本，保留地图几何和物件位置。
+当前网页使用 `src/assets/room-colorful.webp`、`src/assets/garden-colorful.webp` 和 `src/assets/nemu-sprites.webp`。对应 PNG 原图保留在同目录。根据用户“更鲜艳但不单调”的反馈，使用内置 imagegen 从低饱和版本编辑色彩，保留地图几何。角色精灵帧保持正方形等比渲染，尺寸为 48 × 48，未对人物进行拉伸或重新生成。
+
+### room-colorful.png 编辑提示词
+
+```text
+Color-only edit of this exact pixel-art game bedroom. Preserve every object, every pixel-art silhouette, exact geometry, exact framing, and all object positions, because collision geometry is being authored against this image. Make it brighter and more colorful, with balanced varied colors, no single dominant pink wash. Restore fresh medium saturation and crisp clear luminous colors: warm honey wood floor, clean warm ivory walls, fresh lavender-and-cream bed quilt, dusty turquoise and lilac cushions, soft coral pink curtains and selected flowers, natural lively green plants, small sky-blue and butter-yellow details, indigo moonlit window. Pink remains a charming meaningful accent rather than a full-screen cast. Cozy upbeat anniversary celebration, gentle warm lights. Neither gray/washed-out nor neon/oversaturated. Keep EXACT identical perspective, dimensions, furniture sizes and locations. No added or removed objects, no new paths, no character, no text, no UI. Same 3:2 composition. Only improve color variety, selective saturation, clarity and brightness.
+```
+
+### garden-colorful.png 编辑提示词
+
+```text
+Color-only edit of this exact top-down pixel-art game garden. Preserve the exact map geometry, every object position, scale, framing, cottage door and stairs, every bridge, path, props, screen, balloon stand, benches, fireworks, blue television sign, fences and trees; collision geometry is authored against this map. Make the palette brighter, fresher, with varied harmonious colors rather than dull olive or a dominant pink wash. Grass and most trees fresh emerald / mint / jade green, a few trees rosy cherry blossom pink and lilac, clear blue/turquoise streams, cottage ivory walls and saturated lavender roof, sandstone paths warm peach and honey cream, balloons varied rose/cyan/lavender, warm golden light strings, flowers coral and pink and soft blue. Inviting luminous twilight anniversary festival, colorful indie pixel RPG. Moderate saturation with clear color separation and breathing room, not neon, not faded. Preserve EXACT original geometry and all silhouettes and object placements. No added or removed objects, no characters, no text or UI. Keep identical 3:2 map composition. Change colors/brightness only.
+```
+
+## 之前的低饱和版本
+
+历史版本 `src/assets/room-calm.webp`、`src/assets/garden-calm.webp` 及对应 PNG 仍保留在项目中。卧室和花园根据用户降低粉色占比的反馈，通过内置 imagegen 从原场景生成颜色编辑版本，保留地图几何和物件位置。
 
 ### room-calm.png 编辑提示词
 

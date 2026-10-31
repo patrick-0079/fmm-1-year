@@ -31,6 +31,14 @@ export const producers = [
   "千羽",
 ];
 
+export interface Encouragement {
+  message: string;
+  author?: string;
+  title?: string;
+}
+// 后续把真实鼓励文案添加到这里。空数组显示只读占位，不提供输入入口。
+export const encouragements: Encouragement[] = [];
+
 // 将媒体放进 public/media/，src 填写 /media/文件名。空数组会显示正式占位界面。
 export const collections: Record<string, Collection> = {
   letters: {

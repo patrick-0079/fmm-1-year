@@ -1,5 +1,5 @@
 import "./style.css";
-import { anniversary, collections, producers } from "./content";
+import { anniversary, collections, producers, encouragements } from "./content";
 import { GAME_IDS, SAVE_KEY, readProgress } from "./core";
 import { escapeHtml, icon } from "./icons";
 import { Modal } from "./modal";
@@ -71,11 +71,13 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
           <div class="scene-wrap">
             <canvas id="world" tabindex="0" aria-label="像素探索场景。使用 WASD 或方向键移动，E 或空格互动；也可点击地面行走，点击发光标记互动。">浏览器需要支持 Canvas 才能游玩。</canvas>
             <div class="scene-top"><span class="location-pill">${icon("moon")} <span id="location-name">ROOM 01 · 晚安小屋</span></span><button class="map-switch" title="切换到另一个场景">周年花园 ${icon("arrow")}</button></div>
+            <span class="checkpoint-pill">${icon("star")} 复活点 · <span id="checkpoint-name">枕边星灯</span></span>
             <div class="nearby-prompt" hidden><span></span><kbd>E</kbd><span class="prompt-verb">互动</span></div>
             <div class="intro-screen"><div class="intro-stars">✧ <span>✦</span> ✧</div><span class="intro-pill">芙眠眠 · 直播一周年纪念</span><h2>今晚的快乐，<br>等你来发现。</h2><p>一间温暖小屋，一座星光花园。<br>还有藏在角落里的，一点点喜欢。</p><button class="button primary enter-button" disabled>正在点亮小世界…</button><small>没有倒计时，慢慢探索就好 ♡</small></div>
             <div class="scene-transition" aria-hidden="true"></div>
           </div>
           <div class="game-bottom"><div class="desktop-instructions"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span><span><kbd>E</kbd> 互动</span><i></i><span>也可以点地面走动、点标记探索</span></div><span class="exploration-count">${icon("star")} <span id="explored">0</span>/10 个角落</span></div>
+          <p class="journey-legend">${icon("star")} 靠近星灯点亮复活点 <span>·</span> 小心路上的缎带、石头、迷雾和风</p>
           <div class="touch-controls"><div class="dpad" aria-label="移动方向键"><button data-direction="0,-1" class="dpad-up" aria-label="向上移动">↑</button><button data-direction="-1,0" class="dpad-left" aria-label="向左移动">←</button><span>${icon("heart")}</span><button data-direction="1,0" class="dpad-right" aria-label="向右移动">→</button><button data-direction="0,1" class="dpad-down" aria-label="向下移动">↓</button></div><div class="touch-hint">走近发光的小物件<br><span>或者直接点标记</span></div><button class="touch-interact">${icon("star")}<span>互动</span></button></div>
         </section>
         <aside class="journal" aria-label="庆典手账">
@@ -171,6 +173,29 @@ modal.onChange = (open) => {
   world.clearInput();
 };
 world.onToast = toast;
+world.onCheckpoint = (point, activated) => {
+  document.querySelector("#checkpoint-name")!.textContent = point.title;
+  if (activated) {
+    toast(`复活点已点亮：${point.title}`);
+    chime();
+  }
+};
+let encouragementIndex = 0;
+world.onRespawn = ({ trap, checkpoint }) => {
+  const entry = encouragements.length
+    ? encouragements[encouragementIndex++ % encouragements.length]
+    : undefined;
+  const body = modal.open(
+    "回到亮着灯的地方",
+    `在「${trap.title}」旁绊了一下，已回到${checkpoint.title}。`,
+    "A LITTLE SETBACK, ANOTHER BEGINNING",
+  );
+  body.innerHTML = `<div class="revive-card"><div class="revive-light">${icon("star")}</div><span class="empty-tag">${entry ? "A LITTLE ENCOURAGEMENT" : "鼓励留言 · 待添加"}</span><h3>${escapeHtml(entry?.title || "这里，留给一句加油的话")}</h3><p class="revive-message">${escapeHtml(entry?.message || "鼓励的话正在准备中。\n先在星灯旁休息一下，再继续这场小冒险吧。")}</p>${entry?.author ? `<span class="revive-author">来自 ${escapeHtml(entry.author)}</span>` : ""}</div><p class="small-note">带着已经收集的心愿与回忆，继续探索。</p><div class="quest-actions"><button class="button primary">${icon("heart")} 重新出发</button></div>`;
+  body.querySelector("button")!.addEventListener("click", () => {
+    modal.close();
+    world.canvas.focus({ preventScroll: true });
+  });
+};
 world.onNearby = (spot) => {
   const prompt = document.querySelector<HTMLElement>(".nearby-prompt")!;
   prompt.hidden = !spot;
@@ -183,6 +208,7 @@ world.onScene = (scene) => {
     `${scene === "room" ? "周年花园" : "晚安小屋"} ${icon("arrow")}`;
 };
 function transition(scene: SceneId) {
+  if (world.busy) return;
   const overlay = document.querySelector(".scene-transition")!;
   overlay.classList.add("active");
   world.paused = true;
@@ -267,20 +293,23 @@ function help() {
     "这是一个没有时间限制的小冒险。",
     "HOW TO PLAY",
   );
-  body.innerHTML = `<div class="help-grid"><div><span>${icon("heart")}</span><h3>成为小小的眠眠</h3><p>电脑用 WASD 或方向键移动，手机用下方方向键。也可以直接点地面，让眠眠走过去。</p></div><div><span>${icon("star")}</span><h3>找到发光的角落</h3><p>靠近物件后按 E、空格或手机的互动键。直接点发光标记，也会自动走过去探索。</p></div><div><span>${icon("cake")}</span><h3>庆祝，不需要素材</h3><p>吹蜡烛、切蛋糕、礼物配对、气球和烟花都能直接玩。完成后会点亮右侧手账。</p></div><div><span>${icon("tv")}</span><h3>去花园逛一逛</h3><p>走到小屋下方的门口，或点场景右上角切换。花园有弹幕屏、小电视，还有一片夜空。</p></div></div><p class="help-footnote">探索记录只保存在这个浏览器。留言、录音、图片和视频的位置已预留，后续会慢慢加入。</p>`;
+  body.innerHTML = `<div class="help-grid"><div><span>${icon("heart")}</span><h3>成为小小的眠眠</h3><p>电脑用 WASD 或方向键移动，手机用下方方向键。也可以直接点地面，让眠眠走过去。</p></div><div><span>${icon("star")}</span><h3>点亮复活的星灯</h3><p>靠近地上的星灯，就会记住这个复活点。花园中央还有一盏心愿星灯，记得去点亮它。</p></div><div><span>${icon("moon")}</span><h3>挫折也是旅途的一部分</h3><p>路上的绊脚缎带、石头、迷雾和回旋风会让你回到最近点亮的星灯。在那里休息一下，再重新出发。</p></div><div><span>${icon("cake")}</span><h3>带着快乐继续探索</h3><p>绊倒后已经完成的心愿与回忆仍然保留。吹蜡烛、拆礼物、气球和烟花，都在等你。</p></div></div><p class="help-footnote">按 E、空格或互动键探索发光物件。点击标记会自动绕开家具和陷阱；也可以直接点陷阱体验一次重新出发。探索记录仅保存在本机。</p>`;
 }
 document.querySelector(".help-button")!.addEventListener("click", help);
 document.querySelector(".map-switch")!.addEventListener("click", () => {
+  if (world.busy) return;
   if (!started) begin();
   transition(world.scene === "room" ? "garden" : "room");
 });
 document.querySelector(".garden-link")!.addEventListener("click", () => {
+  if (world.busy) return;
   if (!started) begin();
   transition("garden");
   world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
 });
 document.querySelectorAll<HTMLButtonElement>("[data-task]").forEach((button) =>
   button.addEventListener("click", () => {
+    if (world.busy) return;
     if (!started) begin();
     if (!started) return;
     const task = tasks.find((task) => task.id === button.dataset.task)!;
@@ -294,6 +323,7 @@ document
   .querySelectorAll<HTMLButtonElement>("[data-memory]")
   .forEach((button) =>
     button.addEventListener("click", () => {
+      if (world.busy) return;
       if (!started) begin();
       if (!started) return;
       if (world.scene !== "room") world.switchScene("room");

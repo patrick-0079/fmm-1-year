@@ -1564,7 +1564,7 @@ footer .reset-button {
 }
 .portrait-sprite {
   width: 108px;
-  height: 144px;
+  height: 108px;
   background-size: 300% 400%;
   background-position: 0 0;
   image-rendering: pixelated;
@@ -2672,6 +2672,193 @@ footer .reset-button {
   color: #a49aa8;
   margin-top: 25px;
   letter-spacing: 1px;
+}
+.checkpoint-pill {
+  position: absolute;
+  top: 54px;
+  left: 17px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 9px;
+  background: #fff9e8ec;
+  border: 1px solid #edd195b5;
+  border-radius: 4px;
+  color: #8c7542;
+  font-size: 9px;
+  pointer-events: none;
+  z-index: 1;
+}
+.checkpoint-pill .icon {
+  width: 10px;
+  height: 10px;
+  color: #dcac47;
+}
+.journey-legend {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 10px 12px;
+  border-top: 1px solid #e4eadf;
+  background: #f1f7ed;
+  color: #758b70;
+  font-size: 10px;
+  line-height: 1.7;
+  text-align: center;
+}
+.journey-legend .icon {
+  width: 12px;
+  height: 12px;
+  color: #c7a457;
+}
+.journey-legend > span {
+  color: #b5bfa7;
+}
+.revive-card {
+  text-align: center;
+  padding: 15px 10px 20px;
+  background: linear-gradient(145deg, #f2f0fc, #fff8ec);
+  border: 1px solid #e6dcef;
+  border-radius: 8px;
+}
+.revive-light {
+  width: 66px;
+  height: 66px;
+  margin: 8px auto 22px;
+  display: grid;
+  place-items: center;
+  background: #fff6d5;
+  border: 2px solid #e8cc82;
+  box-shadow: 0 4px 0 #d8bf8b;
+  border-radius: 12px;
+  color: #d9ac42;
+}
+.revive-light .icon {
+  width: 35px;
+  height: 35px;
+}
+.revive-card h3 {
+  font-size: 20px;
+  line-height: 1.6;
+  font-weight: 600;
+  color: #7d669e;
+  margin: 15px 0;
+}
+.revive-message {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: #8f819f;
+  font-size: 13px;
+  line-height: 2;
+  margin: 0 auto;
+  max-width: 460px;
+}
+.revive-author {
+  display: block;
+  margin-top: 14px;
+  font-size: 11px;
+  color: #a391ac;
+}
+.debug-readout {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  right: 8px;
+  padding: 6px;
+  background: #18233cdd;
+  color: #c8ffc9;
+  font: 10px/1.5 monospace;
+  z-index: 3;
+  pointer-events: none;
+}
+.brand-mark {
+  background: #f3d2e0;
+  box-shadow: 4px 4px 0 #dfb9ce;
+  color: #b05c8c;
+}
+.page-intro h1 span {
+  color: #b36796;
+}
+.window-bar {
+  background: #ede9f7;
+}
+.game-window {
+  border-color: #c9bbde;
+  box-shadow:
+    0 6px 0 #e5ddf0,
+    0 15px 45px #9877b017;
+}
+.button.primary {
+  background: #a95c92;
+  border-color: #9c5085;
+  box-shadow: 0 3px 0 #83436f;
+}
+.button.primary:hover:not(:disabled) {
+  background: #984d82;
+}
+.button.primary:active:not(:disabled) {
+  box-shadow: 0 1px 0 #83436f;
+}
+.task-color-0 {
+  background: #fbe3dc;
+  color: #cf8b80;
+}
+.task-color-1 {
+  background: #eee5fa;
+  color: #a07cc4;
+}
+.task-color-2 {
+  background: #dfeef9;
+  color: #6eabc9;
+}
+.task-color-3 {
+  background: #fff0c9;
+  color: #cea544;
+}
+.bili-link {
+  color: #5c9bb7;
+}
+.date-stamp strong {
+  color: #a36d9f;
+}
+.progress-track span {
+  background: #ae83bf;
+}
+@media (max-width: 540px) {
+  .checkpoint-pill {
+    top: 41px;
+    left: 10px;
+    padding: 4px 6px;
+    font-size: 7px;
+    gap: 3px;
+  }
+  .checkpoint-pill .icon {
+    width: 8px;
+    height: 8px;
+  }
+  .journey-legend {
+    font-size: 8px;
+    gap: 4px;
+    padding: 8px;
+    flex-wrap: wrap;
+  }
+  .revive-card {
+    padding: 12px 8px 18px;
+  }
+  .revive-card h3 {
+    font-size: 17px;
+  }
+  .revive-message {
+    font-size: 11px;
+  }
+  .debug-readout {
+    font-size: 7px;
+  }
+  .brand-mark {
+    box-shadow: 3px 3px 0 #dfb9ce;
+  }
 }
 .credits + footer {
   margin-top: 0;

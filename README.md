@@ -1,6 +1,6 @@
 # 芙眠眠一周年 · 晚安小世界
 
-柔和奶油色、浅木色与灰紫色搭配少量粉色点缀的像素风 H5 周年探索游戏。控制 Q 版眠眠，在室内小屋和室外花园之间探索；全部逻辑在浏览器内运行，不需要后端、数据库或服务端函数。
+暖木色、薰衣草紫、樱花粉、薄荷绿与溪水蓝搭配的像素风 H5 周年探索游戏。控制 Q 版眠眠，在室内小屋和室外花园之间探索；全部逻辑在浏览器内运行，不需要后端、数据库或服务端函数。
 
 ## 开发和构建
 
@@ -16,6 +16,8 @@ npm run preview
 
 开发服务器下可访问 `/tests/media-fixture.html` 检查四类媒体、长留言和素材缺失提示。测试音视频在浏览器内临时生成，测试内容不会进入正式内容配置或生产构建。
 
+`/tests/mobile-fixture.html` 提供 375 与 320 像素宽度的真实页面框架，用于检查手机布局、方向键、陷阱和复活弹窗；同样不包含在生产构建中。
+
 生产产物在 `dist/`，可以部署到任意静态托管服务。它是一个单页网站及其本地资源文件，需通过 HTTP/HTTPS 访问，不能直接双击 HTML 使用 `file://` 打开。
 
 ## 已包含的玩法
@@ -25,6 +27,8 @@ npm run preview
 - 电脑：WASD / 方向键移动，E / 空格互动，Esc 关闭弹窗。
 - 手机：虚拟方向键 + 互动按钮；也可以点击地面自动寻路、点击发光标记前往互动。
 - 家具碰撞、自动寻路、室外镜头跟随、本机探索进度、可选轻提示音、减少动态效果支持。
+- 路上有绊脚缎带、石头、迷雾和回旋风，寓意探索中的小挫折。踩中后会回到最近点亮的星灯，已完成的心愿与回忆保留。
+- 小屋有枕边星灯，花园有启程星灯与心愿星灯。走近会自动激活，复活后有短暂保护和鼓励留言面板。
 
 吹蜡烛采用长按操作，不请求麦克风权限。音效默认关闭；真实媒体由访客主动点击播放。探索记录只保存在当前浏览器，不会上传。
 
@@ -50,11 +54,48 @@ npm run preview
 
 每个物件可以配置多条内容。素材缺少、加载失败、列表为空均有提示；切换或关闭播放器时停止原来的媒体。媒体地址是实际文件路径，不是 B 站视频页面链接。
 
-`src/content.ts` 还包含首播日、周年日和 B 站主页链接。`src/world.ts` 定义地图尺寸、碰撞与互动点；`src/activities.ts` 实现周年小游戏。
+`src/content.ts` 还包含首播日、周年日和 B 站主页链接。`src/maps.ts` 定义地图、碰撞与互动点；`src/world.ts` 实现移动和场景绘制；`src/activities.ts` 实现周年小游戏。
+
+## 陷阱、复活点与鼓励文案
+
+`src/maps.ts` 集中定义两张地图的可行走边界、家具轮廓、互动位置、陷阱和星灯。碰撞以脚下的小圆形区域计算；角色按原精灵帧比例绘制。点击发光标记时，自动寻路会绕开家具和陷阱；点击陷阱本身可以体验一次复活。
+
+复活鼓励文案保留只读占位。在 `src/content.ts` 的 `encouragements` 中依次添加真实文案即可，复活时会轮换显示：
+
+```ts
+{ title: '可选标题', message: '在这里填写鼓励的话。', author: '可选署名' }
+```
+
+开发时访问 `/?debug=collision` 可以显示家具轮廓、可行走边界、脚下碰撞区域、路径和坐标，便于核对地图。该调试视图只在开发环境启用。
 
 ## 制作人名单
 
 当前按顺序展示：派大星、Kerry、苏颜、卿取之于蓝、正号、千羽。名单在 `src/content.ts` 的 `producers` 数组中；后续在数组末尾追加名字并重新构建即可。
+
+## 向 main 推送后自动构建发布
+
+使用 Cloudflare 自带的 Git 构建，不需要额外写 GitHub Actions，也不需要把令牌放入仓库：
+
+1. 在 Cloudflare 的 **Workers & Pages** 里打开 `fmm-1-year`。
+2. 在 **Settings → Build** 连接 GitHub 仓库 `patrick-0079/fmm-1-year`。已有连接时确认仍然启用。
+3. 在 **Settings → Build → Branch control** 把生产分支设为 **`main`**。
+4. 构建命令填写 **`npm run build`**，部署命令填写 **`npx wrangler deploy`**，根目录为仓库根目录，构建变量 `NODE_VERSION=24`，然后保存。
+5. 后续推送到远端 `main`，或把 Pull Request 合并进 `main`，都会自动运行构建与部署。可以在 Cloudflare 的 Builds 中查看对应提交的日志和发布结果。
+
+例如修改本项目后执行：
+
+```sh
+git switch main
+git add src README.md
+git commit -m "Update anniversary adventure"
+git push origin main
+```
+
+触发条件是远端 `main` 收到新的推送；只在本地 `git commit` 尚未推送时，Cloudflare 不会收到事件。预览构建用于其他分支，不是生产自动发布的开关。
+
+如果没有自动发布，优先检查 GitHub 应用是否授权此仓库、Git 构建连接是否启用、生产分支是否确实为 `main`，以及 Cloudflare 的构建日志。若项目最初通过直接上传创建，需要先建立 Git 构建连接。
+
+以上行为依据 [Cloudflare GitHub integration](https://developers.cloudflare.com/workers/ci-cd/builds/git-integration/github-integration/) 与 [Build branches](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/)。
 
 ## Cloudflare 部署
 
