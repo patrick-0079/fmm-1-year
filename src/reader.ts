@@ -1,4 +1,5 @@
 import { escapeHtml } from "./icons";
+import { reservedShortcut } from "./input";
 import type { World } from "./world";
 // An inline part of the game layout, with no dialog, backdrop, focus trap or input.
 // Full letters/media need accessible DOM controls; the object remains on the map.
@@ -25,6 +26,7 @@ export class MapReader {
       return true;
     };
     window.addEventListener("keydown", (e) => {
+      if (reservedShortcut(e) || this.world.suspended) return;
       if (!this.root.hidden && e.key === "Escape") {
         e.preventDefault();
         this.close();

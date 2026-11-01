@@ -11,6 +11,7 @@ import { Town } from "./town";
 import { GardenCinema } from "./cinema";
 import { GardenLife, Companion } from "./garden-life";
 import { ARCADES } from "./town-data";
+import { reservedShortcut } from "./input";
 import type { GameId } from "./arcade-engines";
 import { Nature } from "./nature";
 import { openCollection } from "./media";
@@ -125,6 +126,34 @@ export function mountGame(tasks: Task[]) {
     }
   }
   const inventory = new Inventory(world, toast);
+  const help = document.querySelector<HTMLElement>(".inline-help")!;
+  const setHelp = (open: boolean) => {
+    help.hidden = !open;
+    world.suspend("help", open);
+    document.querySelector(".help-button")!.setAttribute("aria-expanded", String(open));
+    if (open) {
+      help.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      help.querySelector<HTMLButtonElement>(".help-close")!.focus({ preventScroll: true });
+    }
+  };
+  const closePanels = () => {
+    inventory.close(false);
+    if (!help.hidden) setHelp(false);
+  };
+  const returnFromHelp = () => {
+    setHelp(false);
+    if (world.suspended) return;
+    world.canvas.focus({ preventScroll: true });
+    world.canvas.parentElement!.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  help.querySelector(".help-close")!.addEventListener("click", returnFromHelp);
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !help.hidden && !e.defaultPrevented && !reservedShortcut(e)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      returnFromHelp();
+    }
+  }, { capture: true });
   const activities = new Activities(world, {
     complete,
     toast,
@@ -147,6 +176,7 @@ export function mountGame(tasks: Task[]) {
   }
   function transition(scene: SceneId, entrance?: string) {
     if (world.busy || transitioning || !started) return;
+    closePanels();
     cinema.close();
     arcade.close();
     activities.close();
@@ -360,8 +390,8 @@ export function mountGame(tasks: Task[]) {
       save();
     });
   document.querySelector(".help-button")!.addEventListener("click", () => {
-    const help = document.querySelector<HTMLElement>(".inline-help")!;
-    help.hidden = !help.hidden;
+    if (help.hidden) setHelp(true);
+    else returnFromHelp();
   });
   document.querySelector(".map-switch")!.addEventListener("click", () => {
     begin();
@@ -390,6 +420,7 @@ export function mountGame(tasks: Task[]) {
   });
   const visit = (scene: SceneId, id: string) => {
     if (world.busy || transitioning) return;
+    closePanels();
     begin();
     if (!started) return;
     cinema.close();
@@ -431,6 +462,7 @@ export function mountGame(tasks: Task[]) {
     .forEach((button) =>
       button.addEventListener("click", () => {
         if (button.dataset.memory === "letters") {
+          closePanels();
           cinema.close();
           arcade.close();
           activities.close();
@@ -473,6 +505,11 @@ export function mountGame(tasks: Task[]) {
     document.querySelector<HTMLElement>(".reset-confirmation")!.hidden = true;
   });
   document.querySelector(".reset-confirm")!.addEventListener("click", () => {
+    if (world.busy || transitioning) {
+      toast("正在回到安全的位置，请稍等一下再重新开始。");
+      return;
+    }
+    closePanels();
     progress = {
       ...progress,
       visited: [],

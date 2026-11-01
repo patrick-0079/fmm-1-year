@@ -248,3 +248,6 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+.scene-wrap.arcade-active {
+  overflow-anchor: none;
+}

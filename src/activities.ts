@@ -1,6 +1,7 @@
 import type { Point } from "./core";
 import type { World } from "./world";
 import { sfx } from "./sound";
+import { reservedShortcut, readingTarget } from "./input";
 import cakeUrl from "./assets/anniversary-cake.webp";
 import cakeSliceUrl from "./assets/cake-slice-v11.webp";
 import { wishAtBurst, wishOpacity } from "./celebration";
@@ -97,9 +98,17 @@ export class Activities {
     world.onEffects = (c) => this.drawEffects(c);
     world.onTick = (dt, t) => this.tick(dt, t);
     world.onPointer = (type, p) => this.pointer(type, p);
+    const cancel = world.onInputCancel;
+    world.onInputCancel = () => {
+      cancel();
+      this.blowing = false;
+      this.cutStart = null;
+      this.cutStroke = [];
+    };
     const previousAction = world.onAction;
     world.onAction = (pressed) => {
       if (!this.active) return previousAction(pressed);
+      if (world.suspended) return true;
       if (this.mode === "cake" && this.cakeStage === 0) {
         this.blowing = pressed;
         if (pressed) sfx("blow");
@@ -125,6 +134,7 @@ export class Activities {
       return true;
     };
     window.addEventListener("keydown", (e) => {
+      if (reservedShortcut(e) || world.suspended || readingTarget(e.target)) return;
       if (e.key === "Escape" && this.active) this.close();
       if (this.mode === "gifts" && /^[1-8]$/.test(e.key) && !e.repeat) {
         e.preventDefault();
@@ -149,6 +159,9 @@ export class Activities {
     this.blowing = false;
     this.cutStart = null;
     this.cutStroke = [];
+    this.flipWait = 0;
+    this.flipped = [];
+    this.giftFlips = this.giftFlips.map(() => 0);
     this.hud.hidden = true;
     this.controls.replaceChildren();
     if (!this.world.restState) this.world.setFocus(null);
@@ -221,6 +234,7 @@ export class Activities {
       for (const event of ["pointerup", "pointercancel", "lostpointercapture"])
         button.addEventListener(event, () => (this.blowing = false));
       button.addEventListener("keydown", (e) => {
+        if (reservedShortcut(e)) return;
         if ([" ", "Enter"].includes(e.key)) {
           e.preventDefault();
           this.blowing = true;
@@ -513,7 +527,7 @@ export class Activities {
         this.cakeControls();
       }
     }
-    if (this.flipWait > 0) {
+    if (this.mode === "gifts" && this.flipWait > 0) {
       this.flipWait -= dt;
       if (this.flipWait <= 0) {
         this.flipWait = 0;

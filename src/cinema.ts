@@ -4,6 +4,7 @@ import { drawGardenScreen } from "./cinema-screen";
 import { CinemaSession, mediaTime, containVideo } from "./cinema-state";
 import { duckMusic } from "./sound";
 import { FilmPreloader, downloadLabel } from "./film-preloader";
+import { reservedShortcut, readingTarget } from "./input";
 
 export class GardenCinema {
   private session = new CinemaSession();
@@ -27,6 +28,16 @@ export class GardenCinema {
       tick = world.onTick,
       action = world.onAction,
       pointer = world.onPointer;
+    const cancel = world.onInputCancel;
+    world.onInputCancel = () => {
+      cancel();
+      if (world.suspended && this.active) {
+        this.video?.pause();
+        this.session.pause();
+        duckMusic(false);
+        this.render();
+      }
+    };
     world.onEffects = (c) => {
       effects(c);
       this.draw(c);
@@ -53,7 +64,7 @@ export class GardenCinema {
     window.addEventListener(
       "keydown",
       (e) => {
-        if (!this.active) return;
+        if (!this.active || this.world.suspended || reservedShortcut(e) || readingTarget(e.target)) return;
         if (e.key.toLowerCase() === "f" && !e.repeat) {
           e.preventDefault();
           e.stopPropagation();

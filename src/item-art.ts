@@ -6,6 +6,10 @@ import wardrobeUrl from "./assets/wardrobe-v11.webp";
 export { wreathUrl, rewardsUrl };
 const wardrobe = new Image();
 wardrobe.src = wardrobeUrl;
+export function whenWardrobeReady(callback: () => void) {
+  if (wardrobe.complete && wardrobe.naturalWidth) callback();
+  else wardrobe.addEventListener("load", callback, { once: true });
+}
 export const wardrobeFrames = [
   [17, 67, 409, 378],
   [439, 105, 455, 317],

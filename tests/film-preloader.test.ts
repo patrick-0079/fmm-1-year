@@ -73,3 +73,63 @@ test("HTTP and stream failures remain retryable instead of exposing partial medi
   assert.equal(film.progress.state, "error");
   assert.match(downloadLabel(film.progress), /重新加载/);
 });
+
+test("a stalled request times out and can be retried without reloading the page", async () => {
+  let requests = 0;
+  let signal: AbortSignal | null | undefined;
+  const film = new FilmPreloader("https://example.com/film.mp4", () => {},
+    async (_url, options) => {
+      signal = options?.signal;
+      requests++;
+      return requests === 1 ? new Promise<Response>(() => {}) : new Response(new Uint8Array([1, 2]));
+    }, 25);
+  await assert.rejects(film.start(), /stalled/);
+  assert.equal(signal?.aborted, true);
+  assert.equal(film.progress.state, "error");
+  const url = await film.start();
+  assert.equal(film.progress.state, "ready");
+  assert.equal(film.progress.received, 2);
+  URL.revokeObjectURL(url);
+});
+
+test("a stalled body is cancelled and never published as a partial video", async () => {
+  let cancelled = false;
+  const film = new FilmPreloader("https://example.com/film.mp4", () => {},
+    async () => new Response(new ReadableStream({
+      start(controller) { controller.enqueue(new Uint8Array([1, 2])); },
+      cancel() { cancelled = true; },
+    })), 25);
+  await assert.rejects(film.start(), /stalled/);
+  assert.equal(cancelled, true);
+  assert.equal(film.progress.state, "error");
+  assert.equal(film.progress.received, 2);
+});
+
+test("ongoing slow progress extends the idle timeout instead of imposing a total deadline", async () => {
+  const film = new FilmPreloader("https://example.com/film.mp4", () => {},
+    async () => new Response(new ReadableStream({
+      async start(controller) {
+        for (let i = 0; i < 6; i++) {
+          controller.enqueue(new Uint8Array([i]));
+          await new Promise((resolve) => setTimeout(resolve, 20));
+        }
+        controller.close();
+      },
+    })), 100);
+  const url = await film.start();
+  assert.equal(film.progress.received, 6);
+  assert.equal(film.progress.state, "ready");
+  URL.revokeObjectURL(url);
+});
+
+test("partial HTTP responses are rejected and compressed lengths do not mark decoded bodies incomplete", async () => {
+  const partial = new FilmPreloader("https://example.com/film.mp4", () => {},
+    async () => new Response(new Uint8Array([1]), { status: 206 }));
+  await assert.rejects(partial.start(), /complete response/);
+  const encoded = new FilmPreloader("https://example.com/film.mp4", () => {},
+    async () => new Response(new Uint8Array(12), { headers: { "Content-Length": "6", "Content-Encoding": "gzip" } }));
+  const url = await encoded.start();
+  assert.equal(encoded.progress.received, 12);
+  assert.equal(encoded.progress.total, 0);
+  URL.revokeObjectURL(url);
+});

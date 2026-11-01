@@ -11,7 +11,8 @@ import {
   type ItemId,
   type InventoryState,
 } from "./items";
-import { drawItem, wreathUrl, rewardsUrl } from "./item-art";
+import { drawItem, wreathUrl, rewardsUrl, whenWardrobeReady } from "./item-art";
+import { reservedShortcut } from "./input";
 import { sfx } from "./sound";
 export class Inventory {
   state: InventoryState;
@@ -34,15 +35,18 @@ export class Inventory {
     this.rewards.onload = () => this.drawIcons();
     this.wreath.src = wreathUrl;
     this.rewards.src = rewardsUrl;
+    whenWardrobeReady(() => this.drawIcons());
     document
       .querySelector(".bag-toggle")!
       .addEventListener("click", () => this.togglePanel());
     window.addEventListener("keydown", (e) => {
-      if (e.key.toLowerCase() === "b" && !e.repeat) {
+      if (reservedShortcut(e)) return;
+      if ((e.key.toLowerCase() === "b" || (e.key === "Escape" && !this.root.hidden)) && !e.repeat) {
         e.preventDefault();
+        e.stopImmediatePropagation();
         this.togglePanel();
       }
-    });
+    }, { capture: true });
     this.sync();
     this.render();
   }
@@ -51,8 +55,10 @@ export class Inventory {
   }
   open() {
     this.root.hidden = false;
+    this.world.suspend("inventory", true);
     this.render();
     this.root.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    this.root.querySelector<HTMLButtonElement>(".bag-close")!.focus({ preventScroll: true });
   }
   grant(id: ItemId) {
     if (!grantItem(this.state, id)) return false;
@@ -76,6 +82,8 @@ export class Inventory {
       ?.focus({ preventScroll: true });
   }
   reset() {
+    this.close(false);
+    this.filter = "all";
     this.state = readInventory(null);
     this.save();
     this.sync();
@@ -95,14 +103,19 @@ export class Inventory {
       this.close();
       return;
     }
-    this.root.hidden = !this.root.hidden;
-    if (!this.root.hidden) {
-      this.render();
-      this.root.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
+    this.open();
   }
-  private close() {
+  close(restoreFocus = true) {
+    if (this.root.hidden) return;
     this.root.hidden = true;
+    this.world.suspend("inventory", false);
+    if (!restoreFocus) return;
+    if (this.world.suspended) {
+      const help = document.querySelector<HTMLElement>(".inline-help:not([hidden])");
+      help?.querySelector<HTMLButtonElement>(".help-close")?.focus({ preventScroll: true });
+      help?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      return;
+    }
     this.world.canvas.focus({ preventScroll: true });
     if (this.world.canvas.parentElement!.classList.contains("arcade-active"))
       this.world.canvas.parentElement!.scrollIntoView({
@@ -128,7 +141,7 @@ export class Inventory {
       })
       .join(
         "",
-      )}</div><p class="bag-footnote">六个部位可以独立搭配。同行伙伴会跟随散步；睡觉时隐藏穿戴和伙伴。纪念品与佩戴选择仅保存在本机。</p>`;
+      )}</div><p class="bag-footnote">整理背包时冒险暂停，B / Esc 收起后继续。六个部位可以独立搭配；睡觉时隐藏穿戴和伙伴。纪念品与佩戴选择仅保存在本机。</p>`;
     this.root
       .querySelector(".bag-close")!
       .addEventListener("click", () => this.close());

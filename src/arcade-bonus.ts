@@ -369,8 +369,15 @@ export class MinesGame extends BonusGame {
   hint() {
     if (this.hints <= 0 || this.status !== "playing") return;
     if (!this.mines.size) {
+      const first = !this.flags.has(this.cursor)
+        ? this.cursor
+        : Array.from({ length: 30 }, (_, i) => i).find(
+            (i) => !this.flags.has(i),
+          );
+      if (first === undefined) return;
       this.hints--;
-      this.reveal(this.cursor);
+      this.cursor = first;
+      this.reveal(first);
       return;
     }
     const i = Array.from({ length: 30 }, (_, i) => i).find(

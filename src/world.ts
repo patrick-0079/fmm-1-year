@@ -12,6 +12,7 @@ import { bedRest, benchRest, type RestState } from "./rest";
 import { drawAvatar } from "./avatar";
 import type { Facing } from "./equipment";
 import { clickedInteraction } from "./interaction";
+import { reservedShortcut, readingTarget } from "./input";
 import { drawConnections } from "./connections";
 import {
   advancePath,
@@ -70,6 +71,17 @@ export class World {
     import.meta.env.DEV && new URLSearchParams(location.search).has("debug");
   private debugOutput: HTMLOutputElement | null = null;
   paused = true;
+  private suspensions = new Set<string>();
+  get suspended() {
+    return this.suspensions.size > 0;
+  }
+  suspend(reason: string, active: boolean) {
+    if (active) this.suspensions.add(reason);
+    else this.suspensions.delete(reason);
+    this.canvas.parentElement!.inert = this.suspended;
+    this.clearInput();
+  }
+  onInputCancel: () => void = () => {};
   visited: string[] = [];
   onInteract: (id: string) => void = () => {};
   onNearby: (spot: Hotspot | null) => void = () => {};
@@ -129,8 +141,10 @@ export class World {
     }
     window.addEventListener("keydown", (e) => {
       if (
-        this.busy ||
-        /INPUT|TEXTAREA|SELECT/.test((e.target as HTMLElement).tagName)
+        reservedShortcut(e) ||
+        this.suspended ||
+        readingTarget(e.target) ||
+        this.busy
       )
         return;
       const key = e.key.toLowerCase();
@@ -177,7 +191,6 @@ export class World {
         e.stopImmediatePropagation();
     });
     window.addEventListener("blur", () => {
-      this.onAction(false);
       this.secondaryPressed = false;
       this.clearInput();
     });
@@ -185,6 +198,7 @@ export class World {
       if (document.hidden) this.clearInput();
     });
     canvas.addEventListener("pointerdown", (e) => {
+      if (this.suspended) return;
       canvas.focus({ preventScroll: true });
       const point = this.pointerPoint(e);
       if (e.button === 2) {
@@ -246,7 +260,8 @@ export class World {
           }
           return;
         }
-        this.onPointer(type.replace("pointer", ""), this.pointerPoint(e));
+        if (!this.suspended)
+          this.onPointer(type.replace("pointer", ""), this.pointerPoint(e));
       });
   }
   private pointerPoint(e: PointerEvent): Point {
@@ -390,6 +405,7 @@ export class World {
     this.frameId = requestAnimationFrame(this.frame);
   }
   clearInput() {
+    this.onInputCancel();
     this.keys.clear();
     this.touch = { x: 0, y: 0 };
     this.path = [];
@@ -397,7 +413,7 @@ export class World {
     this.walking = false;
   }
   setTouch(x: number, y: number) {
-    if (this.paused || this.busy) return;
+    if (this.paused || this.busy || this.suspended) return;
     if (x || y) this.standUp();
     this.touch = { x, y };
     this.path = [];
@@ -423,7 +439,7 @@ export class World {
     this.onScene(scene);
   }
   interact() {
-    if (this.paused || this.busy) return;
+    if (this.paused || this.busy || this.suspended) return;
     if (this.restState) {
       this.standUp();
       return;
@@ -467,8 +483,8 @@ export class World {
     const dt = Math.min((timestamp - (this.last || timestamp)) / 1000, 0.05);
     this.last = timestamp;
     this.time = timestamp / 1000;
-    this.onTick(document.hidden ? 0 : dt, this.time);
-    if (!this.paused && !document.hidden) this.update(dt);
+    this.onTick(document.hidden || this.suspended ? 0 : dt, this.time);
+    if (!this.paused && !this.suspended && !document.hidden) this.update(dt);
     this.updateCamera();
     this.draw();
     this.frameId = requestAnimationFrame(this.frame);

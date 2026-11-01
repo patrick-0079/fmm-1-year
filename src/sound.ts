@@ -178,7 +178,17 @@ document.addEventListener("visibilitychange", () => {
     void context.resume().catch(() => {});
   }
 });
-window.addEventListener("pagehide", () => {
+window.addEventListener("pagehide", (event) => {
+  if (event.persisted) {
+    void context?.suspend();
+    return;
+  }
   clearInterval(scheduler);
   void context?.close();
+});
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted && context && !document.hidden) {
+    nextNote = context.currentTime + 0.05;
+    void context.resume().catch(() => {});
+  }
 });

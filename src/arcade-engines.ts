@@ -9,6 +9,7 @@ export interface Engine {
   goal: number;
   achieved: boolean;
   continuePlay(): void;
+  cancelInput?(): void;
   pointer?(x: number, y: number): void;
   hint?(): void;
   start(): void;
@@ -210,6 +211,9 @@ export class BlocksGame implements Engine {
   nextIndex = 0;
   private clock = 0;
   private soft = false;
+  cancelInput() {
+    this.soft = false;
+  }
   private random: () => number;
   constructor(random = Math.random) {
     this.random = random;
@@ -356,6 +360,10 @@ export class HopGame implements Engine {
   vy = 0;
   charge = 0;
   charging = false;
+  cancelInput() {
+    this.charging = false;
+    this.charge = 0;
+  }
   grounded = true;
   platformId = 0;
   platforms: Platform[] = [{ id: 0, x: 45, y: 132, w: 62 }];

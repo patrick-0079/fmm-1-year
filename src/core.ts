@@ -348,6 +348,9 @@ export function findPath(
       geometry.floor,
       geometry.surfaces,
     ) && !touchingHazard(point, hazards, PLAYER_RADIUS + 2);
+  const goalIsClear = valid(goal);
+  if (goalIsClear && canTravelBetween(start, goal, geometry, hazards))
+    return [{ ...goal }];
   let anchor = -1,
     nearest = Infinity;
   const sx = Math.floor(start.x / step),
@@ -381,7 +384,15 @@ export function findPath(
       best = id;
       bestDistance = distance;
     }
-    if (distance < 0.5) break;
+    if (
+      goalIsClear &&
+      distance <= step * Math.SQRT2 &&
+      canTravelBetween(p, goal, geometry, hazards)
+    ) {
+      best = id;
+      bestDistance = distance;
+      break;
+    }
     const x = id % cols,
       y = Math.floor(id / cols);
     for (const [dx, dy] of [

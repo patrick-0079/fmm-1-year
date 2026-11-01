@@ -18,6 +18,9 @@ for (const name of [
   "town-npcs",
   "reward-icons",
   "garden-traps",
+  "party-props-v11",
+  "wardrobe-v11",
+  "cake-slice-v11",
 ]) {
   const source = fileURLToPath(new URL(`${name}.png`, directory));
   const output = fileURLToPath(new URL(`${name}.webp`, directory));
@@ -32,6 +35,9 @@ for (const name of [
     "town-npcs",
     "reward-icons",
     "garden-traps",
+    "party-props-v11",
+    "wardrobe-v11",
+    "cake-slice-v11",
   ].includes(name)
     ? { lossless: true, effort: 6 }
     : { quality: 90, effort: 6 };

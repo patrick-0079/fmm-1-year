@@ -11,6 +11,7 @@ import {
 } from "./arcade-engines";
 import { sfx } from "./sound";
 import { LinkGame, MinesGame } from "./arcade-bonus";
+import { reservedShortcut, readingTarget } from "./input";
 export class Arcade {
   private engine: Engine | null = null;
   private id: GameId = "snake";
@@ -18,6 +19,7 @@ export class Arcade {
   private hud: HTMLElement = document.querySelector(".arcade-hud")!;
   private previousStatus = "";
   private previousScore = -1;
+  private paused = false;
   constructor(
     private world: World,
     private activities: Activities,
@@ -27,6 +29,15 @@ export class Arcade {
       tick = world.onTick,
       pointer = world.onPointer,
       action = world.onAction;
+    const cancel = world.onInputCancel;
+    world.onInputCancel = () => {
+      cancel();
+      this.engine?.cancelInput?.();
+    };
+    window.addEventListener("blur", () => this.setPaused(true, false));
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) this.setPaused(true, false);
+    });
     world.onAction = (pressed) => {
       if (!this.active) return action(pressed);
       this.action("primary", pressed);
@@ -42,6 +53,7 @@ export class Arcade {
     };
     world.onPointer = (type, p) => {
       if (!this.active) return pointer(type, p);
+      if (world.suspended || this.paused) return true;
       if (type === "down" && this.engine?.pointer) {
         if (this.engine.status === "ready") this.start();
         const g = ARCADES[this.id];
@@ -67,7 +79,12 @@ export class Arcade {
       f: "drop",
     };
     window.addEventListener("keydown", (e) => {
-      if (!this.active) return;
+      if (!this.active || world.suspended || reservedShortcut(e) || readingTarget(e.target)) return;
+      if (e.key.toLowerCase() === "p" && !e.repeat) {
+        e.preventDefault();
+        this.setPaused(!this.paused);
+        return;
+      }
       if (e.key === "Escape") {
         this.close();
         return;
@@ -99,6 +116,7 @@ export class Arcade {
     this.hud.dataset.game = id;
     this.engine = createEngine(id);
     this.awarded = false;
+    this.paused = false;
     this.previousStatus = "";
     this.previousScore = -1;
     const g = ARCADES[id];
@@ -129,7 +147,11 @@ export class Arcade {
     this.showBoard();
   }
   private action(action: GameAction, pressed: boolean) {
-    if (!this.engine) return;
+    if (!this.engine || this.world.suspended) return;
+    if (this.paused) {
+      if (pressed && action === "primary") this.setPaused(false);
+      return;
+    }
     if (this.engine.status === "ready" && pressed) {
       this.start();
       return;
@@ -142,7 +164,7 @@ export class Arcade {
     if (pressed && action === "primary") sfx("flip");
   }
   private tick(dt: number) {
-    if (!this.engine) return;
+    if (!this.engine || this.world.suspended || this.paused) return;
     this.engine.update(dt);
     if (this.engine.achieved && !this.awarded) {
       this.awarded = true;
@@ -171,6 +193,17 @@ export class Arcade {
     this.render();
     this.showBoard();
   }
+  private setPaused(paused: boolean, reveal = true) {
+    if (!this.engine || this.engine.status !== "playing" || this.paused === paused) return;
+    this.paused = paused;
+    this.engine.cancelInput?.();
+    this.world.clearInput();
+    this.render();
+    if (!reveal) return;
+    if (!paused) this.world.canvas.focus({ preventScroll: true });
+    else this.hud.querySelector<HTMLButtonElement>(".arcade-result-actions button")?.focus({ preventScroll: true });
+    this.showBoard();
+  }
   private showBoard() {
     this.world.canvas.parentElement!.scrollIntoView({
       behavior: "smooth",
@@ -179,10 +212,13 @@ export class Arcade {
   }
   private render() {
     if (!this.engine) return;
+    this.previousStatus = this.engine.status;
+    this.previousScore = this.engine.score;
     const game = ARCADES[this.id],
       e = this.engine;
-    const message =
-      e.status === "ready"
+    const message = this.paused
+      ? "暂停休息中 · 按 P / E 或点击「继续挑战」回到这一局"
+      : e.status === "ready"
         ? `${game.title} · ${game.instructions}`
         : e.status === "playing"
           ? e.achieved
@@ -207,6 +243,7 @@ export class Arcade {
             this.action(action, true);
           });
           b.addEventListener("keydown", (event) => {
+            if (reservedShortcut(event)) return;
             if (![" ", "Enter"].includes(event.key)) return;
             event.preventDefault();
             event.stopPropagation();
@@ -263,7 +300,7 @@ export class Arcade {
                   : "开始 / 方向键移动";
     const controls = this.hud.querySelector<HTMLElement>(".arcade-controls")!;
     controls.dataset.game = this.id;
-    controls.hidden = e.status !== "playing";
+    controls.hidden = e.status !== "playing" || this.paused;
     const extra = this.hud.querySelector(".arcade-extra-actions")!;
     extra.replaceChildren();
     const extraButton = (text: string, run: () => void, disabled = false) => {
@@ -272,17 +309,22 @@ export class Arcade {
       b.textContent = text;
       b.disabled = disabled;
       b.addEventListener("click", () => {
+        const index = Array.from(extra.children).indexOf(b);
         run();
         this.render();
+        const next = extra.children[index] as HTMLButtonElement | undefined;
+        if (next && !next.disabled) next.focus({ preventScroll: true });
+        else this.world.canvas.focus({ preventScroll: true });
+        this.showBoard();
       });
       extra.append(b);
       return b;
     };
-    if (e.status === "playing" && e instanceof LinkGame) {
+    if (e.status === "playing" && !this.paused && e instanceof LinkGame) {
       extraButton("提示一对", () => e.hint());
       extraButton("重新洗牌", () => e.shuffle());
     }
-    if (e.status === "playing" && e instanceof MinesGame) {
+    if (e.status === "playing" && !this.paused && e instanceof MinesGame) {
       extraButton(
         e.flagMode ? "标旗模式：开（点格子标旗）" : "标旗模式：关",
         () => {
@@ -302,6 +344,8 @@ export class Arcade {
       actions.append(b);
     };
     if (e.status === "ready") button("开始挑战", () => this.start());
+    if (e.status === "playing")
+      button(this.paused ? "继续挑战 P" : "暂停休息 P", () => this.setPaused(!this.paused));
     if (e.status === "won") button("继续游玩 →", () => this.continue());
     if (e.status === "won" || e.status === "lost") {
       button("再玩一次", () => this.open(this.id));
@@ -354,6 +398,15 @@ export class Arcade {
       c.fillText("♡ 一周年快乐 ♡", 120, 67);
       c.font = '10px "Microsoft YaHei",sans-serif';
       c.fillText("已领到纪念品 · 按 E 或点继续游玩", 120, 88);
+    }
+    if (this.paused || this.world.suspended) {
+      c.fillStyle = "#fff8e6dd";
+      c.fillRect(0, 56, 240, 48);
+      c.fillStyle = "#765c80";
+      c.font = '12px "Microsoft YaHei", "PingFang SC", sans-serif';
+      c.fillText("先休息一下 ♡", 120, 76);
+      c.font = '9px "Microsoft YaHei", "PingFang SC", sans-serif';
+      c.fillText(this.world.suspended ? "收起面板，回到这场小冒险" : "按 P / E 或点「继续挑战」", 120, 94);
     }
     c.restore();
   }

@@ -1,5 +1,6 @@
 import { eggAvailable, phaseNames, untilNextPhase, worldTime } from "./day";
 import { sfx } from "./sound";
+import { reservedShortcut, readingTarget } from "./input";
 import type { Activities } from "./activities";
 import type { Inventory } from "./inventory";
 import { sceneLights } from "./lights";
@@ -110,6 +111,7 @@ export class Nature {
       .querySelector(".crown-toggle")!
       .addEventListener("click", () => this.toggleCrown());
     window.addEventListener("keydown", (e) => {
+      if (reservedShortcut(e) || this.world.suspended || readingTarget(e.target)) return;
       if (
         e.key.toLowerCase() === "h" &&
         !e.repeat &&
@@ -159,7 +161,13 @@ export class Nature {
   }
   reset() {
     this.state = initial();
+    this.origin = Date.now();
+    this.shift = 0;
+    this.oldPhase = "";
+    this.lastUi = 0;
+    this.saveClock();
     this.save();
+    this.tick(0);
   }
   private available(spot: Hotspot) {
     if (spot.id === "wreath") return !this.inventory.has("wreath");
