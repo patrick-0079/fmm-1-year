@@ -1,8 +1,9 @@
 import { anniversary, encouragements } from "./content";
 import { EVENT_IDS, GAME_IDS, SAVE_KEY, readProgress } from "./core";
-import { escapeHtml, icon } from "./icons";
+import { icon } from "./icons";
 import { World, scenes, type SceneId } from "./world";
 import { Activities } from "./activities";
+import { BedNote } from "./bed-note";
 import { MapReader } from "./reader";
 import { Nature } from "./nature";
 import { openCollection } from "./media";
@@ -36,8 +37,7 @@ export function mountGame(tasks: Task[]) {
   const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
   const toastElement = document.querySelector<HTMLElement>(".toast")!;
   document.querySelector(".scene-wrap")!.append(toastElement);
-  let toastTimeout: ReturnType<typeof setTimeout>,
-    reviveTimeout: ReturnType<typeof setTimeout>;
+  let toastTimeout: ReturnType<typeof setTimeout>;
   const toast = (text: string) => {
     toastElement.textContent = text;
     toastElement.classList.add("visible");
@@ -119,9 +119,14 @@ export function mountGame(tasks: Task[]) {
   }
   const activities = new Activities(world, { complete, toast });
   const nature = new Nature(world, activities, toast);
+  const bedNote = new BedNote(world);
+  const previousTick = world.onTick;
+  world.onTick = (dt, t) => {
+    previousTick(dt, t);
+    bedNote.refresh(progress.bedNoteUnlocked);
+  };
   function dismissRevive() {
-    document.querySelector<HTMLElement>(".revive-strip")!.hidden = true;
-    clearTimeout(reviveTimeout);
+    bedNote.close();
   }
   function transition(scene: SceneId) {
     if (world.busy || transitioning || !started) return;
@@ -147,27 +152,42 @@ export function mountGame(tasks: Task[]) {
     sfx("step");
     dismissRevive();
   };
-  world.onCheckpoint = (point, activated) => {
-    document.querySelector("#checkpoint-name")!.textContent = point.title;
-    if (activated) {
-      toast(`复活点已点亮：${point.title}`);
-      sfx("checkpoint");
+  world.onRestChange = (state) => {
+    const tools = document.querySelector<HTMLElement>(".rest-tools")!;
+    tools.hidden = !state;
+    if (state)
+      tools.querySelector("span")!.textContent =
+        state.kind === "lying" ? "在小屋的床上休息" : "坐在长椅上";
+    else {
+      bedNote.close();
+      activities.close();
     }
+    bedNote.refresh(progress.bedNoteUnlocked);
   };
+  document
+    .querySelector(".stand-up")!
+    .addEventListener("click", () => world.standUp());
   let encouragementIndex = 0;
-  world.onRespawn = ({ trap, checkpoint }) => {
+  world.onRespawn = ({ trap }) => {
     activities.close();
     reader.close();
     sfx("revive");
-    const entry = encouragements.length
-      ? encouragements[encouragementIndex++ % encouragements.length]
-      : undefined;
-    const strip = document.querySelector<HTMLElement>(".revive-strip")!;
-    strip.hidden = false;
-    strip.innerHTML = `<span class="revive-star">✦</span><div><strong>${escapeHtml(entry?.title || "鼓励的话 · 待添加")}</strong><p>${escapeHtml(entry?.message || "这里留给你之后提供的加油鼓励。先在星灯旁休息一下，再继续向前吧。")}</p><small>在「${escapeHtml(trap.title)}」旁绊了一下，已回到${escapeHtml(checkpoint.title)}。${entry?.author ? ` 来自 ${escapeHtml(entry.author)}` : ""}</small></div><button class="map-action">继续走吧 →</button>`;
-    strip.querySelector("button")!.addEventListener("click", dismissRevive);
-    clearTimeout(reviveTimeout);
-    reviveTimeout = setTimeout(dismissRevive, 14000);
+    if (!progress.bedNoteUnlocked) {
+      progress.bedNoteUnlocked = true;
+      save();
+      bedNote.open();
+    } else {
+      const entry = encouragements.length
+        ? encouragements[encouragementIndex++ % encouragements.length]
+        : undefined;
+      if (entry) activities.note(entry.message);
+      else toast("已经回到小屋的床，休息好再出发吧。");
+    }
+    world.canvas.setAttribute(
+      "aria-description",
+      `在「${trap.title}」旁遇到小挫折，已回到小屋的床上休息。`,
+    );
+    world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
   };
   world.onNearby = (spot) => {
     const prompt = document.querySelector<HTMLElement>(".nearby-prompt")!;
@@ -188,6 +208,7 @@ export function mountGame(tasks: Task[]) {
         );
       });
     setMusicScene(scene);
+    bedNote.refresh(progress.bedNoteUnlocked);
   };
   world.onInteract = (id) => {
     const spot = world.config.spots.find((s) => s.id === id);
@@ -198,6 +219,25 @@ export function mountGame(tasks: Task[]) {
     reader.close();
     dismissRevive();
     document.querySelector<HTMLElement>(".nearby-prompt")!.hidden = true;
+    if (id === "bed") {
+      activities.close();
+      world.lieDown();
+      activities.menu("在自己的小床上躺好啦 · 休息好了再出发", [
+        { title: "起床继续冒险", run: () => world.standUp() },
+        ...(progress.bedNoteUnlocked
+          ? [
+              {
+                title: "看看小叶子的便签",
+                run: () => {
+                  activities.close();
+                  bedNote.open();
+                },
+              },
+            ]
+          : []),
+      ]);
+      return;
+    }
     if (nature.interact(id)) return;
     if (EVENT_IDS.includes(id) && !progress.visited.includes(id)) {
       progress.visited.push(id);
@@ -360,7 +400,12 @@ export function mountGame(tasks: Task[]) {
     document.querySelector<HTMLElement>(".reset-confirmation")!.hidden = true;
   });
   document.querySelector(".reset-confirm")!.addEventListener("click", () => {
-    progress = { ...progress, visited: [], completed: [] };
+    progress = {
+      ...progress,
+      visited: [],
+      completed: [],
+      bedNoteUnlocked: false,
+    };
     activities.reset();
     nature.reset();
     reader.close();

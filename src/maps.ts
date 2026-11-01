@@ -1,4 +1,5 @@
-import type { Checkpoint, Geometry, Hazard, Point } from "./core.ts";
+import type { Geometry, Hazard, Point } from "./core.ts";
+import { gardenTrees, creeks } from "./landscape.ts";
 export type SceneId = "room" | "garden" | "challenge";
 export interface Hotspot {
   id: string;
@@ -16,7 +17,6 @@ export interface Scene extends Geometry {
   height: number;
   spawn: Point;
   spots: Hotspot[];
-  checkpoints: Checkpoint[];
   hazards: Hazard[];
 }
 const polygon = (label: string, coordinates: number[][]) => ({
@@ -114,9 +114,17 @@ export const scenes: Record<SceneId, Scene> = {
         [497, 309],
       ]),
     ],
-    checkpoints: [{ id: "room-light", title: "枕边星灯", x: 300, y: 310 }],
     hazards: [],
     spots: [
+      {
+        id: "bed",
+        title: "在床上躺一会",
+        x: 486,
+        y: 140,
+        approach: { x: 486, y: 205 },
+        radius: 85,
+        color: "#a294cc",
+      },
       {
         id: "cake",
         title: "周年蛋糕",
@@ -273,10 +281,6 @@ export const scenes: Record<SceneId, Scene> = {
       ]),
       { label: "野餐灯", x: 738, y: 469, w: 24, h: 30 },
     ],
-    checkpoints: [
-      { id: "garden-entry", title: "启程星灯", x: 450, y: 175 },
-      { id: "garden-heart", title: "心愿星灯", x: 450, y: 415 },
-    ],
     hazards: [],
     spots: [
       {
@@ -340,11 +344,6 @@ export const scenes: Record<SceneId, Scene> = {
     bounds: { x: 105, y: 100, w: 690, h: 425 },
     spawn: { x: 450, y: 510 },
     walls: [],
-    checkpoints: [
-      { id: "courage-entry", title: "出发星灯", x: 450, y: 510 },
-      { id: "courage-middle", title: "勇气星灯", x: 610, y: 315 },
-      { id: "courage-end", title: "向阳星灯", x: 450, y: 125 },
-    ],
     hazards: [
       {
         id: "ribbon",
@@ -405,8 +404,20 @@ export const scenes: Record<SceneId, Scene> = {
 // Flat collectible patches do not block feet; only the new apple-tree trunks do.
 for (const id of ["garden", "challenge"] as const) {
   const outdoor = scenes[id];
+  for (const tree of gardenTrees[id])
+    outdoor.walls.push({
+      label: "花园树干",
+      x: tree.x - 7 * tree.scale,
+      y: tree.y + 13 * tree.scale,
+      w: 14 * tree.scale,
+      h: 13 * tree.scale,
+    });
+  outdoor.walls.push(
+    { label: "小溪上游", points: creeks[id].upper },
+    { label: "小溪下游", points: creeks[id].lower },
+  );
   const tree = id === "garden" ? { x: 315, y: 235 } : { x: 705, y: 392 };
-  const flowers = id === "garden" ? { x: 548, y: 410 } : { x: 225, y: 267 };
+  const flowers = id === "garden" ? { x: 548, y: 410 } : { x: 170, y: 267 };
   const drop = id === "garden" ? { x: 560, y: 365 } : { x: 295, y: 225 };
   const bench = id === "garden" ? { x: 385, y: 420 } : { x: 560, y: 430 };
   outdoor.walls.push({
@@ -418,9 +429,9 @@ for (const id of ["garden", "challenge"] as const) {
   });
   outdoor.walls.push({
     label: "休息长椅",
-    x: bench.x - 21,
+    x: bench.x - 27,
     y: bench.y + 1,
-    w: 42,
+    w: 54,
     h: 15,
   });
   outdoor.spots.push(
@@ -443,6 +454,15 @@ for (const id of ["garden", "challenge"] as const) {
       color: "#eaa7bc",
     },
     {
+      id: "wreath",
+      title: "捡起花环",
+      x: flowers.x - 20,
+      y: flowers.y + 32,
+      approach: { x: flowers.x - 20, y: flowers.y + 53 },
+      radius: 46,
+      color: "#cbb5df",
+    },
+    {
       id: "drop",
       title: "捡起闪亮掉落物",
       x: drop.x,
@@ -456,7 +476,7 @@ for (const id of ["garden", "challenge"] as const) {
       title: "在花园里歇一会",
       x: id === "garden" ? 385 : 560,
       y: id === "garden" ? 420 : 430,
-      approach: id === "garden" ? { x: 385, y: 442 } : { x: 560, y: 452 },
+      approach: id === "garden" ? { x: 385, y: 447 } : { x: 560, y: 457 },
       radius: 50,
       color: "#97c9ce",
     },

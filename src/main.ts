@@ -1,4 +1,5 @@
 import "./style.css";
+import "./world-details.css";
 import { anniversary, collections, producers } from "./content";
 import { escapeHtml, icon } from "./icons";
 
@@ -6,7 +7,7 @@ const tasks = [
   {
     id: "courage",
     title: "带着勇气出发",
-    subtitle: "点亮星灯 · 摘一朵勇气之花",
+    subtitle: "绕过小挫折 · 摘一朵勇气之花",
     icon: "heart",
     scene: "challenge",
   },
@@ -63,13 +64,13 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
           <div class="scene-wrap">
             <canvas id="world" tabindex="0" aria-label="像素探索场景。使用 WASD 或方向键移动，E 或空格互动；也可点击地面行走，点击发光标记互动。">浏览器需要支持 Canvas 才能游玩。</canvas>
             <div class="scene-top"><span class="location-pill">${icon("moon")} <span id="location-name">ROOM 01 · 晚安小屋</span></span><button class="map-switch" title="切换到另一个场景">周年花园 ${icon("arrow")}</button></div>
-            <span class="time-pill" role="timer" aria-live="off">☀ 08:00 · 白昼</span><span class="checkpoint-pill">${icon("star")} 复活点 · <span id="checkpoint-name">枕边星灯</span></span>
-            <div class="activity-hud" hidden><div class="activity-heading"><span class="activity-status" role="status" aria-live="polite"></span><button class="activity-close" aria-label="结束当前互动，回到地图">收起 ×</button></div><div class="activity-actions"></div></div><div class="revive-strip" hidden role="status"></div><div class="nearby-prompt" hidden><span></span><kbd>E</kbd><span class="prompt-verb">互动</span></div>
+            <span class="time-pill" role="timer" aria-live="off">☀ 08:00 · 白昼</span><span class="checkpoint-pill">${icon("star")} 复活点 · <span id="checkpoint-name">小屋的床</span></span>
+            <div class="activity-hud" hidden><div class="activity-heading"><span class="activity-status" role="status" aria-live="polite"></span><button class="activity-close" aria-label="结束当前互动，回到地图">收起 ×</button></div><div class="activity-actions"></div></div><button class="crown-toggle map-tool" aria-pressed="false" hidden aria-label="戴上花环，快捷键 H">戴上花环 <kbd>H</kbd></button><div class="rest-tools" hidden><span></span><button class="stand-up map-action">起身 <kbd>E</kbd></button></div><button class="bed-note-pin map-tool" hidden>♡ 床边便签</button><article class="bed-note" aria-label="小叶子的床边便签" hidden></article><div class="nearby-prompt" hidden><span></span><kbd>E</kbd><span class="prompt-verb">互动</span></div>
             <div class="intro-screen"><div class="intro-stars">✧ <span>✦</span> ✧</div><span class="intro-pill">芙眠眠 · 直播一周年纪念</span><h2>今晚的快乐，<br>等你来发现。</h2><p>一间温暖小屋，两座缤纷花园。<br>还有藏在角落里的，一点点喜欢。</p><button class="button primary enter-button" disabled>正在点亮小世界…</button><small>点击开始会播放轻柔音乐 · 可随时关闭 ♡</small></div>
             <div class="scene-transition" aria-hidden="true"></div>
           </div>
-          <nav class="scene-nav" aria-label="地图导航"><button data-scene="room">01 晚安小屋</button><button data-scene="garden">02 周年花园</button><button data-scene="challenge">03 勇气花园</button><div class="volume-tools"><button class="volume-down" aria-label="降低游戏音量">−</button><span class="volume-value">45%</span><button class="volume-up" aria-label="提高游戏音量">＋</button></div></nav><div class="garden-pocket"><span>${icon("gift")}<span class="bag-count">苹果 0 · 花朵 0 · 星屑 0</span></span><button class="crown-toggle" aria-pressed="false">戴上花冠</button><span class="day-hint">十分钟一昼夜 · 找长椅休息，等一场黄昏和星夜</span></div><section class="map-reader" aria-label="地图物件阅读区" hidden></section><p class="inline-help" hidden>用 WASD、方向键或下方方向键移动，也可以点击地面行走。点击发光标记会自动走近互动。蛋糕、礼物和烟花都在地图里操作；按 Esc 收起互动。勇气花园里有四种小挫折，走近星灯会记住复活点。进度只保存在当前浏览器。</p><div class="game-bottom"><div class="desktop-instructions"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span><span><kbd>E</kbd> 互动</span><i></i><span>也可以点地面走动、点标记探索</span></div><span class="exploration-count">${icon("star")} <span id="explored">0</span>/11 个角落</span></div>
-          <p class="journey-legend">${icon("star")} 靠近星灯点亮复活点 <span>·</span> 勇气花园里藏着小挫折，小屋与周年花园安心玩</p>
+          <nav class="scene-nav" aria-label="地图导航"><button data-scene="room">01 晚安小屋</button><button data-scene="garden">02 周年花园</button><button data-scene="challenge">03 勇气花园</button><div class="volume-tools"><button class="volume-down" aria-label="降低游戏音量">−</button><span class="volume-value">45%</span><button class="volume-up" aria-label="提高游戏音量">＋</button></div></nav><div class="garden-pocket"><span>${icon("gift")}<span class="bag-count">苹果 0 · 花朵 0 · 星屑 0</span></span><span class="day-hint">十分钟一昼夜 · 找长椅休息，等一场黄昏和星夜</span></div><section class="map-reader" aria-label="地图物件阅读区" hidden></section><p class="inline-help" hidden>用 WASD、方向键或下方方向键移动，也可以点击地面行走。点击发光标记会自动走近互动。蛋糕、礼物和烟花都在地图里操作；按 Esc 收起互动。勇气花园里有四种小挫折，踩到陷阱会回到小屋床上休息，长椅可以坐下，按 E 或方向键起身；捡到花环后按 H 佩戴。进度只保存在当前浏览器。</p><div class="game-bottom"><div class="desktop-instructions"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span><span><kbd>E</kbd> 互动</span><i></i><span>也可以点地面走动、点标记探索</span></div><span class="exploration-count">${icon("star")} <span id="explored">0</span>/11 个角落</span></div>
+          <p class="journey-legend">${icon("star")} 遇到小挫折，回小屋的床休息一下 <span>·</span> 勇气花园里藏着小挫折，小屋与周年花园安心玩</p>
           <div class="touch-controls"><div class="dpad" aria-label="移动方向键"><button data-direction="0,-1" class="dpad-up" aria-label="向上移动">↑</button><button data-direction="-1,0" class="dpad-left" aria-label="向左移动">←</button><span>${icon("heart")}</span><button data-direction="1,0" class="dpad-right" aria-label="向右移动">→</button><button data-direction="0,1" class="dpad-down" aria-label="向下移动">↓</button></div><div class="touch-hint">走近发光的小物件<br><span>或者直接点标记</span></div><button class="touch-interact">${icon("star")}<span>互动</span></button></div>
         </section>
         <aside class="journal" aria-label="庆典手账">

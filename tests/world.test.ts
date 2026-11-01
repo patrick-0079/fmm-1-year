@@ -12,10 +12,15 @@ import { scenes } from "../src/maps.ts";
 import { readFileSync } from "node:fs";
 
 for (const [name, scene] of Object.entries(scenes)) {
-  test(`${name}: every interaction and respawn location is on clear ground`, () => {
+  test(`${name}: every interaction approach and map spawn is on clear ground`, () => {
+    for (const spot of scene.spots)
+      assert.ok(
+        Math.hypot(spot.x - spot.approach.x, spot.y - spot.approach.y) <
+          (spot.radius ?? 48),
+        `${spot.id} approach must actually trigger its interaction`,
+      );
     for (const [label, point] of [
       ["spawn", scene.spawn],
-      ...scene.checkpoints.map((p) => [p.id, p] as const),
       ...scene.spots.map((p) => [p.id, p.approach] as const),
     ] as const) {
       assert.equal(
@@ -36,8 +41,13 @@ for (const [name, scene] of Object.entries(scenes)) {
         `${trap.id} must be walkable to trigger`,
       );
   });
-  test(`${name}: all activities are reachable from every checkpoint without corner cuts or traps`, () => {
-    for (const checkpoint of scene.checkpoints)
+  test(`${name}: all activities are reachable from spawns and rest exits without corner cuts or traps`, () => {
+    for (const checkpoint of [
+      { id: "spawn", ...scene.spawn },
+      ...scene.spots
+        .filter((s) => s.id === "rest" || s.id === "bed")
+        .map((s) => ({ id: s.id, ...s.approach })),
+    ])
       for (const spot of scene.spots) {
         const path = findPath(checkpoint, spot.approach, scene, scene.hazards);
         assert.ok(path, `no route from ${checkpoint.id} to ${spot.id}`);
@@ -84,7 +94,7 @@ test("stairs and courtyard no longer collide with the oversized house box", () =
     { x: 450, y: 145 },
     { x: 450, y: 160 },
     { x: 310, y: 150 },
-    { x: 590, y: 160 },
+    { x: 560, y: 160 },
   ])
     assert.equal(canStand(p, s.walls, s.bounds, s.floor), true);
   for (const p of [

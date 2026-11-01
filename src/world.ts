@@ -2,6 +2,10 @@ import roomUrl from "./assets/room-interactive.webp";
 import gardenUrl from "./assets/garden-colorful.webp";
 import challengeUrl from "./assets/courage-garden.webp";
 import spriteUrl from "./assets/nemu-sprites.webp";
+import restUrl from "./assets/fufu-rest-poses.webp";
+import wreathUrl from "./assets/flower-wreath.webp";
+import stoneUrl from "./assets/mossy-stone.webp";
+import { bedRest, benchRest, type RestState } from "./rest";
 import { spriteFrames } from "./sprite-frames";
 import {
   advancePath,
@@ -9,7 +13,6 @@ import {
   movePlayer,
   touchingHazard,
   PLAYER_RADIUS,
-  type Checkpoint,
   type Hazard,
   type Point,
 } from "./core";
@@ -17,7 +20,6 @@ import { scenes, type Hotspot, type SceneId } from "./maps";
 export { scenes, type SceneId } from "./maps";
 export interface RespawnEvent {
   trap: Hazard;
-  checkpoint: Checkpoint;
   scene: SceneId;
 }
 const art = { room: roomUrl, garden: gardenUrl, challenge: challengeUrl };
@@ -41,15 +43,11 @@ export class World {
   private last = 0;
   private frameId = 0;
   private reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
-  private checkpointId: Record<SceneId, string> = {
-    room: "room-light",
-    garden: "garden-entry",
-    challenge: "courage-entry",
-  };
+  restState: RestState | null = null;
   private stumble: {
     started: number;
     trap: Hazard;
-    checkpoint: Checkpoint;
+    scene: SceneId;
   } | null = null;
   private immunity = 0;
   private debug =
@@ -61,7 +59,7 @@ export class World {
   onNearby: (spot: Hotspot | null) => void = () => {};
   onScene: (id: SceneId) => void = () => {};
   onToast: (text: string) => void = () => {};
-  onCheckpoint: (point: Checkpoint, activated: boolean) => void = () => {};
+  onRestChange: (state: RestState | null) => void = () => {};
   onRespawn: (event: RespawnEvent) => void = () => {};
   onDraw: (context: CanvasRenderingContext2D, time: number) => void = () => {};
   onTick: (dt: number, time: number) => void = () => {};
@@ -71,6 +69,7 @@ export class World {
     () => {};
   onLighting: (context: CanvasRenderingContext2D) => void = () => {};
   onEffects: (context: CanvasRenderingContext2D) => void = () => {};
+  onForeground: (context: CanvasRenderingContext2D) => void = () => {};
   available: (spot: Hotspot) => boolean = () => true;
   flowerCrown = false;
   private stepDistance = 0;
@@ -113,6 +112,7 @@ export class World {
         if (key === "e" || key === " ") {
           if (!e.repeat) this.interact();
         } else {
+          this.standUp();
           this.keys.add(key);
           this.path = [];
           this.targetEvent = null;
@@ -145,13 +145,10 @@ export class World {
       const hazard = this.config.hazards.find(
         (h) => Math.hypot(h.x - point.x, h.y - point.y) < h.radius + 10,
       );
-      const checkpoint = this.config.checkpoints.find(
-        (p) => Math.hypot(p.x - point.x, p.y - point.y) < 18,
-      );
       this.goTo(
-        spot?.approach ?? checkpoint ?? hazard ?? point,
+        spot?.approach ?? hazard ?? point,
         spot?.id ?? null,
-        spot || checkpoint ? undefined : hazard?.id,
+        spot ? undefined : hazard?.id,
       );
     });
     for (const type of ["pointermove", "pointerup", "pointercancel"] as const)
@@ -187,16 +184,40 @@ export class World {
   get busy() {
     return this.stumble !== null;
   }
-  get activeCheckpoint() {
-    return (
-      this.config.checkpoints.find(
-        (p) => p.id === this.checkpointId[this.scene],
-      ) ?? this.config.checkpoints[0]
-    );
+  sit(anchor: Point, exit: Point) {
+    this.clearInput();
+    this.restState = benchRest(this.scene, anchor, exit);
+    this.player = { ...this.restState.anchor };
+    this.facing = 0;
+    this.onRestChange(this.restState);
+  }
+  lieDown() {
+    if (this.scene !== "room") this.switchScene("room");
+    this.clearInput();
+    this.restState = bedRest();
+    this.player = { ...this.restState.anchor };
+    this.setFocus({ x: 460, y: 138 }, 1.7);
+    this.onRestChange(this.restState);
+  }
+  standUp() {
+    if (!this.restState) return;
+    this.player = { ...this.restState.exit };
+    this.restState = null;
+    this.setFocus(null);
+    this.clearInput();
+    this.onRestChange(null);
   }
   async load() {
     await Promise.all(
-      [roomUrl, gardenUrl, challengeUrl, spriteUrl].map(
+      [
+        roomUrl,
+        gardenUrl,
+        challengeUrl,
+        spriteUrl,
+        restUrl,
+        wreathUrl,
+        stoneUrl,
+      ].map(
         (url) =>
           new Promise<void>((resolve, reject) => {
             const image = new Image();
@@ -221,6 +242,7 @@ export class World {
   }
   setTouch(x: number, y: number) {
     if (this.paused || this.busy) return;
+    if (x || y) this.standUp();
     this.touch = { x, y };
     this.path = [];
     this.targetEvent = null;
@@ -228,19 +250,23 @@ export class World {
   switchScene(scene: SceneId) {
     if (this.busy) return;
     this.clearInput();
+    this.restState = null;
+    this.onRestChange(null);
     this.setFocus(null);
     this.scene = scene;
     this.player = { ...scenes[scene].spawn };
     this.facing = 0;
     this.nearbyId = "";
-    this.checkpointId[scene] = scenes[scene].checkpoints[0].id;
     this.updateCamera();
     this.onNearby(null);
     this.onScene(scene);
-    this.onCheckpoint(this.activeCheckpoint, false);
   }
   interact() {
     if (this.paused || this.busy) return;
+    if (this.restState) {
+      this.standUp();
+      return;
+    }
     const nearby = this.nearest();
     if (nearby) {
       this.clearInput();
@@ -253,6 +279,7 @@ export class World {
     if (spot) this.goTo(spot.approach, id);
   }
   private goTo(goal: Point, event: string | null, intendedHazard?: string) {
+    this.standUp();
     this.clearInput();
     const avoid = this.config.hazards.filter((h) => h.id !== intendedHazard);
     const path = findPath(this.player, goal, this.config, avoid);
@@ -294,20 +321,17 @@ export class World {
         this.time - this.stumble.started >
         (this.reducedMotion.matches ? 0.12 : 0.45)
       ) {
-        const { trap, checkpoint } = this.stumble;
+        const { trap, scene } = this.stumble;
         this.stumble = null;
-        this.player = { x: checkpoint.x, y: checkpoint.y };
-        this.facing = 0;
+        this.switchScene("room");
         this.immunity = 2;
-        this.clearInput();
-        this.updateCamera();
-        this.nearbyId = "";
-        this.onNearby(null);
-        this.onRespawn({ trap, checkpoint, scene: this.scene });
+        this.lieDown();
+        this.onRespawn({ trap, scene });
       }
       return;
     }
     this.immunity = Math.max(0, this.immunity - dt);
+    if (this.restState) return;
     const before = { ...this.player };
     if (this.path.length) {
       const result = advancePath(this.player, this.path, dt, this.config);
@@ -346,13 +370,6 @@ export class World {
     if (this.walking)
       this.facing =
         Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 2 : 1) : dy > 0 ? 0 : 3;
-    const checkpoint = this.config.checkpoints.find(
-      (p) => Math.hypot(this.player.x - p.x, this.player.y - p.y) < 16,
-    );
-    if (checkpoint && checkpoint.id !== this.activeCheckpoint.id) {
-      this.checkpointId[this.scene] = checkpoint.id;
-      this.onCheckpoint(checkpoint, true);
-    }
     const trap =
       this.immunity <= 0
         ? touchingHazard(this.player, this.config.hazards)
@@ -361,7 +378,7 @@ export class World {
       this.clearInput();
       this.stumble = {
         trap,
-        checkpoint: { ...this.activeCheckpoint },
+        scene: this.scene,
         started: this.time,
       };
       return;
@@ -432,7 +449,6 @@ export class World {
       c.fillStyle = "#c9b8e5";
       c.fillRect(278, 370, 44, 7);
     }
-    this.drawCheckpoints();
     this.drawHazards();
     for (const spot of this.config.spots) {
       if (!this.available(spot)) continue;
@@ -470,7 +486,8 @@ export class World {
     c.beginPath();
     c.ellipse(x, y, 11, 3.5, 0, 0, Math.PI * 2);
     c.fill();
-    if (sprite) {
+    if (this.restState) this.drawRestSprite(c, x, y);
+    else if (sprite) {
       const col = this.walking ? 1 + (Math.floor(this.time * 7) % 2) : 0;
       const frame = spriteFrames[this.facing * 3 + col];
       const scaleFactor = 43 / 330;
@@ -503,49 +520,51 @@ export class World {
       c.restore();
     }
     if (this.flowerCrown) {
-      for (let i = 0; i < 3; i++) {
-        const fx = x - 7 + i * 7,
-          fy = y - 41 - Math.sin((i / 2) * Math.PI) * 2;
-        c.fillStyle = ["#ffb6ca", "#dac4ff", "#fff5bd"][i];
-        c.fillRect(fx - 2, fy - 3, 4, 6);
-        c.fillRect(fx - 3, fy - 2, 6, 4);
-        c.fillStyle = "#e4ae59";
-        c.fillRect(fx - 1, fy - 1, 2, 2);
-      }
+      const wreath = this.images.get(wreathUrl);
+      const sleeping = this.restState?.kind === "lying",
+        sitting = this.restState?.kind === "sitting";
+      if (wreath)
+        c.drawImage(
+          wreath,
+          x - (sleeping ? 30 : 17),
+          y - (sleeping ? 14 : sitting ? 39 : 46),
+          sleeping ? 22 : 34,
+          sleeping ? 9 : 13,
+        );
     }
+    this.onForeground(c);
     this.onDraw(c, this.time);
     this.onLighting(c);
     this.onEffects(c);
     if (this.debug) this.drawDebug();
     c.restore();
   }
-  private drawCheckpoints() {
-    const c = this.ctx;
-    for (const point of this.config.checkpoints) {
-      const active = point.id === this.activeCheckpoint.id;
-      c.fillStyle = active ? "#f6ce6c66" : "#dcecfb55";
-      c.beginPath();
-      c.ellipse(point.x, point.y, 15, 8, 0, 0, Math.PI * 2);
-      c.fill();
-      c.strokeStyle = active ? "#fff1a6" : "#9bc6df";
-      c.lineWidth = 1.5;
-      c.beginPath();
-      c.ellipse(point.x, point.y, 15, 8, 0, 0, Math.PI * 2);
-      c.stroke();
-      c.fillStyle = active ? "#efb44f" : "#88acc5";
-      c.fillRect(point.x - 5, point.y - 12, 10, 11);
-      c.fillStyle = active ? "#fff5b8" : "#d8edff";
-      c.fillRect(point.x - 3, point.y - 10, 6, 6);
-      c.fillStyle = "#fff8df";
-      c.fillRect(point.x - 1, point.y - 16, 2, 5);
-      c.fillRect(point.x - 3, point.y - 14, 6, 2);
-      if (Math.hypot(this.player.x - point.x, this.player.y - point.y) < 58)
-        this.label(
-          point.x,
-          point.y + 16,
-          point.title,
-          active ? "#716947" : "#567b94",
-        );
+  private drawRestSprite(c: CanvasRenderingContext2D, x: number, y: number) {
+    const image = this.images.get(restUrl);
+    if (!image || !this.restState) return;
+    const sleeping = this.restState.kind === "lying";
+    const frame = sleeping
+      ? { x: 754, y: 275, w: 966, h: 520 }
+      : { x: 87, y: 88, w: 593, h: 733 };
+    const width = sleeping ? 70 : 30,
+      height = (width / frame.w) * frame.h;
+    c.drawImage(
+      image,
+      frame.x,
+      frame.y,
+      frame.w,
+      frame.h,
+      x - width / 2,
+      y - (sleeping ? height / 2 : height),
+      width,
+      height,
+    );
+    if (sleeping) {
+      c.fillStyle = "#a999c9";
+      c.font = "8px sans-serif";
+      c.fillText("z", x + 24, y - 23);
+      c.font = "6px sans-serif";
+      c.fillText("z", x + 31, y - 30);
     }
   }
   private drawHazards() {
@@ -576,13 +595,8 @@ export class World {
         c.fillRect(-2, -3, 5, 5);
       }
       if (trap.kind === "stone") {
-        c.fillStyle = "#727e9c";
-        c.fillRect(-13, -3, 26, 9);
-        c.fillRect(-8, -10, 16, 8);
-        c.fillStyle = "#acb9ce";
-        c.fillRect(-7, -8, 10, 3);
-        c.fillStyle = "#f4c682";
-        c.fillRect(5, 1, 5, 4);
+        const image = this.images.get(stoneUrl);
+        if (image) c.drawImage(image, -23, -25, 46, 35);
       }
       if (trap.kind === "mist") {
         for (let i = 0; i < 3; i++) {
@@ -669,6 +683,6 @@ export class World {
     c.stroke();
     c.restore();
     if (this.debugOutput)
-      this.debugOutput.textContent = `${this.scene} · feet ${this.player.x.toFixed(1)},${this.player.y.toFixed(1)} · checkpoint ${this.activeCheckpoint.id} · camera ${this.camera.x},${this.camera.y} ×${this.zoom} · sprite height 43 / exact crop · ${this.busy ? "stumble" : this.paused ? "paused" : "walk"} · path ${this.path.length}`;
+      this.debugOutput.textContent = `${this.scene} · feet ${this.player.x.toFixed(1)},${this.player.y.toFixed(1)} · respawn home-bed · pose ${this.restState?.kind ?? "standing"} · camera ${this.camera.x},${this.camera.y} ×${this.zoom} · sprite height 43 / exact crop · ${this.busy ? "stumble" : this.paused ? "paused" : "walk"} · path ${this.path.length}`;
   }
 }

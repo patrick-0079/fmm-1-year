@@ -10,6 +10,7 @@ test("corrupt or unexpected saved data cannot break a new visit", () => {
       sound: true,
       bgm: true,
       volume: 0.45,
+      bedNoteUnlocked: false,
     });
   }
   assert.deepEqual(
@@ -26,6 +27,7 @@ test("corrupt or unexpected saved data cannot break a new visit", () => {
       sound: false,
       bgm: false,
       volume: 0.45,
+      bedNoteUnlocked: false,
     },
   );
 });

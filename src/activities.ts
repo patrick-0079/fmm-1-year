@@ -12,6 +12,8 @@ interface Particle extends Point {
   vy: number;
   life: number;
   color: string;
+  maxLife: number;
+  sparkle: number;
 }
 const colors = ["#f49fbc", "#9ddbe9", "#c1a4ea", "#ffdb80", "#b4e9bc"];
 export class Activities {
@@ -33,8 +35,14 @@ export class Activities {
   private released = false;
   private rise = 0;
   private bursts = 0;
+  private launches = 0;
   private particles: Particle[] = [];
-  private rockets: (Point & { target: Point; color: string })[] = [];
+  private rockets: (Point & {
+    target: Point;
+    color: string;
+    pattern: number;
+    trail: Point[];
+  })[] = [];
   private messages: { text: string; x: number; row: number }[] = [];
   constructor(
     private world: World,
@@ -71,7 +79,7 @@ export class Activities {
     this.cutStart = null;
     this.hud.hidden = true;
     this.controls.replaceChildren();
-    this.world.setFocus(null);
+    if (!this.world.restState) this.world.setFocus(null);
     this.world.paused = false;
     this.world.clearInput();
   }
@@ -83,6 +91,7 @@ export class Activities {
     this.released = false;
     this.rise = 0;
     this.bursts = 0;
+    this.launches = 0;
     this.particles = [];
     this.rockets = [];
     this.messages = [];
@@ -250,9 +259,12 @@ export class Activities {
     }
     this.begin("fireworks", "在花园里点亮烟花 · 点击上方天空，或按 E 连续发射");
     this.action("点燃一朵烟花", () => this.launch());
+    this.action("♡ 爱心烟花", () => this.launch(undefined, 0));
+    this.action("✦ 星星烟花", () => this.launch(undefined, 1));
+    this.action("✧ 金色花火", () => this.launch(undefined, 2));
     this.launch();
   }
-  private launch(point?: Point) {
+  private launch(point?: Point, pattern = this.launches++ % 3) {
     if (this.rockets.length > 3) return;
     const origin = { x: 680, y: 450 };
     this.rockets.push({
@@ -262,6 +274,8 @@ export class Activities {
         y: 290 + Math.random() * 70,
       },
       color: colors[this.bursts % colors.length],
+      pattern,
+      trail: [],
     });
     sfx("launch");
   }
@@ -380,22 +394,50 @@ export class Activities {
         this.rockets.splice(this.rockets.indexOf(rocket), 1);
         this.bursts++;
         sfx("burst");
-        for (let i = 0; i < 60; i++) {
-          const angle = (i / 60) * Math.PI * 2,
-            speed = 35 + Math.random() * 65;
+        for (let i = 0; i < 144; i++) {
+          const angle = (i / 144) * Math.PI * 2;
+          const radius =
+            rocket.pattern === 1
+              ? (Math.cos(angle * 5) * 0.27 + 0.73) * 100
+              : 65 + Math.random() * 42;
+          const ring = i % 3 === 0 ? 0.65 : 1;
+          let vx = Math.cos(angle) * radius * ring,
+            vy = Math.sin(angle) * radius * ring;
+          if (rocket.pattern === 0) {
+            vx = 16 * Math.sin(angle) ** 3 * 5.5 * ring;
+            vy =
+              -(
+                13 * Math.cos(angle) -
+                5 * Math.cos(2 * angle) -
+                2 * Math.cos(3 * angle) -
+                Math.cos(4 * angle)
+              ) *
+              5.5 *
+              ring;
+          }
+          const life = 2.2 + Math.random() * 0.65;
           this.particles.push({
             x: rocket.x,
             y: rocket.y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            life: 1.6 + Math.random() * 0.6,
-            color: rocket.color,
+            vx,
+            vy,
+            life,
+            maxLife: life,
+            color:
+              rocket.pattern === 0
+                ? ["#ffb5ca", "#ffe0e3", "#ff8fb5"][i % 3]
+                : rocket.pattern === 1
+                  ? ["#d4c2ff", "#fff4b8", "#bce9ff"][i % 3]
+                  : ["#ffe39a", "#fff3cb", "#f5c970"][i % 3],
+            sparkle: i % 12,
           });
         }
         if (this.bursts >= 3) this.hooks.complete("fireworks");
         if (this.mode === "fireworks")
           this.status.textContent = `${this.bursts} 朵烟花，送给芙芙 · 可以继续点亮这座花园`;
       } else {
+        rocket.trail.push({ x: rocket.x, y: rocket.y });
+        if (rocket.trail.length > 13) rocket.trail.shift();
         rocket.x += (dx / distance) * dt * 230;
         rocket.y += (dy / distance) * dt * 230;
       }
@@ -404,8 +446,8 @@ export class Activities {
       p.life -= dt;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.vy += dt * 30;
-      p.vx *= Math.max(0, 1 - dt * 0.45);
+      p.vy += dt * 15;
+      p.vx *= Math.max(0, 1 - dt * 0.22);
     }
     this.particles = this.particles.filter((p) => p.life > 0);
   }
@@ -485,6 +527,12 @@ export class Activities {
     c.save();
     c.globalCompositeOperation = "lighter";
     for (const rocket of this.rockets) {
+      rocket.trail.forEach((p, i) => {
+        c.globalAlpha = ((i + 1) / rocket.trail.length) * 0.65;
+        c.fillStyle = i % 2 ? "#ffd78a" : "#fff5cb";
+        c.fillRect(p.x - 1, p.y - 1, 2, 3);
+      });
+      c.globalAlpha = 1;
       c.strokeStyle = "#ffd887";
       c.lineWidth = 2;
       c.beginPath();
@@ -496,7 +544,15 @@ export class Activities {
     }
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     for (const p of this.particles) {
-      c.globalAlpha = Math.max(0, Math.min(reduced ? 0.55 : 1, p.life));
+      const age = p.maxLife - p.life;
+      c.globalAlpha = Math.max(0, Math.min(reduced ? 0.55 : 1, p.life / 0.9));
+      if (p.sparkle === 0 && !reduced) {
+        const glow = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, 7);
+        glow.addColorStop(0, p.color + "99");
+        glow.addColorStop(1, p.color + "00");
+        c.fillStyle = glow;
+        c.fillRect(p.x - 7, p.y - 7, 14, 14);
+      }
       c.fillStyle = p.color;
       c.fillRect(Math.round(p.x), Math.round(p.y), 2.5, 2.5);
       c.strokeStyle = p.color;
@@ -505,6 +561,11 @@ export class Activities {
       c.moveTo(p.x, p.y);
       c.lineTo(p.x - p.vx * 0.055, p.y - p.vy * 0.055);
       c.stroke();
+      if (p.sparkle < 2 && age > 0.35) {
+        c.fillStyle = "#fff7dc";
+        c.fillRect(p.x - 3, p.y, 7, 1);
+        c.fillRect(p.x, p.y - 3, 1, 7);
+      }
     }
 
     c.restore();

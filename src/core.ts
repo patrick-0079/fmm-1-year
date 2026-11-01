@@ -35,6 +35,7 @@ export interface Progress {
   sound: boolean;
   bgm: boolean;
   volume: number;
+  bedNoteUnlocked: boolean;
 }
 export const SAVE_KEY = "nemu-anniversary-v1";
 export const PLAYER_RADIUS = 5;
@@ -63,6 +64,7 @@ export function readProgress(raw: string | null): Progress {
     sound: true,
     bgm: true,
     volume: 0.45,
+    bedNoteUnlocked: false,
   };
   if (!raw) return clean;
   try {
@@ -84,6 +86,7 @@ export function readProgress(raw: string | null): Progress {
       visited: valid(p.visited, EVENT_IDS),
       completed: valid(p.completed, GAME_IDS),
       sound: p.sound === true,
+      bedNoteUnlocked: p.bedNoteUnlocked === true,
       bgm: typeof p.bgm === "boolean" ? p.bgm : p.sound === true,
       volume:
         typeof p.volume === "number" && Number.isFinite(p.volume)

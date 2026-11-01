@@ -3,6 +3,10 @@ import { sfx } from "./sound";
 import type { Activities } from "./activities";
 import type { World } from "./world";
 import type { Hotspot } from "./maps";
+import { gardenTrees, creeks } from "./landscape";
+import { drawCreek, drawGardenTree } from "./landscape-renderer";
+import benchUrl from "./assets/garden-bench.webp";
+import wreathUrl from "./assets/flower-wreath.webp";
 import treeUrl from "./assets/apple-tree.webp";
 interface NatureSave {
   picked: Record<string, number>;
@@ -10,6 +14,7 @@ interface NatureSave {
   flower: number;
   star: number;
   wearing: boolean;
+  wreath: boolean;
 }
 const NATURE_KEY = "fufu-garden-bag-v1",
   CLOCK_KEY = "fufu-world-clock-v1";
@@ -19,9 +24,12 @@ const initial = (): NatureSave => ({
   flower: 0,
   star: 0,
   wearing: false,
+  wreath: false,
 });
 export class Nature {
   private treeImage = new Image();
+  private benchImage = new Image();
+  private wreathImage = new Image();
   private origin = Date.now();
   private shift = 0;
   private state = initial();
@@ -34,6 +42,8 @@ export class Nature {
     private toast: (text: string) => void,
   ) {
     this.treeImage.src = treeUrl;
+    this.benchImage.src = benchUrl;
+    this.wreathImage.src = wreathUrl;
     try {
       const clock = JSON.parse(localStorage.getItem(CLOCK_KEY) || "null");
       if (
@@ -53,6 +63,10 @@ export class Nature {
           if (Number.isInteger(data[field]) && data[field] >= 0)
             this.state[field] = Math.min(data[field], 9999);
         this.state.wearing = data.wearing === true;
+        this.state.wreath =
+          data.wreath === true ||
+          data.wearing === true ||
+          (Number.isInteger(data.flower) && data.flower > 0);
         if (
           data.picked &&
           typeof data.picked === "object" &&
@@ -76,6 +90,7 @@ export class Nature {
     this.world.available = (spot) => this.available(spot);
     this.world.onEnvironment = (c, t) => this.draw(c, t);
     this.world.onLighting = (c) => this.lighting(c);
+    this.world.onForeground = (c) => this.foreground(c);
     const tick = this.world.onTick;
     this.world.onTick = (dt, t) => {
       tick(dt, t);
@@ -84,6 +99,18 @@ export class Nature {
     document
       .querySelector(".crown-toggle")!
       .addEventListener("click", () => this.toggleCrown());
+    window.addEventListener("keydown", (e) => {
+      if (
+        e.key.toLowerCase() === "h" &&
+        !e.repeat &&
+        !this.world.paused &&
+        !this.world.busy &&
+        !/INPUT|TEXTAREA|SELECT/.test((e.target as HTMLElement).tagName)
+      ) {
+        e.preventDefault();
+        this.toggleCrown();
+      }
+    });
     this.tick(0);
   }
   get elapsed() {
@@ -126,6 +153,7 @@ export class Nature {
     this.save();
   }
   private available(spot: Hotspot) {
+    if (spot.id === "wreath") return !this.state.wreath;
     if (!eggAvailable(spot.id, this.clock.phase)) return false;
     if (["drop", "dew", "sunset", "firefly"].includes(spot.id))
       return this.picked(spot.id) === 0;
@@ -134,6 +162,7 @@ export class Nature {
   interact(id: string) {
     if (
       ![
+        "wreath",
         "apple",
         "flowers",
         "drop",
@@ -144,11 +173,29 @@ export class Nature {
       ].includes(id)
     )
       return false;
+    if (id === "wreath") {
+      this.state.wreath = true;
+      this.save();
+      sfx("match");
+      this.activities.note(
+        "捡到一顶花环 · 按 H 或点击场景右侧的「戴上花环」，给芙芙戴上吧",
+      );
+      return true;
+    }
     if (id === "rest") {
+      const bench = this.world.config.spots.find((s) => s.id === "rest")!;
+      this.world.sit(bench, bench.approach);
       this.activities.menu(
-        `花园里的长椅 · 现在是${phaseNames[this.clock.phase]}，十分钟走过一天`,
+        `在长椅上坐下了 · 现在是${phaseNames[this.clock.phase]}，歇一会再走吧`,
         [
-          { title: "歇到下一个时段", run: () => this.rest() },
+          {
+            title: "起身继续走",
+            run: () => {
+              this.world.standUp();
+              this.activities.close();
+            },
+          },
+          { title: "坐着等到下一时段", run: () => this.rest() },
           {
             title: "看看时段彩蛋",
             run: () =>
@@ -206,30 +253,24 @@ export class Nature {
     if (remaining > 0) {
       this.mark("flowers");
       this.state.flower++;
+      this.state.wreath = true;
       sfx("match");
       this.save();
     }
     this.activities.menu(
       remaining > 0
-        ? "采到一朵小花 · 给芙芙戴一顶花冠吧"
+        ? "采到小花，编进花环里 · 按 H 或点游戏里的花环按钮佩戴"
         : "这片花今天采够啦 · 让剩下的小花继续盛开吧",
       [
         ...(remaining > 1
           ? [{ title: "再采一朵", run: () => this.pickFlower() }]
           : []),
-        {
-          title: this.state.wearing ? "摘下花冠" : "把花戴在头上",
-          run: () => {
-            this.toggleCrown();
-            this.activities.close();
-          },
-        },
       ],
     );
   }
   private toggleCrown() {
-    if (this.state.flower === 0) {
-      this.toast("先到花园采一朵小花，就能给芙芙戴花冠啦。");
+    if (!this.state.wreath) {
+      this.toast("先到花园捡花环，或采一朵小花编进花环吧。");
       return;
     }
     this.state.wearing = !this.state.wearing;
@@ -273,7 +314,12 @@ export class Nature {
     document.querySelector(".bag-count")!.textContent =
       `苹果 ${this.state.apple} · 花朵 ${this.state.flower} · 星屑 ${this.state.star}`;
     const crown = document.querySelector<HTMLButtonElement>(".crown-toggle")!;
-    crown.textContent = this.state.wearing ? "摘下花冠" : "戴上花冠";
+    crown.hidden = !this.state.wreath;
+    crown.innerHTML = `<img src="${wreathUrl}" alt=""><span>${this.state.wearing ? "摘下花环" : "戴上花环"}</span><kbd>H</kbd>`;
+    crown.setAttribute(
+      "aria-label",
+      this.state.wearing ? "摘下花环，快捷键 H" : "戴上花环，快捷键 H",
+    );
     crown.setAttribute("aria-pressed", String(this.state.wearing));
     document.querySelector(".day-hint")!.textContent =
       `第 ${clock.day} 天 · 十分钟一昼夜 · ${clock.phase === "dawn" ? "晨露花醒来了" : clock.phase === "dusk" ? "溪边漂来一只纸船" : clock.phase === "night" ? "萤火心愿悄悄出现" : "找长椅休息，等一场黄昏和星夜"}`;
@@ -305,6 +351,9 @@ export class Nature {
       }
       return;
     }
+    drawCreek(c, creeks[this.world.scene], t);
+    for (const tree of gardenTrees[this.world.scene])
+      drawGardenTree(c, this.treeImage, tree);
     const apple = this.world.config.spots.find((s) => s.id === "apple")!,
       flowers = this.world.config.spots.find((s) => s.id === "flowers")!,
       bench = this.world.config.spots.find((s) => s.id === "rest")!;
@@ -356,15 +405,16 @@ export class Nature {
       c.fillStyle = "#e6b468";
       c.fillRect(fx - 1, fy - 2, 3, 3);
     }
-    c.fillStyle = "#a7a2bb";
-    c.fillRect(bench.x - 19, bench.y + 4, 4, 12);
-    c.fillRect(bench.x + 15, bench.y + 4, 4, 12);
-    c.fillStyle = "#c3b9d9";
-    c.fillRect(bench.x - 23, bench.y - 12, 46, 9);
-    c.fillStyle = "#eee5e4";
-    c.fillRect(bench.x - 23, bench.y - 1, 46, 7);
+    if (this.benchImage.complete && this.benchImage.naturalWidth)
+      c.drawImage(this.benchImage, bench.x - 38, bench.y - 25, 76, 46);
     for (const spot of this.world.config.spots) {
       if (!this.available(spot)) continue;
+      if (
+        spot.id === "wreath" &&
+        this.wreathImage.complete &&
+        this.wreathImage.naturalWidth
+      )
+        c.drawImage(this.wreathImage, spot.x - 15, spot.y - 4, 30, 12);
       if (spot.id === "drop") {
         c.fillStyle = "#ffe1a3";
         c.fillRect(spot.x - 5, spot.y - 3, 10, 6);
@@ -412,24 +462,24 @@ export class Nature {
       c.stroke();
     }
   }
+  private foreground(c: CanvasRenderingContext2D) {
+    if (this.world.scene === "room") return;
+    const apple = this.world.config.spots.find((s) => s.id === "apple")!;
+    for (const tree of [
+      ...gardenTrees[this.world.scene],
+      { x: apple.x, y: apple.y, scale: 1, tone: 0 },
+    ]) {
+      if (
+        this.world.player.y < tree.y + 23 * tree.scale &&
+        Math.abs(this.world.player.x - tree.x) < 34 * tree.scale
+      )
+        drawGardenTree(c, this.treeImage, tree);
+    }
+  }
   private lighting(c: CanvasRenderingContext2D) {
     const [r, g, b, a] = this.tint;
     c.fillStyle = `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${this.world.scene === "room" ? a * 0.48 : a})`;
     c.fillRect(0, 0, this.world.config.width, this.world.config.height);
     if (this.clock.phase !== "night" || this.world.scene === "room") return;
-    for (const point of this.world.config.checkpoints) {
-      const glow = c.createRadialGradient(
-        point.x,
-        point.y - 7,
-        1,
-        point.x,
-        point.y - 7,
-        30,
-      );
-      glow.addColorStop(0, "#ffe5a64d");
-      glow.addColorStop(1, "#ffe5a600");
-      c.fillStyle = glow;
-      c.fillRect(point.x - 30, point.y - 37, 60, 60);
-    }
   }
 }

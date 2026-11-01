@@ -1,0 +1,230 @@
+.scene-wrap .map-tool {
+  position: absolute;
+  z-index: 4;
+  right: 14px;
+  top: 84px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid #d4bfdc;
+  border-radius: 5px;
+  background: #fff7eaef;
+  color: #84658f;
+  box-shadow: 0 3px 0 #6b52751c;
+  font-size: 11px;
+  min-height: 38px;
+}
+.scene-wrap .crown-toggle img {
+  width: 38px;
+  height: 16px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.scene-wrap .crown-toggle[aria-pressed="true"] {
+  background: #eee8f8f2;
+}
+.map-tool kbd,
+.rest-tools kbd {
+  font-size: 9px;
+  color: #ac95b2;
+  margin-left: 3px;
+}
+.rest-tools {
+  position: absolute;
+  z-index: 4;
+  top: 82px;
+  left: 14px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 7px 5px 10px;
+  background: #fff7eaef;
+  border: 1px solid #ddcba9;
+  border-radius: 5px;
+  color: #9c8460;
+  font-size: 11px;
+}
+.rest-tools .map-action {
+  min-height: 30px;
+  padding: 5px 9px;
+}
+.scene-wrap .bed-note-pin {
+  top: 130px;
+  font-size: 10px;
+  min-height: 32px;
+  border-color: #e3ceaa;
+  color: #a28662;
+}
+.bed-note {
+  position: absolute;
+  z-index: 5;
+  left: 24px;
+  top: 88px;
+  width: min(34%, 260px);
+  padding: 13px 15px 11px;
+  background: linear-gradient(140deg, #fff7d9, #fff2c9 80%, #f8e9bd);
+  border: 1px solid #e8d6a7;
+  border-radius: 2px 2px 11px 2px;
+  color: #88705e;
+  box-shadow: 4px 7px 12px #5a3e6427;
+  transform: rotate(-1.5deg);
+  transform-origin: center top;
+}
+.note-tape {
+  position: absolute;
+  top: -10px;
+  left: 35%;
+  width: 32%;
+  height: 22px;
+  background: repeating-linear-gradient(
+    45deg,
+    #e7c9daaa 0 3px,
+    #f6e0e8aa 3px 6px
+  );
+  transform: rotate(3deg);
+  border-left: 2px dashed #fff3e277;
+  border-right: 2px dashed #fff3e277;
+}
+.bed-note header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+  margin-bottom: 8px;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.note-close {
+  border: 0;
+  background: transparent;
+  color: #b2997c;
+  font-size: 19px;
+  min-width: 28px;
+  min-height: 28px;
+}
+.bed-note-content img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  border: 5px solid #fffdf5;
+  box-shadow: 0 2px 4px #ad8d7422;
+}
+.bed-note-content p {
+  font:
+    14px/1.9 "KaiTi",
+    "STKaiti",
+    "Microsoft YaHei",
+    sans-serif;
+  margin: 10px 0 5px;
+}
+.bed-note-content strong {
+  font-weight: 500;
+  color: #ac7c84;
+}
+.bed-note-content p span {
+  display: block;
+  text-align: right;
+  font-size: 12px;
+  color: #b39785;
+}
+.bed-note > small {
+  display: block;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px dashed #dec9a1;
+  color: #b09c80;
+  font-size: 8px;
+  line-height: 1.7;
+}
+.note-open .activity-hud {
+  display: none;
+}
+.note-open .rest-tools {
+  left: auto;
+  right: 14px;
+  top: auto;
+  bottom: 15px;
+}
+@media (max-width: 540px) {
+  .scene-wrap .map-tool {
+    right: 8px;
+    top: 65px;
+    padding: 5px 7px;
+    gap: 4px;
+    min-height: 30px;
+    font-size: 8px;
+  }
+  .scene-wrap .crown-toggle img {
+    width: 26px;
+    height: 12px;
+  }
+  .map-tool kbd,
+  .rest-tools kbd {
+    font-size: 7px;
+  }
+  .rest-tools {
+    top: 65px;
+    left: 8px;
+    gap: 5px;
+    font-size: 8px;
+    padding: 3px 5px;
+  }
+  .rest-tools .map-action {
+    min-height: 26px;
+    font-size: 8px;
+    padding: 4px 6px;
+  }
+  .scene-wrap .bed-note-pin {
+    top: 102px;
+    font-size: 8px;
+    min-height: 28px;
+  }
+  .bed-note {
+    position: relative;
+    inset: auto;
+    transform: rotate(-0.5deg);
+    width: calc(100% - 20px);
+    margin: 12px 10px 10px;
+    padding: 8px 11px;
+  }
+  .bed-note header {
+    margin-bottom: 5px;
+    font-size: 9px;
+  }
+  .note-tape {
+    height: 16px;
+    top: -7px;
+  }
+  .bed-note-content {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    align-items: center;
+    gap: 11px;
+  }
+  .bed-note-content p {
+    font-size: 12px;
+    line-height: 1.9;
+    margin: 0;
+  }
+  .bed-note-content p span {
+    font-size: 10px;
+    margin-top: 6px;
+  }
+  .bed-note-content img {
+    border-width: 3px;
+  }
+  .bed-note > small {
+    font-size: 7px;
+    margin-top: 6px;
+    padding-top: 5px;
+  }
+  .note-open .rest-tools {
+    top: 65px;
+    bottom: auto;
+    right: auto;
+    left: 8px;
+  }
+}
