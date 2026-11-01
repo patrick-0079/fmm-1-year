@@ -505,10 +505,10 @@ export class Nature {
     // paving warm and saturated there rather than leaving a global grey filter.
     const nightOpacity =
       this.world.scene === "town"
-        ? 0.38
+        ? 0.2
         : this.world.scene === "room"
-          ? 0.35
-          : 0.52;
+          ? 0.18
+          : 0.24;
     g.fillStyle = `rgba(24,36,70,${shade * nightOpacity})`;
     g.fillRect(0, 0, width, height);
     g.globalCompositeOperation = "destination-out";
@@ -536,7 +536,7 @@ export class Nature {
     c.drawImage(map, 0, 0);
     c.save();
     c.globalCompositeOperation = "screen";
-    c.globalAlpha = shade * 0.54;
+    c.globalAlpha = shade * 0.36;
     for (const light of sceneLights[this.world.scene]) {
       const glow = c.createRadialGradient(
         light.x,

@@ -136,7 +136,7 @@ export function mountGame(tasks: Task[]) {
   function dismissRevive() {
     bedNote.close();
   }
-  function transition(scene: SceneId) {
+  function transition(scene: SceneId, entrance?: string) {
     if (world.busy || transitioning || !started) return;
     arcade.close();
     activities.close();
@@ -149,7 +149,10 @@ export function mountGame(tasks: Task[]) {
     world.clearInput();
     sfx("portal");
     setTimeout(() => {
-      world.switchScene(scene);
+      const arrival = scenes[scene].spots.find(
+        (s) => s.id === entrance,
+      )?.approach;
+      world.switchScene(scene, arrival);
       world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
       overlay.classList.remove("active");
       world.paused = false;
@@ -223,7 +226,7 @@ export function mountGame(tasks: Task[]) {
   world.onInteract = (id) => {
     const spot = world.config.spots.find((s) => s.id === id);
     if (spot?.portal) {
-      transition(spot.portal);
+      transition(spot.portal, spot.portalExit);
       return;
     }
     reader.close();

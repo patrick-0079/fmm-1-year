@@ -1,4 +1,5 @@
 import type { ItemId } from "./items";
+import { fitItem } from "./equipment";
 import wreathUrl from "./assets/flower-wreath.webp";
 import rewardsUrl from "./assets/reward-icons.webp";
 export { wreathUrl, rewardsUrl };
@@ -28,12 +29,16 @@ export function drawItem(
     return;
   }
   if (id === "wreath") {
-    if (wreath.complete && wreath.naturalWidth)
-      c.drawImage(wreath, x, y + h * 0.27, w, h * 0.45);
+    if (wreath.complete && wreath.naturalWidth) {
+      const b = fitItem(239, 76, x, y, w, h);
+      c.drawImage(wreath, 10, 13, 239, 76, b.x, b.y, b.w, b.h);
+    }
     return;
   }
   const index = { candyClip: 0, headphones: 1, moonBag: 2, starWings: 3 }[id];
   const f = rewardFrames[index];
-  if (rewards.complete && rewards.naturalWidth)
-    c.drawImage(rewards, f.x, f.y, f.w, f.h, x, y, w, h);
+  if (rewards.complete && rewards.naturalWidth) {
+    const b = fitItem(f.w, f.h, x, y, w, h);
+    c.drawImage(rewards, f.x, f.y, f.w, f.h, b.x, b.y, b.w, b.h);
+  }
 }

@@ -6,12 +6,16 @@ import restUrl from "./assets/fufu-rest-poses.webp";
 import wreathUrl from "./assets/flower-wreath.webp";
 import townUrl from "./assets/anniversary-town-v2.webp";
 import trapsUrl from "./assets/garden-traps.webp";
-import { drawItem, rewardsUrl } from "./item-art";
+import { rewardsUrl } from "./item-art";
 import type { EquipSlot, ItemId } from "./items";
 import { bedRest, benchRest, type RestState } from "./rest";
-import { spriteFrames } from "./sprite-frames";
+import { drawAvatar } from "./avatar";
+import type { Facing } from "./equipment";
+import { clickedInteraction } from "./interaction";
+import { drawConnections } from "./connections";
 import {
   advancePath,
+  canStand,
   findPath,
   movePlayer,
   touchingHazard,
@@ -86,6 +90,8 @@ export class World {
   equipment: Record<EquipSlot, ItemId | null> = { head: null, body: null };
   private stepDistance = 0;
   private nearbyId = "";
+  private secondaryPressed = false;
+  onAction: (pressed: boolean) => boolean = () => false;
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d")!;
@@ -98,7 +104,6 @@ export class World {
     }
     window.addEventListener("keydown", (e) => {
       if (
-        this.paused ||
         this.busy ||
         /INPUT|TEXTAREA|SELECT/.test((e.target as HTMLElement).tagName)
       )
@@ -106,6 +111,16 @@ export class World {
       const key = e.key.toLowerCase();
       if (key === " " && (e.target as Element).closest("button,a,audio,video"))
         return;
+      if (key === "e" || key === " ") {
+        e.preventDefault();
+        if (e.repeat) return;
+        if (this.restState && !this.paused) this.interact();
+        else if (this.onAction(true)) {
+          e.stopImmediatePropagation();
+        } else if (!this.paused) this.interact();
+        return;
+      }
+      if (this.paused) return;
       if (
         [
           "arrowup",
@@ -131,29 +146,52 @@ export class World {
         }
       }
     });
-    window.addEventListener("keyup", (e) =>
-      this.keys.delete(e.key.toLowerCase()),
-    );
-    window.addEventListener("blur", () => this.clearInput());
+    window.addEventListener("keyup", (e) => {
+      this.keys.delete(e.key.toLowerCase());
+      if (["e", " "].includes(e.key.toLowerCase()) && this.onAction(false))
+        e.stopImmediatePropagation();
+    });
+    window.addEventListener("blur", () => {
+      this.onAction(false);
+      this.secondaryPressed = false;
+      this.clearInput();
+    });
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) this.clearInput();
     });
     canvas.addEventListener("pointerdown", (e) => {
       canvas.focus({ preventScroll: true });
       const point = this.pointerPoint(e);
+      if (e.button === 2) {
+        e.preventDefault();
+        if (this.busy) return;
+        this.secondaryPressed = true;
+        canvas.setPointerCapture(e.pointerId);
+        if (this.restState && !this.paused) {
+          this.interact();
+          return;
+        }
+        if (this.onAction(true) || this.paused) return;
+        const spot = clickedInteraction(
+          point,
+          this.config.spots.filter((s) => this.available(s)),
+          (s) => this.markerY(s),
+        );
+        if (spot) this.goTo(spot.approach, spot.id);
+        else this.interact();
+        return;
+      }
+      if (e.button !== 0) return;
       if (this.onPointer("down", point)) {
         canvas.setPointerCapture(e.pointerId);
         return;
       }
       if (this.paused || this.busy) return;
-      const spot = this.config.spots
-        .filter((s) => this.available(s))
-        .map((s) => ({
-          s,
-          d: Math.hypot(s.x - point.x, this.markerY(s) - point.y),
-        }))
-        .sort((a, b) => a.d - b.d)
-        .find((s) => s.d < 24)?.s;
+      const spot = clickedInteraction(
+        point,
+        this.config.spots.filter((s) => this.available(s)),
+        (s) => this.markerY(s),
+      );
       const hazard = this.config.hazards.find(
         (h) => Math.hypot(h.x - point.x, h.y - point.y) < h.radius + 10,
       );
@@ -163,10 +201,28 @@ export class World {
         spot ? undefined : hazard?.id,
       );
     });
+    canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+    const scene = canvas.parentElement!;
+    scene.addEventListener("contextmenu", (e) => e.preventDefault());
+    scene.addEventListener("pointerdown", (e) => {
+      if (e.button !== 2 || e.defaultPrevented || e.target === canvas) return;
+      const button = (e.target as Element).closest<HTMLButtonElement>("button");
+      if (button && !button.disabled) {
+        e.preventDefault();
+        button.click();
+      }
+    });
     for (const type of ["pointermove", "pointerup", "pointercancel"] as const)
-      canvas.addEventListener(type, (e) =>
-        this.onPointer(type.replace("pointer", ""), this.pointerPoint(e)),
-      );
+      canvas.addEventListener(type, (e) => {
+        if (this.secondaryPressed || e.button === 2) {
+          if (type !== "pointermove") {
+            this.secondaryPressed = false;
+            this.onAction(false);
+          }
+          return;
+        }
+        this.onPointer(type.replace("pointer", ""), this.pointerPoint(e));
+      });
   }
   private pointerPoint(e: PointerEvent): Point {
     const rect = this.canvas.getBoundingClientRect();
@@ -224,6 +280,14 @@ export class World {
   }
   get config() {
     return scenes[this.scene];
+  }
+  get visibleArea() {
+    return {
+      x: this.camera.x,
+      y: this.camera.y,
+      w: 600 / this.zoom,
+      h: 400 / this.zoom,
+    };
   }
   get busy() {
     return this.stumble !== null;
@@ -293,14 +357,19 @@ export class World {
     this.path = [];
     this.targetEvent = null;
   }
-  switchScene(scene: SceneId) {
+  switchScene(scene: SceneId, arrival?: Point) {
     if (this.busy) return;
     this.clearInput();
     this.restState = null;
     this.onRestChange(null);
     this.setFocus(null);
     this.scene = scene;
-    this.player = { ...scenes[scene].spawn };
+    const s = scenes[scene];
+    this.player = {
+      ...(arrival && canStand(arrival, s.walls, s.bounds, s.floor, s.surfaces)
+        ? arrival
+        : s.spawn),
+    };
     this.facing = 0;
     this.nearbyId = "";
     this.updateCamera();
@@ -497,6 +566,9 @@ export class World {
     c.translate(-this.camera.x, -this.camera.y);
     if (background) c.drawImage(background, 0, 0, width, height);
     this.onEnvironment(c, this.time);
+    drawConnections(c, this.scene, (context, points) =>
+      this.drawPavingPatch(context, points),
+    );
     if (this.scene === "room") {
       c.fillStyle = "#8171b0";
       c.fillRect(274, 368, 52, 11);
@@ -515,47 +587,35 @@ export class World {
       );
     }
     const drawPlayer = () => {
-      const sprite = this.images.get(spriteUrl),
-        x = Math.round(this.player.x),
+      const x = Math.round(this.player.x),
         y = Math.round(this.player.y);
       c.fillStyle = "#53496045";
       c.beginPath();
       c.ellipse(x, y, 11, 3.5, 0, 0, Math.PI * 2);
       c.fill();
-      if (this.restState) this.drawRestSprite(c, x, y);
-      else if (sprite) {
-        const col = this.walking ? 1 + (Math.floor(this.time * 7) % 2) : 0;
-        const frame = spriteFrames[this.facing * 3 + col];
-        const scaleFactor = 43 / 330;
-        const size = {
-          width: frame.w * scaleFactor,
-          height: frame.h * scaleFactor,
-        };
-        c.save();
-        c.translate(x, y);
-        let scale = 1;
-        if (this.stumble) {
-          const phase = Math.min(1, (this.time - this.stumble.started) / 0.45);
-          scale = 1 - phase * 0.5;
-          c.globalAlpha = 1 - phase * 0.7;
-          if (!this.reducedMotion.matches)
-            c.rotate(Math.sin(phase * Math.PI) * 0.28);
-        } else if (this.immunity > 0) c.globalAlpha = 0.82;
-        c.scale(scale, scale);
-        c.drawImage(
-          sprite,
-          frame.x,
-          frame.y,
-          frame.w,
-          frame.h,
-          -size.width / 2,
-          -size.height,
-          size.width,
-          size.height,
-        );
-        c.restore();
-      }
-      this.drawEquipment(c, x, y);
+      c.save();
+      c.translate(x, y);
+      if (this.stumble) {
+        const phase = Math.min(1, (this.time - this.stumble.started) / 0.45);
+        c.globalAlpha = 1 - phase * 0.7;
+        if (!this.reducedMotion.matches)
+          c.rotate(Math.sin(phase * Math.PI) * 0.28);
+        c.scale(1 - phase * 0.5, 1 - phase * 0.5);
+      } else if (this.immunity > 0) c.globalAlpha = 0.82;
+      drawAvatar(
+        c,
+        this.restState?.kind ?? "standing",
+        this.facing as Facing,
+        this.walking ? 1 + (Math.floor(this.time * 7) % 2) : 0,
+        this.equipment,
+        {
+          sprite: this.images.get(spriteUrl)!,
+          rest: this.images.get(restUrl)!,
+          wreath: this.images.get(wreathUrl)!,
+          rewards: this.images.get(rewardsUrl)!,
+        },
+      );
+      c.restore();
     };
     const layers = [
       ...this.getDepthLayers(),
@@ -586,109 +646,6 @@ export class World {
     this.onLighting(c);
     this.onEffects(c);
     if (this.debug) this.drawDebug();
-    c.restore();
-  }
-  private drawRestSprite(c: CanvasRenderingContext2D, x: number, y: number) {
-    const image = this.images.get(restUrl);
-    if (!image || !this.restState) return;
-    const sleeping = this.restState.kind === "lying";
-    const frame = sleeping
-      ? { x: 754, y: 275, w: 966, h: 520 }
-      : { x: 87, y: 88, w: 593, h: 733 };
-    const width = sleeping ? 70 : 30,
-      height = (width / frame.w) * frame.h;
-    c.drawImage(
-      image,
-      frame.x,
-      frame.y,
-      frame.w,
-      frame.h,
-      x - width / 2,
-      y - (sleeping ? height / 2 : height),
-      width,
-      height,
-    );
-    if (sleeping) {
-      c.fillStyle = "#a999c9";
-      c.font = "8px sans-serif";
-      c.fillText("z", x + 24, y - 23);
-      c.font = "6px sans-serif";
-      c.fillText("z", x + 31, y - 30);
-    }
-  }
-  private drawEquipment(c: CanvasRenderingContext2D, x: number, y: number) {
-    const wreath = this.images.get(wreathUrl)!,
-      rewards = this.images.get(rewardsUrl)!;
-    const head = this.equipment.head,
-      body = this.equipment.body;
-    const sleeping = this.restState?.kind === "lying",
-      sitting = this.restState?.kind === "sitting";
-    if (body) {
-      if (body === "moonBag")
-        drawItem(
-          c,
-          body,
-          x +
-            (sleeping
-              ? 36
-              : this.facing === 1
-                ? 7
-                : this.facing === 2
-                  ? -20
-                  : -9),
-          y + (sleeping ? 16 : sitting ? -23 : -27),
-          18,
-          21,
-          wreath,
-          rewards,
-        );
-      else if (sleeping || sitting || this.facing !== 3)
-        drawItem(
-          c,
-          body,
-          x + (sleeping ? 6 : -7),
-          y + (sleeping ? 2 : sitting ? -18 : -20),
-          9,
-          10,
-          wreath,
-          rewards,
-        );
-    }
-    if (!head) return;
-    c.save();
-    c.translate(
-      x + (sleeping ? -21 : head === "candyClip" ? 8 : 0),
-      y +
-        (sleeping
-          ? -15
-          : sitting
-            ? head === "headphones"
-              ? -28
-              : -33
-            : head === "headphones"
-              ? -33
-              : -40),
-    );
-    if (sleeping) c.rotate(0.45);
-    const width =
-      head === "candyClip"
-        ? 13
-        : head === "wreath"
-          ? sleeping
-            ? 27
-            : 32
-          : head === "starWings"
-            ? 26
-            : 29;
-    const height =
-      head === "wreath"
-        ? 22
-        : head === "candyClip"
-          ? 13
-          : head === "starWings"
-            ? 19
-            : 27;
-    drawItem(c, head, -width / 2, -height / 2, width, height, wreath, rewards);
     c.restore();
   }
   private drawHazards() {

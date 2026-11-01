@@ -2,6 +2,7 @@ import type { Point } from "./core";
 import type { World } from "./world";
 import { sfx } from "./sound";
 import cakeUrl from "./assets/anniversary-cake.webp";
+import { wishAtBurst, wishOpacity } from "./celebration";
 
 interface Hooks {
   complete: (id: string) => void;
@@ -46,6 +47,11 @@ export class Activities {
     trail: Point[];
   })[] = [];
   private messages: { text: string; x: number; row: number }[] = [];
+  private skyWishes: (Point & {
+    text: string;
+    life: number;
+    maxLife: number;
+  })[] = [];
   constructor(
     private world: World,
     private hooks: Hooks,
@@ -72,8 +78,38 @@ export class Activities {
     world.onEffects = (c) => this.drawEffects(c);
     world.onTick = (dt, t) => this.tick(dt, t);
     world.onPointer = (type, p) => this.pointer(type, p);
+    world.onAction = (pressed) => {
+      if (!this.active) return false;
+      if (this.mode === "cake" && this.cakeStage === 0) {
+        this.blowing = pressed;
+        if (pressed) sfx("blow");
+        return true;
+      }
+      if (!pressed) return true;
+      if (this.mode === "fireworks") {
+        this.launch();
+        return true;
+      }
+      if (this.mode === "gifts" && this.flipWait > 0) return true;
+      const focused = document.activeElement;
+      const action =
+        focused instanceof HTMLButtonElement &&
+        this.hud.contains(focused) &&
+        !focused.disabled
+          ? focused
+          : this.controls.querySelector<HTMLButtonElement>(
+              "button:not(:disabled)",
+            );
+      if (action) action.click();
+      else this.close();
+      return true;
+    };
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && this.active) this.close();
+      if (this.mode === "gifts" && /^[1-8]$/.test(e.key) && !e.repeat) {
+        e.preventDefault();
+        this.flip(Number(e.key) - 1);
+      }
     });
     window.addEventListener("blur", () => {
       this.blowing = false;
@@ -108,6 +144,7 @@ export class Activities {
     this.particles = [];
     this.rockets = [];
     this.messages = [];
+    this.skyWishes = [];
   }
   private begin(mode: string, text: string, point?: Point, zoom = 1) {
     this.close();
@@ -417,6 +454,11 @@ export class Activities {
     if (this.released) this.rise = Math.min(650, this.rise + dt * 42);
     for (const message of this.messages) message.x -= dt * 33;
     this.messages = this.messages.filter((m) => m.x > 490);
+    for (const wish of this.skyWishes) {
+      wish.life -= dt;
+      wish.y -= dt * 4;
+    }
+    this.skyWishes = this.skyWishes.filter((w) => w.life > 0);
     for (const rocket of [...this.rockets]) {
       const dx = rocket.target.x - rocket.x,
         dy = rocket.target.y - rocket.y,
@@ -424,6 +466,15 @@ export class Activities {
       if (distance < dt * 230 + 1) {
         this.rockets.splice(this.rockets.indexOf(rocket), 1);
         this.bursts++;
+        const text = wishAtBurst(this.bursts - 1);
+        this.skyWishes.push({
+          text,
+          x: rocket.x,
+          y: rocket.y,
+          life: 3.4,
+          maxLife: 3.4,
+        });
+        this.skyWishes = this.skyWishes.slice(-4);
         sfx("burst");
         for (let i = 0; i < 144; i++) {
           const angle = (i / 144) * Math.PI * 2;
@@ -465,7 +516,7 @@ export class Activities {
         }
         if (this.bursts >= 3) this.hooks.complete("fireworks");
         if (this.mode === "fireworks")
-          this.status.textContent = `${this.bursts} 朵烟花，送给芙芙 · 可以继续点亮这座花园`;
+          this.status.textContent = `${text} · ${this.bursts} 朵烟花已绽放`;
       } else {
         rocket.trail.push({ x: rocket.x, y: rocket.y });
         if (rocket.trail.length > 13) rocket.trail.shift();
@@ -591,6 +642,27 @@ export class Activities {
       }
     }
 
+    const area = this.world.visibleArea;
+    c.font = 'bold 13px "SimSun",monospace';
+    c.textAlign = "center";
+    for (const wish of this.skyWishes) {
+      c.globalAlpha = wishOpacity(wish.life, wish.maxLife);
+      const margin = c.measureText(wish.text).width / 2 + 12;
+      const x = Math.max(
+        area.x + margin,
+        Math.min(area.x + area.w - margin, wish.x),
+      );
+      const y = Math.max(area.y + 58, wish.y - 9);
+      c.lineWidth = 3;
+      c.lineJoin = "round";
+      c.strokeStyle = "#77516d";
+      c.strokeText(wish.text, x, y);
+      c.fillStyle = "#fff2bd";
+      c.fillText(wish.text, x, y);
+      c.fillStyle = "#ffd4e4";
+      c.fillRect(x - margin + 3, y - 8, 2, 2);
+      c.fillRect(x + margin - 5, y - 4, 2, 2);
+    }
     c.restore();
   }
   private drawCake(c: CanvasRenderingContext2D, t: number) {

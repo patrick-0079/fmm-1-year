@@ -12,6 +12,7 @@ export interface Hotspot {
   color?: string;
   radius?: number;
   portal?: SceneId;
+  portalExit?: string;
   markerOffset?: number;
 }
 export interface Scene extends Geometry {
@@ -184,6 +185,7 @@ export const scenes: Record<SceneId, Scene> = {
       {
         id: "door",
         portal: "garden",
+        portalExit: "door",
         title: "去周年花园",
         x: 300,
         y: 373,
@@ -328,6 +330,7 @@ export const scenes: Record<SceneId, Scene> = {
       {
         id: "door",
         portal: "room",
+        portalExit: "door",
         title: "回晚安小屋",
         x: 446,
         y: 116,
@@ -338,10 +341,12 @@ export const scenes: Record<SceneId, Scene> = {
         id: "town-gate",
         title: "去晚安周年小镇",
         portal: "town",
-        x: 608,
+        portalExit: "town-return",
+        x: 650,
         y: 533,
-        approach: { x: 608, y: 511 },
+        approach: { x: 650, y: 511 },
         radius: 50,
+        markerOffset: 82,
         color: "#c5a46e",
       },
       {
@@ -382,6 +387,7 @@ export const scenes: Record<SceneId, Scene> = {
         id: "garden-gate",
         title: "去勇气花园",
         portal: "challenge",
+        portalExit: "return-gate",
         x: 450,
         y: 563,
         approach: { x: 450, y: 550 },
@@ -435,6 +441,7 @@ export const scenes: Record<SceneId, Scene> = {
         id: "return-gate",
         title: "回周年花园",
         portal: "garden",
+        portalExit: "garden-gate",
         x: 450,
         y: 530,
         approach: { x: 450, y: 510 },

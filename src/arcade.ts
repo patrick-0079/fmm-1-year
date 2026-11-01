@@ -24,7 +24,13 @@ export class Arcade {
   ) {
     const effects = world.onEffects,
       tick = world.onTick,
-      pointer = world.onPointer;
+      pointer = world.onPointer,
+      action = world.onAction;
+    world.onAction = (pressed) => {
+      if (!this.active) return action(pressed);
+      this.action("primary", pressed);
+      return true;
+    };
     world.onEffects = (c) => {
       effects(c);
       this.draw(c);

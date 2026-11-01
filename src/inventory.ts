@@ -67,6 +67,9 @@ export class Inventory {
     this.sync();
     this.render();
     sfx("interact");
+    this.root
+      .querySelector<HTMLButtonElement>(`[data-equip="${id}"]`)
+      ?.focus({ preventScroll: true });
   }
   reset() {
     this.state = readInventory(null);
