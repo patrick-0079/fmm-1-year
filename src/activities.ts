@@ -3,6 +3,7 @@ import type { World } from "./world";
 import { sfx } from "./sound";
 import cakeUrl from "./assets/anniversary-cake.webp";
 import { wishAtBurst, wishOpacity } from "./celebration";
+import { drawGardenScreen } from "./cinema-screen";
 
 interface Hooks {
   complete: (id: string) => void;
@@ -585,14 +586,13 @@ export class Activities {
           c.fillStyle = "#fff8eb";
           c.fillRect(x - 5, y - 8, 3, 6);
         });
-      c.save();
-      c.beginPath();
-      c.rect(651, 210, 120, 43);
-      c.clip();
-      c.fillStyle = "#fff1bb";
-      c.font = "8px sans-serif";
-      for (const m of this.messages) c.fillText(m.text, m.x, 220 + m.row * 13);
-      c.restore();
+      if (this.messages.length)
+        drawGardenScreen(c, (c) => {
+          c.fillStyle = "#fff1bb";
+          c.font = "8px sans-serif";
+          for (const m of this.messages)
+            c.fillText(m.text, m.x - 667, 12 + m.row * 13);
+        });
     }
     c.restore();
   }

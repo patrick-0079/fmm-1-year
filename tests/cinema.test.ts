@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { gardenScreen } from "../src/cinema-config.ts";
 import {
   CinemaSession,
   bufferedUntil,
@@ -74,7 +75,7 @@ test("buffer display uses the range at the playhead, not a distant seek buffer",
 });
 
 test("both landscape and portrait videos fit the garden TV without stretching", () => {
-  const box = { x: 651, y: 207, w: 122, h: 48 };
+  const box = gardenScreen;
   for (const [w, h] of [
     [1920, 1080],
     [1080, 1920],

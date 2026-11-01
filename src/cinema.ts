@@ -1,5 +1,6 @@
 import type { World } from "./world";
 import { gardenFilm, gardenScreen } from "./cinema-config";
+import { drawGardenScreen } from "./cinema-screen";
 import {
   CinemaSession,
   bufferedUntil,
@@ -313,52 +314,49 @@ export class GardenCinema {
     const box = gardenScreen,
       v = this.video,
       s = this.session.stage;
-    c.save();
-    c.beginPath();
-    c.rect(box.x, box.y, box.w, box.h);
-    c.clip();
-    c.fillStyle = "#25263d";
-    c.fillRect(box.x, box.y, box.w, box.h);
-    if (v && v.readyState >= 2 && v.videoWidth > 0 && v.videoHeight > 0) {
-      const b = containVideo(v.videoWidth, v.videoHeight, box);
-      c.imageSmoothingEnabled = true;
-      try {
-        c.drawImage(v, b.x, b.y, b.w, b.h);
-      } catch {
-        /* A seeking frame may briefly be unavailable. */
-      }
-    }
-    const loading = s === "loading" || s === "buffering";
-    if (!v || loading || s === "error") {
-      if (v && this.session.hasFrame) c.fillStyle = "#25263ddd";
-      else c.fillStyle = "#25263d";
+    drawGardenScreen(c, (c) => {
+      c.fillStyle = "#25263d";
       c.fillRect(box.x, box.y, box.w, box.h);
-      c.textAlign = "center";
-      c.fillStyle = "#f8dfb0";
-      c.font = '7px "SimSun",monospace';
-      c.fillText(
-        s === "error" ? "画面还在路上" : v ? "LOADING…" : "芙芙 · 一周年放映",
-        box.x + box.w / 2,
-        box.y + 21,
-      );
-      c.font = '5px "SimSun",monospace';
-      c.fillStyle = "#d6c4df";
-      c.fillText(
-        s === "error"
-          ? "按互动重试 · 或稍后回来"
-          : v
-            ? "可以先去逛逛，回来再看"
-            : "走近小电视，按 E / 右键",
-        box.x + box.w / 2,
-        box.y + 34,
-      );
-      if (loading)
-        for (let i = 0; i < 5; i++) {
-          c.fillStyle =
-            i === Math.floor(this.time * 4) % 5 ? "#ffd489" : "#8e7eae";
-          c.fillRect(box.x + 49 + i * 5, box.y + 40, 3, 2);
+      if (v && v.readyState >= 2 && v.videoWidth > 0 && v.videoHeight > 0) {
+        const b = containVideo(v.videoWidth, v.videoHeight, box);
+        c.imageSmoothingEnabled = true;
+        try {
+          c.drawImage(v, b.x, b.y, b.w, b.h);
+        } catch {
+          /* A seeking frame may briefly be unavailable. */
         }
-    }
-    c.restore();
+      }
+      const loading = s === "loading" || s === "buffering";
+      if (!v || loading || s === "error") {
+        if (v && this.session.hasFrame) c.fillStyle = "#25263ddd";
+        else c.fillStyle = "#25263d";
+        c.fillRect(box.x, box.y, box.w, box.h);
+        c.textAlign = "center";
+        c.fillStyle = "#f8dfb0";
+        c.font = '7px "SimSun",monospace';
+        c.fillText(
+          s === "error" ? "画面还在路上" : v ? "LOADING…" : "芙芙 · 一周年放映",
+          box.x + box.w / 2,
+          box.y + 21,
+        );
+        c.font = '5px "SimSun",monospace';
+        c.fillStyle = "#d6c4df";
+        c.fillText(
+          s === "error"
+            ? "按互动重试 · 或稍后回来"
+            : v
+              ? "可以先去逛逛，回来再看"
+              : "走近小电视，按 E / 右键",
+          box.x + box.w / 2,
+          box.y + 34,
+        );
+        if (loading)
+          for (let i = 0; i < 5; i++) {
+            c.fillStyle =
+              i === Math.floor(this.time * 4) % 5 ? "#ffd489" : "#8e7eae";
+            c.fillRect(box.x + box.w / 2 - 11 + i * 5, box.y + 40, 3, 2);
+          }
+      }
+    });
   }
 }
