@@ -210,7 +210,7 @@ export function drawTownPaving(
     c.fillStyle = "#f3d6bb";
     c.fillRect(x - 26, y, 52, 12);
     c.fillStyle = "#b85f83";
-    c.font = '8px "SimSun",monospace';
+    c.font = '8px "Microsoft YaHei","PingFang SC",sans-serif';
     c.textAlign = "center";
     c.fillText("芙芙 · 周年限定", x, y + 9);
     c.fillStyle = "#df90b3";
@@ -282,7 +282,7 @@ export function drawFestivalProp(
     c.fillStyle = "#f7e4bf";
     c.fillRect(-43, -59, 86, 12);
     c.fillStyle = "#af6688";
-    c.font = '10px "SimSun",monospace';
+    c.font = '10px "Microsoft YaHei","PingFang SC",sans-serif';
     c.textAlign = "center";
     c.fillText("芙芙 一周年快乐", 0, -50);
     for (let i = 0; i < 7; i++) {
@@ -301,7 +301,7 @@ export function drawFestivalProp(
     c.fillStyle = "#775876";
     c.fillRect(-18, 5, 36, 10);
     c.fillStyle = "#fff0c7";
-    c.font = "6px monospace";
+    c.font = '6px "Microsoft YaHei", "PingFang SC", sans-serif';
     c.textAlign = "center";
     c.fillText("FUFU · 1 YEAR", 0, 12);
   } else if (p.kind === "balloons") {

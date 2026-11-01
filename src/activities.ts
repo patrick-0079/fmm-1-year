@@ -79,8 +79,9 @@ export class Activities {
     world.onEffects = (c) => this.drawEffects(c);
     world.onTick = (dt, t) => this.tick(dt, t);
     world.onPointer = (type, p) => this.pointer(type, p);
+    const previousAction = world.onAction;
     world.onAction = (pressed) => {
-      if (!this.active) return false;
+      if (!this.active) return previousAction(pressed);
       if (this.mode === "cake" && this.cakeStage === 0) {
         this.blowing = pressed;
         if (pressed) sfx("blow");
@@ -556,7 +557,7 @@ export class Activities {
           c.strokeStyle = "#fff8ea";
           c.strokeRect(x + 1, y + 1, 17, 20);
           c.fillStyle = "#7e5c87";
-          c.font = "12px sans-serif";
+          c.font = '12px "Microsoft YaHei", "PingFang SC", sans-serif';
           c.textAlign = "center";
           c.fillText(
             visible ? ["♡", "✦", "☾", "✿"][value] : "?",
@@ -589,7 +590,7 @@ export class Activities {
       if (this.messages.length)
         drawGardenScreen(c, (c) => {
           c.fillStyle = "#fff1bb";
-          c.font = "8px sans-serif";
+          c.font = '8px "Microsoft YaHei", "PingFang SC", sans-serif';
           for (const m of this.messages)
             c.fillText(m.text, m.x - 667, 12 + m.row * 13);
         });
@@ -643,7 +644,7 @@ export class Activities {
     }
 
     const area = this.world.visibleArea;
-    c.font = 'bold 13px "SimSun",monospace';
+    c.font = 'bold 13px "Microsoft YaHei","PingFang SC",sans-serif';
     c.textAlign = "center";
     for (const wish of this.skyWishes) {
       c.globalAlpha = wishOpacity(wish.life, wish.maxLife);

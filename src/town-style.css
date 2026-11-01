@@ -252,7 +252,7 @@
     inset 0 0 0 2px #fbdcaf,
     3px 3px 0 #56425955;
   backdrop-filter: none;
-  font-family: "SimSun", "Microsoft YaHei", monospace;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
 }
 .activity-hud {
   left: 10px;

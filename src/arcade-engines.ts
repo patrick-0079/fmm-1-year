@@ -291,7 +291,7 @@ export class BlocksGame implements Engine {
       }),
     );
     c.fillStyle = "#82728c";
-    c.font = "9px sans-serif";
+    c.font = '9px "Microsoft YaHei", "PingFang SC", sans-serif';
     c.fillText("下一个", 180, 25);
     SHAPES[this.nextIndex].forEach((r, y) =>
       r.forEach((v, x) => {
@@ -302,7 +302,7 @@ export class BlocksGame implements Engine {
       }),
     );
     c.fillText("消除", 17, 55);
-    c.font = "18px serif";
+    c.font = '18px "Microsoft YaHei", "PingFang SC", sans-serif';
     c.fillText(`${this.score}/4`, 15, 78);
     star(c, 34, 105, 9, "#d4b365");
   }
@@ -415,7 +415,7 @@ export class HopGame implements Engine {
       c.fillRect(x - 12, this.y - 26, (24 * this.charge) / 1.2, 2);
     }
     c.fillStyle = "#829bad";
-    c.font = "8px sans-serif";
+    c.font = '8px "Microsoft YaHei", "PingFang SC", sans-serif';
     c.fillText("短按近跳 · 长按远跳", 62, 16);
   }
 }

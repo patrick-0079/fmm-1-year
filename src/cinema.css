@@ -11,7 +11,7 @@
   box-shadow:
     inset 0 0 0 2px #fbdcaf,
     3px 3px 0 #56425955;
-  font-family: "SimSun", "Microsoft YaHei", monospace;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
 }
 .cinema-heading {
   display: flex;

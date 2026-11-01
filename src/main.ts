@@ -2,6 +2,8 @@ import "./style.css";
 import "./world-details.css";
 import "./town-style.css";
 import "./cinema.css";
+import "./readability.css";
+import { helpMarkup } from "./help";
 import { ARCADES, TOWN_NPCS } from "./town-data";
 import { ITEMS } from "./items";
 import { anniversary, collections, producers } from "./content";
@@ -71,9 +73,9 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
             <span class="time-pill" role="timer" aria-live="off">☀ 08:00 · 白昼</span><span class="checkpoint-pill">${icon("star")} 复活点 · <span id="checkpoint-name">小屋的床</span></span>
             <section class="cinema-hud" aria-label="花园小电视放映控制" hidden></section><div class="arcade-hud" hidden aria-label="小镇游乐摊位"></div><div class="activity-hud" hidden><div class="activity-heading"><span class="activity-status" role="status" aria-live="polite"></span><button class="activity-close" aria-label="结束当前互动，回到地图">收起 ×</button></div><div class="activity-actions"></div></div><button class="crown-toggle map-tool" aria-pressed="false" hidden aria-label="戴上花环，快捷键 H">戴上花环 <kbd>H</kbd></button><div class="rest-tools" hidden><span></span><button class="stand-up map-action">起身 <kbd>E</kbd></button></div><button class="bed-note-pin map-tool" hidden>♡ 床边便签</button><article class="bed-note" aria-label="小叶子的床边便签" hidden></article><div class="nearby-prompt" hidden><span></span><kbd>E</kbd><span class="prompt-verb">互动</span></div>
             <div class="intro-screen"><div class="intro-stars">✧ <span>✦</span> ✧</div><span class="intro-pill">芙眠眠 · 直播一周年纪念</span><h2>今晚的快乐，<br>等你来发现。</h2><p>一间温暖小屋，两座缤纷花园，<br>还有一座等你逛逛的周年小镇。<br>和藏在街角的，一点点喜欢。</p><button class="button primary enter-button" disabled>正在点亮小世界…</button><small>点击开始会播放轻柔音乐 · 可随时关闭 ♡</small></div>
-            <div class="scene-transition" aria-hidden="true"></div>
+            <section class="game-letter-reader" aria-label="在游戏中阅读晚安信箱" hidden></section><div class="scene-transition" aria-hidden="true"></div>
           </div>
-          <section class="inventory-panel" aria-label="纪念背包" hidden></section><nav class="scene-nav" aria-label="地图导航"><button data-scene="room">01 晚安小屋</button><button data-scene="garden">02 周年花园</button><button data-scene="challenge">03 勇气花园</button><button data-scene="town">04 周年小镇</button><div class="volume-tools"><button class="volume-down" aria-label="降低游戏音量">−</button><span class="volume-value">45%</span><button class="volume-up" aria-label="提高游戏音量">＋</button></div></nav><div class="garden-pocket"><span>${icon("gift")}<span class="bag-count">苹果 0 · 花朵 0 · 星屑 0</span></span><span class="day-hint">十分钟一昼夜 · 找长椅休息，等一场黄昏和星夜</span></div><section class="map-reader" aria-label="地图物件阅读区" hidden></section><p class="inline-help" hidden>用 WASD、方向键或下方方向键移动，也可以点击地面行走。左键点击发光标记会自动走近互动，右键也可以互动。Tab 切换选项，Enter 或空格确认；礼物配对还可以按数字 1–8。鼠标可点击小游戏的方向与动作按钮。蛋糕、礼物和烟花都在地图里操作；按 Esc 收起互动。勇气花园里有四种小挫折，踩到陷阱会回到小屋床上休息，长椅可以坐下，按 E 或方向键起身；捡到花环后按 H 佩戴，按 B 在背包里选择饰品；周年小镇有 15 位居民和四个游乐摊位。进度只保存在当前浏览器。</p><div class="game-bottom"><div class="desktop-instructions"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span><span><kbd>E</kbd> / 右键 互动</span><i></i><span>也可以点地面走动、点标记探索</span></div><span class="exploration-count">${icon("star")} <span id="explored">0</span>/11 个角落</span></div>
+          <section class="inventory-panel" aria-label="纪念背包" hidden></section><nav class="scene-nav" aria-label="地图导航"><button data-scene="room">01 晚安小屋</button><button data-scene="garden">02 周年花园</button><button data-scene="challenge">03 勇气花园</button><button data-scene="town">04 周年小镇</button><div class="volume-tools"><button class="volume-down" aria-label="降低游戏音量">−</button><span class="volume-value">45%</span><button class="volume-up" aria-label="提高游戏音量">＋</button></div></nav><div class="garden-pocket"><span>${icon("gift")}<span class="bag-count">苹果 0 · 花朵 0 · 星屑 0</span></span><span class="day-hint">十分钟一昼夜 · 找长椅休息，等一场黄昏和星夜</span></div><section class="map-reader" aria-label="地图物件阅读区" hidden></section><section class="inline-help" aria-label="完整游玩说明" hidden></section><div class="game-bottom"><div class="desktop-instructions"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span><span><kbd>E</kbd> / 右键 互动</span><i></i><span>左键走动 / 点标记 · <kbd>B</kbd> 背包 · <kbd>H</kbd> 花环</span></div><span class="exploration-count">${icon("star")} <span id="explored">0</span>/11 个角落</span></div>
           <p class="journey-legend">${icon("star")} 遇到小挫折，回小屋的床休息一下 <span>·</span> 勇气花园里藏着小挫折，小屋与周年花园安心玩</p>
           <div class="touch-controls"><div class="dpad" aria-label="移动方向键"><button data-direction="0,-1" class="dpad-up" aria-label="向上移动">↑</button><button data-direction="-1,0" class="dpad-left" aria-label="向左移动">←</button><span>${icon("heart")}</span><button data-direction="1,0" class="dpad-right" aria-label="向右移动">→</button><button data-direction="0,1" class="dpad-down" aria-label="向下移动">↓</button></div><div class="touch-hint">走近发光的小物件<br><span>或者直接点标记</span></div><button class="touch-interact">${icon("star")}<span>互动</span></button></div>
         </section>
@@ -103,4 +105,5 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
   </div><div class="toast" role="status" aria-live="polite"></div><div class="confetti-layer" aria-hidden="true"></div>`;
 
 import { mountGame } from "./application";
+document.querySelector(".inline-help")!.innerHTML = helpMarkup;
 mountGame(tasks);

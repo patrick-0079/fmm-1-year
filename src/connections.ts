@@ -38,7 +38,7 @@ export function drawConnections(
     c.fillStyle = "#fff0c8";
     c.fillRect(x - 46, y - 64, 92, 14);
     c.fillStyle = "#a06383";
-    c.font = '10px "SimSun",monospace';
+    c.font = '10px "Microsoft YaHei","PingFang SC",sans-serif';
     c.textAlign = "center";
     c.fillText("晚安周年小镇 →", x, y - 53);
     for (let i = 0; i < 7; i++) {
@@ -50,18 +50,33 @@ export function drawConnections(
     c.fillStyle = "#f4dfb5";
     c.fillRect(488, 430, 55, 15);
     c.fillStyle = "#936779";
-    c.font = '8px "SimSun",monospace';
+    c.font = '8px "Microsoft YaHei","PingFang SC",sans-serif';
     c.fillText("小镇 · 沿石路走", 516, 440);
+    // North bridge already exists in the artwork; a small roadside sign marks
+    // the second entrance without painting over the bridge or its railings.
+    c.fillStyle = "#927158";
+    c.fillRect(756, 113, 4, 22);
+    c.fillStyle = "#f4dfb5";
+    c.fillRect(725, 101, 68, 17);
+    c.fillStyle = "#805e6f";
+    c.font = '9px "Microsoft YaHei",sans-serif';
+    c.fillText("小镇北街 ↗", 759, 113);
   }
   if (scene === "town") {
     c.fillStyle = "#8a6a55";
-    c.fillRect(489, 934, 4, 22);
+    c.fillRect(358, 932, 4, 22);
     c.fillStyle = "#f5dfb6";
-    c.fillRect(467, 920, 67, 18);
+    c.fillRect(321, 916, 78, 19);
     c.fillStyle = "#96657e";
-    c.font = '9px "SimSun",monospace';
+    c.font = '9px "Microsoft YaHei","PingFang SC",sans-serif';
     c.textAlign = "center";
-    c.fillText("← 周年花园", 500, 932);
+    c.fillText("周年花园 ↓", 360, 930);
+    c.fillStyle = "#8a6a55";
+    c.fillRect(598, 108, 4, 22);
+    c.fillStyle = "#f5dfb6";
+    c.fillRect(566, 92, 68, 19);
+    c.fillStyle = "#805e6f";
+    c.fillText("← 花园木桥", 600, 106);
   }
   c.restore();
 }

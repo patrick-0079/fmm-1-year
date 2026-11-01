@@ -113,9 +113,9 @@ export function drawAvatar(
     );
     if (sleeping) {
       c.fillStyle = "#a999c9";
-      c.font = "8px monospace";
+      c.font = '8px "Microsoft YaHei", "PingFang SC", sans-serif';
       c.fillText("z", 24, -23);
-      c.font = "6px monospace";
+      c.font = '6px "Microsoft YaHei", "PingFang SC", sans-serif';
       c.fillText("z", 31, -30);
     }
   }

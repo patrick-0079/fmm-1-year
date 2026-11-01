@@ -1,0 +1,330 @@
+:root {
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+}
+#app,
+#app * {
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+}
+button,
+kbd,
+input,
+textarea,
+select {
+  font: inherit;
+}
+small {
+  font-size: 12px !important;
+}
+.inventory-panel header p,
+.inventory-item p,
+.bag-footnote,
+.town-journal p,
+.town-guide button,
+.town-guide button small,
+.journey-legend,
+.time-pill,
+.checkpoint-pill,
+.crown-toggle,
+.memory-author,
+.game-bottom,
+.volume-value {
+  font-size: 12px;
+  line-height: 1.6;
+}
+.inventory-item h4 {
+  font-size: 14px;
+}
+.window-bar > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+#world {
+  image-rendering: auto;
+}
+.activity-hud,
+.arcade-hud,
+.cinema-hud {
+  font-family: inherit;
+}
+.activity-status,
+.arcade-status,
+.cinema-status {
+  font-size: 14px;
+  line-height: 1.75;
+}
+.activity-hud[data-mode="dialogue"] .activity-status {
+  font-size: 14px;
+}
+.arcade-shortcuts strong,
+.memory-shortcuts span,
+.town-guide summary {
+  font-size: 13px;
+}
+.activity-hud .map-action,
+.arcade-hud button,
+.cinema-hud .map-action {
+  font-size: 12px;
+  min-height: 36px;
+}
+.cinema-heading small,
+.cinema-progress,
+.cinema-controls-hint {
+  font-size: 11px;
+}
+.cinema-heading strong {
+  font-size: 15px;
+}
+.cinema-shortcut span {
+  font-size: 13px;
+}
+.cinema-shortcut small {
+  font-size: 11px;
+}
+.game-bottom,
+.scene-nav button,
+.day-hint,
+.garden-pocket,
+.journey-legend,
+.window-bar > span {
+  font-size: 12px;
+}
+.desktop-instructions {
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.eyebrow,
+.memory-shortcuts small,
+.arcade-shortcuts small,
+.credits-footnote,
+.memory-author {
+  font-size: 11px;
+}
+.inline-help {
+  padding: 20px;
+  font-size: 14px;
+  line-height: 1.85;
+  color: #5c5664;
+}
+.inline-help h3 {
+  margin: 0 0 14px;
+  font-size: 18px;
+}
+.help-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px;
+}
+.help-grid dt {
+  color: #8c5c77;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.help-grid dd {
+  margin: 0;
+}
+.reader-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: start;
+}
+.letter-text,
+.map-reader .letter-text {
+  font-size: 16px;
+  line-height: 1.95;
+  color: #4b4754;
+  text-align: left;
+}
+.game-letter-reader {
+  position: absolute;
+  z-index: 12;
+  right: 14px;
+  bottom: 14px;
+  width: min(620px, 76%);
+  max-height: calc(100% - 78px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #fffaf0;
+  color: #514b57;
+  border: 1px solid #ceb9ab;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 30px #362b4930;
+}
+.game-letter-reader > header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: start;
+  justify-content: space-between;
+  border-bottom: 1px solid #eadbcc;
+  padding-bottom: 12px;
+  position: sticky;
+  top: -20px;
+  background: #fffaf0;
+  z-index: 1;
+}
+.game-letter-reader header h3 {
+  margin: 4px 0;
+  font-size: 20px;
+}
+.game-letter-reader header small,
+.game-letter-reader header p {
+  font-size: 12px;
+  margin: 0;
+}
+.game-letter-reader .reader-body:focus {
+  outline: 2px solid #cda6b9;
+  outline-offset: 4px;
+}
+.game-letter-reader .collection-layout {
+  display: block;
+  margin-top: 12px;
+}
+.game-letter-reader .collection-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.game-letter-reader .collection-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1px solid #dfcbbf;
+  background: #f7eddf;
+  border-radius: 6px;
+}
+.game-letter-reader .memory-detail h3 {
+  font-size: 17px;
+  margin: 8px 0;
+}
+.game-letter-reader .memory-author {
+  margin-bottom: 10px;
+  color: #8c6777;
+}
+.reading-letter .nearby-prompt {
+  visibility: hidden;
+}
+.cinema-player {
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #10141e;
+  color: #fff8e8;
+}
+.cinema-player[hidden] {
+  display: none;
+}
+.cinema-player video {
+  position: relative;
+  inset: auto;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  height: 0;
+  object-fit: contain;
+  background: #10141e;
+}
+.cinema-player-tools {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 64px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #1e2232;
+  z-index: 2;
+}
+.cinema-player-tools span {
+  flex: 1;
+  font-size: 16px;
+}
+.cinema-player-tools button {
+  padding: 8px 14px;
+  border: 1px solid #aab2c4;
+  border-radius: 6px;
+  background: #30384f;
+  color: #fff;
+  font-size: 14px;
+}
+.cinema-player-loading {
+  position: absolute;
+  top: 45%;
+  left: 10%;
+  width: 80%;
+  font-size: 18px;
+  text-align: center;
+  line-height: 1.8;
+}
+@media (max-width: 650px) {
+  .help-grid {
+    grid-template-columns: 1fr;
+  }
+  .game-bottom,
+  .scene-nav button,
+  .day-hint,
+  .journey-legend {
+    font-size: 11px;
+  }
+  .scene-nav {
+    flex-wrap: wrap;
+  }
+  .scene-nav button {
+    padding: 8px 6px;
+  }
+  .game-letter-reader {
+    position: relative;
+    inset: auto;
+    margin: 6px;
+    width: auto;
+    max-height: 520px;
+    padding: 14px;
+  }
+  .game-letter-reader header h3 {
+    font-size: 18px;
+  }
+  .game-letter-reader > header {
+    top: -14px;
+  }
+  .game-letter-reader header p,
+  .game-letter-reader header small {
+    display: none;
+  }
+  .game-letter-reader .letter-text {
+    font-size: 15px;
+    line-height: 1.85;
+  }
+  .activity-status,
+  .arcade-status,
+  .cinema-status {
+    font-size: 13px;
+  }
+  .cinema-hud .map-action {
+    font-size: 12px;
+  }
+  .cinema-heading {
+    flex-wrap: wrap;
+  }
+  .cinema-player-tools {
+    padding: 10px;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  .cinema-player-tools span {
+    font-size: 13px;
+  }
+  .cinema-player-tools button {
+    font-size: 12px;
+    padding: 8px;
+  }
+  .cinema-player-loading {
+    font-size: 15px;
+  }
+}

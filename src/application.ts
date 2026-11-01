@@ -294,6 +294,7 @@ export function mountGame(tasks: Task[]) {
       ]);
     else {
       activities.close();
+      reader.inGame = id === "letters";
       openCollection(reader, id);
     }
   };
@@ -420,10 +421,23 @@ export function mountGame(tasks: Task[]) {
   document
     .querySelectorAll<HTMLButtonElement>("[data-memory]")
     .forEach((button) =>
-      button.addEventListener("click", () =>
-        visit("room", button.dataset.memory!),
-      ),
+      button.addEventListener("click", () => {
+        if (button.dataset.memory === "letters") {
+          cinema.close();
+          arcade.close();
+          activities.close();
+          world.paused = !started;
+          reader.inGame = false;
+          openCollection(reader, "letters");
+        } else visit("room", button.dataset.memory!);
+      }),
     );
+  reader.onChangeView = () => {
+    if (reader.inGame) {
+      reader.inGame = false;
+      openCollection(reader, "letters");
+    } else visit("room", "letters");
+  };
   document
     .querySelectorAll<HTMLButtonElement>("[data-direction]")
     .forEach((button) => {

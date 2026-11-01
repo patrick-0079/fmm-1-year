@@ -97,6 +97,19 @@ export class World {
     this.ctx = canvas.getContext("2d")!;
     canvas.width = 600;
     canvas.height = 400;
+    const resize = () => {
+      const width = Math.max(300, canvas.getBoundingClientRect().width);
+      const pixels = Math.ceil(
+        width * Math.min(3, window.devicePixelRatio || 1),
+      );
+      if (canvas.width !== pixels) {
+        canvas.width = pixels;
+        canvas.height = Math.round((pixels * 2) / 3);
+      }
+    };
+    new ResizeObserver(resize).observe(canvas);
+    window.addEventListener("resize", resize);
+    resize();
     if (this.debug) {
       this.debugOutput = document.createElement("output");
       this.debugOutput.className = "debug-readout";
@@ -578,6 +591,16 @@ export class World {
   private draw() {
     const c = this.ctx,
       { width, height } = this.config;
+    // Text renders at the display's native density; bitmap sprites keep nearest
+    // neighbour sampling. Logical game and pointer coordinates remain 600 × 400.
+    c.setTransform(
+      this.canvas.width / 600,
+      0,
+      0,
+      this.canvas.height / 400,
+      0,
+      0,
+    );
     c.imageSmoothingEnabled = false;
     c.fillStyle = "#f4dfbc";
     c.fillRect(0, 0, 600, 400);

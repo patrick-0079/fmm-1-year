@@ -1,13 +1,9 @@
 import type { World } from "./world";
 import { gardenFilm, gardenScreen } from "./cinema-config";
 import { drawGardenScreen } from "./cinema-screen";
-import {
-  CinemaSession,
-  bufferedUntil,
-  mediaTime,
-  containVideo,
-} from "./cinema-state";
+import { CinemaSession, mediaTime, containVideo } from "./cinema-state";
 import { duckMusic } from "./sound";
+import { FilmPreloader, downloadLabel } from "./film-preloader";
 
 export class GardenCinema {
   private session = new CinemaSession();
@@ -19,6 +15,9 @@ export class GardenCinema {
   private slow = false;
   private notified = false;
   private wishing = false;
+  private download = new FilmPreloader(gardenFilm.src, () => this.render());
+  private player = document.createElement("section");
+  private expanded = false;
   constructor(
     private world: World,
     private toast: (text: string) => void,
@@ -51,17 +50,29 @@ export class GardenCinema {
       if (type === "down") this.toggle();
       return true;
     };
-    window.addEventListener("keydown", (e) => {
-      if (!this.active) return;
-      if (e.key === "Escape") {
-        e.preventDefault();
-        this.close();
-      }
-      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-        e.preventDefault();
-        this.seek(e.key === "ArrowLeft" ? -10 : 10);
-      }
-    });
+    window.addEventListener(
+      "keydown",
+      (e) => {
+        if (!this.active) return;
+        if (e.key.toLowerCase() === "f" && !e.repeat) {
+          e.preventDefault();
+          e.stopPropagation();
+          void this.fullscreen();
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          if (this.expanded) this.shrink();
+          else this.close();
+        }
+        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+          e.preventDefault();
+          e.stopPropagation();
+          this.seek(e.key === "ArrowLeft" ? -10 : 10);
+        }
+      },
+      { capture: true },
+    );
     document.addEventListener("visibilitychange", () => {
       if (document.hidden && this.active) {
         this.video?.pause();
@@ -72,9 +83,15 @@ export class GardenCinema {
     });
     this.hud.innerHTML = `<div class="cinema-heading"><div><small>FUFU’S GARDEN CINEMA</small><strong></strong></div><button class="map-action cinema-leave">离开，先去逛逛 ×</button></div><p class="cinema-status" role="status" aria-live="polite"></p><p class="cinema-progress" aria-live="off"></p><div class="cinema-actions"><button class="map-action cinema-play">播放</button><button class="map-action cinema-back">−10 秒</button><button class="map-action cinema-forward">＋10 秒</button><button class="map-action cinema-restart">从头播放</button><button class="map-action cinema-mute">静音</button><button class="map-action cinema-retry" hidden>重新加载</button><button class="map-action cinema-wishes">发一条周年弹幕</button></div>`;
     this.hud.querySelector("strong")!.textContent = gardenFilm.title;
+    const fullscreen = document.createElement("button");
+    fullscreen.className = "map-action cinema-fullscreen";
+    fullscreen.textContent = "全屏观看 F";
+    fullscreen.addEventListener("click", () => void this.fullscreen());
+    this.hud.querySelector(".cinema-actions")!.append(fullscreen);
     const hint = document.createElement("p");
     hint.className = "cinema-controls-hint";
-    hint.textContent = "E / 空格 / 右键：播放暂停　← →：跳转　Esc：离开";
+    hint.textContent =
+      "E / 空格 / 右键：播放暂停　← →：跳转　F：全屏　Esc：返回";
     this.hud.append(hint);
     this.hud
       .querySelector(".cinema-leave")!
@@ -106,6 +123,23 @@ export class GardenCinema {
       this.wishing = true;
       this.wishes();
     });
+    this.player.className = "cinema-player";
+    this.player.hidden = true;
+    this.player.setAttribute("aria-label", "周年视频全屏播放器");
+    this.player.innerHTML = `<div class="cinema-player-tools"><span></span><button class="cinema-shrink">返回地图内观看</button><button class="cinema-exit">离开放映</button></div><p class="cinema-player-loading" role="status"></p>`;
+    this.player.querySelector("span")!.textContent = gardenFilm.title;
+    this.player
+      .querySelector(".cinema-shrink")!
+      .addEventListener("click", () => this.shrink());
+    this.player
+      .querySelector(".cinema-exit")!
+      .addEventListener("click", () => this.close());
+    document.querySelector(".game-window")!.append(this.player);
+    document.addEventListener("fullscreenchange", () => {
+      if (this.expanded && !document.fullscreenElement) this.shrink();
+    });
+    this.ensureVideo();
+    this.preload(); // Start at page mount, before entering the game or TV.
   }
   get active() {
     return this.session.active;
@@ -130,6 +164,7 @@ export class GardenCinema {
   }
   close() {
     if (!this.active) return;
+    this.shrink();
     this.session.leave();
     this.video?.pause();
     duckMusic(false);
@@ -139,7 +174,7 @@ export class GardenCinema {
     this.world.paused = false;
     this.world.clearInput();
     this.world.canvas.focus({ preventScroll: true });
-    // Keep the same video node and src. Pausing is deliberately not an unload.
+    // Keep the same fully downloaded Blob and playback position.
   }
   reset() {
     this.close();
@@ -153,14 +188,10 @@ export class GardenCinema {
     const v = document.createElement("video");
     this.video = v;
     v.dataset.gardenVideo = "true";
-    v.hidden = true;
     v.tabIndex = -1;
-    v.setAttribute("aria-hidden", "true");
     v.playsInline = true;
     v.preload = "auto";
     v.volume = 0.65;
-    // No fetch-to-Blob and no crossOrigin=anonymous: native range streaming also
-    // works with a CDN that does not expose cross-origin fetch/CORS headers.
     const update = () => this.render();
     v.addEventListener("loadeddata", () => {
       this.session.hasFrame = true;
@@ -174,8 +205,11 @@ export class GardenCinema {
         this.notified = true;
       }
       update();
+      if (this.active && this.session.wanted && v.paused) this.play();
     });
     v.addEventListener("play", () => {
+      if (this.active && this.expanded && !this.session.wanted)
+        this.session.request();
       if (!this.active || !this.session.wanted) v.pause();
     });
     v.addEventListener("playing", () => {
@@ -219,9 +253,43 @@ export class GardenCinema {
       "seeked",
     ])
       v.addEventListener(event, update);
-    document.querySelector(".game-window")!.append(v);
-    v.src = gardenFilm.src;
-    v.load();
+    this.player.prepend(v);
+  }
+  private preload() {
+    this.session.retry();
+    void this.download
+      .start()
+      .then((url) => {
+        this.video!.src = url;
+        this.video!.load();
+      })
+      .catch(() => {
+        this.session.fail();
+        this.render();
+      });
+  }
+  private async fullscreen() {
+    if (!this.active) return;
+    if (this.expanded) return this.shrink();
+    this.expanded = true;
+    this.player.hidden = false;
+    this.video!.controls = true;
+    this.render();
+    // CSS provides the same full-window player when native fullscreen is absent.
+    try {
+      await this.player.requestFullscreen?.();
+    } catch {
+      /* Full-window fallback. */
+    }
+  }
+  private shrink() {
+    if (!this.expanded) return;
+    this.expanded = false;
+    if (document.fullscreenElement === this.player)
+      void document.exitFullscreen().catch(() => {});
+    this.player.hidden = true;
+    this.video!.controls = false;
+    this.world.canvas.focus({ preventScroll: true });
   }
   private toggle() {
     if (this.session.wanted || this.session.stage === "playing") {
@@ -234,6 +302,10 @@ export class GardenCinema {
   private play() {
     const v = this.video;
     if (!v || !this.session.request()) return;
+    if (this.download.progress.state !== "ready" || !v.src) {
+      this.render();
+      return;
+    }
     if (v.ended) v.currentTime = 0;
     this.render();
     void v.play().catch((error: unknown) => {
@@ -256,10 +328,14 @@ export class GardenCinema {
     this.session.retry();
     this.slow = false;
     this.notified = false;
-    this.video.load();
+    if (this.download.progress.state === "error") this.preload();
+    else this.video.load();
     this.render();
   }
   private render() {
+    const progress = downloadLabel(this.download.progress);
+    const shortcut = document.querySelector(".cinema-shortcut small");
+    if (shortcut) shortcut.textContent = progress;
     if (!this.active) return;
     const v = this.video,
       s = this.session.stage;
@@ -285,7 +361,13 @@ export class GardenCinema {
     const time = v ? mediaTime(v.currentTime) : "00:00",
       duration = v ? mediaTime(v.duration) : "--:--";
     this.hud.querySelector(".cinema-progress")!.textContent =
-      `观看 ${time} / ${duration} · 已缓冲至 ${v ? mediaTime(bufferedUntil(v.buffered, v.currentTime)) : "00:00"}`;
+      `观看 ${time} / ${duration} · ${progress}`;
+    const loading = this.player.querySelector<HTMLElement>(
+      ".cinema-player-loading",
+    )!;
+    loading.hidden =
+      this.download.progress.state === "ready" && !!v?.readyState;
+    loading.textContent = progress + " · 可以先返回花园，稍后回来观看";
     const button = this.hud.querySelector<HTMLButtonElement>(".cinema-play")!;
     button.textContent = this.session.wanted
       ? "暂停 / 取消等待"
@@ -333,13 +415,13 @@ export class GardenCinema {
         c.fillRect(box.x, box.y, box.w, box.h);
         c.textAlign = "center";
         c.fillStyle = "#f8dfb0";
-        c.font = '7px "SimSun",monospace';
+        c.font = '7px "Microsoft YaHei","PingFang SC",sans-serif';
         c.fillText(
           s === "error" ? "画面还在路上" : v ? "LOADING…" : "芙芙 · 一周年放映",
           box.x + box.w / 2,
           box.y + 21,
         );
-        c.font = '5px "SimSun",monospace';
+        c.font = '5px "Microsoft YaHei","PingFang SC",sans-serif';
         c.fillStyle = "#d6c4df";
         c.fillText(
           s === "error"

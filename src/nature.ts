@@ -10,6 +10,9 @@ import { drawCreek, drawGardenTree } from "./landscape-renderer";
 import benchUrl from "./assets/garden-bench.webp";
 import wreathUrl from "./assets/flower-wreath.webp";
 import treeUrl from "./assets/apple-tree.webp";
+import dewUrl from "./assets/morning-dew-flower.webp";
+import roomArtUrl from "./assets/room-interactive.webp";
+import { drawRoomWindow } from "./window-sky";
 interface NatureSave {
   picked: Record<string, number>;
   apple: number;
@@ -32,6 +35,8 @@ export class Nature {
   private treeImage = new Image();
   private benchImage = new Image();
   private wreathImage = new Image();
+  private dewImage = new Image();
+  private windowImage = new Image();
   private origin = Date.now();
   private shift = 0;
   private state = initial();
@@ -46,6 +51,8 @@ export class Nature {
     private inventory: Inventory,
   ) {
     this.treeImage.src = treeUrl;
+    this.dewImage.src = dewUrl;
+    this.windowImage.src = roomArtUrl;
     this.benchImage.src = benchUrl;
     this.wreathImage.src = wreathUrl;
     try {
@@ -327,29 +334,7 @@ export class Nature {
   }
   private draw(c: CanvasRenderingContext2D, t: number) {
     if (this.world.scene === "room") {
-      // Replace just the window glass so daylight also reaches the indoor scene.
-      const phase = this.clock.phase;
-      c.fillStyle =
-        phase === "night"
-          ? "#27355c"
-          : phase === "dusk"
-            ? "#cf92a6"
-            : phase === "dawn"
-              ? "#d7b6c4"
-              : "#9dcdd7";
-      c.fillRect(239, 13, 25, 49);
-      c.fillRect(270, 13, 34, 49);
-      c.fillRect(310, 13, 45, 49);
-      c.fillStyle = phase === "night" ? "#fff4bd" : "#ffedaf";
-      c.beginPath();
-      c.arc(327, 29, 8, 0, Math.PI * 2);
-      c.fill();
-      if (phase === "night") {
-        c.fillStyle = "#27355c";
-        c.beginPath();
-        c.arc(331, 26, 7, 0, Math.PI * 2);
-        c.fill();
-      }
+      drawRoomWindow(c, this.clock.phase, this.windowImage);
       return;
     }
     if (this.world.scene === "town") return;
@@ -406,12 +391,8 @@ export class Nature {
         c.fillRect(spot.x - 2, spot.y - 7, 4, 14);
       }
       if (spot.id === "dew") {
-        c.fillStyle = "#c3f3ed";
-        c.beginPath();
-        c.arc(spot.x, spot.y, 10, 0, Math.PI * 2);
-        c.fill();
-        c.fillStyle = "#fff4be";
-        c.fillRect(spot.x - 3, spot.y - 3, 6, 6);
+        if (this.dewImage.complete && this.dewImage.naturalWidth)
+          c.drawImage(this.dewImage, spot.x - 16, spot.y - 30, 32, 40);
       }
       if (spot.id === "sunset") {
         c.fillStyle = "#f5cf85";

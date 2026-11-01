@@ -3,6 +3,7 @@ import type { Inventory } from "./inventory";
 import type { Activities } from "./activities";
 import type { Arcade } from "./arcade";
 import { ARCADES, TOWN_NPCS, TOWN_FRAMES } from "./town-data";
+import { drawArcadeStall } from "./arcade-stall";
 import type { GameId } from "./arcade-engines";
 import npcUrl from "./assets/town-npcs.webp";
 import cakeUrl from "./assets/anniversary-cake.webp";
@@ -161,34 +162,10 @@ export class Town {
         draw: (c: CanvasRenderingContext2D) =>
           drawFestivalProp(c, p, this.time, this.cake),
       })),
-      ...Object.values(ARCADES).map((g) => ({
+      ...Object.entries(ARCADES).map(([id, g]) => ({
         y: g.y + 18,
-        draw: (c: CanvasRenderingContext2D) => {
-          c.fillStyle = "#725648";
-          c.fillRect(g.x - 25, g.y - 3, 50, 22);
-          c.fillStyle = "#b8906e";
-          c.fillRect(g.x - 23, g.y - 2, 46, 18);
-          c.fillStyle = "#e1c7a1";
-          c.fillRect(g.x - 22, g.y - 1, 44, 3);
-          c.fillStyle = "#916d94";
-          c.fillRect(g.x - 23, g.y - 29, 46, 25);
-          c.fillStyle = "#283f56";
-          c.fillRect(g.x - 19, g.y - 26, 38, 18);
-          c.fillStyle = "#e9d8ab";
-          c.font = "7px sans-serif";
-          c.textAlign = "center";
-          c.fillText(g.short, g.x, g.y - 14);
-          c.fillStyle = "#cd8eab";
-          c.fillRect(g.x - 28, g.y - 38, 56, 8);
-          for (let i = 0; i < 7; i++) {
-            c.fillStyle = i % 2 ? "#f6e6c5" : "#b5a0c5";
-            c.fillRect(g.x - 28 + i * 8, g.y - 38, 8, 8);
-          }
-          c.fillStyle = "#e9bc6c";
-          c.fillRect(g.x - 12, g.y + 4, 5, 3);
-          c.fillStyle = "#9bbfb2";
-          c.fillRect(g.x + 6, g.y + 4, 5, 3);
-        },
+        draw: (c: CanvasRenderingContext2D) =>
+          drawArcadeStall(c, g, id as GameId),
       })),
       ...TOWN_NPCS.map((n) => ({
         y: n.y,
@@ -220,7 +197,7 @@ export class Town {
             Math.hypot(this.world.player.x - n.x, this.world.player.y - n.y) <
             100
           ) {
-            c.font = "8px sans-serif";
+            c.font = '8px "Microsoft YaHei", "PingFang SC", sans-serif';
             c.textAlign = "center";
             const width = c.measureText(n.name).width + 10;
             c.fillStyle = "#fff4dce8";

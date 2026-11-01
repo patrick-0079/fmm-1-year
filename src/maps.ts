@@ -205,6 +205,12 @@ export const scenes: Record<SceneId, Scene> = {
       [345, 80],
       [550, 80],
       [770, 100],
+      // Open the bank leading to the painted north bridge, keeping the stream
+      // beyond the bridge approach outside the walking polygon.
+      [803, 83],
+      [837, 76],
+      [855, 92],
+      [807, 124],
       [790, 155],
       [825, 180],
       [805, 240],
@@ -336,6 +342,18 @@ export const scenes: Record<SceneId, Scene> = {
         y: 116,
         approach: { x: 446, y: 145 },
         color: "#67c2d8",
+      },
+      {
+        id: "north-town-gate",
+        title: "北侧木桥 · 去周年小镇",
+        portal: "town",
+        portalExit: "town-north-return",
+        x: 759,
+        y: 113,
+        approach: { x: 800, y: 111 },
+        radius: 55,
+        markerOffset: 22,
+        color: "#83b8a6",
       },
       {
         id: "town-gate",
@@ -546,6 +564,7 @@ for (const id of ["garden", "challenge"] as const) {
       y: 180,
       approach: { x: 510, y: 205 },
       radius: 45,
+      markerOffset: 42,
       color: "#b5e2e6",
     },
     {

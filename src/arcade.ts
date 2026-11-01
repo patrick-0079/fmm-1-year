@@ -247,14 +247,14 @@ export class Arcade {
       c.fillStyle = "#fff8e6bb";
       c.fillRect(0, 0, 240, 160);
       c.fillStyle = "#9f7295";
-      c.font = "12px sans-serif";
+      c.font = '12px "Microsoft YaHei", "PingFang SC", sans-serif';
       c.fillText("把小快乐，变成周年纪念品", 120, 75);
     }
     if (this.engine.status === "won") {
       c.fillStyle = "#fff4dbaa";
       c.fillRect(0, 0, 240, 160);
       c.fillStyle = "#a16c8a";
-      c.font = "15px sans-serif";
+      c.font = '15px "Microsoft YaHei", "PingFang SC", sans-serif';
       c.fillText("♡ 一周年快乐 ♡", 120, 75);
     }
     c.restore();
