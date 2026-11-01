@@ -1,6 +1,8 @@
 import type { Geometry, Hazard, Point } from "./core.ts";
 import { gardenTrees, creeks } from "./landscape.ts";
-export type SceneId = "room" | "garden" | "challenge";
+import { townScene } from "./town-map.ts";
+import { fenceSegments } from "./fences.ts";
+export type SceneId = "room" | "garden" | "challenge" | "town";
 export interface Hotspot {
   id: string;
   title: string;
@@ -10,6 +12,7 @@ export interface Hotspot {
   color?: string;
   radius?: number;
   portal?: SceneId;
+  markerOffset?: number;
 }
 export interface Scene extends Geometry {
   title: string;
@@ -26,6 +29,7 @@ const polygon = (label: string, coordinates: number[][]) => ({
 
 // Logical pixels. Follow visible object bases, not their overhead decorations.
 export const scenes: Record<SceneId, Scene> = {
+  town: townScene,
   room: {
     title: "晚安小屋",
     width: 600,
@@ -280,6 +284,44 @@ export const scenes: Record<SceneId, Scene> = {
         [700, 448],
       ]),
       { label: "野餐灯", x: 738, y: 469, w: 24, h: 30 },
+      ...fenceSegments(
+        "庭院左侧矮栅栏",
+        [
+          [352, 302],
+          [334, 323],
+          [326, 346],
+        ],
+        6,
+      ),
+      ...fenceSegments(
+        "庭院左下矮栅栏",
+        [
+          [326, 355],
+          [337, 381],
+          [357, 397],
+        ],
+        6,
+      ),
+      ...fenceSegments(
+        "庭院右侧矮栅栏",
+        [
+          [546, 302],
+          [564, 323],
+          [571, 346],
+        ],
+        6,
+      ),
+      ...fenceSegments(
+        "庭院右下矮栅栏",
+        [
+          [571, 355],
+          [560, 382],
+          [539, 398],
+        ],
+        6,
+      ),
+      { label: "庭院左侧栅栏立柱", x: 326, y: 347, w: 12, h: 24 },
+      { label: "庭院右侧栅栏立柱", x: 552, y: 347, w: 12, h: 24 },
     ],
     hazards: [],
     spots: [
@@ -291,6 +333,16 @@ export const scenes: Record<SceneId, Scene> = {
         y: 116,
         approach: { x: 446, y: 145 },
         color: "#67c2d8",
+      },
+      {
+        id: "town-gate",
+        title: "去晚安周年小镇",
+        portal: "town",
+        x: 608,
+        y: 533,
+        approach: { x: 608, y: 511 },
+        radius: 50,
+        color: "#c5a46e",
       },
       {
         id: "balloons",
@@ -418,7 +470,7 @@ for (const id of ["garden", "challenge"] as const) {
   );
   const tree = id === "garden" ? { x: 315, y: 235 } : { x: 705, y: 392 };
   const flowers = id === "garden" ? { x: 548, y: 410 } : { x: 170, y: 267 };
-  const drop = id === "garden" ? { x: 560, y: 365 } : { x: 295, y: 225 };
+  const drop = id === "garden" ? { x: 590, y: 365 } : { x: 295, y: 225 };
   const bench = id === "garden" ? { x: 385, y: 420 } : { x: 560, y: 430 };
   outdoor.walls.push({
     label: "苹果树树干",

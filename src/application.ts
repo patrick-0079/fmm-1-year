@@ -5,6 +5,11 @@ import { World, scenes, type SceneId } from "./world";
 import { Activities } from "./activities";
 import { BedNote } from "./bed-note";
 import { MapReader } from "./reader";
+import { Inventory } from "./inventory";
+import { Arcade } from "./arcade";
+import { Town } from "./town";
+import { ARCADES } from "./town-data";
+import type { GameId } from "./arcade-engines";
 import { Nature } from "./nature";
 import { openCollection } from "./media";
 import {
@@ -117,8 +122,11 @@ export function mountGame(tasks: Task[]) {
       chime(true);
     }
   }
+  const inventory = new Inventory(world, toast);
   const activities = new Activities(world, { complete, toast });
-  const nature = new Nature(world, activities, toast);
+  const nature = new Nature(world, activities, toast, inventory);
+  const arcade = new Arcade(world, activities, inventory);
+  const town = new Town(world, activities, inventory, arcade);
   const bedNote = new BedNote(world);
   const previousTick = world.onTick;
   world.onTick = (dt, t) => {
@@ -130,6 +138,7 @@ export function mountGame(tasks: Task[]) {
   }
   function transition(scene: SceneId) {
     if (world.busy || transitioning || !started) return;
+    arcade.close();
     activities.close();
     reader.close();
     dismissRevive();
@@ -169,6 +178,7 @@ export function mountGame(tasks: Task[]) {
     .addEventListener("click", () => world.standUp());
   let encouragementIndex = 0;
   world.onRespawn = ({ trap }) => {
+    arcade.close();
     activities.close();
     reader.close();
     sfx("revive");
@@ -196,9 +206,9 @@ export function mountGame(tasks: Task[]) {
   };
   world.onScene = (scene) => {
     document.querySelector("#location-name")!.textContent =
-      `${scene === "room" ? "ROOM 01" : scene === "garden" ? "GARDEN 02" : "GARDEN 03"} · ${scenes[scene].title}`;
+      `${scene === "room" ? "ROOM 01" : scene === "garden" ? "GARDEN 02" : scene === "challenge" ? "GARDEN 03" : "TOWN 04"} · ${scenes[scene].title}`;
     document.querySelector(".map-switch")!.innerHTML =
-      `${scene === "room" ? "周年花园" : scene === "garden" ? "勇气花园" : "晚安小屋"} ${icon("arrow")}`;
+      `${scene === "room" ? "周年花园" : scene === "garden" ? "勇气花园" : scene === "challenge" ? "周年小镇" : "晚安小屋"} ${icon("arrow")}`;
     document
       .querySelectorAll<HTMLButtonElement>("[data-scene]")
       .forEach((button) => {
@@ -238,6 +248,7 @@ export function mountGame(tasks: Task[]) {
       ]);
       return;
     }
+    if (town.interact(id)) return;
     if (nature.interact(id)) return;
     if (EVENT_IDS.includes(id) && !progress.visited.includes(id)) {
       progress.visited.push(id);
@@ -330,7 +341,9 @@ export function mountGame(tasks: Task[]) {
         ? "garden"
         : world.scene === "garden"
           ? "challenge"
-          : "room",
+          : world.scene === "challenge"
+            ? "town"
+            : "room",
     );
   });
   document
@@ -350,6 +363,7 @@ export function mountGame(tasks: Task[]) {
     if (world.busy || transitioning) return;
     begin();
     if (!started) return;
+    arcade.close();
     activities.close();
     reader.close();
     dismissRevive();
@@ -365,6 +379,19 @@ export function mountGame(tasks: Task[]) {
         const task = tasks.find((t) => t.id === button.dataset.task)!;
         visit(task.scene as SceneId, task.id);
       }),
+    );
+  document.querySelectorAll<HTMLButtonElement>("[data-arcade]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const id = b.dataset.arcade as GameId;
+      if (ARCADES[id]) visit("town", "arcade-" + id);
+    }),
+  );
+  document
+    .querySelectorAll<HTMLButtonElement>("[data-town-npc]")
+    .forEach((b) =>
+      b.addEventListener("click", () =>
+        visit("town", "npc-" + b.dataset.townNpc),
+      ),
     );
   document
     .querySelectorAll<HTMLButtonElement>("[data-memory]")
@@ -408,6 +435,9 @@ export function mountGame(tasks: Task[]) {
     };
     activities.reset();
     nature.reset();
+    inventory.reset();
+    town.reset();
+    arcade.close();
     reader.close();
     save();
     update();

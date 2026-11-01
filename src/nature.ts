@@ -1,6 +1,8 @@
 import { eggAvailable, phaseNames, untilNextPhase, worldTime } from "./day";
 import { sfx } from "./sound";
 import type { Activities } from "./activities";
+import type { Inventory } from "./inventory";
+import { sceneLights } from "./lights";
 import type { World } from "./world";
 import type { Hotspot } from "./maps";
 import { gardenTrees, creeks } from "./landscape";
@@ -36,10 +38,12 @@ export class Nature {
   private lastUi = 0;
   private oldPhase = "";
   private tint = [0, 0, 0, 0];
+  private lightMap = document.createElement("canvas");
   constructor(
     private world: World,
     private activities: Activities,
     private toast: (text: string) => void,
+    private inventory: Inventory,
   ) {
     this.treeImage.src = treeUrl;
     this.benchImage.src = benchUrl;
@@ -86,11 +90,10 @@ export class Nature {
       /* read-only play remains available */
     }
     this.saveClock();
-    this.world.flowerCrown = this.state.wearing;
     this.world.available = (spot) => this.available(spot);
     this.world.onEnvironment = (c, t) => this.draw(c, t);
     this.world.onLighting = (c) => this.lighting(c);
-    this.world.onForeground = (c) => this.foreground(c);
+    this.world.getDepthLayers = () => this.depthLayers();
     const tick = this.world.onTick;
     this.world.onTick = (dt, t) => {
       tick(dt, t);
@@ -144,7 +147,6 @@ export class Nature {
     try {
       localStorage.setItem(NATURE_KEY, JSON.stringify(this.state));
     } catch {}
-    this.world.flowerCrown = this.state.wearing;
     this.lastUi = 0;
     this.tick(0);
   }
@@ -153,7 +155,7 @@ export class Nature {
     this.save();
   }
   private available(spot: Hotspot) {
-    if (spot.id === "wreath") return !this.state.wreath;
+    if (spot.id === "wreath") return !this.inventory.has("wreath");
     if (!eggAvailable(spot.id, this.clock.phase)) return false;
     if (["drop", "dew", "sunset", "firefly"].includes(spot.id))
       return this.picked(spot.id) === 0;
@@ -175,6 +177,7 @@ export class Nature {
       return false;
     if (id === "wreath") {
       this.state.wreath = true;
+      this.inventory.grant("wreath");
       this.save();
       sfx("match");
       this.activities.note(
@@ -253,6 +256,7 @@ export class Nature {
     if (remaining > 0) {
       this.mark("flowers");
       this.state.flower++;
+      this.inventory.grant("wreath");
       this.state.wreath = true;
       sfx("match");
       this.save();
@@ -269,13 +273,9 @@ export class Nature {
     );
   }
   private toggleCrown() {
-    if (!this.state.wreath) {
-      this.toast("先到花园捡花环，或采一朵小花编进花环吧。");
-      return;
-    }
-    this.state.wearing = !this.state.wearing;
+    this.inventory.toggle("wreath");
+    this.state.wearing = this.inventory.state.equipped.head === "wreath";
     this.save();
-    sfx("interact");
   }
   private rest() {
     this.shift += untilNextPhase(this.elapsed);
@@ -314,7 +314,8 @@ export class Nature {
     document.querySelector(".bag-count")!.textContent =
       `苹果 ${this.state.apple} · 花朵 ${this.state.flower} · 星屑 ${this.state.star}`;
     const crown = document.querySelector<HTMLButtonElement>(".crown-toggle")!;
-    crown.hidden = !this.state.wreath;
+    crown.hidden = !this.inventory.has("wreath");
+    this.state.wearing = this.inventory.state.equipped.head === "wreath";
     crown.innerHTML = `<img src="${wreathUrl}" alt=""><span>${this.state.wearing ? "摘下花环" : "戴上花环"}</span><kbd>H</kbd>`;
     crown.setAttribute(
       "aria-label",
@@ -351,48 +352,9 @@ export class Nature {
       }
       return;
     }
+    if (this.world.scene === "town") return;
     drawCreek(c, creeks[this.world.scene], t);
-    for (const tree of gardenTrees[this.world.scene])
-      drawGardenTree(c, this.treeImage, tree);
-    const apple = this.world.config.spots.find((s) => s.id === "apple")!,
-      flowers = this.world.config.spots.find((s) => s.id === "flowers")!,
-      bench = this.world.config.spots.find((s) => s.id === "rest")!;
-    const { x, y } = apple;
-    c.fillStyle = "#6b896b33";
-    c.beginPath();
-    c.ellipse(x, y + 24, 28, 9, 0, 0, Math.PI * 2);
-    c.fill();
-    if (this.treeImage.complete && this.treeImage.naturalWidth) {
-      c.drawImage(this.treeImage, x - 36, y - 53, 72, 80);
-    } else {
-      c.fillStyle = "#987455";
-      c.fillRect(x - 7, y - 3, 14, 28);
-      c.fillStyle = "#b68d60";
-      c.fillRect(x - 4, y - 3, 4, 26);
-      const foliage = [
-        [-20, -22, 24, 25],
-        [-5, -36, 27, 27],
-        [13, -22, 21, 23],
-        [-8, -16, 26, 25],
-        [-27, -11, 25, 17],
-      ];
-      foliage.forEach(([dx, dy, w, h], i) => {
-        c.fillStyle = ["#68ad8b", "#80be8a", "#72a786", "#94c58d", "#5c977f"][
-          i
-        ];
-        c.fillRect(x + dx, y + dy, w, h);
-      });
-    }
-    for (let i = this.picked("apple"); i < 3; i++) {
-      const ax = x + [-16, 17, 2][i],
-        ay = y + [-14, -10, -28][i];
-      c.fillStyle = "#e77d87";
-      c.fillRect(ax - 3, ay - 2, 7, 7);
-      c.fillStyle = "#fff0bd";
-      c.fillRect(ax - 2, ay - 1, 2, 2);
-      c.fillStyle = "#4e8466";
-      c.fillRect(ax + 1, ay - 4, 4, 2);
-    }
+    const flowers = this.world.config.spots.find((s) => s.id === "flowers")!;
     const picked = this.picked("flowers");
     for (let i = picked; i < 8; i++) {
       const fx = flowers.x + (i % 4) * 8 - 12,
@@ -405,8 +367,6 @@ export class Nature {
       c.fillStyle = "#e6b468";
       c.fillRect(fx - 1, fy - 2, 3, 3);
     }
-    if (this.benchImage.complete && this.benchImage.naturalWidth)
-      c.drawImage(this.benchImage, bench.x - 38, bench.y - 25, 76, 46);
     for (const spot of this.world.config.spots) {
       if (!this.available(spot)) continue;
       if (
@@ -462,24 +422,110 @@ export class Nature {
       c.stroke();
     }
   }
-  private foreground(c: CanvasRenderingContext2D) {
-    if (this.world.scene === "room") return;
-    const apple = this.world.config.spots.find((s) => s.id === "apple")!;
-    for (const tree of [
-      ...gardenTrees[this.world.scene],
-      { x: apple.x, y: apple.y, scale: 1, tone: 0 },
-    ]) {
-      if (
-        this.world.player.y < tree.y + 23 * tree.scale &&
-        Math.abs(this.world.player.x - tree.x) < 34 * tree.scale
-      )
-        drawGardenTree(c, this.treeImage, tree);
-    }
+  private depthLayers() {
+    if (this.world.scene !== "garden" && this.world.scene !== "challenge")
+      return [];
+    const scene = this.world.scene,
+      apple = this.world.config.spots.find((s) => s.id === "apple")!,
+      bench = this.world.config.spots.find((s) => s.id === "rest")!;
+    return [
+      ...gardenTrees[scene].map((tree) => ({
+        y: tree.y + 23 * tree.scale,
+        draw: (c: CanvasRenderingContext2D) =>
+          drawGardenTree(c, this.treeImage, tree),
+      })),
+      {
+        y: apple.y + 23,
+        draw: (c: CanvasRenderingContext2D) => {
+          drawGardenTree(c, this.treeImage, {
+            x: apple.x,
+            y: apple.y,
+            scale: 1,
+            tone: 0,
+          });
+          for (let i = this.picked("apple"); i < 3; i++) {
+            const x = apple.x + [-16, 17, 2][i],
+              y = apple.y + [-14, -10, -28][i];
+            c.fillStyle = "#d96974";
+            c.fillRect(x - 3, y - 2, 7, 7);
+            c.fillStyle = "#fff0b9";
+            c.fillRect(x - 2, y - 1, 2, 2);
+            c.fillStyle = "#578a55";
+            c.fillRect(x + 1, y - 4, 4, 2);
+          }
+        },
+      },
+      {
+        y: bench.y - 4,
+        draw: (c: CanvasRenderingContext2D) => {
+          if (this.benchImage.complete && this.benchImage.naturalWidth)
+            c.drawImage(this.benchImage, bench.x - 38, bench.y - 25, 76, 46);
+        },
+      },
+    ];
   }
   private lighting(c: CanvasRenderingContext2D) {
-    const [r, g, b, a] = this.tint;
-    c.fillStyle = `rgba(${Math.round(r)},${Math.round(g)},${Math.round(b)},${this.world.scene === "room" ? a * 0.48 : a})`;
-    c.fillRect(0, 0, this.world.config.width, this.world.config.height);
-    if (this.clock.phase !== "night" || this.world.scene === "room") return;
+    const shade = Math.max(0, Math.min(1, (this.tint[3] - 0.07) / 0.28));
+    if (shade <= 0) return;
+    const { width, height } = this.world.config;
+    const map = this.lightMap;
+    if (map.width !== width || map.height !== height) {
+      map.width = width;
+      map.height = height;
+    }
+    const g = map.getContext("2d")!;
+    g.clearRect(0, 0, width, height);
+    g.globalCompositeOperation = "source-over";
+    // Cut the complete night tint out around each light, keeping the flowers and
+    // paving warm and saturated there rather than leaving a global grey filter.
+    g.fillStyle = `rgba(13,26,59,${shade * (this.world.scene === "room" ? 0.4 : 0.7)})`;
+    g.fillRect(0, 0, width, height);
+    g.globalCompositeOperation = "destination-out";
+    for (const light of sceneLights[this.world.scene]) {
+      const glow = g.createRadialGradient(
+        light.x,
+        light.y,
+        2,
+        light.x,
+        light.y,
+        light.radius,
+      );
+      glow.addColorStop(0, "#000000f2");
+      glow.addColorStop(0.35, "#000000bd");
+      glow.addColorStop(1, "#00000000");
+      g.fillStyle = glow;
+      g.fillRect(
+        light.x - light.radius,
+        light.y - light.radius,
+        light.radius * 2,
+        light.radius * 2,
+      );
+    }
+    g.globalCompositeOperation = "source-over";
+    c.drawImage(map, 0, 0);
+    c.save();
+    c.globalCompositeOperation = "screen";
+    c.globalAlpha = shade * 0.54;
+    for (const light of sceneLights[this.world.scene]) {
+      const glow = c.createRadialGradient(
+        light.x,
+        light.y,
+        1,
+        light.x,
+        light.y,
+        light.radius * 0.9,
+      );
+      glow.addColorStop(0, light.color + "bb");
+      glow.addColorStop(0.3, light.color + "66");
+      glow.addColorStop(1, light.color + "00");
+      c.fillStyle = glow;
+      c.fillRect(
+        light.x - light.radius,
+        light.y - light.radius,
+        light.radius * 2,
+        light.radius * 2,
+      );
+    }
+    c.restore();
   }
 }

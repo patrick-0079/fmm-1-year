@@ -425,10 +425,10 @@ export class Activities {
             maxLife: life,
             color:
               rocket.pattern === 0
-                ? ["#ffb5ca", "#ffe0e3", "#ff8fb5"][i % 3]
+                ? ["#ff478d", "#ffad45", "#d566ff"][i % 3]
                 : rocket.pattern === 1
-                  ? ["#d4c2ff", "#fff4b8", "#bce9ff"][i % 3]
-                  : ["#ffe39a", "#fff3cb", "#f5c970"][i % 3],
+                  ? ["#9e64ff", "#ffc642", "#43d8ee"][i % 3]
+                  : ["#ffb63d", "#ff698d", "#43c9b6"][i % 3],
             sparkle: i % 12,
           });
         }
@@ -525,7 +525,7 @@ export class Activities {
   private drawEffects(c: CanvasRenderingContext2D) {
     if (this.world.scene !== "garden") return;
     c.save();
-    c.globalCompositeOperation = "lighter";
+    c.globalCompositeOperation = "source-over";
     for (const rocket of this.rockets) {
       rocket.trail.forEach((p, i) => {
         c.globalAlpha = ((i + 1) / rocket.trail.length) * 0.65;
@@ -623,15 +623,6 @@ export class Activities {
         c.lineTo(this.cutEnd.x, this.cutEnd.y);
         c.stroke();
       }
-    }
-    if (this.cakeStage === 3) {
-      c.fillStyle = "#f4b6c9";
-      c.beginPath();
-      c.moveTo(325, 223);
-      c.lineTo(338, 217);
-      c.lineTo(338, 228);
-      c.closePath();
-      c.fill();
     }
   }
 }

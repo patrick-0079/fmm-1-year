@@ -1,0 +1,315 @@
+.inventory-panel {
+  background: #fff8e6;
+  padding: 17px;
+  border-bottom: 2px solid #d4bd91;
+  color: #806c54;
+}
+.inventory-panel > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+  border-bottom: 1px dashed #d7c8a7;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+.inventory-panel header small {
+  font-size: 8px;
+  letter-spacing: 1.4px;
+  color: #b29875;
+}
+.inventory-panel h3 {
+  font-size: 17px;
+  margin: 5px 0;
+  color: #846879;
+}
+.inventory-panel h3 span {
+  font-size: 11px;
+  color: #b39a79;
+  font-weight: 400;
+}
+.inventory-panel header p {
+  font-size: 10px;
+  line-height: 1.7;
+  margin: 5px 0 0;
+}
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.inventory-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #e3d2b1;
+  border-radius: 4px;
+  background: #fffdf5;
+  padding: 10px;
+  min-width: 0;
+}
+.inventory-item canvas {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  image-rendering: pixelated;
+  background: #f4ecd6;
+  border: 1px solid #e9d9b8;
+  border-radius: 3px;
+}
+.inventory-item > div {
+  flex: 1;
+  min-width: 0;
+}
+.inventory-item h4 {
+  font-size: 11px;
+  margin: 0 0 5px;
+  font-weight: 600;
+}
+.inventory-item h4 em {
+  display: inline-block;
+  font-size: 8px;
+  font-style: normal;
+  color: #8eaa6e;
+}
+.inventory-item p {
+  font-size: 9px;
+  line-height: 1.8;
+  margin: 0;
+  color: #aa977c;
+}
+.inventory-item .map-action {
+  flex: 0 0 auto;
+  min-width: 45px;
+  padding: 5px 8px;
+}
+.inventory-item.locked {
+  background: #f5f0e2;
+}
+.inventory-item.locked canvas {
+  opacity: 0.4;
+  filter: grayscale(0.7);
+}
+.bag-footnote {
+  font-size: 9px;
+  color: #b49e7f;
+  margin: 12px 0 0;
+  line-height: 1.8;
+}
+.town-journal {
+  margin-top: 18px;
+  padding-top: 17px;
+  border-top: 1px dashed #ddcfb7;
+}
+.town-journal h3 {
+  font-size: 14px;
+  color: #8d7258;
+  font-weight: 600;
+  margin: 6px 0;
+}
+.town-journal > p {
+  font-size: 9px;
+  color: #b09a7b;
+  line-height: 1.7;
+}
+.town-journal > p strong {
+  font-weight: 500;
+  color: #9a7b87;
+}
+.arcade-shortcuts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.arcade-shortcuts button {
+  padding: 9px 7px;
+  border: 1px solid #dfd1b7;
+  background: #fbf7ed;
+  border-radius: 4px;
+  text-align: left;
+}
+.arcade-shortcuts strong {
+  font-size: 10px;
+  font-weight: 500;
+  color: #8c715c;
+  display: block;
+}
+.arcade-shortcuts small {
+  display: block;
+  font-size: 8px;
+  color: #b59a80;
+  line-height: 1.7;
+  margin-top: 4px;
+}
+.town-guide {
+  margin-top: 12px;
+  font-size: 10px;
+  color: #a38b6e;
+}
+.town-guide summary {
+  cursor: pointer;
+  padding: 6px 0;
+}
+.town-guide > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+.town-guide button {
+  padding: 6px 3px;
+  font-size: 9px;
+  background: #f6efe0;
+  border: 1px solid #e6dac4;
+  border-radius: 3px;
+}
+.town-guide button small {
+  display: block;
+  margin-top: 3px;
+  font-size: 7px;
+  color: #b5a088;
+}
+.arcade-hud {
+  position: absolute;
+  z-index: 7;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 9px 13px;
+  background: #fff7e9f5;
+  color: #896b76;
+  border-top: 2px solid #c4ad8b;
+}
+.arcade-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+.arcade-status {
+  font-size: 11px;
+  line-height: 1.7;
+}
+.arcade-close {
+  padding: 7px;
+  font-size: 10px;
+  color: #ad947d;
+  flex: 0 0 auto;
+}
+.arcade-result-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 5px;
+}
+.arcade-result-actions:empty {
+  display: none;
+}
+.arcade-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 5px;
+}
+.arcade-controls button {
+  min-width: 38px;
+  min-height: 34px;
+  border: 1px solid #d5c2a5;
+  background: #f0e4d1;
+  color: #96768e;
+  border-radius: 4px;
+  padding: 6px 12px;
+  touch-action: none;
+}
+.arcade-controls .game-primary {
+  min-width: 110px;
+  background: #ead8e6;
+  border-color: #cfb4cb;
+  font-size: 10px;
+}
+.arcade-controls[data-game="hop"] button:not(.game-primary),
+.arcade-controls[data-game="flight"] button:not(.game-primary),
+.arcade-controls[data-game="snake"] .game-primary {
+  display: none;
+}
+.arcade-active .scene-top,
+.arcade-active .checkpoint-pill,
+.arcade-active .time-pill,
+.arcade-active .crown-toggle,
+.arcade-active .nearby-prompt {
+  visibility: hidden;
+}
+.game-window:has(.arcade-active) .touch-controls {
+  display: none;
+}
+@media (max-width: 540px) {
+  .inventory-panel {
+    padding: 11px;
+  }
+  .inventory-panel h3 {
+    font-size: 14px;
+  }
+  .inventory-panel header p {
+    font-size: 8px;
+  }
+  .inventory-grid {
+    grid-template-columns: 1fr;
+  }
+  .inventory-item {
+    padding: 8px;
+    gap: 7px;
+  }
+  .inventory-item canvas {
+    width: 40px;
+    height: 40px;
+  }
+  .inventory-item h4 {
+    font-size: 10px;
+  }
+  .inventory-item p {
+    font-size: 8px;
+  }
+  .bag-footnote {
+    font-size: 7px;
+  }
+  .town-journal h3 {
+    font-size: 13px;
+  }
+  .arcade-shortcuts strong {
+    font-size: 10px;
+  }
+  .arcade-shortcuts small {
+    font-size: 8px;
+  }
+  .arcade-hud {
+    position: relative;
+    inset: auto;
+    padding: 8px;
+  }
+  .arcade-status {
+    font-size: 9px;
+  }
+  .arcade-close {
+    font-size: 8px;
+    padding: 5px;
+  }
+  .arcade-controls {
+    gap: 4px;
+  }
+  .arcade-controls button {
+    min-height: 40px;
+    min-width: 37px;
+    padding: 5px 9px;
+  }
+  .arcade-controls .game-primary {
+    min-width: 92px;
+    font-size: 9px;
+  }
+  .arcade-controls[data-game="hop"] .game-primary,
+  .arcade-controls[data-game="flight"] .game-primary {
+    min-width: 180px;
+  }
+  .scene-nav > button {
+    padding: 7px 5px;
+    font-size: 7px;
+  }
+}

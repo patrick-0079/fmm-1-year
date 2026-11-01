@@ -105,6 +105,23 @@ test("stairs and courtyard no longer collide with the oversized house box", () =
   ])
     assert.equal(canStand(p, s.walls, s.bounds, s.floor), false);
 });
+
+test("courtyard fences block feet while the central crossing stays open", () => {
+  const s = scenes.garden;
+  for (const p of [
+    { x: 334, y: 323 },
+    { x: 337, y: 381 },
+    { x: 564, y: 323 },
+    { x: 560, y: 382 },
+    { x: 558, y: 358 },
+  ])
+    assert.equal(canStand(p, s.walls, s.bounds, s.floor), false);
+  for (const p of [
+    { x: 450, y: 350 },
+    { x: 450, y: 390 },
+  ])
+    assert.equal(canStand(p, s.walls, s.bounds, s.floor), true);
+});
 test("round-table corners and bed-side corridor are clear, furniture bases are solid", () => {
   const s = scenes.room;
   for (const p of [

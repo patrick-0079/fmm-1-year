@@ -1,10 +1,9 @@
 import type { Point } from "./core.ts";
-import type { SceneId } from "./maps.ts";
 export interface GardenTree extends Point {
   scale: number;
   tone: number;
 }
-export const gardenTrees: Record<Exclude<SceneId, "room">, GardenTree[]> = {
+export const gardenTrees: Record<"garden" | "challenge", GardenTree[]> = {
   garden: [
     { x: 260, y: 350, scale: 1.05, tone: -6 },
     { x: 555, y: 280, scale: 1.15, tone: 6 },
@@ -29,7 +28,7 @@ export interface Creek {
   lower: Point[];
   bridge: { x: number; y: number; w: number; h: number };
 }
-export const creeks: Record<Exclude<SceneId, "room">, Creek> = {
+export const creeks: Record<"garden" | "challenge", Creek> = {
   garden: {
     upper: [
       [575, 160],

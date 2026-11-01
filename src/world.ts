@@ -4,7 +4,10 @@ import challengeUrl from "./assets/courage-garden.webp";
 import spriteUrl from "./assets/nemu-sprites.webp";
 import restUrl from "./assets/fufu-rest-poses.webp";
 import wreathUrl from "./assets/flower-wreath.webp";
-import stoneUrl from "./assets/mossy-stone.webp";
+import townUrl from "./assets/anniversary-town-v2.webp";
+import trapsUrl from "./assets/garden-traps.webp";
+import { drawItem, rewardsUrl } from "./item-art";
+import type { EquipSlot, ItemId } from "./items";
 import { bedRest, benchRest, type RestState } from "./rest";
 import { spriteFrames } from "./sprite-frames";
 import {
@@ -22,7 +25,16 @@ export interface RespawnEvent {
   trap: Hazard;
   scene: SceneId;
 }
-const art = { room: roomUrl, garden: gardenUrl, challenge: challengeUrl };
+const art = {
+  room: roomUrl,
+  garden: gardenUrl,
+  challenge: challengeUrl,
+  town: townUrl,
+};
+export interface DepthLayer {
+  y: number;
+  draw: (context: CanvasRenderingContext2D) => void;
+}
 
 export class World {
   canvas: HTMLCanvasElement;
@@ -69,9 +81,9 @@ export class World {
     () => {};
   onLighting: (context: CanvasRenderingContext2D) => void = () => {};
   onEffects: (context: CanvasRenderingContext2D) => void = () => {};
-  onForeground: (context: CanvasRenderingContext2D) => void = () => {};
+  getDepthLayers: () => DepthLayer[] = () => [];
   available: (spot: Hotspot) => boolean = () => true;
-  flowerCrown = false;
+  equipment: Record<EquipSlot, ItemId | null> = { head: null, body: null };
   private stepDistance = 0;
   private nearbyId = "";
   constructor(canvas: HTMLCanvasElement) {
@@ -216,7 +228,9 @@ export class World {
         spriteUrl,
         restUrl,
         wreathUrl,
-        stoneUrl,
+        townUrl,
+        trapsUrl,
+        rewardsUrl,
       ].map(
         (url) =>
           new Promise<void>((resolve, reject) => {
@@ -427,7 +441,7 @@ export class World {
   private markerY(spot: Hotspot) {
     return Math.round(
       spot.y -
-        12 +
+        (spot.markerOffset ?? 12) +
         (this.reducedMotion.matches ? 0 : Math.sin(this.time * 2 + spot.x) * 2),
     );
   }
@@ -450,6 +464,64 @@ export class World {
       c.fillRect(278, 370, 44, 7);
     }
     this.drawHazards();
+    for (let i = 0; i < 12; i++) {
+      const t = this.reducedMotion.matches ? 0 : this.time;
+      c.fillStyle = `rgba(255,245,195,${0.22 + Math.sin(t * 2 + i) * 0.18})`;
+      c.fillRect(
+        Math.round((i * 89 + t * 4) % width),
+        Math.round((i * 67 + Math.sin(t + i) * 7) % height),
+        2,
+        2,
+      );
+    }
+    const drawPlayer = () => {
+      const sprite = this.images.get(spriteUrl),
+        x = Math.round(this.player.x),
+        y = Math.round(this.player.y);
+      c.fillStyle = "#53496045";
+      c.beginPath();
+      c.ellipse(x, y, 11, 3.5, 0, 0, Math.PI * 2);
+      c.fill();
+      if (this.restState) this.drawRestSprite(c, x, y);
+      else if (sprite) {
+        const col = this.walking ? 1 + (Math.floor(this.time * 7) % 2) : 0;
+        const frame = spriteFrames[this.facing * 3 + col];
+        const scaleFactor = 43 / 330;
+        const size = {
+          width: frame.w * scaleFactor,
+          height: frame.h * scaleFactor,
+        };
+        c.save();
+        c.translate(x, y);
+        let scale = 1;
+        if (this.stumble) {
+          const phase = Math.min(1, (this.time - this.stumble.started) / 0.45);
+          scale = 1 - phase * 0.5;
+          c.globalAlpha = 1 - phase * 0.7;
+          if (!this.reducedMotion.matches)
+            c.rotate(Math.sin(phase * Math.PI) * 0.28);
+        } else if (this.immunity > 0) c.globalAlpha = 0.82;
+        c.scale(scale, scale);
+        c.drawImage(
+          sprite,
+          frame.x,
+          frame.y,
+          frame.w,
+          frame.h,
+          -size.width / 2,
+          -size.height,
+          size.width,
+          size.height,
+        );
+        c.restore();
+      }
+      this.drawEquipment(c, x, y);
+    };
+    const layers = [
+      ...this.getDepthLayers(),
+      { y: this.player.y, draw: drawPlayer },
+    ];
+    layers.sort((a, b) => a.y - b.y).forEach((layer) => layer.draw(c));
     for (const spot of this.config.spots) {
       if (!this.available(spot)) continue;
       if (this.focus) continue;
@@ -469,70 +541,6 @@ export class World {
         c.fillRect(spot.x - 1, y + 2, 2, 1);
       }
     }
-    for (let i = 0; i < 12; i++) {
-      const t = this.reducedMotion.matches ? 0 : this.time;
-      c.fillStyle = `rgba(255,245,195,${0.22 + Math.sin(t * 2 + i) * 0.18})`;
-      c.fillRect(
-        Math.round((i * 89 + t * 4) % width),
-        Math.round((i * 67 + Math.sin(t + i) * 7) % height),
-        2,
-        2,
-      );
-    }
-    const sprite = this.images.get(spriteUrl),
-      x = Math.round(this.player.x),
-      y = Math.round(this.player.y);
-    c.fillStyle = "#53496045";
-    c.beginPath();
-    c.ellipse(x, y, 11, 3.5, 0, 0, Math.PI * 2);
-    c.fill();
-    if (this.restState) this.drawRestSprite(c, x, y);
-    else if (sprite) {
-      const col = this.walking ? 1 + (Math.floor(this.time * 7) % 2) : 0;
-      const frame = spriteFrames[this.facing * 3 + col];
-      const scaleFactor = 43 / 330;
-      const size = {
-        width: frame.w * scaleFactor,
-        height: frame.h * scaleFactor,
-      };
-      c.save();
-      c.translate(x, y);
-      let scale = 1;
-      if (this.stumble) {
-        const phase = Math.min(1, (this.time - this.stumble.started) / 0.45);
-        scale = 1 - phase * 0.5;
-        c.globalAlpha = 1 - phase * 0.7;
-        if (!this.reducedMotion.matches)
-          c.rotate(Math.sin(phase * Math.PI) * 0.28);
-      } else if (this.immunity > 0) c.globalAlpha = 0.82;
-      c.scale(scale, scale);
-      c.drawImage(
-        sprite,
-        frame.x,
-        frame.y,
-        frame.w,
-        frame.h,
-        -size.width / 2,
-        -size.height,
-        size.width,
-        size.height,
-      );
-      c.restore();
-    }
-    if (this.flowerCrown) {
-      const wreath = this.images.get(wreathUrl);
-      const sleeping = this.restState?.kind === "lying",
-        sitting = this.restState?.kind === "sitting";
-      if (wreath)
-        c.drawImage(
-          wreath,
-          x - (sleeping ? 30 : 17),
-          y - (sleeping ? 14 : sitting ? 39 : 46),
-          sleeping ? 22 : 34,
-          sleeping ? 9 : 13,
-        );
-    }
-    this.onForeground(c);
     this.onDraw(c, this.time);
     this.onLighting(c);
     this.onEffects(c);
@@ -567,71 +575,122 @@ export class World {
       c.fillText("z", x + 31, y - 30);
     }
   }
+  private drawEquipment(c: CanvasRenderingContext2D, x: number, y: number) {
+    const wreath = this.images.get(wreathUrl)!,
+      rewards = this.images.get(rewardsUrl)!;
+    const head = this.equipment.head,
+      body = this.equipment.body;
+    const sleeping = this.restState?.kind === "lying",
+      sitting = this.restState?.kind === "sitting";
+    if (body) {
+      if (body === "moonBag")
+        drawItem(
+          c,
+          body,
+          x +
+            (sleeping
+              ? 36
+              : this.facing === 1
+                ? 7
+                : this.facing === 2
+                  ? -20
+                  : -9),
+          y + (sleeping ? 16 : sitting ? -23 : -27),
+          18,
+          21,
+          wreath,
+          rewards,
+        );
+      else if (sleeping || sitting || this.facing !== 3)
+        drawItem(
+          c,
+          body,
+          x + (sleeping ? 6 : -7),
+          y + (sleeping ? 2 : sitting ? -18 : -20),
+          9,
+          10,
+          wreath,
+          rewards,
+        );
+    }
+    if (!head) return;
+    c.save();
+    c.translate(
+      x + (sleeping ? -21 : head === "candyClip" ? 8 : 0),
+      y +
+        (sleeping
+          ? -15
+          : sitting
+            ? head === "headphones"
+              ? -28
+              : -33
+            : head === "headphones"
+              ? -33
+              : -40),
+    );
+    if (sleeping) c.rotate(0.45);
+    const width =
+      head === "candyClip"
+        ? 13
+        : head === "wreath"
+          ? sleeping
+            ? 27
+            : 32
+          : head === "starWings"
+            ? 26
+            : 29;
+    const height =
+      head === "wreath"
+        ? 22
+        : head === "candyClip"
+          ? 13
+          : head === "starWings"
+            ? 19
+            : 27;
+    drawItem(c, head, -width / 2, -height / 2, width, height, wreath, rewards);
+    c.restore();
+  }
   private drawHazards() {
-    const c = this.ctx;
+    const c = this.ctx,
+      image = this.images.get(trapsUrl);
     for (const trap of this.config.hazards) {
       const { x, y, radius: r } = trap;
       c.save();
-      c.translate(x, y);
-      c.strokeStyle = "#d28a6bb3";
-      c.lineWidth = 1;
-      c.setLineDash([3, 3]);
+      c.fillStyle = "#4a604b28";
       c.beginPath();
-      c.arc(0, 0, r + 4, 0, Math.PI * 2);
-      c.stroke();
-      c.setLineDash([]);
-      c.fillStyle = "#9a616824";
-      c.beginPath();
-      c.ellipse(0, 3, r, 7, 0, 0, Math.PI * 2);
+      c.ellipse(x, y + 3, r + 2, 7, 0, 0, Math.PI * 2);
       c.fill();
-      if (trap.kind === "ribbon") {
-        c.fillStyle = "#cd7194";
-        c.fillRect(-13, -3, 26, 6);
-        c.fillRect(-5, -10, 5, 19);
-        c.fillStyle = "#f6bd77";
-        c.fillRect(-10, -7, 7, 5);
-        c.fillRect(3, -7, 7, 5);
-        c.fillStyle = "#f8d5e3";
-        c.fillRect(-2, -3, 5, 5);
+      const i = { ribbon: 0, stone: 1, mist: 2, wind: 3 }[trap.kind];
+      const frames = [
+        { x: 30, y: 110, w: 775, h: 375 },
+        { x: 830, y: 50, w: 690, h: 440 },
+        { x: 30, y: 520, w: 780, h: 485 },
+        { x: 840, y: 515, w: 680, h: 490 },
+      ];
+      const f = frames[i];
+      const floating = trap.kind === "mist" || trap.kind === "wind";
+      const bob =
+        floating && !this.reducedMotion.matches
+          ? Math.sin(this.time * 1.4 + i) * 1.5
+          : 0;
+      if (image) {
+        const width = (r + 7) * 2,
+          height = (width / f.w) * f.h;
+        c.drawImage(
+          image,
+          f.x,
+          f.y,
+          f.w,
+          f.h,
+          x - width / 2,
+          y + 6 - height + bob,
+          width,
+          height,
+        );
       }
-      if (trap.kind === "stone") {
-        const image = this.images.get(stoneUrl);
-        if (image) c.drawImage(image, -23, -25, 46, 35);
-      }
-      if (trap.kind === "mist") {
-        for (let i = 0; i < 3; i++) {
-          c.fillStyle = ["#c6c8ecb3", "#b9dbf0aa", "#ded1f2ba"][i];
-          c.beginPath();
-          c.arc((i - 1) * 10, -2 - (i % 2) * 5, 11, 0, Math.PI * 2);
-          c.fill();
-        }
-        c.fillStyle = "#8c89c4";
-        c.fillRect(-7, 0, 3, 3);
-        c.fillRect(5, 0, 3, 3);
-      }
-      if (trap.kind === "wind") {
-        c.strokeStyle = "#8d9ac5";
-        c.lineWidth = 2;
-        for (let i = 0; i < 3; i++) {
-          c.beginPath();
-          c.ellipse(0, -8 + i * 5, 5 + i * 4, 3, 0, 0.2, Math.PI * 1.85);
-          c.stroke();
-        }
-        c.fillStyle = "#efabbd";
-        c.fillRect(10, -12, 4, 4);
-        c.fillStyle = "#9fcee3";
-        c.fillRect(-15, -1, 4, 4);
-      }
-      c.fillStyle = "#d88068";
-      c.beginPath();
-      c.moveTo(0, -r - 7);
-      c.lineTo(-4, -r - 1);
-      c.lineTo(4, -r - 1);
-      c.closePath();
-      c.fill();
       c.restore();
-      if (Math.hypot(this.player.x - x, this.player.y - y) < 76)
-        this.label(x, y + r + 15, trap.title, "#a4675a");
+      if (Math.hypot(this.player.x - x, this.player.y - y) < 70)
+        this.label(x, y + r + 12, "小挫折 · " + trap.title, "#8e7c69");
     }
   }
   private label(x: number, y: number, text: string, color: string) {
