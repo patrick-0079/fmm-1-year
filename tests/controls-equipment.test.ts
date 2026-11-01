@@ -7,14 +7,16 @@ import { canStand, canTravelBetween } from "../src/core.ts";
 import { clickedInteraction } from "../src/interaction.ts";
 import { wishAtBurst, wishOpacity } from "../src/celebration.ts";
 
-test("all six souvenirs have bounded directional attachments and disappear while sleeping", () => {
+test("all wearable slots have bounded directional attachments and disappear while sleeping", () => {
   for (const [id, item] of Object.entries(ITEMS)) {
-    const worn = {
-      head: item.slot === "head" ? (id as ItemId) : null,
-      body: item.slot === "body" ? (id as ItemId) : null,
-    };
+    const worn = { [item.slot]: id as ItemId };
     for (const facing of [0, 1, 2, 3] as Facing[])
       for (const pose of ["standing", "sitting"] as const) {
+        if (item.slot !== "pet" && !(item.slot === "body" && facing === 3))
+          assert.ok(
+            equipmentParts(worn, pose, facing).length > 0,
+            `${id} has an attachment`,
+          );
         for (const p of equipmentParts(worn, pose, facing)) {
           assert.equal(p.id, id);
           assert.ok(p.w > 0 && p.h > 0);

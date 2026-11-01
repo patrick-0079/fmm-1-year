@@ -7,7 +7,7 @@ import wreathUrl from "./assets/flower-wreath.webp";
 import townUrl from "./assets/anniversary-town-v2.webp";
 import trapsUrl from "./assets/garden-traps.webp";
 import { rewardsUrl } from "./item-art";
-import type { EquipSlot, ItemId } from "./items";
+import { emptyInventory, type Equipped } from "./items";
 import { bedRest, benchRest, type RestState } from "./rest";
 import { drawAvatar } from "./avatar";
 import type { Facing } from "./equipment";
@@ -87,11 +87,23 @@ export class World {
   onEffects: (context: CanvasRenderingContext2D) => void = () => {};
   getDepthLayers: () => DepthLayer[] = () => [];
   available: (spot: Hotspot) => boolean = () => true;
-  equipment: Record<EquipSlot, ItemId | null> = { head: null, body: null };
+  equipment: Equipped = emptyInventory().equipped;
   private stepDistance = 0;
   private nearbyId = "";
   private secondaryPressed = false;
   onAction: (pressed: boolean) => boolean = () => false;
+  actorHidden = false;
+  drawAvatarAt(c: CanvasRenderingContext2D, x: number, y: number, frame = 0) {
+    c.save();
+    c.translate(x, y);
+    drawAvatar(c, "standing", 0, frame, this.equipment, {
+      sprite: this.images.get(spriteUrl)!,
+      rest: this.images.get(restUrl)!,
+      wreath: this.images.get(wreathUrl)!,
+      rewards: this.images.get(rewardsUrl)!,
+    });
+    c.restore();
+  }
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d")!;
@@ -631,6 +643,7 @@ export class World {
       );
     }
     const drawPlayer = () => {
+      if (this.actorHidden) return;
       const x = Math.round(this.player.x),
         y = Math.round(this.player.y);
       c.fillStyle = "#53496045";

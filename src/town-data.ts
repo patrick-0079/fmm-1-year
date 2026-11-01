@@ -44,6 +44,33 @@ export const ARCADES: Record<
     reward: "starWings",
     instructions: "点击画面或按空格轻拍翅膀，穿过 8 道星门。",
   },
+  link: {
+    title: "晚安心愿连连看",
+    short: "心愿连连屋",
+    x: 690,
+    y: 350,
+    reward: "roseDress",
+    instructions:
+      "连接相同心愿图案，连线最多拐两次。没有倒计时，可用提示与洗牌；8 对即可领奖。",
+  },
+  mines: {
+    title: "晨露花田扫雷",
+    short: "晨露花田",
+    x: 1240,
+    y: 470,
+    reward: "mintCape",
+    instructions:
+      "6×5 小花田里只有 4 处小挫折，第一下和周围都安全。翻开安全格，F 标旗，有 3 次安全提示。",
+  },
+  miner: {
+    title: "星光黄金矿工",
+    short: "星光矿工",
+    x: 550,
+    y: 900,
+    reward: "starShoes",
+    instructions:
+      "等钩子指向星矿或礼盒，按空格放钩。没有倒计时，落空不扣分，160 心愿金即可领奖。",
+  },
 };
 export interface TownNpc {
   id: string;
@@ -102,15 +129,15 @@ export const TOWN_NPCS: TownNpc[] = [
     sprite: 3,
     lines: [
       "发夹、耳机、花环……这些小东西，会替你记住今天。",
-      "每个小游戏都有专属饰品奖励。按 B 打开背包，头饰和随身饰品可以各戴一件。",
+      "每个小游戏都有专属纪念奖励。按 B 打开衣橱，头饰、衣服、鞋子、背包和胸针都能单独搭配，还可以邀请小伙伴同行。",
     ],
   },
   {
     id: "radio-host",
     name: "夜弦",
     role: "晚安电台主持",
-    x: 1345,
-    y: 898,
+    x: 1305,
+    y: 842,
     sprite: 4,
     lines: [
       "这里是周年晚安电台。今晚也把声音调轻一点，把心事慢慢放下来。",
@@ -179,7 +206,7 @@ export const TOWN_NPCS: TownNpc[] = [
     gift: "anniversaryPin",
     lines: [
       "欢迎来到芙芙的一周年小镇！这枚纪念胸针，是我们准备的见面礼。",
-      "小镇有十五位居民和四个游乐摊位。沿着弯弯的石板路，慢慢去认识他们吧。",
+      "小镇有十五位居民和七个游乐摊位。领奖之后也能继续玩，达到双倍目标还有额外的兔兔斜挎包。沿着石板路慢慢逛吧。",
     ],
   },
   {

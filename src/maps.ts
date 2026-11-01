@@ -2,6 +2,7 @@ import type { Geometry, Hazard, Point } from "./core.ts";
 import { gardenTrees, creeks } from "./landscape.ts";
 import { townScene } from "./town-map.ts";
 import { fenceSegments } from "./fences.ts";
+import { gardenGuests } from "./garden-guests.ts";
 export type SceneId = "room" | "garden" | "challenge" | "town";
 export interface Hotspot {
   id: string;
@@ -478,6 +479,25 @@ export const scenes: Record<SceneId, Scene> = {
   },
 };
 
+for (const guest of gardenGuests) {
+  scenes.garden.spots.push({
+    id: "garden-guest-" + guest.id,
+    title: `${guest.name} · ${guest.role}`,
+    x: guest.x,
+    y: guest.y,
+    approach: { x: guest.x, y: guest.y + 26 },
+    radius: 50,
+    markerOffset: 54,
+    color: "#cfa970",
+  });
+  scenes.garden.walls.push({
+    label: "庭院来宾 · " + guest.name,
+    x: guest.x - 5,
+    y: guest.y - 6,
+    w: 10,
+    h: 9,
+  });
+}
 // Flat collectible patches do not block feet; only the new apple-tree trunks do.
 for (const id of ["garden", "challenge"] as const) {
   const outdoor = scenes[id];

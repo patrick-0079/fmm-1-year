@@ -3,6 +3,7 @@ import "./world-details.css";
 import "./town-style.css";
 import "./cinema.css";
 import "./readability.css";
+import "./festival-v11.css";
 import { helpMarkup } from "./help";
 import { ARCADES, TOWN_NPCS } from "./town-data";
 import { ITEMS } from "./items";
@@ -20,7 +21,7 @@ const tasks = [
   {
     id: "cake",
     title: "分一口甜甜",
-    subtitle: "吹蜡烛 · 切蛋糕",
+    subtitle: "吹蜡烛 · 切六块 · 尝一口",
     icon: "cake",
     scene: "room",
   },

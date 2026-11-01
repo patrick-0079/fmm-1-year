@@ -7,6 +7,7 @@ import { drawArcadeStall } from "./arcade-stall";
 import type { GameId } from "./arcade-engines";
 import npcUrl from "./assets/town-npcs.webp";
 import cakeUrl from "./assets/anniversary-cake.webp";
+import { drawPartyProp } from "./party-art";
 import {
   townCanopies,
   festivalProps,
@@ -160,7 +161,20 @@ export class Town {
       ...festivalProps.map((p) => ({
         y: p.y + (p.kind === "cake" ? 15 : p.kind === "arch" ? 5 : 3),
         draw: (c: CanvasRenderingContext2D) =>
-          drawFestivalProp(c, p, this.time, this.cake),
+          drawFestivalProp(c, p, this.time, this.cake, (x, y, color) =>
+            drawPartyProp(
+              c,
+              color === "#edca8b"
+                ? 1
+                : ["#db9cc3", "#e9a2c4"].includes(color)
+                  ? 0
+                  : 2,
+              x - 12,
+              y - 16,
+              24,
+              51,
+            ),
+          ),
       })),
       ...Object.entries(ARCADES).map(([id, g]) => ({
         y: g.y + 18,

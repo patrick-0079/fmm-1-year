@@ -23,11 +23,11 @@ for (const phase of ["dawn", "day", "dusk", "night"] as const) {
   drawRoomWindow(c, phase, room);
 }
 const section = document.createElement("section");
-section.innerHTML = `<h2>晨露花 · 四座周年摊位</h2><canvas width="1080" height="240" style="width:960px;max-width:100%"></canvas>`;
+section.innerHTML = `<h2>晨露花 · 七座周年摊位</h2><canvas width="1750" height="240" style="width:1200px;max-width:100%"></canvas>`;
 document.querySelector("#checks")!.append(section);
 const c = section.querySelector("canvas")!.getContext("2d")!;
 c.fillStyle = "#d9e8cb";
-c.fillRect(0, 0, 1080, 240);
+c.fillRect(0, 0, 1750, 240);
 c.scale(2.5, 2.5);
 c.imageSmoothingEnabled = false;
 c.drawImage(dew, 10, 22, 40, 50);

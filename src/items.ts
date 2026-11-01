@@ -4,8 +4,33 @@ export type ItemId =
   | "headphones"
   | "moonBag"
   | "starWings"
-  | "anniversaryPin";
-export type EquipSlot = "head" | "body";
+  | "anniversaryPin"
+  | "roseDress"
+  | "mintCape"
+  | "ribbonShoes"
+  | "starShoes"
+  | "berryBag"
+  | "petBunny"
+  | "petCat"
+  | "rabbitSatchel";
+export const EQUIP_SLOTS = [
+  "head",
+  "clothes",
+  "shoes",
+  "backpack",
+  "body",
+  "pet",
+] as const;
+export type EquipSlot = (typeof EQUIP_SLOTS)[number];
+export type Equipped = Partial<Record<EquipSlot, ItemId | null>>;
+export const slotNames: Record<EquipSlot, string> = {
+  head: "头饰",
+  clothes: "衣服",
+  shoes: "鞋子",
+  backpack: "背包",
+  body: "胸针",
+  pet: "同行伙伴",
+};
 export const ITEMS: Record<
   ItemId,
   {
@@ -39,7 +64,7 @@ export const ITEMS: Record<
   },
   moonBag: {
     name: "月兔纪念背包",
-    slot: "body",
+    slot: "backpack",
     description: "装上月亮和勇气，下一段冒险也一起走。",
     source: "月兔跳一跳连续到达 8 个平台",
     icon: 2,
@@ -58,6 +83,62 @@ export const ITEMS: Record<
     source: "与小镇迎宾员交谈领取",
     icon: -2,
   },
+  roseDress: {
+    name: "周年蔷薇裙",
+    slot: "clothes",
+    description: "把一周年的温柔，穿成小小的庆典裙。",
+    source: "晚安心愿连连看连接 8 对",
+    icon: 4,
+  },
+  mintCape: {
+    name: "晨露薄荷披肩",
+    slot: "clothes",
+    description: "轻盈的晨露与奶油色领结。",
+    source: "花田扫雷翻开 26 格安全花田",
+    icon: 5,
+  },
+  ribbonShoes: {
+    name: "草莓缎带鞋",
+    slot: "shoes",
+    description: "每一步都带一点甜甜的勇气。",
+    source: "完成周年礼物配对",
+    icon: 6,
+  },
+  starShoes: {
+    name: "星月旅行鞋",
+    slot: "shoes",
+    description: "踏着星光，继续下一段旅程。",
+    source: "星光黄金矿工收集 160 心愿金",
+    icon: 7,
+  },
+  berryBag: {
+    name: "草莓野餐背包",
+    slot: "backpack",
+    description: "装上一块周年蛋糕，出发去野餐。",
+    source: "切好蛋糕并和芙芙一起吃一块",
+    icon: 8,
+  },
+  petBunny: {
+    name: "棉棉 · 垂耳兔",
+    slot: "pet",
+    description: "会跟着你散步的小兔，休息时也会乖乖停下。",
+    source: "向庭院布置员领取陪伴礼物",
+    icon: 9,
+  },
+  petCat: {
+    name: "桃桃 · 奶油猫",
+    slot: "pet",
+    description: "带来呼噜声和一点小小的好运。",
+    source: "和庭院气球客聊聊",
+    icon: 10,
+  },
+  rabbitSatchel: {
+    name: "花环兔斜挎包",
+    slot: "backpack",
+    description: "给继续挑战的小冒险家，一份额外的小惊喜。",
+    source: "任意小游戏领奖后达到双倍目标",
+    icon: 11,
+  },
 };
 export interface InventoryState {
   owned: ItemId[];
@@ -66,7 +147,14 @@ export interface InventoryState {
 export const INVENTORY_KEY = "fufu-souvenirs-v1";
 export const emptyInventory = (): InventoryState => ({
   owned: [],
-  equipped: { head: null, body: null },
+  equipped: {
+    head: null,
+    clothes: null,
+    shoes: null,
+    backpack: null,
+    body: null,
+    pet: null,
+  },
 });
 export function readInventory(
   raw: string | null,
@@ -85,11 +173,19 @@ export function readInventory(
             ),
           ),
         ];
-      for (const slot of ["head", "body"] as const) {
+      for (const slot of EQUIP_SLOTS) {
         const id = p.equipped?.[slot];
         if (state.owned.includes(id) && ITEMS[id as ItemId].slot === slot)
           state.equipped[slot] = id;
       }
+      // Older versions stored the moon backpack together with chest pins.
+      const oldBag = p.equipped?.body;
+      if (
+        !state.equipped.backpack &&
+        state.owned.includes(oldBag) &&
+        ITEMS[oldBag as ItemId]?.slot === "backpack"
+      )
+        state.equipped.backpack = oldBag;
       return state;
     }
   } catch {}

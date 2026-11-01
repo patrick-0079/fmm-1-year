@@ -1,0 +1,250 @@
+.scene-wrap.arcade-active {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 250px;
+  align-items: center;
+  aspect-ratio: auto;
+  background: #e8decb;
+}
+.arcade-active #world {
+  height: auto;
+  aspect-ratio: 3/2;
+}
+.arcade-active .scene-top,
+.arcade-active .time-pill,
+.arcade-active .checkpoint-pill,
+.arcade-active .crown-toggle {
+  visibility: hidden;
+}
+.scene-wrap .arcade-hud {
+  position: relative;
+  inset: auto;
+  align-self: stretch;
+  margin: 7px;
+  padding: 16px 13px;
+  border: 1px solid #d3b29d;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fff9eb, #f7e5ec);
+  box-shadow:
+    inset 0 0 0 3px #fff9ec,
+    0 4px 12px #815e7418;
+}
+.arcade-heading {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+.arcade-heading small {
+  color: #aa8092;
+  letter-spacing: 0.5px;
+  font-size: 10px;
+}
+.arcade-title {
+  margin: 5px 0 0;
+  color: #855d7b;
+  font-size: 19px;
+}
+.arcade-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  color: #b7839b;
+}
+.arcade-score strong {
+  font-size: 28px;
+  color: #95617e;
+}
+.arcade-score span {
+  font-size: 12px;
+}
+.arcade-hud .arcade-close {
+  grid-column: 1/-1;
+  justify-self: end;
+  color: #876b7b;
+  background: #fffaf0;
+  border: 1px solid #d9c2b7;
+  padding: 8px 11px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+.arcade-reward-track {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin-top: 12px;
+}
+.arcade-reward-track progress {
+  width: 100%;
+  height: 7px;
+  accent-color: #c487a6;
+  border-radius: 9px;
+  overflow: hidden;
+}
+.arcade-reward-track span {
+  color: #9a7b77;
+  font-size: 12px;
+}
+.arcade-status {
+  margin: 10px 0;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.arcade-result-actions,
+.arcade-extra-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.arcade-hud .arcade-controls {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 7px;
+  margin: 9px 0;
+}
+.arcade-hud .arcade-controls button,
+.arcade-hud .map-action {
+  border-radius: 7px;
+  border: 1px solid #cfacb8;
+  min-height: 40px;
+  background: #fff6ec;
+  color: #855a76;
+  box-shadow: 0 2px 0 #dfc2bb;
+  padding: 8px 13px;
+  font-size: 13px;
+}
+.arcade-hud .game-primary,
+.arcade-result-actions .map-action:first-child {
+  background: #be88a5;
+  color: #fffaf3;
+  border-color: #ab7694;
+}
+.arcade-hud .game-primary {
+  flex: 1 1 100%;
+}
+.arcade-extra-actions .map-action {
+  background: #eef1e4;
+  border-color: #c7cfb5;
+  color: #6d8267;
+}
+.arcade-extra-actions .map-action[aria-pressed="true"] {
+  background: #c9d9c1;
+}
+.equipment-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 16px;
+}
+.equipment-summary span {
+  color: #93717e;
+  font-size: 12px;
+}
+.inventory-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 14px 0;
+}
+.inventory-tabs button {
+  border: 1px solid #ddc8bb;
+  border-radius: 20px;
+  padding: 7px 13px;
+  background: #fff9ec;
+  color: #9a7788;
+  font-size: 13px;
+}
+.inventory-tabs button[aria-pressed="true"] {
+  background: #be8ca6;
+  border-color: #b17d97;
+  color: white;
+}
+.activity-hud[data-mode="gifts"] {
+  background: linear-gradient(135deg, #fff5df, #f4e5ec);
+  border: 1px solid #d7b5a7;
+  border-radius: 12px;
+}
+.activity-hud[data-mode="gifts"] .activity-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 7px;
+}
+.activity-hud[data-mode="gifts"] .map-action {
+  border-radius: 7px;
+  background: #fff9ec;
+  border: 1px solid #d8bcac;
+  font-size: 12px;
+  min-height: 39px;
+}
+.activity-hud[data-mode="cake"] .map-action {
+  border-radius: 8px;
+}
+@media (max-width: 800px) {
+  .scene-wrap.arcade-active {
+    display: block;
+  }
+  .arcade-heading {
+    grid-template-columns: 1fr auto auto;
+  }
+  .arcade-heading .arcade-close {
+    grid-column: auto;
+  }
+  .arcade-controls[data-game="link"],
+  .arcade-controls[data-game="mines"] {
+    display: none;
+  }
+  .arcade-hud[data-game="mines"] .arcade-extra-actions .map-action:last-child {
+    display: none;
+  }
+}
+@media (max-width: 540px) {
+  .scene-wrap .arcade-hud {
+    margin: 6px;
+    padding: 13px;
+  }
+  .arcade-heading {
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+  .arcade-title {
+    font-size: 17px;
+  }
+  .arcade-heading .arcade-close {
+    grid-column: 1/-1;
+    justify-self: end;
+  }
+  .arcade-heading small {
+    font-size: 10px !important;
+  }
+  .arcade-score {
+    flex-direction: column;
+    gap: 0;
+  }
+  .arcade-score strong {
+    font-size: 24px;
+  }
+  .arcade-reward-track {
+    align-items: start;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .arcade-reward-track progress {
+    width: 100%;
+  }
+  .arcade-status {
+    font-size: 13px;
+  }
+  .arcade-hud .arcade-controls {
+    flex-wrap: wrap;
+  }
+  .arcade-hud .arcade-controls button {
+    padding: 7px 11px;
+    min-width: 39px;
+  }
+  .arcade-hud .game-primary {
+    flex: 1 1 100%;
+  }
+  .activity-hud[data-mode="gifts"] .activity-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

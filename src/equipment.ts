@@ -1,4 +1,4 @@
-import type { EquipSlot, ItemId } from "./items.ts";
+import type { Equipped, ItemId } from "./items.ts";
 export type AvatarPose = "standing" | "sitting" | "lying";
 export type Facing = 0 | 1 | 2 | 3;
 export interface EquipmentPart {
@@ -13,7 +13,7 @@ export interface EquipmentPart {
 }
 /** Relative to the foot baseline, using separate front/back and side views. */
 export function equipmentParts(
-  equipped: Record<EquipSlot, ItemId | null>,
+  equipped: Equipped,
   pose: AvatarPose,
   facing: Facing,
 ): EquipmentPart[] {
@@ -31,16 +31,35 @@ export function equipmentParts(
     mirror = false,
   ) => parts.push({ id, layer, x, y: y + shift, w, h, style, mirror });
   const head = equipped.head,
-    body = equipped.body;
-  if (body === "moonBag") {
-    if (facing === 3) add(body, "front", -9, -25, 18, 20);
-    else if (facing === 1) add(body, "behind", 3, -26, 17, 20);
-    else if (facing === 2) add(body, "behind", -20, -26, 17, 20);
+    body = equipped.body,
+    bag = equipped.backpack ?? (body === "moonBag" ? body : null);
+  if (bag === "moonBag" || bag === "berryBag" || bag === "rabbitSatchel") {
+    if (facing === 3) add(bag, "front", -9, -25, 18, 20);
+    else if (facing === 1) add(bag, "behind", 3, -26, 17, 20);
+    else if (facing === 2) add(bag, "behind", -20, -26, 17, 20);
     else {
-      add(body, "behind", -18, -25, 17, 20);
-      add(body, "front", -7, -20, 14, 11, "straps");
+      add(bag, "behind", -18, -25, 17, 20);
+      add(bag, "front", -7, -20, 14, 11, "straps");
     }
   }
+  if (equipped.clothes === "roseDress" || equipped.clothes === "mintCape")
+    add(
+      equipped.clothes,
+      facing === 3 ? "behind" : "front",
+      -9,
+      -23,
+      18,
+      pose === "sitting" ? 16 : 20,
+    );
+  if (equipped.shoes === "ribbonShoes" || equipped.shoes === "starShoes")
+    add(
+      equipped.shoes,
+      "front",
+      facing === 1 ? -9 : -8,
+      -6 - shift,
+      facing === 1 || facing === 2 ? 12 : 17,
+      8,
+    );
   if (body === "anniversaryPin" && facing !== 3) {
     add(
       body,

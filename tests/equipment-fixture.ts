@@ -5,6 +5,8 @@ import sprite from "../src/assets/nemu-sprites.webp";
 import rest from "../src/assets/fufu-rest-poses.webp";
 import wreath from "../src/assets/flower-wreath.webp";
 import rewards from "../src/assets/reward-icons.webp";
+import wardrobe from "../src/assets/wardrobe-v11.webp";
+import { drawItem } from "../src/item-art";
 const load = (src: string) =>
   new Promise<HTMLImageElement>((resolve) => {
     const i = new Image();
@@ -12,7 +14,7 @@ const load = (src: string) =>
     i.src = src;
   });
 const [a, b, c, d] = await Promise.all(
-  [sprite, rest, wreath, rewards].map(load),
+  [sprite, rest, wreath, rewards, wardrobe].map(load),
 );
 const images = { sprite: a, rest: b, wreath: c, rewards: d };
 const poses: [string, AvatarPose, Facing][] = [
@@ -38,15 +40,7 @@ for (const [id, item] of Object.entries(ITEMS))
     ctx.imageSmoothingEnabled = false;
     ctx.translate(90, pose === "lying" ? 105 : 145);
     ctx.scale(pose === "lying" ? 2 : 2.5, pose === "lying" ? 2 : 2.5);
-    drawAvatar(
-      ctx,
-      pose,
-      facing,
-      0,
-      {
-        head: item.slot === "head" ? (id as ItemId) : null,
-        body: item.slot === "body" ? (id as ItemId) : null,
-      },
-      images,
-    );
+    drawAvatar(ctx, pose, facing, 0, { [item.slot]: id as ItemId }, images);
+    if (item.slot === "pet" && pose !== "lying")
+      drawItem(ctx, id as ItemId, 16, -18, 20, 19);
   }

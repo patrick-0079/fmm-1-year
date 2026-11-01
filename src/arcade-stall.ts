@@ -12,6 +12,9 @@ export function drawArcadeStall(
     blocks: "#b69acd",
     hop: "#ddad91",
     flight: "#8dbdcf",
+    link: "#cf9db5",
+    mines: "#9abb99",
+    miner: "#d5b371",
   }[id];
   c.save();
   c.translate(game.x, game.y);
@@ -86,6 +89,44 @@ export function drawArcadeStall(
     c.fillRect(-6, -20, 5, 6);
     c.fillRect(-6, -23, 1, 4);
     c.fillRect(-3, -23, 1, 4);
+  } else if (id === "link") {
+    c.strokeStyle = "#e9cfa1";
+    c.lineWidth = 1;
+    c.strokeRect(-11, -23, 7, 10);
+    c.strokeRect(4, -23, 7, 10);
+    c.fillStyle = "#df9db4";
+    for (const x of [-8, 7]) {
+      c.beginPath();
+      c.arc(x, -18, 2, 0, Math.PI * 2);
+      c.fill();
+    }
+    c.beginPath();
+    c.moveTo(-8, -11);
+    c.lineTo(-8, -9);
+    c.lineTo(7, -9);
+    c.lineTo(7, -11);
+    c.stroke();
+  } else if (id === "mines") {
+    for (let i = 0; i < 9; i++) {
+      c.fillStyle = i === 4 ? "#e8d49c" : "#a9c8ad";
+      c.fillRect(-10 + (i % 3) * 7, -24 + Math.floor(i / 3) * 5, 5, 4);
+    }
+    c.fillStyle = "#db99ac";
+    c.fillRect(-1, -22, 1, 9);
+    c.fillRect(0, -22, 5, 3);
+  } else if (id === "miner") {
+    c.strokeStyle = "#c9bca2";
+    c.beginPath();
+    c.moveTo(0, -25);
+    c.lineTo(-4, -16);
+    c.arc(-3, -16, 2, 0, Math.PI);
+    c.stroke();
+    c.fillStyle = "#e6c37e";
+    c.beginPath();
+    c.ellipse(-7, -11, 4, 3, 0, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = "#c5a3d1";
+    c.fillRect(6, -14, 5, 5);
   } else {
     c.fillStyle = "#9dcbbd";
     c.fillRect(-12, -25, 4, 10);

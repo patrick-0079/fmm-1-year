@@ -2,12 +2,22 @@ import type { Point } from "./core";
 import type { World } from "./world";
 import { sfx } from "./sound";
 import cakeUrl from "./assets/anniversary-cake.webp";
+import cakeSliceUrl from "./assets/cake-slice-v11.webp";
 import { wishAtBurst, wishOpacity } from "./celebration";
 import { drawGardenScreen } from "./cinema-screen";
+import {
+  cakeGuides,
+  cakePlates,
+  followsCakeGuide,
+  drawCakeSlice,
+} from "./cake-party";
+import { drawPartyProp } from "./party-art";
+import type { ItemId } from "./items";
 
 interface Hooks {
   complete: (id: string) => void;
   toast: (text: string) => void;
+  reward?: (id: ItemId) => void;
 }
 interface Particle extends Point {
   vx: number;
@@ -20,6 +30,7 @@ interface Particle extends Point {
 const colors = ["#f49fbc", "#9ddbe9", "#c1a4ea", "#ffdb80", "#b4e9bc"];
 export class Activities {
   private cakeImage = new Image();
+  private cakeSliceImage = new Image();
   private mode = "";
   private hud: HTMLElement;
   private status: HTMLElement;
@@ -31,6 +42,12 @@ export class Activities {
   private blowing = false;
   private cutStart: Point | null = null;
   private cutEnd: Point | null = null;
+  private cutStroke: Point[] = [];
+  private cakeCuts = 0;
+  private eaten = new Set<number>();
+  private eatTime = 0;
+  private eating = 0;
+  private giftFlips = Array(8).fill(0);
   private cards: number[] = [];
   private flipped: number[] = [];
   private matched = new Set<number>();
@@ -58,6 +75,7 @@ export class Activities {
     private hooks: Hooks,
   ) {
     this.cakeImage.src = cakeUrl;
+    this.cakeSliceImage.src = cakeSliceUrl;
     this.hud = document.querySelector(".activity-hud")!;
     this.status = this.hud.querySelector(".activity-status")!;
     this.controls = this.hud.querySelector(".activity-actions")!;
@@ -125,9 +143,12 @@ export class Activities {
     return !!this.mode;
   }
   close() {
+    this.world.actorHidden = false;
+    if (this.cakeStage === 4) this.cakeStage = 2;
     this.mode = "";
     this.blowing = false;
     this.cutStart = null;
+    this.cutStroke = [];
     this.hud.hidden = true;
     this.controls.replaceChildren();
     if (!this.world.restState) this.world.setFocus(null);
@@ -137,6 +158,9 @@ export class Activities {
   reset() {
     this.close();
     this.cakeStage = 0;
+    this.cakeCuts = 0;
+    this.eaten.clear();
+    this.eatTime = 0;
     this.blow = 0;
     this.balloon = [0, 0, 0];
     this.released = false;
@@ -173,12 +197,14 @@ export class Activities {
     if (this.cakeStage === 3) {
       this.cakeStage = 0;
       this.blow = 0;
+      this.cakeCuts = 0;
+      this.eaten.clear();
     }
     this.begin(
       "cake",
       "第一块蛋糕，给芙芙 · 在桌上许个愿吧",
-      { x: 300, y: 224 },
-      3,
+      { x: 309, y: 236 },
+      2.8,
     );
     this.cakeControls();
   }
@@ -203,25 +229,53 @@ export class Activities {
       button.addEventListener("keyup", () => (this.blowing = false));
       button.addEventListener("blur", () => (this.blowing = false));
     } else if (this.cakeStage === 1) {
-      this.status.textContent = "蜡烛吹灭啦！从蛋糕上方向下划一刀";
-      this.action("沿虚线切一刀", () => this.cutCake());
+      this.status.textContent = `沿第 ${this.cakeCuts + 1} 条虚线滑动切开 · 三刀分成六块（${this.cakeCuts}/3）`;
+      this.action(`沿第 ${this.cakeCuts + 1} 条线切开 · E`, () =>
+        this.cutCake(),
+      );
     } else if (this.cakeStage === 2) {
-      this.status.textContent = "甜蜜已经切开 · 把第一块送给芙芙";
-      this.action("分出第一块", () => {
-        this.cakeStage = 3;
-        this.hooks.complete("cake");
-        sfx("match");
-        this.status.textContent = "芙芙，一周年快乐！第一口甜甜送给你 ♡";
-        this.controls.replaceChildren();
-      });
+      this.status.textContent = `六份甜甜已经装盘 · 剩 ${6 - this.eaten.size} 块，点盘子选一块给芙芙尝尝`;
+      this.action("和芙芙一起吃一块 🍰", () => this.eatSlice());
+    } else if (this.cakeStage === 4) {
+      this.status.textContent = "芙芙正在尝一口周年蛋糕…";
+      this.action("看完这小段 / 跳过", () => this.finishEating());
     }
   }
   private cutCake() {
-    this.cakeStage = 2;
+    this.cakeCuts++;
+    this.cakeStage = this.cakeCuts >= 3 ? 2 : 1;
     this.cutStart = null;
     this.cutEnd = null;
+    this.cutStroke = [];
     sfx("slice");
     this.cakeControls();
+  }
+  private eatSlice(index?: number) {
+    const next =
+      index ??
+      Array.from({ length: 6 }, (_, i) => i).find((i) => !this.eaten.has(i));
+    if (next === undefined || this.eaten.has(next) || this.cakeStage !== 2)
+      return;
+    this.eating = next;
+    this.eatTime = 0;
+    this.cakeStage = 4;
+    this.world.actorHidden = true;
+    this.cakeControls();
+  }
+  private finishEating() {
+    if (this.cakeStage !== 4) return;
+    this.eaten.add(this.eating);
+    this.world.actorHidden = false;
+    this.cakeStage = this.eaten.size === 6 ? 3 : 2;
+    this.hooks.complete("cake");
+    this.hooks.reward?.("berryBag");
+    sfx("complete");
+    this.cakeControls();
+    if (this.cakeStage === 3) {
+      this.status.textContent = "六块蛋糕都甜甜地分享完啦 · 芙芙，一周年快乐 ♡";
+      this.controls.replaceChildren();
+      this.action("再准备一份周年蛋糕", () => this.cake());
+    }
   }
   gifts() {
     this.begin(
@@ -230,10 +284,12 @@ export class Activities {
       { x: 442, y: 320 },
       2.8,
     );
+    this.world.actorHidden = true;
     this.cards = [0, 1, 2, 3, 0, 1, 2, 3].sort(() => Math.random() - 0.5);
     this.flipped = [];
     this.matched.clear();
     this.flipWait = 0;
+    this.giftFlips.fill(0);
     this.giftControls();
   }
   private giftControls() {
@@ -241,7 +297,7 @@ export class Activities {
     this.cards.forEach((value, i) => {
       const visible = this.flipped.includes(i) || this.matched.has(i);
       const button = this.action(
-        `${i + 1} ${visible ? ["♡", "✦", "☾", "✿"][value] : "礼物"}`,
+        `${i + 1} ${visible ? ["草莓心意", "薄荷心意", "星月心意", "奶油心意"][value] : "拆开礼盒"}`,
         () => this.flip(i),
       );
       button.disabled =
@@ -256,6 +312,7 @@ export class Activities {
     )
       return;
     this.flipped.push(index);
+    this.giftFlips[index] = 0.4;
     sfx("flip");
     if (this.flipped.length === 2) {
       const [a, b] = this.flipped;
@@ -267,6 +324,7 @@ export class Activities {
         this.status.textContent = `找到 ${this.matched.size / 2} / 4 对礼物啦`;
         if (this.matched.size === 8) {
           this.hooks.complete("gifts");
+          this.hooks.reward?.("ribbonShoes");
           this.status.textContent = "每一份心意，都找到了好朋友 ♡";
         }
       } else this.flipWait = 0.85;
@@ -384,22 +442,27 @@ export class Activities {
       if (type === "down" && this.cakeStage === 1) {
         this.cutStart = point;
         this.cutEnd = point;
+        this.cutStroke = [point];
       }
-      if (type === "move" && this.cutStart) this.cutEnd = point;
+      if (type === "move" && this.cutStart) {
+        this.cutEnd = point;
+        this.cutStroke.push(point);
+      }
       if (type === "up" && this.cutStart) {
-        const a = this.cutStart;
-        if (
-          a.y < 216 &&
-          point.y > 222 &&
-          Math.abs(a.x - 300) < 18 &&
-          Math.abs(point.x - 300) < 22
-        )
-          this.cutCake();
+        this.cutStroke.push(point);
+        if (followsCakeGuide(this.cutStroke, this.cakeCuts)) this.cutCake();
         else {
           this.cutStart = null;
           this.cutEnd = null;
-          this.status.textContent = "从蛋糕上方，穿过中间向下划一刀试试";
+          this.status.textContent =
+            "沿亮起的虚线，从一端滑到另一端试试（也可以按 E 辅助切开）";
         }
+      }
+      if (type === "down" && this.cakeStage === 2) {
+        const index = cakePlates.findIndex(
+          (p) => Math.hypot(p.x - point.x, p.y - point.y) < 9,
+        );
+        if (index >= 0) this.eatSlice(index);
       }
       if (type === "cancel") {
         this.cutStart = null;
@@ -409,8 +472,8 @@ export class Activities {
     }
     if (this.mode === "gifts") {
       if (type === "down") {
-        const col = Math.floor((point.x - 397) / 23),
-          row = Math.floor((point.y - 272) / 26);
+        const col = Math.floor((point.x - 392) / 26),
+          row = Math.floor((point.y - 275) / 29);
         if (col >= 0 && col < 4 && row >= 0 && row < 2)
           this.flip(row * 4 + col);
       }
@@ -422,7 +485,7 @@ export class Activities {
       point.y < 252 &&
       point.y > 155
     ) {
-      const i = Math.round((point.x - 179) / 24);
+      const i = Math.round((point.x - 179) / 26);
       if (i >= 0 && i < 3) {
         this.inflate(i);
         return true;
@@ -435,6 +498,11 @@ export class Activities {
     return false;
   }
   private tick(dt: number, _time: number) {
+    this.giftFlips = this.giftFlips.map((n) => Math.max(0, n - dt));
+    if (this.mode === "cake" && this.cakeStage === 4) {
+      this.eatTime += dt;
+      if (this.eatTime >= 3) this.finishEating();
+    }
     if (this.blowing && this.cakeStage === 0) {
       this.blow = Math.min(1, this.blow + dt / 1.65);
       this.status.textContent = `轻轻吹一口气… ${Math.round(this.blow * 100)}%`;
@@ -540,52 +608,93 @@ export class Activities {
     if (this.world.scene === "room") {
       this.drawCake(c, t);
       if (this.mode === "gifts") {
-        c.fillStyle = "#d6c8e9";
-        c.fillRect(393, 268, 100, 59);
-        c.strokeStyle = "#fff5df";
-        c.strokeRect(395, 270, 96, 55);
+        c.fillStyle = "#88665633";
+        c.beginPath();
+        c.roundRect(387, 261, 113, 76, 5);
+        c.fill();
+        c.fillStyle = "#c29c7c";
+        c.beginPath();
+        c.roundRect(387, 259, 113, 76, 5);
+        c.fill();
+        c.fillStyle = "#fff1db";
+        c.beginPath();
+        c.roundRect(389, 261, 109, 72, 4);
+        c.fill();
+        c.fillStyle = "#9b6a86";
+        c.font = '7px "Microsoft YaHei",sans-serif';
+        c.textAlign = "center";
+        c.fillText("心意成双 · 芙芙一周年", 444, 270);
         this.cards.forEach((value, i) => {
-          const x = 398 + (i % 4) * 23,
-            y = 273 + Math.floor(i / 4) * 26,
-            visible = this.flipped.includes(i) || this.matched.has(i);
-          c.fillStyle = this.matched.has(i)
-            ? "#d5eabf"
-            : visible
-              ? "#fff5db"
-              : colors[i % colors.length];
-          c.fillRect(x, y, 19, 22);
-          c.strokeStyle = "#fff8ea";
-          c.strokeRect(x + 1, y + 1, 17, 20);
-          c.fillStyle = "#7e5c87";
-          c.font = '12px "Microsoft YaHei", "PingFang SC", sans-serif';
-          c.textAlign = "center";
-          c.fillText(
-            visible ? ["♡", "✦", "☾", "✿"][value] : "?",
-            x + 9.5,
-            y + 15,
-          );
+          const x = 392 + (i % 4) * 26,
+            y = 275 + Math.floor(i / 4) * 29;
+          const matched = this.matched.has(i),
+            visible =
+              (this.flipped.includes(i) || matched) && this.giftFlips[i] < 0.2;
+          const scale =
+            this.giftFlips[i] > 0
+              ? Math.max(
+                  0.05,
+                  Math.abs(Math.cos((this.giftFlips[i] / 0.4) * Math.PI)),
+                )
+              : 1;
+          c.save();
+          c.translate(x + 12, y + 13);
+          c.scale(scale, 1);
+          c.fillStyle = matched ? "#e7eedb" : "#f7e7d8";
+          c.beginPath();
+          c.roundRect(-12, -13, 24, 27, 3);
+          c.fill();
+          c.strokeStyle = matched ? "#b3c398" : "#dbbba7";
+          c.lineWidth = 0.5;
+          c.stroke();
+          drawPartyProp(c, visible ? 4 + value : 4, -10, -11, 20, 23);
+          if (matched) {
+            c.fillStyle = "#769f83";
+            c.font = '6px "Microsoft YaHei",sans-serif';
+            c.fillText("✓", 8, -7);
+          } else {
+            c.fillStyle = "#9c7789";
+            c.font = '5px "Microsoft YaHei",sans-serif';
+            c.fillText(String(i + 1), -8, -7);
+          }
+          c.restore();
         });
+        this.world.drawAvatarAt(c, 520, 324, 0);
+        drawPartyProp(c, 7, 508, 307, 11, 13);
+        if (this.matched.size === 8)
+          for (let i = 0; i < 9; i++) {
+            c.fillStyle = ["#e4b0c5", "#e9ca87", "#a9c8b5"][i % 3];
+            c.beginPath();
+            c.arc(
+              391 + i * 13,
+              255 + Math.sin(t * 2 + i) * 4,
+              1.1,
+              0,
+              Math.PI * 2,
+            );
+            c.fill();
+          }
       }
     }
     if (this.world.scene === "garden") {
       if (this.mode === "balloons" || this.released)
         this.balloon.forEach((amount, i) => {
-          const x = 179 + i * 24 + Math.sin(t * 1.5 + i) * 3,
-            y = 211 - this.rise - i * 8,
-            r = 7 + amount * 2;
-          if (y < -50) return;
-          c.strokeStyle = "#fff3df";
-          c.lineWidth = 1;
-          c.beginPath();
-          c.moveTo(x, y + r);
-          c.lineTo(x - 3, y + r + 29);
-          c.stroke();
-          c.fillStyle = colors[i];
-          c.beginPath();
-          c.ellipse(x, y, r, r * 1.22, 0, 0, Math.PI * 2);
-          c.fill();
-          c.fillStyle = "#fff8eb";
-          c.fillRect(x - 5, y - 8, 3, 6);
+          const height = 38 + amount * 6,
+            x = 179 + i * 26 + Math.sin(t * 1.3 + i) * 2,
+            y = 228 - this.rise - i * 7;
+          if (y < -80) return;
+          c.save();
+          c.translate(x, y);
+          c.rotate(Math.sin(t * 1.1 + i) * 0.035);
+          drawPartyProp(
+            c,
+            [0, 2, 3][i],
+            -height * 0.29,
+            -height,
+            height * 0.58,
+            height,
+          );
+          c.restore();
         });
       if (this.messages.length)
         drawGardenScreen(c, (c) => {
@@ -667,31 +776,14 @@ export class Activities {
     c.restore();
   }
   private drawCake(c: CanvasRenderingContext2D, t: number) {
-    const x = 300,
-      y = 213,
-      split = this.cakeStage >= 2 ? 3 : 0;
-    for (const side of [-1, 1]) {
-      c.save();
-      c.translate(side * split, 0);
-      c.beginPath();
-      c.rect(side < 0 ? x - 35 : x, y - 40, 35, 70);
-      c.clip();
-      if (this.cakeImage.complete && this.cakeImage.naturalWidth)
-        c.drawImage(this.cakeImage, x - 33, y - 36, 66, 62);
-      else {
-        c.fillStyle = "#f0b3c5";
-        c.fillRect(x - 17, y - 8, 34, 20);
-        c.fillStyle = "#fff0d6";
-        c.fillRect(x - 17, y - 9, 34, 5);
-      }
-      c.restore();
-    }
+    if (this.cakeImage.complete && this.cakeImage.naturalWidth)
+      c.drawImage(this.cakeImage, 267, 177, 66, 62);
     if (this.cakeStage === 0) {
       c.fillStyle = "#ffce6d";
       c.beginPath();
       c.ellipse(
-        x + 0.5 + Math.sin(t * 9) * (this.blowing ? 2 : 0.3),
-        y - 27.5,
+        300.5 + Math.sin(t * 9) * (this.blowing ? 2 : 0.3),
+        185.5,
         1.8,
         3.5 * (1 - this.blow * 0.6),
         0,
@@ -700,25 +792,121 @@ export class Activities {
       );
       c.fill();
       c.fillStyle = "#fff3be";
-      c.fillRect(x, y - 28, 1, 2);
+      c.fillRect(300, 185, 1, 2);
     }
-    if (this.mode === "cake" && this.cakeStage === 1) {
-      c.strokeStyle = "#ad7d9b";
-      c.lineWidth = 0.7;
-      c.setLineDash([2, 2]);
+    if (this.cakeCuts > 0) {
+      c.save();
       c.beginPath();
-      c.moveTo(x, y - 17);
-      c.lineTo(x, y + 17);
-      c.stroke();
-      c.setLineDash([]);
-      if (this.cutStart && this.cutEnd) {
-        c.strokeStyle = "#fff7e2";
-        c.lineWidth = 2;
+      c.ellipse(300, 207, 19, 11, 0, 0, Math.PI * 2);
+      c.clip();
+      c.strokeStyle = "#b37b87";
+      c.lineWidth = 0.65;
+      for (const [a, b] of cakeGuides.slice(0, this.cakeCuts)) {
         c.beginPath();
-        c.moveTo(this.cutStart.x, this.cutStart.y);
-        c.lineTo(this.cutEnd.x, this.cutEnd.y);
+        c.moveTo(a.x, a.y);
+        c.lineTo(b.x, b.y);
         c.stroke();
       }
+      c.restore();
+    }
+    if (this.mode === "cake" && this.cakeStage === 1) {
+      const [a, b] = cakeGuides[this.cakeCuts];
+      c.strokeStyle = "#b77d9a";
+      c.lineWidth = 0.8;
+      c.setLineDash([1.7, 1.7]);
+      c.beginPath();
+      c.moveTo(a.x, a.y);
+      c.lineTo(b.x, b.y);
+      c.stroke();
+      c.setLineDash([]);
+      for (const p of [a, b]) {
+        c.fillStyle = "#fff0be";
+        c.beginPath();
+        c.arc(p.x, p.y, 1.7, 0, Math.PI * 2);
+        c.fill();
+      }
+      if (this.cutStart && this.cutEnd) {
+        c.strokeStyle = "#fff7e2";
+        c.lineWidth = 1.7;
+        c.beginPath();
+        this.cutStroke.forEach((p, i) =>
+          i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y),
+        );
+        c.stroke();
+      }
+    }
+    if (this.cakeCuts === 3 && this.mode === "cake") {
+      c.fillStyle = "#8f6a51";
+      c.beginPath();
+      c.roundRect(227, 204, 44, 58, 3);
+      c.fill();
+      c.fillStyle = "#d7ad83";
+      c.beginPath();
+      c.roundRect(228, 203, 42, 57, 3);
+      c.fill();
+      c.fillStyle = "#f5e2cf";
+      c.beginPath();
+      c.roundRect(230, 205, 38, 53, 2);
+      c.fill();
+      c.fillStyle = "#a8798d";
+      c.font = '5px "Microsoft YaHei",sans-serif';
+      c.textAlign = "center";
+      c.fillText("♡ 周年分享台 ♡", 249, 212);
+      cakePlates.forEach((p, i) => {
+        if (!this.eaten.has(i) && !(this.cakeStage === 4 && this.eating === i))
+          drawCakeSlice(c, p.x, p.y, 0.9, this.cakeSliceImage);
+        else {
+          c.fillStyle = "#fff1da";
+          c.beginPath();
+          c.ellipse(p.x, p.y + 2, 7, 3.2, 0, 0, Math.PI * 2);
+          c.fill();
+        }
+      });
+    }
+    if (this.mode === "cake" && this.cakeStage === 4) {
+      const time = this.eatTime,
+        actor = { x: 339, y: 251 };
+      c.save();
+      c.translate(actor.x, actor.y);
+      c.rotate(
+        matchMedia("(prefers-reduced-motion: reduce)").matches
+          ? 0
+          : Math.sin(time * 9) * 0.025,
+      );
+      this.world.drawAvatarAt(c, 0, 0, 0);
+      c.restore();
+      const start = cakePlates[this.eating],
+        p = Math.min(1, time / 0.65),
+        size = time < 1.3 ? 1 : time < 1.9 ? 0.72 : time < 2.5 ? 0.4 : 0;
+      if (size)
+        drawCakeSlice(
+          c,
+          start.x + (actor.x - 5 - start.x) * p,
+          start.y + (actor.y - 25 - start.y) * p,
+          size,
+          this.cakeSliceImage,
+        );
+      for (let i = 0; i < 3; i++) {
+        const phase = (time + i * 0.5) % 2.2;
+        c.fillStyle = ["#dc94b1", "#e4bf75", "#bea7cf"][i];
+        c.beginPath();
+        c.arc(
+          actor.x - 12 + i * 12,
+          actor.y - 40 - phase * 7,
+          1.5 + Math.sin(phase * 2) * 0.5,
+          0,
+          Math.PI * 2,
+        );
+        c.fill();
+      }
+      c.fillStyle = "#92697e";
+      c.font = '7px "Microsoft YaHei",sans-serif';
+      c.textAlign = "center";
+      c.fillText(
+        time < 0.7 ? "第一口甜甜，给芙芙" : "好甜呀！一周年快乐 ♡",
+        328,
+        270,
+      );
     }
   }
 }

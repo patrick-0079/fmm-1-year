@@ -5,6 +5,9 @@ import {
   readInventory,
   grantItem,
   equipItem,
+  EQUIP_SLOTS,
+  slotNames,
+  type EquipSlot,
   type ItemId,
   type InventoryState,
 } from "./items";
@@ -15,6 +18,7 @@ export class Inventory {
   private root: HTMLElement = document.querySelector(".inventory-panel")!;
   private wreath = new Image();
   private rewards = new Image();
+  private filter: EquipSlot | "all" = "all";
   constructor(
     private world: World,
     private toast: (text: string) => void,
@@ -34,7 +38,7 @@ export class Inventory {
       .querySelector(".bag-toggle")!
       .addEventListener("click", () => this.togglePanel());
     window.addEventListener("keydown", (e) => {
-      if (e.key.toLowerCase() === "b" && !e.repeat && !this.world.paused) {
+      if (e.key.toLowerCase() === "b" && !e.repeat) {
         e.preventDefault();
         this.togglePanel();
       }
@@ -87,20 +91,36 @@ export class Inventory {
     } catch {}
   }
   private togglePanel() {
+    if (!this.root.hidden) {
+      this.close();
+      return;
+    }
     this.root.hidden = !this.root.hidden;
     if (!this.root.hidden) {
       this.render();
       this.root.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   }
+  private close() {
+    this.root.hidden = true;
+    this.world.canvas.focus({ preventScroll: true });
+    if (this.world.canvas.parentElement!.classList.contains("arcade-active"))
+      this.world.canvas.parentElement!.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    else
+      this.world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
   private render() {
-    const worn = (slot: "head" | "body") =>
+    const worn = (slot: EquipSlot) =>
       this.state.equipped[slot]
         ? ITEMS[this.state.equipped[slot]!].name
         : "暂未佩戴";
-    this.root.innerHTML = `<header><div><small>ONE YEAR · LITTLE TREASURES</small><h3>芙芙的纪念背包 <span>${this.state.owned.length} / ${Object.keys(ITEMS).length}</span></h3><p>头饰：${worn("head")}　随身饰品：${worn("body")}</p></div><button class="map-action bag-close">收起 <kbd>B</kbd></button></header><div class="inventory-grid">${Object.entries(
+    this.root.innerHTML = `<header><div><small>ONE YEAR · LITTLE TREASURES</small><h3>芙芙的周年衣橱 <span>${this.state.owned.length} / ${Object.keys(ITEMS).length}</span></h3><p class="equipment-summary">${EQUIP_SLOTS.map((slot) => `<span>${slotNames[slot]}：${worn(slot)}</span>`).join("")}</p></div><button class="map-action bag-close">收起 <kbd>B</kbd></button></header><nav class="inventory-tabs" aria-label="配饰类别"><button data-category="all" aria-pressed="${this.filter === "all"}">全部</button>${EQUIP_SLOTS.map((slot) => `<button data-category="${slot}" aria-pressed="${this.filter === slot}">${slotNames[slot]}</button>`).join("")}</nav><div class="inventory-grid">${Object.entries(
       ITEMS,
     )
+      .filter(([, item]) => this.filter === "all" || item.slot === this.filter)
       .map(([id, item]) => {
         const own = this.has(id as ItemId),
           worn = this.state.equipped[item.slot] === id;
@@ -108,10 +128,23 @@ export class Inventory {
       })
       .join(
         "",
-      )}</div><p class="bag-footnote">纪念品与佩戴选择保存在当前浏览器。小游戏奖励可重复游玩，每件只领取一次。</p>`;
+      )}</div><p class="bag-footnote">六个部位可以独立搭配。同行伙伴会跟随散步；睡觉时隐藏穿戴和伙伴。纪念品与佩戴选择仅保存在本机。</p>`;
     this.root
       .querySelector(".bag-close")!
-      .addEventListener("click", () => (this.root.hidden = true));
+      .addEventListener("click", () => this.close());
+    this.root
+      .querySelectorAll<HTMLButtonElement>("[data-category]")
+      .forEach((b) =>
+        b.addEventListener("click", () => {
+          this.filter = b.dataset.category as EquipSlot | "all";
+          this.render();
+          this.root
+            .querySelector<HTMLButtonElement>(
+              `[data-category="${this.filter}"]`,
+            )!
+            .focus({ preventScroll: true });
+        }),
+      );
     this.root
       .querySelectorAll<HTMLButtonElement>("[data-equip]")
       .forEach((b) =>

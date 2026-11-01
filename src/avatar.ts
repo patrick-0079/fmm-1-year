@@ -6,7 +6,7 @@ import {
   type Facing,
   type EquipmentPart,
 } from "./equipment";
-import type { EquipSlot, ItemId } from "./items";
+import type { Equipped } from "./items";
 export interface AvatarImages {
   sprite: HTMLImageElement;
   rest: HTMLImageElement;
@@ -73,7 +73,7 @@ export function drawAvatar(
   pose: AvatarPose,
   facing: Facing,
   walkFrame: number,
-  equipped: Record<EquipSlot, ItemId | null>,
+  equipped: Equipped,
   images: AvatarImages,
 ) {
   const parts = equipmentParts(equipped, pose, facing);

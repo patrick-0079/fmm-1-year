@@ -237,12 +237,18 @@ function pixelHeart(
     c.fillRect(x + a * scale, y + b * scale, w * scale, h * scale),
   );
 }
+type BalloonArt = (x: number, y: number, color: string) => void;
 function balloon(
   c: CanvasRenderingContext2D,
   x: number,
   y: number,
   color: string,
+  art?: BalloonArt,
 ) {
+  if (art) {
+    art(x, y, color);
+    return;
+  }
   c.fillStyle = "#80516e";
   c.fillRect(x - 6, y - 11, 12, 20);
   c.fillRect(x - 8, y - 7, 16, 12);
@@ -259,6 +265,7 @@ export function drawFestivalProp(
   p: (typeof festivalProps)[number],
   time: number,
   cake?: HTMLImageElement,
+  balloonArt?: BalloonArt,
 ) {
   const { x, y } = p;
   c.save();
@@ -273,7 +280,7 @@ export function drawFestivalProp(
         c.fillStyle = i % 2 ? "#e8b6d0" : "#f9deb0";
         c.fillRect(side * 43 - 5, -48 + i * 10, 10, 5);
       }
-      balloon(c, side * 43, -63, side < 0 ? "#e9a2c4" : "#a7d5d0");
+      balloon(c, side * 43, -63, side < 0 ? "#e9a2c4" : "#a7d5d0", balloonArt);
       c.fillStyle = "#d2ae76";
       c.fillRect(side * 43 - 8, -2, 16, 5);
     }
@@ -306,9 +313,9 @@ export function drawFestivalProp(
     c.fillText("FUFU · 1 YEAR", 0, 12);
   } else if (p.kind === "balloons") {
     const sway = Math.sin(time * 1.5 + x) * 1.2;
-    balloon(c, -10 + sway, -36, "#db9cc3");
-    balloon(c, 10 + sway, -41, "#a7cedd");
-    balloon(c, sway, -52, "#edca8b");
+    balloon(c, -10 + sway, -36, "#db9cc3", balloonArt);
+    balloon(c, 10 + sway, -41, "#a7cedd", balloonArt);
+    balloon(c, sway, -52, "#edca8b", balloonArt);
     c.fillStyle = "#8c6d5a";
     c.fillRect(-10, -7, 20, 10);
     c.fillStyle = "#c59a77";

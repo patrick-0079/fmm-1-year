@@ -103,18 +103,25 @@ test("souvenir rewards are unique, equipment slots persist and legacy wreaths mi
   grantItem(bag, "moonBag");
   equipItem(bag, "headphones");
   equipItem(bag, "moonBag");
-  assert.deepEqual(bag.equipped, { head: "headphones", body: "moonBag" });
+  assert.deepEqual(bag.equipped, {
+    ...emptyInventory().equipped,
+    head: "headphones",
+    backpack: "moonBag",
+  });
   assert.deepEqual(readInventory(JSON.stringify(bag)), bag);
   equipItem(bag, "headphones");
-  assert.deepEqual(bag.equipped, { head: null, body: "moonBag" });
+  assert.deepEqual(bag.equipped, {
+    ...emptyInventory().equipped,
+    backpack: "moonBag",
+  });
   assert.equal(readInventory(null, '{"wearing":true}').equipped.head, "wreath");
   const corrupt = readInventory(
     '{"owned":["wreath","bad","wreath"],"equipped":{"body":"wreath","head":"headphones"}}',
   );
   assert.deepEqual(corrupt.owned, ["wreath"]);
-  assert.deepEqual(corrupt.equipped, { head: null, body: null });
+  assert.deepEqual(corrupt.equipped, emptyInventory().equipped);
   const rewards = Object.values(ARCADES).map((g) => g.reward);
-  assert.equal(new Set(rewards).size, 4);
+  assert.equal(new Set(rewards).size, 7);
   for (const id of rewards) assert.ok(ITEMS[id]);
 });
 test("the anniversary town has fifteen distinct configurable NPCs and complete sprite crops", () => {

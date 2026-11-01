@@ -1,10 +1,16 @@
-export type GameId = "snake" | "blocks" | "hop" | "flight";
+import { LinkGame, MinesGame, MinerGame } from "./arcade-bonus.ts";
+export type GameId =
+  "snake" | "blocks" | "hop" | "flight" | "link" | "mines" | "miner";
 export type GameAction = "left" | "right" | "up" | "down" | "primary" | "drop";
 export type GameStatus = "ready" | "playing" | "won" | "lost";
 export interface Engine {
   status: GameStatus;
   score: number;
   goal: number;
+  achieved: boolean;
+  continuePlay(): void;
+  pointer?(x: number, y: number): void;
+  hint?(): void;
   start(): void;
   input(action: GameAction, pressed: boolean): void;
   update(dt: number): void;
@@ -39,6 +45,10 @@ function sky(c: CanvasRenderingContext2D, color = "#e9ead7") {
 }
 export class SnakeGame implements Engine {
   status: GameStatus = "ready";
+  achieved = false;
+  continuePlay() {
+    if (this.status === "won") this.status = "playing";
+  }
   score = 0;
   goal = 6;
   body = [
@@ -92,16 +102,28 @@ export class SnakeGame implements Engine {
     this.body.unshift(head);
     if (eating) {
       this.score++;
-      if (this.score >= this.goal) {
+      if (this.score >= this.goal && !this.achieved) {
+        this.achieved = true;
         this.status = "won";
-        return;
       }
       const free = [];
       for (let y = 0; y < 14; y++)
         for (let x = 0; x < 20; x++)
           if (!this.body.some((p) => p.x === x && p.y === y))
             free.push({ x, y });
-      this.food = free[Math.floor(this.random() * free.length)];
+      if (free.length)
+        this.food = free[Math.floor(this.random() * free.length)];
+      else {
+        // A filled board starts another lap without losing the run's score.
+        this.body = [
+          { x: 8, y: 7 },
+          { x: 7, y: 7 },
+          { x: 6, y: 7 },
+        ];
+        this.direction = { x: 1, y: 0 };
+        this.next = { x: 1, y: 0 };
+        this.food = { x: 13, y: 7 };
+      }
     } else this.body.pop();
   }
   update(dt: number) {
@@ -174,6 +196,10 @@ const BLOCK_COLORS = [
 ];
 export class BlocksGame implements Engine {
   status: GameStatus = "ready";
+  achieved = false;
+  continuePlay() {
+    if (this.status === "won") this.status = "playing";
+  }
   score = 0;
   goal = 4;
   board = Array.from({ length: 16 }, () => Array<number>(10).fill(0));
@@ -247,7 +273,10 @@ export class BlocksGame implements Engine {
     while (remaining.length < 16) remaining.unshift(Array(10).fill(0));
     this.board = remaining;
     this.score += count;
-    if (this.score >= this.goal) this.status = "won";
+    if (this.score >= this.goal && !this.achieved) {
+      this.achieved = true;
+      this.status = "won";
+    }
     return count;
   }
   lock() {
@@ -255,7 +284,7 @@ export class BlocksGame implements Engine {
       for (let x = 0; x < this.piece[y].length; x++)
         if (this.piece[y][x]) this.board[this.y + y][this.x + x] = this.color;
     this.clearLines();
-    if (this.status !== "won") this.spawn();
+    if (this.status !== "lost") this.spawn();
   }
   update(dt: number) {
     if (this.status !== "playing") return;
@@ -315,6 +344,10 @@ export interface Platform {
 }
 export class HopGame implements Engine {
   status: GameStatus = "ready";
+  achieved = false;
+  continuePlay() {
+    if (this.status === "won") this.status = "playing";
+  }
   score = 0;
   goal = 8;
   x = 45;
@@ -326,7 +359,9 @@ export class HopGame implements Engine {
   grounded = true;
   platformId = 0;
   platforms: Platform[] = [{ id: 0, x: 45, y: 132, w: 62 }];
+  private random: () => number;
   constructor(random = Math.random) {
+    this.random = random;
     for (let i = 1; i < 14; i++)
       this.platforms.push({
         id: i,
@@ -371,11 +406,24 @@ export class HopGame implements Engine {
       if (p) {
         this.y = p.y - 5;
         this.platformId = p.id;
+        if (this.platformId + 6 >= this.platforms.length)
+          for (let i = 0; i < 10; i++) {
+            const last = this.platforms.at(-1)!;
+            this.platforms.push({
+              id: last.id + 1,
+              x: last.x + 70 + this.random() * 28,
+              y: 116 + this.random() * 18,
+              w: 48,
+            });
+          }
         this.grounded = true;
         this.vx = 0;
         this.vy = 0;
         this.score++;
-        if (this.score >= this.goal) this.status = "won";
+        if (this.score >= this.goal && !this.achieved) {
+          this.achieved = true;
+          this.status = "won";
+        }
       }
     }
     if (this.y > 200) this.status = "lost";
@@ -423,14 +471,20 @@ export interface Gate {
   x: number;
   center: number;
   passed: boolean;
+  collected?: boolean;
 }
 export class FlightGame implements Engine {
   status: GameStatus = "ready";
+  achieved = false;
+  continuePlay() {
+    if (this.status === "won") this.status = "playing";
+  }
   score = 0;
   goal = 8;
   y = 75;
   vy = 0;
   gates: Gate[] = [];
+  stars = 0;
   private timer = 0;
   private random: () => number;
   constructor(random = Math.random) {
@@ -463,10 +517,20 @@ export class FlightGame implements Engine {
     }
     for (const gate of this.gates) {
       gate.x -= 58 * dt;
+      if (
+        !gate.collected &&
+        Math.hypot(gate.x + 11 - 50, gate.center - 18 - this.y) < 14
+      ) {
+        gate.collected = true;
+        this.stars++;
+      }
       if (!gate.passed && gate.x + 22 < 44) {
         gate.passed = true;
         this.score++;
-        if (this.score >= this.goal) this.status = "won";
+        if (this.score >= this.goal && !this.achieved) {
+          this.achieved = true;
+          this.status = "won";
+        }
       }
       if (
         gate.x < 58 &&
@@ -489,7 +553,7 @@ export class FlightGame implements Engine {
       c.fillRect(g.x - 2, g.center + 31, 26, 6);
       c.fillStyle = "#f9e5ae";
       c.fillRect(g.x + 4, 0, 2, Math.max(0, g.center - 38));
-      star(c, g.x + 11, g.center - 18, 4, "#e3b65a");
+      if (!g.collected) star(c, g.x + 11, g.center - 18, 4, "#e3b65a");
     }
     c.fillStyle = "#c78aa7";
     c.fillRect(43, this.y - 7, 15, 13);
@@ -510,6 +574,9 @@ export class FlightGame implements Engine {
   }
 }
 export function createEngine(id: GameId): Engine {
+  if (id === "link") return new LinkGame();
+  if (id === "mines") return new MinesGame();
+  if (id === "miner") return new MinerGame();
   return id === "snake"
     ? new SnakeGame()
     : id === "blocks"

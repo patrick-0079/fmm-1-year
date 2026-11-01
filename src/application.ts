@@ -9,6 +9,7 @@ import { Inventory } from "./inventory";
 import { Arcade } from "./arcade";
 import { Town } from "./town";
 import { GardenCinema } from "./cinema";
+import { GardenLife, Companion } from "./garden-life";
 import { ARCADES } from "./town-data";
 import type { GameId } from "./arcade-engines";
 import { Nature } from "./nature";
@@ -124,10 +125,16 @@ export function mountGame(tasks: Task[]) {
     }
   }
   const inventory = new Inventory(world, toast);
-  const activities = new Activities(world, { complete, toast });
+  const activities = new Activities(world, {
+    complete,
+    toast,
+    reward: (id) => inventory.grant(id),
+  });
   const nature = new Nature(world, activities, toast, inventory);
   const arcade = new Arcade(world, activities, inventory);
   const town = new Town(world, activities, inventory, arcade);
+  const gardenLife = new GardenLife(world, activities, inventory);
+  new Companion(world);
   const cinema = new GardenCinema(world, toast, () => activities.danmaku());
   const bedNote = new BedNote(world);
   const previousTick = world.onTick;
@@ -256,6 +263,7 @@ export function mountGame(tasks: Task[]) {
       ]);
       return;
     }
+    if (gardenLife.interact(id)) return;
     if (town.interact(id)) return;
     if (nature.interact(id)) return;
     if (EVENT_IDS.includes(id) && !progress.visited.includes(id)) {
