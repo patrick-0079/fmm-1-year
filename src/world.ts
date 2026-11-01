@@ -261,9 +261,20 @@ export class World {
     c.drawImage(background, x, y, w, h, x, y, w, h);
     c.restore();
   }
-  drawPavingPatch(c: CanvasRenderingContext2D, points: Point[]) {
-    const image = this.images.get(townUrl);
+  drawPavingPatch(
+    c: CanvasRenderingContext2D,
+    points: Point[],
+    surface: "town" | "garden" = "town",
+  ) {
+    const garden = surface === "garden";
+    const image = this.images.get(garden ? gardenUrl : townUrl);
     if (!image) return;
+    // A clean section of the garden's own brick path, before the rose arch.
+    // Keep the native artwork scale and preserve the town's separate paving.
+    const source = garden
+      ? { x: 720, y: 730, size: 72 }
+      : { x: 476, y: 805, size: 32 };
+    const tile = garden ? (source.size * 900) / 1536 : source.size;
     const left = Math.floor(Math.min(...points.map((p) => p.x))),
       top = Math.floor(Math.min(...points.map((p) => p.y)));
     const right = Math.max(...points.map((p) => p.x)),
@@ -273,9 +284,19 @@ export class World {
     points.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
     c.closePath();
     c.clip();
-    for (let y = top; y < bottom; y += 32)
-      for (let x = left; x < right; x += 32)
-        c.drawImage(image, 476, 805, 32, 32, x, y, 32, 32);
+    for (let y = top; y < bottom; y += tile)
+      for (let x = left; x < right; x += tile)
+        c.drawImage(
+          image,
+          source.x,
+          source.y,
+          source.size,
+          source.size,
+          x,
+          y,
+          tile,
+          tile,
+        );
     c.restore();
   }
   get config() {
@@ -567,7 +588,7 @@ export class World {
     if (background) c.drawImage(background, 0, 0, width, height);
     this.onEnvironment(c, this.time);
     drawConnections(c, this.scene, (context, points) =>
-      this.drawPavingPatch(context, points),
+      this.drawPavingPatch(context, points, "garden"),
     );
     if (this.scene === "room") {
       c.fillStyle = "#8171b0";

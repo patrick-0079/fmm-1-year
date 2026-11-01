@@ -1,16 +1,19 @@
 import type { Point } from "./core.ts";
 import type { SceneId } from "./maps.ts";
 export const townGardenTrail: Point[] = [
-  { x: 444, y: 491 },
-  { x: 515, y: 480 },
-  { x: 580, y: 480 },
+  // Branch before the rose arch; paving must not cover its flowers or frame.
+  { x: 462, y: 451 },
+  { x: 493, y: 447 },
+  { x: 527, y: 453 },
+  { x: 580, y: 479 },
   { x: 637, y: 500 },
   { x: 675, y: 534 },
   { x: 662, y: 545 },
   { x: 625, y: 519 },
   { x: 578, y: 502 },
-  { x: 518, y: 501 },
-  { x: 444, y: 512 },
+  { x: 523, y: 477 },
+  { x: 494, y: 472 },
+  { x: 462, y: 476 },
 ];
 export function drawConnections(
   c: CanvasRenderingContext2D,
@@ -43,12 +46,12 @@ export function drawConnections(
       c.fillRect(x - 29 + i * 9, y - 43, 6, 7);
     }
     c.fillStyle = "#927158";
-    c.fillRect(498, 494, 5, 19);
+    c.fillRect(513, 439, 5, 22);
     c.fillStyle = "#f4dfb5";
-    c.fillRect(477, 485, 55, 15);
+    c.fillRect(488, 430, 55, 15);
     c.fillStyle = "#936779";
     c.font = '8px "SimSun",monospace';
-    c.fillText("小镇 · 沿石路走", 505, 495);
+    c.fillText("小镇 · 沿石路走", 516, 440);
   }
   if (scene === "town") {
     c.fillStyle = "#8a6a55";
