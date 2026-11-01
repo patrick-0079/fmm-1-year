@@ -8,6 +8,7 @@ import { MapReader } from "./reader";
 import { Inventory } from "./inventory";
 import { Arcade } from "./arcade";
 import { Town } from "./town";
+import { GardenCinema } from "./cinema";
 import { ARCADES } from "./town-data";
 import type { GameId } from "./arcade-engines";
 import { Nature } from "./nature";
@@ -127,6 +128,7 @@ export function mountGame(tasks: Task[]) {
   const nature = new Nature(world, activities, toast, inventory);
   const arcade = new Arcade(world, activities, inventory);
   const town = new Town(world, activities, inventory, arcade);
+  const cinema = new GardenCinema(world, toast, () => activities.danmaku());
   const bedNote = new BedNote(world);
   const previousTick = world.onTick;
   world.onTick = (dt, t) => {
@@ -138,6 +140,7 @@ export function mountGame(tasks: Task[]) {
   }
   function transition(scene: SceneId, entrance?: string) {
     if (world.busy || transitioning || !started) return;
+    cinema.close();
     arcade.close();
     activities.close();
     reader.close();
@@ -181,6 +184,7 @@ export function mountGame(tasks: Task[]) {
     .addEventListener("click", () => world.standUp());
   let encouragementIndex = 0;
   world.onRespawn = ({ trap }) => {
+    cinema.close();
     arcade.close();
     activities.close();
     reader.close();
@@ -204,7 +208,7 @@ export function mountGame(tasks: Task[]) {
   };
   world.onNearby = (spot) => {
     const prompt = document.querySelector<HTMLElement>(".nearby-prompt")!;
-    prompt.hidden = !spot || activities.active;
+    prompt.hidden = !spot || activities.active || cinema.active;
     if (spot) prompt.querySelector("span")!.textContent = spot.title;
   };
   world.onScene = (scene) => {
@@ -224,6 +228,7 @@ export function mountGame(tasks: Task[]) {
     bedNote.refresh(progress.bedNoteUnlocked);
   };
   world.onInteract = (id) => {
+    cinema.close();
     const spot = world.config.spots.find((s) => s.id === id);
     if (spot?.portal) {
       transition(spot.portal, spot.portalExit);
@@ -264,17 +269,29 @@ export function mountGame(tasks: Task[]) {
     else if (id === "gifts") activities.gifts();
     else if (id === "balloons") activities.balloons();
     else if (id === "fireworks") activities.fireworks();
-    else if (id === "danmaku") activities.danmaku();
-    else if (id === "courage") {
+    else if (id === "danmaku") {
+      activities.close();
+      cinema.open();
+    } else if (id === "courage") {
       complete("courage");
       activities.note(
         "走过小挫折，摘到了勇气之花 · 愿芙芙一路有光，向阳生长 ♡",
       );
     } else if (id === "bili")
-      activities.note(
-        "小电视打卡成功 · 芙芙，直播一周年快乐！",
-        anniversary.bilibili,
-      );
+      activities.menu("小电视打卡成功 · 芙芙，直播一周年快乐！", [
+        {
+          title: "看花园周年放映",
+          run: () => {
+            activities.close();
+            world.visit("danmaku");
+          },
+        },
+        {
+          title: "去 B 站见芙芙",
+          run: () =>
+            activities.note("下一个晚安，也一起 ♡", anniversary.bilibili),
+        },
+      ]);
     else {
       activities.close();
       openCollection(reader, id);
@@ -366,6 +383,7 @@ export function mountGame(tasks: Task[]) {
     if (world.busy || transitioning) return;
     begin();
     if (!started) return;
+    cinema.close();
     arcade.close();
     activities.close();
     reader.close();
@@ -389,6 +407,9 @@ export function mountGame(tasks: Task[]) {
       if (ARCADES[id]) visit("town", "arcade-" + id);
     }),
   );
+  document
+    .querySelector(".cinema-shortcut")!
+    .addEventListener("click", () => visit("garden", "danmaku"));
   document
     .querySelectorAll<HTMLButtonElement>("[data-town-npc]")
     .forEach((b) =>
@@ -436,6 +457,7 @@ export function mountGame(tasks: Task[]) {
       completed: [],
       bedNoteUnlocked: false,
     };
+    cinema.reset();
     activities.reset();
     nature.reset();
     inventory.reset();

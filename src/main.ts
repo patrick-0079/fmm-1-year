@@ -1,6 +1,7 @@
 import "./style.css";
 import "./world-details.css";
 import "./town-style.css";
+import "./cinema.css";
 import { ARCADES, TOWN_NPCS } from "./town-data";
 import { ITEMS } from "./items";
 import { anniversary, collections, producers } from "./content";
@@ -68,7 +69,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
             <canvas id="world" tabindex="0" aria-label="像素探索场景。使用 WASD 或方向键移动，E、空格或鼠标右键互动；左键点击地面行走、标记互动。Tab 切换选项，Enter 确认。">浏览器需要支持 Canvas 才能游玩。</canvas>
             <div class="scene-top"><span class="location-pill">${icon("moon")} <span id="location-name">ROOM 01 · 晚安小屋</span></span><button class="map-switch" title="切换到另一个场景">周年花园 ${icon("arrow")}</button></div>
             <span class="time-pill" role="timer" aria-live="off">☀ 08:00 · 白昼</span><span class="checkpoint-pill">${icon("star")} 复活点 · <span id="checkpoint-name">小屋的床</span></span>
-            <div class="arcade-hud" hidden aria-label="小镇游乐摊位"></div><div class="activity-hud" hidden><div class="activity-heading"><span class="activity-status" role="status" aria-live="polite"></span><button class="activity-close" aria-label="结束当前互动，回到地图">收起 ×</button></div><div class="activity-actions"></div></div><button class="crown-toggle map-tool" aria-pressed="false" hidden aria-label="戴上花环，快捷键 H">戴上花环 <kbd>H</kbd></button><div class="rest-tools" hidden><span></span><button class="stand-up map-action">起身 <kbd>E</kbd></button></div><button class="bed-note-pin map-tool" hidden>♡ 床边便签</button><article class="bed-note" aria-label="小叶子的床边便签" hidden></article><div class="nearby-prompt" hidden><span></span><kbd>E</kbd><span class="prompt-verb">互动</span></div>
+            <section class="cinema-hud" aria-label="花园小电视放映控制" hidden></section><div class="arcade-hud" hidden aria-label="小镇游乐摊位"></div><div class="activity-hud" hidden><div class="activity-heading"><span class="activity-status" role="status" aria-live="polite"></span><button class="activity-close" aria-label="结束当前互动，回到地图">收起 ×</button></div><div class="activity-actions"></div></div><button class="crown-toggle map-tool" aria-pressed="false" hidden aria-label="戴上花环，快捷键 H">戴上花环 <kbd>H</kbd></button><div class="rest-tools" hidden><span></span><button class="stand-up map-action">起身 <kbd>E</kbd></button></div><button class="bed-note-pin map-tool" hidden>♡ 床边便签</button><article class="bed-note" aria-label="小叶子的床边便签" hidden></article><div class="nearby-prompt" hidden><span></span><kbd>E</kbd><span class="prompt-verb">互动</span></div>
             <div class="intro-screen"><div class="intro-stars">✧ <span>✦</span> ✧</div><span class="intro-pill">芙眠眠 · 直播一周年纪念</span><h2>今晚的快乐，<br>等你来发现。</h2><p>一间温暖小屋，两座缤纷花园，<br>还有一座等你逛逛的周年小镇。<br>和藏在街角的，一点点喜欢。</p><button class="button primary enter-button" disabled>正在点亮小世界…</button><small>点击开始会播放轻柔音乐 · 可随时关闭 ♡</small></div>
             <div class="scene-transition" aria-hidden="true"></div>
           </div>
@@ -83,7 +84,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
           <div class="journal-divider"><span>✧</span></div>
           <div class="memory-heading-small"><h3>留一格，给回忆</h3><span>慢慢收集，慢慢珍藏</span></div>
           <div class="memory-shortcuts">${memories.map((memory) => `<button data-memory="${memory.id}">${icon(memory.icon)}<span>${collections[memory.id].title}</span><small>${collections[memory.id].items.length ? `${collections[memory.id].items.length} ${memory.unit}` : memory.empty}</small></button>`).join("")}</div>
-          <section class="town-journal"><span class="eyebrow">FUFU’S ANNIVERSARY TOWN</span><h3>沿着晚安，逛逛小镇</h3><p>认识居民 <strong id="town-npc-count">0 / 15</strong> · 镇民为游戏角色</p><div class="arcade-shortcuts">${Object.entries(
+          <button class="cinema-shortcut"><span>▶ 花园小电视 · 周年放映</span><small>视频异步准备，可以先逛逛，稍后回来继续看</small></button><section class="town-journal"><span class="eyebrow">FUFU’S ANNIVERSARY TOWN</span><h3>沿着晚安，逛逛小镇</h3><p>认识居民 <strong id="town-npc-count">0 / 15</strong> · 镇民为游戏角色</p><div class="arcade-shortcuts">${Object.entries(
             ARCADES,
           )
             .map(

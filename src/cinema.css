@@ -1,0 +1,134 @@
+.cinema-hud {
+  position: absolute;
+  z-index: 7;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  padding: 10px 13px;
+  background: #fff0ce;
+  color: #705667;
+  border: 3px solid #8c6d62;
+  box-shadow:
+    inset 0 0 0 2px #fbdcaf,
+    3px 3px 0 #56425955;
+  font-family: "SimSun", "Microsoft YaHei", monospace;
+}
+.cinema-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.cinema-heading small {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 1.2px;
+  color: #a18677;
+  margin-bottom: 4px;
+}
+.cinema-heading strong {
+  font-size: 13px;
+  color: #9c5b79;
+}
+.cinema-status {
+  font-size: 11px;
+  line-height: 1.8;
+  margin: 8px 0 4px;
+}
+.cinema-progress {
+  font-size: 9px;
+  color: #a28d78;
+  margin: 4px 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+.cinema-controls-hint {
+  margin: 8px 0 0;
+  font-size: 8px;
+  line-height: 1.8;
+  color: #9b806f;
+}
+.cinema-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.cinema-hud .map-action {
+  border-radius: 0;
+  border: 2px solid #a78085;
+  background: #f4d9cd;
+  color: #785268;
+  box-shadow:
+    inset 1px 1px 0 #fff3db,
+    2px 2px 0 #c4a486;
+  font-size: 10px;
+  min-height: 32px;
+  padding: 5px 9px;
+}
+.cinema-hud .cinema-leave {
+  background: #f4e3bb;
+  white-space: nowrap;
+}
+.cinema-active .scene-top,
+.cinema-active .time-pill,
+.cinema-active .checkpoint-pill,
+.cinema-active .crown-toggle,
+.cinema-active .nearby-prompt {
+  visibility: hidden;
+}
+.game-window:has(.cinema-active) .touch-controls {
+  display: none;
+}
+.cinema-shortcut {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-top: 10px;
+  border: 2px solid #c5ac91;
+  background: #f7ebd3;
+  padding: 10px 12px;
+  border-radius: 0;
+  color: #92677d;
+}
+.cinema-shortcut span {
+  display: block;
+  font-size: 11px;
+}
+.cinema-shortcut small {
+  display: block;
+  margin-top: 5px;
+  font-size: 8px;
+  line-height: 1.8;
+  color: #aa947d;
+}
+@media (max-width: 540px) {
+  .cinema-hud {
+    position: relative;
+    inset: auto;
+    margin: 6px;
+    padding: 9px;
+  }
+  .cinema-heading {
+    gap: 6px;
+  }
+  .cinema-heading small {
+    font-size: 6px;
+  }
+  .cinema-heading strong {
+    font-size: 11px;
+  }
+  .cinema-hud .map-action {
+    font-size: 9px;
+    padding: 5px 7px;
+    min-height: 36px;
+  }
+  .cinema-status {
+    font-size: 10px;
+  }
+  .cinema-progress {
+    font-size: 8px;
+    line-height: 1.8;
+  }
+  .cinema-actions {
+    gap: 5px;
+  }
+}
