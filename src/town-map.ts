@@ -1,12 +1,15 @@
 import type { Scene } from "./maps.ts";
 import { ARCADES, TOWN_NPCS } from "./town-data.ts";
 import { fenceSegments } from "./fences.ts";
+import { townSurfaces } from "./town-surfaces.ts";
+import { townCanopies, festivalProps } from "./town-scenery.ts";
 export const townScene: Scene = {
   title: "晚安周年小镇",
   width: 1536,
   height: 1024,
   bounds: { x: 45, y: 45, w: 1440, h: 950 },
   spawn: { x: 620, y: 596 },
+  surfaces: townSurfaces,
   floor: [
     [65, 95],
     [545, 35],
@@ -30,11 +33,55 @@ export const townScene: Scene = {
     { label: "花店主屋", x: 141, y: 86, w: 284, h: 159 },
     { label: "花店温室", x: 122, y: 137, w: 110, h: 102 },
     { label: "烘焙屋", x: 645, y: 73, w: 220, h: 177 },
-    { label: "星饰工坊", x: 1047, y: 209, w: 244, h: 184 },
+    {
+      label: "星饰工坊",
+      points: [
+        [1047, 310],
+        [1084, 291],
+        [1110, 259],
+        [1134, 243],
+        [1138, 220],
+        [1201, 214],
+        [1263, 254],
+        [1280, 323],
+        [1291, 370],
+        [1280, 391],
+        [1211, 401],
+        [1150, 401],
+        [1113, 377],
+        [1068, 377],
+        [1045, 349],
+      ].map(([x, y]) => ({ x, y })),
+    },
     { label: "邮局", x: 125, y: 449, w: 230, h: 170 },
     { label: "相册书屋", x: 703, y: 583, w: 294, h: 169 },
     { label: "晚安电台", x: 1245, y: 648, w: 193, h: 170 },
     { label: "周年纪念馆", x: 905, y: 0, w: 253, h: 112 },
+    ...townCanopies.map((t) => ({
+      label: "小镇树干",
+      x: t.x - 8,
+      y: t.y - 10,
+      w: 16,
+      h: 15,
+    })),
+    ...festivalProps
+      .filter((p) => p.kind === "balloons")
+      .map((p) => ({
+        label: "周年气球花束底座",
+        x: p.x - 7,
+        y: p.y - 7,
+        w: 14,
+        h: 10,
+      })),
+    ...festivalProps
+      .filter((p) => p.kind === "cake")
+      .map((p) => ({
+        label: "一周年庆典蛋糕台",
+        x: p.x - 23,
+        y: p.y - 4,
+        w: 46,
+        h: 19,
+      })),
     {
       label: "书屋池塘",
       points: [

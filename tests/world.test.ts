@@ -24,7 +24,7 @@ for (const [name, scene] of Object.entries(scenes)) {
       ...scene.spots.map((p) => [p.id, p.approach] as const),
     ] as const) {
       assert.equal(
-        canStand(point, scene.walls, scene.bounds, scene.floor),
+        canStand(point, scene.walls, scene.bounds, scene.floor, scene.surfaces),
         true,
         `${label} is blocked`,
       );
@@ -36,7 +36,7 @@ for (const [name, scene] of Object.entries(scenes)) {
     }
     for (const trap of scene.hazards)
       assert.equal(
-        canStand(trap, scene.walls, scene.bounds, scene.floor),
+        canStand(trap, scene.walls, scene.bounds, scene.floor, scene.surfaces),
         true,
         `${trap.id} must be walkable to trigger`,
       );
@@ -96,14 +96,14 @@ test("stairs and courtyard no longer collide with the oversized house box", () =
     { x: 310, y: 150 },
     { x: 560, y: 160 },
   ])
-    assert.equal(canStand(p, s.walls, s.bounds, s.floor), true);
+    assert.equal(canStand(p, s.walls, s.bounds, s.floor, s.surfaces), true);
   for (const p of [
     { x: 380, y: 130 },
     { x: 510, y: 130 },
     { x: 450, y: 90 },
     { x: 845, y: 250 },
   ])
-    assert.equal(canStand(p, s.walls, s.bounds, s.floor), false);
+    assert.equal(canStand(p, s.walls, s.bounds, s.floor, s.surfaces), false);
 });
 
 test("courtyard fences block feet while the central crossing stays open", () => {
@@ -115,12 +115,12 @@ test("courtyard fences block feet while the central crossing stays open", () => 
     { x: 560, y: 382 },
     { x: 558, y: 358 },
   ])
-    assert.equal(canStand(p, s.walls, s.bounds, s.floor), false);
+    assert.equal(canStand(p, s.walls, s.bounds, s.floor, s.surfaces), false);
   for (const p of [
     { x: 450, y: 350 },
     { x: 450, y: 390 },
   ])
-    assert.equal(canStand(p, s.walls, s.bounds, s.floor), true);
+    assert.equal(canStand(p, s.walls, s.bounds, s.floor, s.surfaces), true);
 });
 test("round-table corners and bed-side corridor are clear, furniture bases are solid", () => {
   const s = scenes.room;

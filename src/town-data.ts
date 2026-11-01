@@ -85,8 +85,8 @@ export const TOWN_NPCS: TownNpc[] = [
     id: "post",
     name: "红笺",
     role: "周年邮差",
-    x: 362,
-    y: 665,
+    x: 320,
+    y: 674,
     sprite: 2,
     lines: [
       "有些话不必急着说完。把每一份晚安折好，都会成为这一年的回信。",
@@ -97,7 +97,7 @@ export const TOWN_NPCS: TownNpc[] = [
     id: "maker",
     name: "紫绫",
     role: "饰品工匠",
-    x: 1163,
+    x: 1191,
     y: 446,
     sprite: 3,
     lines: [
@@ -121,8 +121,8 @@ export const TOWN_NPCS: TownNpc[] = [
     id: "books",
     name: "墨桃",
     role: "相册书屋店主",
-    x: 942,
-    y: 808,
+    x: 867,
+    y: 782,
     sprite: 5,
     lines: [
       "这一页写初见，下一页写陪伴。第一年的故事，已经装订成很珍贵的一本。",
@@ -223,7 +223,7 @@ export const TOWN_NPCS: TownNpc[] = [
     name: "奶糖",
     role: "巡街小猫",
     x: 1092,
-    y: 170,
+    y: 156,
     sprite: 14,
     lines: [
       "喵，路过的周年祝福已签收！请带上今天的小快乐继续出发。",

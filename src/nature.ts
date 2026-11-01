@@ -354,6 +354,31 @@ export class Nature {
     }
     if (this.world.scene === "town") return;
     drawCreek(c, creeks[this.world.scene], t);
+    if (this.world.scene === "challenge") {
+      // A small planted flower, replacing the old circle-and-square placeholder.
+      c.fillStyle = "#507b49";
+      c.fillRect(449, 96, 2, 13);
+      c.fillRect(443, 101, 6, 3);
+      c.fillRect(451, 99, 6, 3);
+      c.fillStyle = "#ae668b";
+      for (const [dx, dy] of [
+        [-6, -3],
+        [3, -3],
+        [-2, -7],
+        [-2, 1],
+      ])
+        c.fillRect(450 + dx, 95 + dy, 5, 5);
+      c.fillStyle = "#f5bad0";
+      for (const [dx, dy] of [
+        [-5, -3],
+        [3, -3],
+        [-1, -6],
+        [-1, 2],
+      ])
+        c.fillRect(450 + dx, 95 + dy, 3, 3);
+      c.fillStyle = "#ffe5a0";
+      c.fillRect(449, 94, 3, 3);
+    }
     const flowers = this.world.config.spots.find((s) => s.id === "flowers")!;
     const picked = this.picked("flowers");
     for (let i = picked; i < 8; i++) {
@@ -478,7 +503,13 @@ export class Nature {
     g.globalCompositeOperation = "source-over";
     // Cut the complete night tint out around each light, keeping the flowers and
     // paving warm and saturated there rather than leaving a global grey filter.
-    g.fillStyle = `rgba(13,26,59,${shade * (this.world.scene === "room" ? 0.4 : 0.7)})`;
+    const nightOpacity =
+      this.world.scene === "town"
+        ? 0.38
+        : this.world.scene === "room"
+          ? 0.35
+          : 0.52;
+    g.fillStyle = `rgba(24,36,70,${shade * nightOpacity})`;
     g.fillRect(0, 0, width, height);
     g.globalCompositeOperation = "destination-out";
     for (const light of sceneLights[this.world.scene]) {

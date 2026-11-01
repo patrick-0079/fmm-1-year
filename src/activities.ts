@@ -22,6 +22,8 @@ export class Activities {
   private hud: HTMLElement;
   private status: HTMLElement;
   private controls: HTMLElement;
+  private speaker: HTMLElement;
+  private portrait: HTMLCanvasElement;
   private cakeStage = 0;
   private blow = 0;
   private blowing = false;
@@ -52,6 +54,17 @@ export class Activities {
     this.hud = document.querySelector(".activity-hud")!;
     this.status = this.hud.querySelector(".activity-status")!;
     this.controls = this.hud.querySelector(".activity-actions")!;
+    this.speaker = document.createElement("strong");
+    this.speaker.className = "dialogue-name";
+    this.speaker.hidden = true;
+    this.status.before(this.speaker);
+    this.portrait = document.createElement("canvas");
+    this.portrait.className = "dialogue-portrait";
+    this.portrait.width = 48;
+    this.portrait.height = 56;
+    this.portrait.setAttribute("aria-hidden", "true");
+    this.portrait.hidden = true;
+    this.hud.prepend(this.portrait);
     this.hud
       .querySelector(".activity-close")!
       .addEventListener("click", () => this.close());
@@ -101,6 +114,8 @@ export class Activities {
     this.mode = mode;
     this.hud.dataset.mode = mode;
     this.hud.hidden = false;
+    this.speaker.hidden = true;
+    this.portrait.hidden = true;
     this.status.textContent = text;
     if (point) {
       this.world.setFocus(point, zoom);
@@ -309,6 +324,22 @@ export class Activities {
     this.begin("nature", text);
     for (const option of options) this.action(option.title, option.run);
   }
+  dialogue(
+    speaker: string,
+    text: string,
+    options: { title: string; run: () => void }[],
+    paint: (c: CanvasRenderingContext2D) => void,
+  ) {
+    this.begin("dialogue", text);
+    this.speaker.textContent = speaker;
+    this.speaker.hidden = false;
+    this.portrait.hidden = false;
+    const c = this.portrait.getContext("2d")!;
+    c.clearRect(0, 0, 48, 56);
+    c.imageSmoothingEnabled = false;
+    paint(c);
+    for (const option of options) this.action(option.title, option.run);
+  }
   private pointer(type: string, point: Point) {
     if (this.mode === "cake") {
       if (type === "down" && this.cakeStage === 1) {
@@ -511,14 +542,6 @@ export class Activities {
       c.font = "8px sans-serif";
       for (const m of this.messages) c.fillText(m.text, m.x, 220 + m.row * 13);
       c.restore();
-    }
-    if (this.world.scene === "challenge") {
-      c.fillStyle = "#df9ab3";
-      c.beginPath();
-      c.arc(450, 98, 12, 0, Math.PI * 2);
-      c.fill();
-      c.fillStyle = "#fff0ac";
-      c.fillRect(446, 94, 8, 8);
     }
     c.restore();
   }

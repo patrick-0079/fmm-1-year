@@ -5,8 +5,16 @@ import type { Arcade } from "./arcade";
 import { ARCADES, TOWN_NPCS, TOWN_FRAMES } from "./town-data";
 import type { GameId } from "./arcade-engines";
 import npcUrl from "./assets/town-npcs.webp";
+import cakeUrl from "./assets/anniversary-cake.webp";
+import {
+  townCanopies,
+  festivalProps,
+  drawTownPaving,
+  drawFestivalProp,
+} from "./town-scenery";
 export class Town {
   private sprites = new Image();
+  private cake = new Image();
   private visited = new Set<string>();
   private time = 0;
   constructor(
@@ -16,6 +24,7 @@ export class Town {
     private arcade: Arcade,
   ) {
     this.sprites.src = npcUrl;
+    this.cake.src = cakeUrl;
     try {
       const list = JSON.parse(
         localStorage.getItem("fufu-town-talked-v1") || "[]",
@@ -60,8 +69,9 @@ export class Town {
     this.updateJournal();
     let line = 0;
     const talk = () =>
-      this.activities.menu(
-        `${npc.name} · ${npc.role}：${npc.lines[line % npc.lines.length]}`,
+      this.activities.dialogue(
+        `${npc.name} · ${npc.role}`,
+        npc.lines[line % npc.lines.length],
         [
           ...(npc.lines.length > 1
             ? [
@@ -98,6 +108,22 @@ export class Town {
             : []),
           { title: "看看纪念背包", run: () => this.inventory.open() },
         ],
+        (c) => {
+          if (!this.sprites.complete || !this.sprites.naturalWidth) return;
+          const f = TOWN_FRAMES[npc.sprite],
+            scale = 47 / f.h;
+          c.drawImage(
+            this.sprites,
+            f.x,
+            f.y,
+            f.w,
+            f.h,
+            (48 - f.w * scale) / 2,
+            5,
+            f.w * scale,
+            47,
+          );
+        },
       );
     talk();
     return true;
@@ -117,6 +143,24 @@ export class Town {
   private layers(): DepthLayer[] {
     if (this.world.scene !== "town") return [];
     return [
+      ...townCanopies.map((t) => ({
+        y: t.y,
+        draw: (c: CanvasRenderingContext2D) => {
+          const behind =
+            this.world.player.y < t.y &&
+            this.world.player.y > Math.min(...t.points.map((p) => p.y)) - 4 &&
+            Math.abs(this.world.player.x - t.x) < 62;
+          c.save();
+          if (behind) c.globalAlpha = 0.5;
+          this.world.drawMapFragment(c, t.points);
+          c.restore();
+        },
+      })),
+      ...festivalProps.map((p) => ({
+        y: p.y + (p.kind === "cake" ? 15 : p.kind === "arch" ? 5 : 3),
+        draw: (c: CanvasRenderingContext2D) =>
+          drawFestivalProp(c, p, this.time, this.cake),
+      })),
       ...Object.values(ARCADES).map((g) => ({
         y: g.y + 18,
         draw: (c: CanvasRenderingContext2D) => {
@@ -190,6 +234,9 @@ export class Town {
   }
   private drawSigns(c: CanvasRenderingContext2D) {
     if (this.world.scene !== "town") return;
+    drawTownPaving(c, (context, points) =>
+      this.world.drawPavingPatch(context, points),
+    );
     c.save();
     c.fillStyle = "#87634d";
     c.fillRect(680, 371, 174, 23);

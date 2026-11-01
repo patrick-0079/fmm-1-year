@@ -14,6 +14,8 @@ export interface Geometry {
   bounds: Rect;
   walls: Obstacle[];
   floor?: Point[];
+  /** Union of paved surfaces; absent for maps whose lawns are walkable. */
+  surfaces?: Point[][];
 }
 export interface Hazard {
   id: string;
@@ -129,6 +131,34 @@ function polygonEdgeDistance(point: Point, points: Point[]) {
     ),
   );
 }
+const surfaceBounds = new WeakMap<
+  Point[][],
+  { points: Point[]; bounds: Rect }[]
+>();
+function onSurface(point: Point, surfaces: Point[][]) {
+  let index = surfaceBounds.get(surfaces);
+  if (!index) {
+    index = surfaces.map((points) => {
+      const xs = points.map((p) => p.x),
+        ys = points.map((p) => p.y);
+      const x = Math.min(...xs),
+        y = Math.min(...ys);
+      return {
+        points,
+        bounds: { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y },
+      };
+    });
+    surfaceBounds.set(surfaces, index);
+  }
+  return index.some(
+    ({ points, bounds: b }) =>
+      point.x >= b.x &&
+      point.x <= b.x + b.w &&
+      point.y >= b.y &&
+      point.y <= b.y + b.h &&
+      polygonContains(point, points),
+  );
+}
 export function obstacleContainsFoot(point: Point, obstacle: Obstacle) {
   if ("points" in obstacle)
     return (
@@ -144,6 +174,7 @@ export function canStand(
   walls: Obstacle[],
   bounds: Rect,
   floor?: Point[],
+  surfaces?: Point[][],
 ): boolean {
   if (
     point.x - PLAYER_RADIUS < bounds.x ||
@@ -158,6 +189,21 @@ export function canStand(
       polygonEdgeDistance(point, floor) < PLAYER_RADIUS - 1e-6)
   )
     return false;
+  if (surfaces) {
+    // Test the complete foot against the union, so joining street polygons do
+    // not create invisible seams, while planted edges still stop movement.
+    for (let i = -1; i < 12; i++) {
+      const a = (i * Math.PI) / 6;
+      const p =
+        i < 0
+          ? point
+          : {
+              x: point.x + Math.cos(a) * PLAYER_RADIUS,
+              y: point.y + Math.sin(a) * PLAYER_RADIUS,
+            };
+      if (!onSurface(p, surfaces)) return false;
+    }
+  }
   return !walls.some((wall) => obstacleContainsFoot(point, wall));
 }
 export function touchingHazard(
@@ -177,6 +223,7 @@ export function movePlayer(
   walls: Obstacle[],
   bounds: Rect,
   floor?: Point[],
+  surfaces?: Point[][],
 ): Point {
   const length = Math.hypot(input.x, input.y);
   if (!length) return { ...point };
@@ -186,9 +233,17 @@ export function movePlayer(
     dy = ((input.y / length) * distance) / steps;
   const next = { ...point };
   for (let i = 0; i < steps; i++) {
-    if (canStand({ x: next.x + dx, y: next.y }, walls, bounds, floor))
+    const horizontal = { x: next.x + dx, y: next.y };
+    if (
+      canStand(horizontal, walls, bounds, floor, surfaces) &&
+      (!surfaces || travelOnSurfaces(next, horizontal, surfaces))
+    )
       next.x += dx;
-    if (canStand({ x: next.x, y: next.y + dy }, walls, bounds, floor))
+    const vertical = { x: next.x, y: next.y + dy };
+    if (
+      canStand(vertical, walls, bounds, floor, surfaces) &&
+      (!surfaces || travelOnSurfaces(next, vertical, surfaces))
+    )
       next.y += dy;
   }
   return next;
@@ -199,6 +254,8 @@ export function canTravelBetween(
   geometry: Geometry,
   hazards: Hazard[] = [],
 ): boolean {
+  if (geometry.surfaces && !travelOnSurfaces(start, end, geometry.surfaces))
+    return false;
   const steps = Math.max(
     1,
     Math.ceil(Math.hypot(end.x - start.x, end.y - start.y) / 2),
@@ -216,6 +273,49 @@ export function canTravelBetween(
   }
   return true;
 }
+/** Validate every interval between polygon crossings, including sub-pixel seams. */
+function travelOnSurfaces(start: Point, end: Point, surfaces: Point[][]) {
+  const dx = end.x - start.x,
+    dy = end.y - start.y;
+  for (let probe = -1; probe < 12; probe++) {
+    const angle = (probe * Math.PI) / 6;
+    const a = {
+      x: start.x + (probe < 0 ? 0 : Math.cos(angle) * PLAYER_RADIUS),
+      y: start.y + (probe < 0 ? 0 : Math.sin(angle) * PLAYER_RADIUS),
+    };
+    const b = { x: a.x + dx, y: a.y + dy };
+    if (!onSurface(a, surfaces) || !onSurface(b, surfaces)) return false;
+    const cuts = [0, 1];
+    for (const { points, bounds: r } of surfaceBounds.get(surfaces)!) {
+      if (
+        Math.max(a.x, b.x) < r.x ||
+        Math.min(a.x, b.x) > r.x + r.w ||
+        Math.max(a.y, b.y) < r.y ||
+        Math.min(a.y, b.y) > r.y + r.h
+      )
+        continue;
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i],
+          q = points[(i + 1) % points.length],
+          ex = q.x - p.x,
+          ey = q.y - p.y;
+        const determinant = dx * ey - dy * ex;
+        if (Math.abs(determinant) < 1e-10) continue;
+        const t = ((p.x - a.x) * ey - (p.y - a.y) * ex) / determinant;
+        const u = ((p.x - a.x) * dy - (p.y - a.y) * dx) / determinant;
+        if (t > 1e-9 && t < 1 - 1e-9 && u >= 0 && u <= 1) cuts.push(t);
+      }
+    }
+    cuts.sort((x, y) => x - y);
+    for (let i = 1; i < cuts.length; i++) {
+      if (cuts[i] - cuts[i - 1] < 1e-9) continue;
+      const t = (cuts[i] + cuts[i - 1]) / 2;
+      if (!onSurface({ x: a.x + dx * t, y: a.y + dy * t }, surfaces))
+        return false;
+    }
+  }
+  return true;
+}
 /** Routes and their connecting segments use the same foot collision as keyboard movement. */
 export function findPath(
   start: Point,
@@ -223,7 +323,15 @@ export function findPath(
   geometry: Geometry,
   hazards: Hazard[] = [],
 ): Point[] | null {
-  if (!canStand(start, geometry.walls, geometry.bounds, geometry.floor))
+  if (
+    !canStand(
+      start,
+      geometry.walls,
+      geometry.bounds,
+      geometry.floor,
+      geometry.surfaces,
+    )
+  )
     return null;
   const step = 8,
     cols = Math.ceil((geometry.bounds.x + geometry.bounds.w) / step) + 1;
@@ -233,8 +341,13 @@ export function findPath(
     y: Math.floor(id / cols) * step + 4,
   });
   const valid = (point: Point) =>
-    canStand(point, geometry.walls, geometry.bounds, geometry.floor) &&
-    !touchingHazard(point, hazards, PLAYER_RADIUS + 2);
+    canStand(
+      point,
+      geometry.walls,
+      geometry.bounds,
+      geometry.floor,
+      geometry.surfaces,
+    ) && !touchingHazard(point, hazards, PLAYER_RADIUS + 2);
   let anchor = -1,
     nearest = Infinity;
   const sx = Math.floor(start.x / step),

@@ -190,6 +190,38 @@ export class World {
       y: (point.y - this.camera.y) * this.zoom,
     };
   }
+  drawMapFragment(c: CanvasRenderingContext2D, points: Point[]) {
+    const background = this.images.get(art[this.scene]);
+    if (!background) return;
+    const x = Math.floor(Math.min(...points.map((p) => p.x))),
+      y = Math.floor(Math.min(...points.map((p) => p.y))),
+      w = Math.ceil(Math.max(...points.map((p) => p.x))) - x,
+      h = Math.ceil(Math.max(...points.map((p) => p.y))) - y;
+    c.save();
+    c.beginPath();
+    points.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
+    c.closePath();
+    c.clip();
+    c.drawImage(background, x, y, w, h, x, y, w, h);
+    c.restore();
+  }
+  drawPavingPatch(c: CanvasRenderingContext2D, points: Point[]) {
+    const image = this.images.get(townUrl);
+    if (!image) return;
+    const left = Math.floor(Math.min(...points.map((p) => p.x))),
+      top = Math.floor(Math.min(...points.map((p) => p.y)));
+    const right = Math.max(...points.map((p) => p.x)),
+      bottom = Math.max(...points.map((p) => p.y));
+    c.save();
+    c.beginPath();
+    points.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
+    c.closePath();
+    c.clip();
+    for (let y = top; y < bottom; y += 32)
+      for (let x = left; x < right; x += 32)
+        c.drawImage(image, 476, 805, 32, 32, x, y, 32, 32);
+    c.restore();
+  }
   get config() {
     return scenes[this.scene];
   }
@@ -371,6 +403,7 @@ export class World {
         this.config.walls,
         this.config.bounds,
         this.config.floor,
+        this.config.surfaces,
       );
     }
     const dx = this.player.x - before.x,
@@ -439,11 +472,18 @@ export class World {
     );
   }
   private markerY(spot: Hotspot) {
-    return Math.round(
+    const y = Math.round(
       spot.y -
         (spot.markerOffset ?? 12) +
         (this.reducedMotion.matches ? 0 : Math.sin(this.time * 2 + spot.x) * 2),
     );
+    if (
+      Math.abs(spot.x - this.player.x) < 22 &&
+      y > this.player.y - 50 &&
+      y < this.player.y + 8
+    )
+      return Math.round(this.player.y - 57);
+    return y;
   }
   private draw() {
     const c = this.ctx,
@@ -524,6 +564,7 @@ export class World {
     layers.sort((a, b) => a.y - b.y).forEach((layer) => layer.draw(c));
     for (const spot of this.config.spots) {
       if (!this.available(spot)) continue;
+      if (this.restState && (spot.id === "rest" || spot.id === "bed")) continue;
       if (this.focus) continue;
       const y = this.markerY(spot);
       c.fillStyle = "#fff8ed";
@@ -729,6 +770,13 @@ export class World {
         c.closePath();
       } else c.rect(wall.x, wall.y, wall.w, wall.h);
       c.fill();
+      c.stroke();
+    }
+    c.strokeStyle = "#56d4e5";
+    for (const surface of this.config.surfaces ?? []) {
+      c.beginPath();
+      surface.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
+      c.closePath();
       c.stroke();
     }
     c.strokeStyle = "#14c687";

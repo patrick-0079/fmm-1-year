@@ -70,5 +70,14 @@ export const sceneLights: Record<SceneId, Light[]> = {
     [861, 709],
     [1333, 771],
     [625, 565],
-  ].map(([x, y]) => warm(x, y, 65)),
+  ]
+    .map(([x, y]) => warm(x, y, 90))
+    .concat([
+      warm(450, 906, 110),
+      warm(759, 430, 125),
+      warm(628, 375, 70),
+      warm(897, 450, 70),
+      warm(1204, 409, 70),
+      warm(1284, 845, 85),
+    ]),
 };

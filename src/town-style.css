@@ -241,7 +241,101 @@
 .game-window:has(.arcade-active) .touch-controls {
   display: none;
 }
+/* Cream paper, wooden pixels and square buttons match the world itself. */
+.activity-hud,
+.arcade-hud {
+  border: 3px solid #8c6d62;
+  border-radius: 0;
+  background: #fff0ce;
+  color: #695063;
+  box-shadow:
+    inset 0 0 0 2px #fbdcaf,
+    3px 3px 0 #56425955;
+  backdrop-filter: none;
+  font-family: "SimSun", "Microsoft YaHei", monospace;
+}
+.activity-hud {
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  padding: 12px 14px;
+}
+.activity-heading {
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.activity-status {
+  flex: 1 1 65%;
+  line-height: 1.8;
+}
+.activity-close {
+  margin-left: auto;
+  padding: 4px 7px;
+  color: #8f6c70;
+}
+.activity-hud .map-action,
+.arcade-hud .map-action,
+.arcade-controls button {
+  border-radius: 0;
+  border: 2px solid #a78085;
+  background: #f4d9cd;
+  color: #785268;
+  box-shadow:
+    inset 1px 1px 0 #fff3db,
+    2px 2px 0 #c4a486;
+}
+.activity-hud .map-action:hover,
+.arcade-hud .map-action:hover {
+  background: #eed2e0;
+}
+.activity-hud[data-mode="dialogue"] {
+  padding-left: 83px;
+  min-height: 110px;
+}
+.dialogue-name {
+  flex: 1 1 70%;
+  font-size: 13px;
+  color: #9c5b79;
+  letter-spacing: 1px;
+}
+.activity-hud[data-mode="dialogue"] .activity-status {
+  order: 2;
+  flex-basis: 100%;
+  font-size: 13px;
+}
+.scene-wrap .dialogue-portrait {
+  position: absolute;
+  left: 12px;
+  top: 15px;
+  width: 56px;
+  height: 66px;
+  border: 2px solid #b99889;
+  background: #ead9b8;
+  image-rendering: pixelated;
+  box-shadow: inset 2px 2px 0 #d3ba98;
+}
 @media (max-width: 540px) {
+  .activity-hud {
+    position: relative;
+    inset: auto;
+    margin: 6px;
+    padding: 9px;
+  }
+  .activity-hud[data-mode="dialogue"] {
+    padding-left: 66px;
+  }
+  .scene-wrap .dialogue-portrait {
+    left: 7px;
+    top: 11px;
+    width: 45px;
+    height: 53px;
+  }
+  .dialogue-name {
+    font-size: 11px;
+  }
+  .activity-hud[data-mode="dialogue"] .activity-status {
+    font-size: 11px;
+  }
   .inventory-panel {
     padding: 11px;
   }
