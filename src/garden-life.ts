@@ -4,8 +4,9 @@ import type { Inventory } from "./inventory";
 import { gardenGuests, gardenCritters } from "./garden-guests";
 import { TOWN_FRAMES } from "./town-data";
 import npcUrl from "./assets/town-npcs.webp";
-import { canStand, canTravelBetween, findPath, type Point } from "./core";
+import { canStand } from "./core";
 import { drawItem } from "./item-art";
+import { CompanionMotion } from "./companion-motion";
 
 export class GardenLife {
   private npcs = new Image();
@@ -140,12 +141,8 @@ export class GardenLife {
 export class Companion {
   private scene = "";
   private id = "";
-  private position: Point = { x: 0, y: 0 };
-  private trail: Point[] = [];
-  private path: Point[] = [];
-  private retry = 0;
+  private motion = new CompanionMotion();
   private time = 0;
-  private mirrored = false;
   constructor(private world: World) {
     const tick = world.onTick,
       layers = world.getDepthLayers;
@@ -166,51 +163,10 @@ export class Companion {
     if (this.scene !== this.world.scene || this.id !== id) {
       this.scene = this.world.scene;
       this.id = id;
-      this.position = { ...this.world.player };
-      this.trail = [];
-      this.path = [];
+      this.motion.reset(this.world.player);
     }
-    if (this.world.paused || this.world.restState?.kind === "lying") return;
-    const last = this.trail.at(-1) ?? this.position;
-    if (
-      Math.hypot(last.x - this.world.player.x, last.y - this.world.player.y) > 4
-    )
-      this.trail.push({ ...this.world.player });
-    this.retry -= dt;
-    if (
-      !this.trail.length ||
-      Math.hypot(
-        this.position.x - this.world.player.x,
-        this.position.y - this.world.player.y,
-      ) < 22
-    ) {
-      this.path = [];
-      return;
-    }
-    const target = this.trail[0];
-    if (!canTravelBetween(this.position, target, c) && this.retry <= 0) {
-      this.path = findPath(this.position, target, c, []) ?? [];
-      this.retry = 0.6;
-    }
-    const next = this.path[0] ?? target,
-      dx = next.x - this.position.x,
-      dy = next.y - this.position.y,
-      d = Math.hypot(dx, dy),
-      step = Math.min(d, 85 * dt);
-    if (d < 1) {
-      if (this.path.length) this.path.shift();
-      else this.trail.shift();
-      return;
-    }
-    const p = {
-      x: this.position.x + (dx / d) * step,
-      y: this.position.y + (dy / d) * step,
-    };
-    if (canTravelBetween(this.position, p, c)) {
-      this.mirrored = dx < 0;
-      this.position = p;
-    }
-    if (this.trail.length > 200) this.trail.splice(0, this.trail.length - 200);
+    this.motion.update(this.world.player, c, dt,
+      !this.world.paused && !this.world.suspended && !this.world.busy && !this.world.restState);
   }
   private layers() {
     if (
@@ -221,9 +177,9 @@ export class Companion {
       return [];
     return [
       {
-        y: this.position.y + 1,
+        y: this.motion.position.y + 1,
         draw: (c: CanvasRenderingContext2D) => {
-          const p = this.position,
+          const p = this.motion.position,
             bob = this.world.paused ? 0 : Math.sin(this.time * 6) * 0.5;
           c.fillStyle = "#5e63462b";
           c.beginPath();
@@ -231,7 +187,7 @@ export class Companion {
           c.fill();
           c.save();
           c.translate(p.x, p.y + bob);
-          if (this.mirrored) c.scale(-1, 1);
+          if (this.motion.mirrored) c.scale(-1, 1);
           drawItem(c, this.id as "petBunny" | "petCat", -10, -18, 20, 19);
           c.restore();
         },

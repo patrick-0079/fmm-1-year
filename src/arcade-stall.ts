@@ -1,59 +1,27 @@
 import type { GameId } from "./arcade-engines";
 import type { ARCADES } from "./town-data";
+import { sceneArt, stallFrames } from "./scene-art";
 
-/** A small anniversary fair stall, anchored to the same counter/collision base. */
-export function drawArcadeStall(
-  c: CanvasRenderingContext2D,
-  game: (typeof ARCADES)[GameId],
-  id: GameId,
-) {
-  const accent = {
-    snake: "#92bda5",
-    blocks: "#b69acd",
-    hop: "#ddad91",
-    flight: "#8dbdcf",
-    link: "#cf9db5",
-    mines: "#9abb99",
-    miner: "#d5b371",
-  }[id];
+/** Detailed timber stalls share the town's material, scale and collision baseline. */
+export function drawArcadeStall(c: CanvasRenderingContext2D, game: (typeof ARCADES)[GameId], id: GameId) {
+  const variant = { snake: 0, blocks: 1, hop: 2, flight: 0, link: 2, mines: 0, miner: 1 }[id];
+  const image = sceneArt.stalls;
+  if (!image.complete || !image.naturalWidth) return;
+  const f = stallFrames[variant], width = 78, height = width * f.h / f.w;
   c.save();
   c.translate(game.x, game.y);
-  c.fillStyle = "#514c4930";
+  c.fillStyle = "#514c4928";
   c.beginPath();
-  c.ellipse(0, 17, 31, 7, 0, 0, Math.PI * 2);
+  c.ellipse(0, 17, 37, 5, 0, 0, Math.PI * 2);
   c.fill();
-  for (const x of [-25, 22]) {
-    c.fillStyle = "#7e5c49";
-    c.fillRect(x, -43, 4, 60);
-    c.fillStyle = "#c29d73";
-    c.fillRect(x + 1, -42, 1, 57);
-  }
-  c.fillStyle = "#795b47";
-  c.fillRect(-26, -2, 52, 20);
-  c.fillStyle = "#c99d71";
-  c.fillRect(-24, -1, 48, 17);
-  c.fillStyle = "#e0b68c";
-  c.fillRect(-23, 0, 46, 3);
-  c.strokeStyle = "#a57a58";
-  c.lineWidth = 0.7;
-  for (const y of [6, 12]) {
-    c.beginPath();
-    c.moveTo(-23, y);
-    c.lineTo(23, y);
-    c.stroke();
-  }
-  c.fillStyle = "#f0d6a9";
-  c.fillRect(-29, -5, 58, 4);
-  c.fillStyle = "#9b7556";
-  c.fillRect(-29, -1, 58, 2);
-  c.fillStyle = "#bd9484";
-  c.fillRect(-21, -30, 42, 25);
-  c.fillStyle = "#f0d7b6";
-  c.fillRect(-20, -29, 40, 24);
-  c.fillStyle = "#283f4d";
-  c.fillRect(-18, -27, 36, 20);
-  c.fillStyle = "#47636c";
-  c.fillRect(-17, -26, 34, 2);
+  c.drawImage(image, f.x, f.y, f.w, f.h, -width / 2, 18 - height, width, height);
+  c.fillStyle = "#66434f";
+  c.font = '7px "Microsoft YaHei","PingFang SC",sans-serif';
+  c.textAlign = "center";
+  c.fillText(game.short, 0, -61, 38);
+  c.save();
+  c.translate(0, -8);
+  c.scale(0.7, 0.7);
   // Tiny game illustrations replace the old unreadable screen label.
   if (id === "snake") {
     c.fillStyle = "#b1dbc0";
@@ -138,46 +106,9 @@ export function drawArcadeStall(
     c.fillStyle = "#e1a1a7";
     c.fillRect(4, -18, 3, 2);
   }
-  c.fillStyle = accent;
-  c.beginPath();
-  c.moveTo(-30, -47);
-  c.lineTo(27, -47);
-  c.lineTo(33, -36);
-  c.lineTo(-33, -36);
-  c.closePath();
-  c.fill();
-  for (let i = 0; i < 6; i++) {
-    c.fillStyle = i % 2 ? "#fff0d4" : accent;
-    c.fillRect(-32 + i * 11, -36, 11, 6);
-    c.beginPath();
-    c.ellipse(-26.5 + i * 11, -30, 5.5, 2, 0, 0, Math.PI);
-    c.fill();
-  }
-  c.strokeStyle = "#8c745c";
-  c.lineWidth = 1;
-  c.strokeRect(-30, -48, 58, 2);
-  c.fillStyle = "#906a59";
-  c.fillRect(-27, -59, 54, 10);
-  c.fillStyle = "#fff0d1";
-  c.fillRect(-26, -58, 52, 8);
-  c.fillStyle = "#805d6e";
-  c.font = '8px "Microsoft YaHei",sans-serif';
-  c.textAlign = "center";
-  c.fillText(game.short, 0, -51);
-  c.fillStyle = "#f3d28c";
-  for (const x of [-23, 23]) {
-    c.beginPath();
-    c.arc(x, -34, 1.4, 0, Math.PI * 2);
-    c.fill();
-  }
-  c.fillStyle = "#db9eb3";
-  c.fillRect(-10, 3, 6, 4);
-  c.fillStyle = "#a6c7bf";
-  c.fillRect(4, 3, 6, 4);
-  c.fillStyle = "#fff4d7";
-  c.fillRect(-19, 5, 38, 9);
+  c.restore();
   c.fillStyle = "#9b6c7f";
-  c.font = '8px "Microsoft YaHei",sans-serif';
-  c.fillText("周年游乐", 0, 12);
+  c.font = '6px "Microsoft YaHei","PingFang SC",sans-serif';
+  c.fillText("一周年游乐会", 0, 5, 29);
   c.restore();
 }

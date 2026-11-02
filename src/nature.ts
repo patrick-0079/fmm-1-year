@@ -14,6 +14,7 @@ import treeUrl from "./assets/apple-tree.webp";
 import dewUrl from "./assets/morning-dew-flower.webp";
 import roomArtUrl from "./assets/room-interactive.webp";
 import { drawRoomWindow } from "./window-sky";
+import { drawKeepsake } from "./scene-art";
 interface NatureSave {
   picked: Record<string, number>;
   apple: number;
@@ -35,7 +36,6 @@ const initial = (): NatureSave => ({
 export class Nature {
   private treeImage = new Image();
   private benchImage = new Image();
-  private wreathImage = new Image();
   private dewImage = new Image();
   private windowImage = new Image();
   private origin = Date.now();
@@ -55,7 +55,6 @@ export class Nature {
     this.dewImage.src = dewUrl;
     this.windowImage.src = roomArtUrl;
     this.benchImage.src = benchUrl;
-    this.wreathImage.src = wreathUrl;
     try {
       const clock = JSON.parse(localStorage.getItem(CLOCK_KEY) || "null");
       if (
@@ -387,16 +386,10 @@ export class Nature {
     }
     for (const spot of this.world.config.spots) {
       if (!this.available(spot)) continue;
-      if (
-        spot.id === "wreath" &&
-        this.wreathImage.complete &&
-        this.wreathImage.naturalWidth
-      )
-        c.drawImage(this.wreathImage, spot.x - 15, spot.y - 4, 30, 12);
+      if (spot.id === "wreath")
+        drawKeepsake(c, "wreath", spot.x, spot.y, 31);
       if (spot.id === "drop") {
-        c.fillStyle = "#ffe1a3";
-        c.fillRect(spot.x - 5, spot.y - 3, 10, 6);
-        c.fillRect(spot.x - 2, spot.y - 7, 4, 14);
+        drawKeepsake(c, "star", spot.x, spot.y, 29);
       }
       if (spot.id === "dew") {
         if (this.dewImage.complete && this.dewImage.naturalWidth)

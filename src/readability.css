@@ -42,7 +42,8 @@ small {
   flex: 1;
 }
 #world {
-  image-rendering: auto;
+  /* Text is drawn at device density; don't smooth the pixel artwork a second time. */
+  image-rendering: pixelated;
 }
 .activity-hud,
 .arcade-hud,

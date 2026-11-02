@@ -4,7 +4,8 @@ import challengeUrl from "./assets/courage-garden.webp";
 import spriteUrl from "./assets/nemu-sprites.webp";
 import restUrl from "./assets/fufu-rest-poses.webp";
 import wreathUrl from "./assets/flower-wreath.webp";
-import townUrl from "./assets/anniversary-town-v2.webp";
+import townUrl from "./assets/anniversary-town-v12.webp";
+import { pavingUrl, sceneArtReady } from "./scene-art";
 import trapsUrl from "./assets/garden-traps.webp";
 import { rewardsUrl } from "./item-art";
 import { emptyInventory, type Equipped } from "./items";
@@ -122,7 +123,7 @@ export class World {
     canvas.width = 600;
     canvas.height = 400;
     const resize = () => {
-      const width = Math.max(300, canvas.getBoundingClientRect().width);
+      const width = Math.max(1, canvas.getBoundingClientRect().width);
       const pixels = Math.ceil(
         width * Math.min(3, window.devicePixelRatio || 1),
       );
@@ -306,37 +307,59 @@ export class World {
     points: Point[],
     surface: "town" | "garden" = "town",
   ) {
+    this.drawPavingArea(c, [points], surface);
+  }
+  drawPavingArea(
+    c: CanvasRenderingContext2D,
+    areas: Point[][],
+    surface: "town" | "garden" = "town",
+  ) {
     const garden = surface === "garden";
-    const image = this.images.get(garden ? gardenUrl : townUrl);
+    const image = this.images.get(garden ? gardenUrl : pavingUrl);
     if (!image) return;
-    // A clean section of the garden's own brick path, before the rose arch.
-    // Keep the native artwork scale and preserve the town's separate paving.
+    // Garden paths retain native brick scale. Town paving uses one shared,
+    // mirrored pixel texture aligned to world coordinates across every patch.
     const source = garden
       ? { x: 720, y: 730, size: 72 }
-      : { x: 476, y: 805, size: 32 };
-    const tile = garden ? (source.size * 900) / 1536 : source.size;
-    const left = Math.floor(Math.min(...points.map((p) => p.x))),
-      top = Math.floor(Math.min(...points.map((p) => p.y)));
+      : { x: 0, y: 0, size: image.naturalWidth };
+    const tile = garden ? (source.size * 900) / 1536 : 96;
+    const points = areas.flat();
+    const left = Math.floor(Math.min(...points.map((p) => p.x)) / tile) * tile,
+      top = Math.floor(Math.min(...points.map((p) => p.y)) / tile) * tile;
     const right = Math.max(...points.map((p) => p.x)),
       bottom = Math.max(...points.map((p) => p.y));
     c.save();
     c.beginPath();
-    points.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
-    c.closePath();
+    for (const polygon of areas) {
+      const area = polygon.reduce((sum, p, i) => {
+        const q = polygon[(i + 1) % polygon.length];
+        return sum + p.x * q.y - q.x * p.y;
+      }, 0);
+      const ordered = area < 0 ? [...polygon].reverse() : polygon;
+      ordered.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
+      c.closePath();
+    }
     c.clip();
     for (let y = top; y < bottom; y += tile)
-      for (let x = left; x < right; x += tile)
+      for (let x = left; x < right; x += tile) {
+        const flipX = !garden && Math.round(x / tile) % 2 !== 0,
+          flipY = !garden && Math.round(y / tile) % 2 !== 0;
+        c.save();
+        c.translate(x + (flipX ? tile : 0), y + (flipY ? tile : 0));
+        c.scale(flipX ? -1 : 1, flipY ? -1 : 1);
         c.drawImage(
           image,
           source.x,
           source.y,
           source.size,
           source.size,
-          x,
-          y,
+          0,
+          0,
           tile,
           tile,
         );
+        c.restore();
+      }
     c.restore();
   }
   get config() {
@@ -377,8 +400,9 @@ export class World {
     this.onRestChange(null);
   }
   async load() {
-    await Promise.all(
-      [
+    await Promise.all([
+      sceneArtReady,
+      ...[
         roomUrl,
         gardenUrl,
         challengeUrl,
@@ -386,6 +410,7 @@ export class World {
         restUrl,
         wreathUrl,
         townUrl,
+        pavingUrl,
         trapsUrl,
         rewardsUrl,
       ].map(
@@ -401,7 +426,7 @@ export class World {
             image.src = url;
           }),
       ),
-    );
+    ]);
     this.frameId = requestAnimationFrame(this.frame);
   }
   clearInput() {

@@ -226,7 +226,7 @@ export class Town {
   private drawSigns(c: CanvasRenderingContext2D) {
     if (this.world.scene !== "town") return;
     drawTownPaving(c, (context, points) =>
-      this.world.drawPavingPatch(context, points),
+      this.world.drawPavingArea(context, points),
     );
     c.save();
     c.fillStyle = "#87634d";

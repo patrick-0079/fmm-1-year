@@ -15,14 +15,12 @@ export class GardenCinema {
   private time = 0;
   private slow = false;
   private notified = false;
-  private wishing = false;
   private download = new FilmPreloader(gardenFilm.src, () => this.render());
   private player = document.createElement("section");
   private expanded = false;
   constructor(
     private world: World,
     private toast: (text: string) => void,
-    private wishes: () => void,
   ) {
     const effects = world.onEffects,
       tick = world.onTick,
@@ -92,7 +90,7 @@ export class GardenCinema {
         this.render();
       }
     });
-    this.hud.innerHTML = `<div class="cinema-heading"><div><small>FUFU’S GARDEN CINEMA</small><strong></strong></div><button class="map-action cinema-leave">离开，先去逛逛 ×</button></div><p class="cinema-status" role="status" aria-live="polite"></p><p class="cinema-progress" aria-live="off"></p><div class="cinema-actions"><button class="map-action cinema-play">播放</button><button class="map-action cinema-back">−10 秒</button><button class="map-action cinema-forward">＋10 秒</button><button class="map-action cinema-restart">从头播放</button><button class="map-action cinema-mute">静音</button><button class="map-action cinema-retry" hidden>重新加载</button><button class="map-action cinema-wishes">发一条周年弹幕</button></div>`;
+    this.hud.innerHTML = `<div class="cinema-heading"><div><small>FUFU’S GARDEN CINEMA</small><strong></strong></div><button class="map-action cinema-leave">离开，先去逛逛 ×</button></div><p class="cinema-status" role="status" aria-live="polite"></p><p class="cinema-progress" aria-live="off"></p><div class="cinema-actions"><button class="map-action cinema-play">播放</button><button class="map-action cinema-back">−10 秒</button><button class="map-action cinema-forward">＋10 秒</button><button class="map-action cinema-restart">从头播放</button><button class="map-action cinema-mute">静音</button><button class="map-action cinema-retry" hidden>重新加载</button></div>`;
     this.hud.querySelector("strong")!.textContent = gardenFilm.title;
     const fullscreen = document.createElement("button");
     fullscreen.className = "map-action cinema-fullscreen";
@@ -129,11 +127,6 @@ export class GardenCinema {
     this.hud
       .querySelector(".cinema-retry")!
       .addEventListener("click", () => this.retry());
-    this.hud.querySelector(".cinema-wishes")!.addEventListener("click", () => {
-      this.close();
-      this.wishing = true;
-      this.wishes();
-    });
     this.player.className = "cinema-player";
     this.player.hidden = true;
     this.player.setAttribute("aria-label", "周年视频全屏播放器");
@@ -159,7 +152,6 @@ export class GardenCinema {
     if (this.world.scene !== "garden") return;
     this.session.open();
     this.ensureVideo();
-    this.wishing = false;
     if (this.video!.readyState >= 3) this.session.ready();
     this.hud.hidden = false;
     this.lastStage = "";
@@ -403,7 +395,7 @@ export class GardenCinema {
     this.hud.dataset.stage = s;
   }
   private draw(c: CanvasRenderingContext2D) {
-    if (this.world.scene !== "garden" || this.wishing) return;
+    if (this.world.scene !== "garden") return;
     const box = gardenScreen,
       v = this.video,
       s = this.session.stage;

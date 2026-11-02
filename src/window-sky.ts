@@ -1,4 +1,5 @@
 import type { Phase } from "./day";
+import { sceneArt } from "./scene-art";
 
 const masks = new WeakMap<HTMLImageElement, Path2D>();
 function glassMask(artwork: HTMLImageElement) {
@@ -32,7 +33,8 @@ export function drawRoomWindow(
   phase: Phase,
   artwork?: HTMLImageElement,
 ) {
-  if (phase === "night") return; // Original moon, clouds and stars are the night scene.
+  const sky = sceneArt.skies;
+  if (!sky.complete || !sky.naturalWidth) return;
   const scale = 600 / 1536;
   const panes = [
     [
@@ -72,31 +74,9 @@ export function drawRoomWindow(
   }
   c.clip();
   if (artwork?.complete && artwork.naturalWidth) c.clip(glassMask(artwork));
-  const colors =
-    phase === "dawn"
-      ? ["#b0cbdc", "#f9ddbe"]
-      : phase === "dusk"
-        ? ["#8a91bc", "#efbcb4"]
-        : ["#83c5de", "#d8e9db"];
-  const sky = c.createLinearGradient(0, 10, 0, 65);
-  sky.addColorStop(0, colors[0]);
-  sky.addColorStop(1, colors[1]);
-  c.fillStyle = sky;
-  c.fillRect(220, 10, 160, 57);
-  c.fillStyle = "#ffefb2";
-  c.beginPath();
-  c.arc(306, phase === "day" ? 24 : 41, 7, 0, Math.PI * 2);
-  c.fill();
-  c.fillStyle = "#fff8e8b8";
-  for (const [x, y, w] of [
-    [250, 44, 20],
-    [294, 56, 29],
-    [347, 36, 25],
-  ]) {
-    c.beginPath();
-    c.ellipse(x, y, w, 4, 0, 0, Math.PI * 2);
-    c.ellipse(x - 5, y - 3, w * 0.5, 5, 0, 0, Math.PI * 2);
-    c.fill();
-  }
+  const index = { dawn: 0, day: 1, dusk: 2, night: 3 }[phase];
+  c.imageSmoothingEnabled = false;
+  c.drawImage(sky, index % 2 * 768, Math.floor(index / 2) * 512 + 28,
+    768, 317, 220, 0, 160, 66);
   c.restore();
 }

@@ -164,7 +164,7 @@ export function mountGame(tasks: Task[]) {
   const town = new Town(world, activities, inventory, arcade);
   const gardenLife = new GardenLife(world, activities, inventory);
   new Companion(world);
-  const cinema = new GardenCinema(world, toast, () => activities.danmaku());
+  const cinema = new GardenCinema(world, toast);
   const bedNote = new BedNote(world);
   const previousTick = world.onTick;
   world.onTick = (dt, t) => {

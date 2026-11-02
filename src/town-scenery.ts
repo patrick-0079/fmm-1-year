@@ -179,23 +179,12 @@ export const festivalProps = [
   { kind: "garland", x: 1284, y: 883 },
 ] as const;
 
-function trace(c: CanvasRenderingContext2D, p: Point[]) {
-  c.beginPath();
-  p.forEach((v, i) => (i ? c.lineTo(v.x, v.y) : c.moveTo(v.x, v.y)));
-  c.closePath();
-}
 export function drawTownPaving(
   c: CanvasRenderingContext2D,
-  paint: (c: CanvasRenderingContext2D, p: Point[]) => void,
+  paint: (c: CanvasRenderingContext2D, p: Point[][]) => void,
 ) {
   c.save();
-  for (const p of [...arcadePatios.map((p) => p.points), ...arcadeConnectors]) {
-    paint(c, p);
-    trace(c, p);
-    c.strokeStyle = "#a5a16a88";
-    c.lineWidth = 1;
-    c.stroke();
-  }
+  paint(c, [...arcadePatios.map((p) => p.points), ...arcadeConnectors]);
   // Small shop-front ribbons make the anniversary present on every street.
   for (const [x, y] of [
     [298, 222],

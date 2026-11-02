@@ -4,12 +4,16 @@ import { Inventory } from "../src/inventory";
 import { Arcade } from "../src/arcade";
 import { whenWardrobeReady } from "../src/item-art";
 import type { Engine, BlocksGame } from "../src/arcade-engines";
+import { Companion } from "../src/garden-life";
+import { ARCADES } from "../src/town-data";
+import type { GameId } from "../src/arcade-engines";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#world")!;
 const world = new World(canvas);
 const inventory = new Inventory(world, () => {});
 const activities = new Activities(world, { complete() {}, toast() {} });
 const arcade = new Arcade(world, activities, inventory);
+new Companion(world);
 world.scene = "town";
 const engine = () => (arcade as unknown as { engine: Engine }).engine;
 const status = () => document.querySelector(".arcade-status")?.textContent ?? "";
@@ -122,6 +126,28 @@ await check("小游戏提示按钮更新后保留键盘焦点，不在下一帧�
   document.querySelectorAll<HTMLButtonElement>(".arcade-extra-actions button")[1].click();
   world.onTick(0.1, 1);
   assert(document.activeElement?.textContent?.includes("安全提示 · 剩余 2"), "提示后的下一帧丢失焦点");
+});
+
+await check("奶油猫与垂耳兔佩戴后七种小游戏可启动、暂停、收起背包和返回地图", () => {
+  for (const pet of ["petCat", "petBunny"] as const) {
+    world.equipment.pet = pet;
+    for (const id of Object.keys(ARCADES) as GameId[]) {
+      arcade.open(id);
+      world.onAction(true);
+      world.onTick(0.02, 1);
+      assert(engine().status === "playing", `${pet} ${id} 没有正常启动`);
+      inventory.open();
+      world.onTick(0.5, 2);
+      key("Escape");
+      assert(arcade.active && !world.suspended, `${pet} ${id} 背包暂停没有恢复`);
+      world.onTick(0.02, 3);
+      const layer = world.getDepthLayers().at(-1);
+      layer?.draw(canvas.getContext("2d")!);
+      assert(engine().status === "playing", `${pet} ${id} 佩戴后停止运行`);
+      arcade.close();
+      assert(!world.paused, `${pet} ${id} 离开摊位后不能移动`);
+    }
+  }
 });
 inventory.close(false);
 arcade.close();

@@ -24,6 +24,8 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 烟花祝福 | `src/celebration.ts` 的 `fireworkWishes`；全部是预设文字 |
 | 小镇居民和小游戏摊位 | `src/town-data.ts`；位置、靠近点和半径需要一起验证 |
 | 庭院来宾与动物 | `src/garden-guests.ts`；对话与跟随逻辑在 `src/garden-life.ts` |
+| 宠物安全足迹 | `src/companion-motion.ts`；跟随真实行走点，不执行全图寻路；暂停、睡觉与小游戏期间停止更新 |
+| v12 摊位、星屑、花环、窗景 | `src/scene-art.ts` 登记图集；摊位图标和清晰招牌仍在 `src/arcade-stall.ts` 绘制 |
 | 装备定义、部位、获取说明 | `src/items.ts`；图标在 `src/item-art.ts`，佩戴定位在 `src/equipment.ts`，人物绘制在 `src/avatar.ts` |
 | 小游戏规则与面板 | `src/arcade-engines.ts`、`src/arcade-bonus.ts`、`src/arcade.ts`；新增种类也要补 `town-data.ts` 与说明 |
 | 蛋糕、礼物、气球、烟花 | `src/activities.ts`；切割判定在 `src/cake-party.ts`，精细气球/礼盒裁切在 `src/party-art.ts` |
@@ -44,6 +46,8 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 房间逻辑尺寸为 600×400，庭院和勇气花园为 900×600，小镇为 1536×1024。摄像机视口逻辑尺寸保持 600×400，画布实际像素按设备像素密度调整。不要把画布重新缩为低分辨率来画文字；系统字体与像素图片分别渲染。
 
 图集不一定是等宽网格。修改角色、衣橱或庆典素材时，核对 `src/sprite-frames.ts`、`equipment.ts`、`item-art.ts`、`party-art.ts` 的实际裁切区域。生成来源与原始提示词在 `ARTWORK*.md`，v11 新素材详见 [ARTWORK-v11.md](ARTWORK-v11.md)。透明图集压缩保持原尺寸；不要仅凭格数平均裁切。
+
+v12 素材记录见 [ARTWORK-v12.md](ARTWORK-v12.md)。小镇运行时使用 `anniversary-town-v12.webp`，从 v2 原始 PNG 无损编码，尺寸与坐标不变。铺地使用独立像素纹理，在整张地图的统一坐标上镜像平铺，所有摊位区域合并裁切，避免错位接缝；不要恢复每块区域独立的起点或描边。窗景四时都通过实际窗玻璃遮罩绘制同一图集，保留窗框、窗帘和花朵。
 
 `npm run optimize:art` 只重建脚本登记的 WebP。它会覆盖这些派生文件，因此运行后检查图片差异与裁切对齐，再构建。晨露花已有单独裁切的 WebP，不在批量重建列表中。
 
@@ -76,6 +80,8 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 ## 视频和故障排查
 
 视频从打开页面开始完整下载，完成前可继续探索。不会只缓冲一小段；需要先收完文件再播放，当前示例约 67.1 MiB。慢网络首次等待较长，大视频会使用相应内存。每次刷新都会重新建立页面播放器，是否免去网络传输取决于 HTTP 缓存。
+
+视频控制中已取消发送弹幕，删除了会关闭播放器的旧分支；烟花周年祝福仍在地图内独立播放。`danmaku` 仍是花园电视的内部历史交互 id，以兼容已有探索存档，不代表还有弹幕功能。
 
 | 现象 | 检查与处理 |
 | --- | --- |

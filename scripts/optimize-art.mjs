@@ -21,6 +21,10 @@ for (const name of [
   "party-props-v11",
   "wardrobe-v11",
   "cake-slice-v11",
+  "anniversary-stalls-v12",
+  "garden-keepsakes-v12",
+  "window-skies-v12",
+  "town-paving-v12",
 ]) {
   const source = fileURLToPath(new URL(`${name}.png`, directory));
   const output = fileURLToPath(new URL(`${name}.webp`, directory));
@@ -38,6 +42,10 @@ for (const name of [
     "party-props-v11",
     "wardrobe-v11",
     "cake-slice-v11",
+    "anniversary-stalls-v12",
+    "garden-keepsakes-v12",
+    "window-skies-v12",
+    "town-paving-v12",
   ].includes(name)
     ? { lossless: true, effort: 6 }
     : { quality: 90, effort: 6 };
@@ -61,3 +69,8 @@ for (const name of [
   const result = await pipeline.webp(options).toFile(output);
   console.log(`${name}.webp: ${(result.size / 1024).toFixed(0)} KB`);
 }
+// Preserve every original pixel of the town while keeping its geometry unchanged.
+const town = await sharp(fileURLToPath(new URL("anniversary-town-v2.png", directory)))
+  .webp({ lossless: true, effort: 6 })
+  .toFile(fileURLToPath(new URL("anniversary-town-v12.webp", directory)));
+console.log(`anniversary-town-v12.webp: ${(town.size / 1024).toFixed(0)} KB`);

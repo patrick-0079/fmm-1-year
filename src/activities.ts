@@ -5,7 +5,6 @@ import { reservedShortcut, readingTarget } from "./input";
 import cakeUrl from "./assets/anniversary-cake.webp";
 import cakeSliceUrl from "./assets/cake-slice-v11.webp";
 import { wishAtBurst, wishOpacity } from "./celebration";
-import { drawGardenScreen } from "./cinema-screen";
 import {
   cakeGuides,
   cakePlates,
@@ -65,7 +64,6 @@ export class Activities {
     pattern: number;
     trail: Point[];
   })[] = [];
-  private messages: { text: string; x: number; row: number }[] = [];
   private skyWishes: (Point & {
     text: string;
     life: number;
@@ -182,7 +180,6 @@ export class Activities {
     this.launches = 0;
     this.particles = [];
     this.rockets = [];
-    this.messages = [];
     this.skyWishes = [];
   }
   private begin(mode: string, text: string, point?: Point, zoom = 1) {
@@ -405,20 +402,6 @@ export class Activities {
     });
     sfx("launch");
   }
-  danmaku() {
-    this.begin("danmaku", "选一句祝福，让它从花园里的小电视上飘过去");
-    [
-      "芙芙一周年快乐！",
-      "今晚也要好梦 ♡",
-      "下一个晚安见",
-      "干杯！快乐加一",
-    ].forEach((text) =>
-      this.action(text, () => {
-        this.messages.push({ text, x: 777, row: this.messages.length % 3 });
-        sfx("interact");
-      }),
-    );
-  }
   note(text: string, link?: string) {
     this.begin("note", text);
     if (link) {
@@ -536,8 +519,6 @@ export class Activities {
       }
     }
     if (this.released) this.rise = Math.min(650, this.rise + dt * 42);
-    for (const message of this.messages) message.x -= dt * 33;
-    this.messages = this.messages.filter((m) => m.x > 490);
     for (const wish of this.skyWishes) {
       wish.life -= dt;
       wish.y -= dt * 4;
@@ -709,13 +690,6 @@ export class Activities {
             height,
           );
           c.restore();
-        });
-      if (this.messages.length)
-        drawGardenScreen(c, (c) => {
-          c.fillStyle = "#fff1bb";
-          c.font = '8px "Microsoft YaHei", "PingFang SC", sans-serif';
-          for (const m of this.messages)
-            c.fillText(m.text, m.x - 667, 12 + m.row * 13);
         });
     }
     c.restore();

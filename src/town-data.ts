@@ -88,7 +88,7 @@ export const TOWN_NPCS: TownNpc[] = [
     id: "florist",
     name: "青芽",
     role: "花店店主",
-    x: 466,
+    x: 450,
     y: 290,
     sprite: 0,
     lines: [

@@ -189,7 +189,7 @@ export const townScene: Scene = {
       y: g.y,
       approach: { x: g.x, y: g.y + 35 },
       radius: 70,
-      markerOffset: 72,
+      markerOffset: 102,
       color: "#8eadda",
     })),
     {
@@ -229,8 +229,8 @@ for (const npc of TOWN_NPCS)
 for (const game of Object.values(ARCADES))
   townScene.walls.push({
     label: game.title + "摊位",
-    x: game.x - 23,
+    x: game.x - 29,
     y: game.y - 1,
-    w: 46,
+    w: 58,
     h: 18,
   });
