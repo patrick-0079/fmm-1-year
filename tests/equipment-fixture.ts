@@ -7,6 +7,7 @@ import wreath from "../src/assets/flower-wreath.webp";
 import rewards from "../src/assets/reward-icons.webp";
 import wardrobe from "../src/assets/wardrobe-v11.webp";
 import { drawItem } from "../src/item-art";
+import shoes from "../src/assets/fufu-footwear-v14.webp";
 const load = (src: string) =>
   new Promise<HTMLImageElement>((resolve) => {
     const i = new Image();
@@ -14,9 +15,20 @@ const load = (src: string) =>
     i.src = src;
   });
 const [a, b, c, d] = await Promise.all(
-  [sprite, rest, wreath, rewards, wardrobe].map(load),
+  [sprite, rest, wreath, rewards, wardrobe, shoes].map(load),
 );
 const images = { sprite: a, rest: b, wreath: c, rewards: d };
+const steps = document.querySelector<HTMLCanvasElement>("#footsteps")!.getContext("2d")!;
+steps.fillStyle = "#e8e6d2"; steps.fillRect(0,0,1092,350);
+steps.imageSmoothingEnabled = false;
+for (const [row, pair] of ([null,"ribbonShoes","starShoes"] as const).entries()) {
+  for (let frame = 0; frame < 13; frame++) {
+    const x = frame * 84 + 42, y = row * 115 + 104;
+    steps.save(); steps.translate(x,y); steps.scale(2.25,2.25);
+    drawAvatar(steps, frame === 12 ? "sitting" : "standing", (Math.floor(frame / 3) % 4) as Facing, frame % 3, { shoes: pair }, images);
+    steps.restore();
+  }
+}
 const poses: [string, AvatarPose, Facing][] = [
   ["正面", "standing", 0],
   ["向左", "standing", 1],

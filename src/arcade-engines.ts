@@ -1,4 +1,5 @@
 import { LinkGame, MinesGame, MinerGame } from "./arcade-bonus.ts";
+import { illustrated, motif, panel, scenery, type Backdrop } from "./arcade-pixels.ts";
 export type GameId =
   "snake" | "blocks" | "hop" | "flight" | "link" | "mines" | "miner";
 export type GameAction = "left" | "right" | "up" | "down" | "primary" | "drop";
@@ -15,34 +16,7 @@ export interface Engine {
   start(): void;
   input(action: GameAction, pressed: boolean): void;
   update(dt: number): void;
-  draw(c: CanvasRenderingContext2D): void;
-}
-function star(
-  c: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  r: number,
-  color: string,
-) {
-  c.fillStyle = color;
-  c.beginPath();
-  for (let i = 0; i < 10; i++) {
-    const a = -Math.PI / 2 + (i * Math.PI) / 5,
-      k = i % 2 ? r * 0.45 : r;
-    i
-      ? c.lineTo(x + Math.cos(a) * k, y + Math.sin(a) * k)
-      : c.moveTo(x + Math.cos(a) * k, y + Math.sin(a) * k);
-  }
-  c.closePath();
-  c.fill();
-}
-function sky(c: CanvasRenderingContext2D, color = "#e9ead7") {
-  c.fillStyle = color;
-  c.fillRect(0, 0, 240, 160);
-  for (let i = 0; i < 18; i++) {
-    c.fillStyle = i % 2 ? "#fff7dc88" : "#c7d7b955";
-    c.fillRect((i * 43) % 240, (i * 37) % 160, 2, 2);
-  }
+  draw(c: CanvasRenderingContext2D, art?: Backdrop): void;
 }
 export class SnakeGame implements Engine {
   status: GameStatus = "ready";
@@ -135,28 +109,34 @@ export class SnakeGame implements Engine {
       this.step();
     }
   }
-  draw(c: CanvasRenderingContext2D) {
-    sky(c);
-    c.fillStyle = "#c5d3ad";
-    c.fillRect(18, 8, 204, 144);
-    c.fillStyle = "#f1f1db";
-    c.fillRect(20, 10, 200, 140);
-    for (let y = 0; y < 14; y++)
-      for (let x = 0; x < 20; x++)
-        if ((x + y) % 2 === 0) {
-          c.fillStyle = "#e9ebd4";
-          c.fillRect(20 + x * 10, 10 + y * 10, 10, 10);
+  draw(c: CanvasRenderingContext2D, art?: Backdrop) {
+    scenery(c, art, "#b9d5ab");
+    c.strokeStyle = "#829574"; c.lineWidth = 2;
+    c.strokeRect(19, 9, 202, 142);
+    for (let y = 0; y < 14; y++) for (let x = 0; x < 20; x++) {
+      c.fillStyle = (x + y) % 2 ? "#fbf2d367" : "#bed2a869";
+      c.fillRect(20 + x * 10, 10 + y * 10, 10, 10);
+    }
+    const candyX = 25 + this.food.x * 10, candyY = 15 + this.food.y * 10;
+    if (!illustrated(c, art, "sweet", candyX - 6, candyY - 4, 12, 8)) motif(c, "star", candyX, candyY, 10);
+    for (let i = this.body.length - 1; i >= 0; i--) {
+      const p = this.body[i], x = 20 + p.x * 10, y = 10 + p.y * 10;
+      if (i) {
+        panel(c, x, y, 10, 10, i % 2 ? "#daa0b6" : "#f0b6bb", "#945b79", "#ffe2c4");
+        c.fillStyle = "#fbdac0";
+        c.fillRect(x + 4, y + 4, 2, 2);
+      } else {
+        c.save();
+        c.translate(x + 5, y + 5);
+        if (this.direction.x === -1) c.scale(-1, 1);
+        else c.rotate(Math.atan2(this.direction.y, this.direction.x));
+        if (!illustrated(c, art, "snakeHead", -6, -6, 13, 12)) {
+          panel(c, -5, -5, 10, 10, "#f0b6bb", "#945b79", "#ffe2c4");
+          c.fillStyle = "#563f55"; c.fillRect(1, -3, 2, 2); c.fillRect(1, 1, 2, 2);
         }
-    star(c, 25 + this.food.x * 10, 15 + this.food.y * 10, 4.5, "#efa94c");
-    this.body.forEach((p, i) => {
-      c.fillStyle = i === 0 ? "#b9688e" : i % 2 ? "#df94ad" : "#e8b2c1";
-      c.fillRect(21 + p.x * 10, 11 + p.y * 10, 8, 8);
-      if (!i) {
-        c.fillStyle = "#fff2dc";
-        c.fillRect(23 + p.x * 10, 12 + p.y * 10, 2, 2);
-        c.fillRect(26 + p.x * 10, 12 + p.y * 10, 2, 2);
+        c.restore();
       }
-    });
+    }
   }
 }
 const SHAPES = [
@@ -300,44 +280,42 @@ export class BlocksGame implements Engine {
       else this.lock();
     }
   }
-  draw(c: CanvasRenderingContext2D) {
-    sky(c, "#e9e3ee");
-    c.fillStyle = "#6f6b83";
-    c.fillRect(72, 5, 96, 150);
-    c.fillStyle = "#f7f0e9";
-    c.fillRect(75, 8, 90, 144);
-    const cell = (x: number, y: number, v: number) => {
-      if (y < 0) return;
-      c.fillStyle = BLOCK_COLORS[v - 1];
-      c.fillRect(75 + x * 9, 8 + y * 9, 8, 8);
-      c.fillStyle = "#ffffff55";
-      c.fillRect(76 + x * 9, 9 + y * 9, 6, 1);
+  draw(c: CanvasRenderingContext2D, art?: Backdrop) {
+    scenery(c, art, "#dbc7cd");
+    panel(c, 71, 4, 98, 152, "#514c63", "#725468", "#ebc194");
+    c.fillStyle = "#655d72";
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 10; x++)
+      c.fillRect(75 + x * 9, 8 + y * 9, 1, 1);
+    const cube = (x: number, y: number, v: number, size = 9) => {
+      c.fillStyle = "#544858"; c.fillRect(x, y, size, size);
+      c.fillStyle = BLOCK_COLORS[v - 1]; c.fillRect(x + 1, y + 1, size - 2, size - 2);
+      c.fillStyle = "#ffefc9b5"; c.fillRect(x + 2, y + 1, size - 4, 1); c.fillRect(x + 1, y + 2, 1, 2);
+      c.fillStyle = "#67495a48"; c.fillRect(x + 2, y + size - 3, size - 4, 1);
     };
-    this.board.forEach((r, y) =>
-      r.forEach((v, x) => {
-        if (v) cell(x, y, v);
-      }),
-    );
-    this.piece.forEach((r, y) =>
-      r.forEach((v, x) => {
-        if (v) cell(this.x + x, this.y + y, this.color);
-      }),
-    );
-    c.fillStyle = "#82728c";
-    c.font = '9px "Microsoft YaHei", "PingFang SC", sans-serif';
-    c.fillText("下一个", 180, 25);
-    SHAPES[this.nextIndex].forEach((r, y) =>
-      r.forEach((v, x) => {
-        if (v) {
-          c.fillStyle = BLOCK_COLORS[this.nextIndex];
-          c.fillRect(182 + x * 8, 35 + y * 8, 7, 7);
-        }
-      }),
-    );
-    c.fillText("消除", 17, 55);
-    c.font = '18px "Microsoft YaHei", "PingFang SC", sans-serif';
-    c.fillText(`${this.score}/4`, 15, 78);
-    star(c, 34, 105, 9, "#d4b365");
+    this.board.forEach((r, y) => r.forEach((v, x) => {
+      if (v) cube(75 + x * 9, 8 + y * 9, v);
+    }));
+    let landing = this.y;
+    while (this.fits(this.x, landing + 1)) landing++;
+    this.piece.forEach((r, y) => r.forEach((v, x) => {
+      if (!v) return;
+      const left = 75 + (this.x + x) * 9;
+      if (landing > this.y) {
+        c.fillStyle = "#b7acc061"; c.fillRect(left + 1, 8 + (landing + y) * 9 + 1, 7, 7);
+      }
+      cube(left, 8 + (this.y + y) * 9, this.color);
+    }));
+    panel(c, 178, 34, 51, 46, "#f9ead3", "#976f73");
+    c.fillStyle = "#6f5362"; c.textAlign = "center";
+    c.font = '8px "Microsoft YaHei",sans-serif'; c.fillText("下一块", 204, 46);
+    const next = SHAPES[this.nextIndex], startX = Math.floor(203 - next[0].length * 3.5);
+    next.forEach((r, y) => r.forEach((v, x) => {
+      if (v) cube(startX + x * 7, 53 + y * 7, this.nextIndex + 1, 7);
+    }));
+    panel(c, 12, 74, 46, 40, "#faecd5", "#956e79");
+    motif(c, "gift", 35, 74, 16);
+    c.fillStyle = "#6d4d61"; c.font = 'bold 10px "Microsoft YaHei",sans-serif';
+    c.fillText(this.score + " 行", 35, 99);
   }
 }
 export interface Platform {
@@ -436,43 +414,33 @@ export class HopGame implements Engine {
     }
     if (this.y > 200) this.status = "lost";
   }
-  draw(c: CanvasRenderingContext2D) {
-    sky(c, "#e1edf0");
+  draw(c: CanvasRenderingContext2D, art?: Backdrop) {
+    scenery(c, art, "#dce8ed");
     const camera = Math.max(0, this.x - 65);
-    c.fillStyle = "#c4d2de";
-    c.fillRect(0, 147, 240, 13);
+    const creams = ["#eaa2b1", "#a5c8ae", "#c4add4"];
     for (const p of this.platforms) {
-      const x = p.x - camera;
+      const x = Math.round(p.x - camera), y = Math.round(p.y), w = Math.round(p.w);
       if (x < -40 || x > 280) continue;
-      c.fillStyle = "#9a83ad";
-      c.fillRect(x - p.w / 2, p.y, p.w, 30);
-      c.fillStyle = "#e0bbce";
-      c.fillRect(x - p.w / 2, p.y, p.w, 5);
-      c.fillStyle = "#fbefde";
-      c.fillRect(x - p.w / 2 + 2, p.y, p.w - 4, 2);
-      star(c, x, p.y + 16, 4, "#f4d47d");
+      const left = Math.round(x - w / 2);
+      if (illustrated(c, art, p.id % 2 ? "mintCake" : "roseCake", left, y, w, Math.round(w / 3.1))) continue;
+      panel(c, left, y, w, 28, "#c38b75", "#946c70", "#fff0ce");
+      c.fillStyle = "#ebc394"; c.fillRect(left + 3, y + 9, w - 6, 7);
+      c.fillStyle = "#bd7889"; c.fillRect(left + 3, y + 16, w - 6, 3);
+      c.fillStyle = creams[p.id % 3]; c.fillRect(left + 1, y + 2, w - 2, 5);
+      for (let i = 2; i < w - 3; i += 7) {
+        c.fillRect(left + i, y + 6, 4, 3);
+        c.fillStyle = "#fff1d9"; c.fillRect(left + i, y + 1, 4, 1);
+        c.fillStyle = creams[p.id % 3];
+      }
     }
-    const x = this.x - camera;
-    c.fillStyle = "#a66f91";
-    c.fillRect(x - 5, this.y - 12, 10, 13);
-    c.fillStyle = "#f3c6d0";
-    c.fillRect(x - 5, this.y - 13, 10, 9);
-    c.fillStyle = "#fff1dc";
-    c.fillRect(x - 3, this.y - 11, 6, 3);
-    c.fillStyle = "#b493d0";
-    c.fillRect(x - 4, this.y - 3, 8, 5);
-    c.fillStyle = "#eab2c8";
-    c.fillRect(x - 4, this.y - 19, 3, 7);
-    c.fillRect(x + 1, this.y - 19, 3, 7);
+    const x = this.x - camera, squash = this.charging ? Math.round(this.charge * 3) : 0;
+    const h = 23 - squash;
+    if (!illustrated(c, art, "hare", x - 10, this.y + 5 - h, 20 + squash, h))
+      motif(c, "hopper", x, this.y + 5 - h / 2, 18 + squash, h);
     if (this.charging) {
-      c.fillStyle = "#ffffff";
-      c.fillRect(x - 13, this.y - 27, 26, 4);
-      c.fillStyle = "#c791b4";
-      c.fillRect(x - 12, this.y - 26, (24 * this.charge) / 1.2, 2);
+      panel(c, Math.round(x) - 15, Math.round(this.y) - 26, 30, 7, "#74647d", "#73526c");
+      c.fillStyle = "#f4c46f"; c.fillRect(Math.round(x) - 12, Math.round(this.y) - 23, Math.round(24 * this.charge / 1.2), 2);
     }
-    c.fillStyle = "#829bad";
-    c.font = '8px "Microsoft YaHei", "PingFang SC", sans-serif';
-    c.fillText("短按近跳 · 长按远跳", 62, 16);
   }
 }
 export interface Gate {
@@ -550,35 +518,32 @@ export class FlightGame implements Engine {
     this.gates = this.gates.filter((g) => g.x > -30);
     if (this.y < 6 || this.y > 151) this.status = "lost";
   }
-  draw(c: CanvasRenderingContext2D) {
-    sky(c, "#dfe8ef");
-    for (const g of this.gates) {
-      c.fillStyle = "#ac9bc4";
-      c.fillRect(g.x, 0, 22, g.center - 31);
-      c.fillRect(g.x, g.center + 31, 22, 160);
-      c.fillStyle = "#dbbfd3";
-      c.fillRect(g.x - 2, g.center - 37, 26, 6);
-      c.fillRect(g.x - 2, g.center + 31, 26, 6);
-      c.fillStyle = "#f9e5ae";
-      c.fillRect(g.x + 4, 0, 2, Math.max(0, g.center - 38));
-      if (!g.collected) star(c, g.x + 11, g.center - 18, 4, "#e3b65a");
+  draw(c: CanvasRenderingContext2D, art?: Backdrop) {
+    scenery(c, art, "#4d527a");
+    for (const gate of this.gates) {
+      const x = Math.round(gate.x), top = Math.round(gate.center - 31), bottom = Math.round(gate.center + 31);
+      for (const [y, h] of [[-4, top + 4], [bottom, 164 - bottom]]) {
+        panel(c, x, y, 22, h, "#827292", "#5a496e", "#f5cc97");
+        c.fillStyle = "#bc94a3"; c.fillRect(x + 4, y + 2, 3, h - 4);
+        c.fillStyle = "#655675"; c.fillRect(x + 16, y + 2, 3, h - 4);
+        for (let band = y + 13; band < y + h - 6; band += 17) {
+          c.fillStyle = "#d9ae8b"; c.fillRect(x + 2, band, 18, 2);
+        }
+      }
+      for (const y of [top - 8, bottom]) {
+        panel(c, x - 2, y, 26, 8, "#d79caa", "#76566f", "#ffe8ad");
+        c.fillStyle = "#ffe39b"; c.fillRect(x + 9, y + 2, 4, 3);
+      }
+      if (!gate.collected) motif(c, "star", x + 11, gate.center - 18, 10);
     }
-    c.fillStyle = "#c78aa7";
-    c.fillRect(43, this.y - 7, 15, 13);
-    c.fillStyle = "#f1b0c6";
-    c.fillRect(42, this.y - 8, 13, 9);
-    c.fillStyle = "#fff0da";
-    c.fillRect(50, this.y - 3, 5, 5);
-    c.fillStyle = "#726182";
-    c.fillRect(53, this.y - 3, 2, 2);
-    c.fillStyle = "#e4bd67";
-    c.fillRect(57, this.y - 1, 4, 3);
-    c.fillStyle = "#c9addc";
-    c.fillRect(40, this.y, 8, 5);
-    c.fillStyle = "#ec9eb8";
-    c.fillRect(44, this.y - 12, 3, 5);
-    star(c, 20, 22, 4, "#e9c15e");
-    star(c, 211, 140, 3, "#c8a9d7");
+    const flutter = this.vy < 0 ? -1 : 1;
+    if (!illustrated(c, art, "flyer", 37, this.y - 10, 25, 20 + flutter))
+      motif(c, "bird", 50, this.y, 20, 16);
+    if (this.stars) {
+      panel(c, 6, 6, 34, 14, "#544966", "#806678");
+      motif(c, "star", 13, 13, 8);
+      c.fillStyle = "#fff0c1"; c.textAlign = "left"; c.font = 'bold 8px sans-serif'; c.fillText(String(this.stars), 20, 16);
+    }
   }
 }
 export function createEngine(id: GameId): Engine {

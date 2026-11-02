@@ -18,7 +18,9 @@ function browserStorage(): Storage | null {
   try { return window.localStorage; } catch { return null; }
 }
 export class Inventory {
-  state: InventoryState;
+  private earned: InventoryState;
+  private fittingRoom: InventoryState | null = null;
+  get state() { return this.fittingRoom ?? this.earned; }
   onEquip: () => void = () => {};
   private trigger = document.querySelector<HTMLButtonElement>(".bag-toggle")!;
   private root: HTMLElement = document.querySelector(".inventory-panel")!;
@@ -29,6 +31,7 @@ export class Inventory {
     private world: World,
     private toast: (text: string) => void,
     private storage: Pick<Storage, "getItem" | "setItem"> | null = browserStorage(),
+    private readonly debugAvailable = import.meta.env.VITE_WARDROBE_DEBUG === "true",
   ) {
     let raw = null,
       legacy = null;
@@ -36,7 +39,8 @@ export class Inventory {
       raw = this.storage?.getItem(INVENTORY_KEY) ?? null;
       legacy = this.storage?.getItem("fufu-garden-bag-v1") ?? null;
     } catch {}
-    this.state = readInventory(raw, legacy);
+    this.earned = readInventory(raw, legacy);
+    if (this.debugAvailable) this.startFitting();
     this.wreath.onload = () => this.drawIcons();
     this.rewards.onload = () => this.drawIcons();
     this.wreath.src = wreathUrl;
@@ -56,7 +60,11 @@ export class Inventory {
     this.render();
   }
   has(id: ItemId) {
-    return this.state.owned.includes(id);
+    // Collection events still check the real save while the fitting room is open.
+    return this.earned.owned.includes(id);
+  }
+  private startFitting() {
+    this.fittingRoom = { owned: Object.keys(ITEMS) as ItemId[], equipped: { ...this.earned.equipped } };
   }
   open() {
     this.root.hidden = false;
@@ -67,7 +75,7 @@ export class Inventory {
     this.root.querySelector<HTMLButtonElement>(".bag-close")!.focus({ preventScroll: true });
   }
   grant(id: ItemId) {
-    if (!grantItem(this.state, id)) return false;
+    if (!grantItem(this.earned, id)) return false;
     this.save();
     this.render();
     sfx("match");
@@ -79,7 +87,7 @@ export class Inventory {
       this.toast("先收集这件纪念品吧。");
       return;
     }
-    this.save();
+    if (!this.fittingRoom) this.save();
     this.sync();
     this.render();
     this.onEquip();
@@ -95,7 +103,8 @@ export class Inventory {
   reset() {
     this.close(false);
     this.filter = "all";
-    this.state = readInventory(null);
+    this.earned = readInventory(null);
+    if (this.fittingRoom) this.startFitting();
     this.save();
     this.sync();
     this.render();
@@ -106,7 +115,7 @@ export class Inventory {
   }
   private save() {
     try {
-      this.storage?.setItem(INVENTORY_KEY, JSON.stringify(this.state));
+      this.storage?.setItem(INVENTORY_KEY, JSON.stringify(this.earned));
     } catch {}
   }
   private togglePanel() {
@@ -147,13 +156,36 @@ export class Inventory {
     )
       .filter(([, item]) => this.filter === "all" || item.slot === this.filter)
       .map(([id, item]) => {
-        const own = this.has(id as ItemId),
+        const own = this.state.owned.includes(id as ItemId),
           worn = this.state.equipped[item.slot] === id;
         return `<article class="inventory-item ${own ? "owned" : "locked"}"><canvas width="48" height="48" data-item="${id}" role="img" aria-label="${item.name}"></canvas><div><h4>${item.name}${worn ? " <em>佩戴中</em>" : ""}</h4><p>${own ? item.description : item.source}</p></div><button class="map-action" data-equip="${id}" ${own ? "" : "disabled"}>${own ? (worn ? "脱下" : "佩戴") : "未获得"}</button></article>`;
       })
       .join(
         "",
-      )}</div><p class="bag-footnote">佩戴或脱下后自动返回游戏；B / Esc 也可收起。六个部位可以独立搭配，睡觉时隐藏穿戴和伙伴。纪念品与佩戴选择仅保存在本机。</p>`;
+      )}</div><p class="bag-footnote">佩戴或脱下后自动返回游戏。B / Esc 也可收起。六个部位可以独立搭配，睡觉时隐藏穿戴和伙伴。</p>`;
+    if (this.debugAvailable) {
+      const row = document.createElement("div");
+      row.className = "wardrobe-debug";
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.setAttribute("role", "switch");
+      toggle.setAttribute("aria-checked", String(!!this.fittingRoom));
+      toggle.setAttribute("aria-label", "调试 · 全饰品试穿");
+      toggle.textContent = "全饰品试穿 " + (this.fittingRoom ? "开" : "关");
+      const note = document.createElement("span");
+      note.textContent = this.fittingRoom
+        ? `调试衣橱 · 已实际收集 ${this.earned.owned.length} 件。试穿搭配仅在本次预览生效。`
+        : "调试衣橱 · 当前显示实际收集的纪念品。";
+      toggle.addEventListener("click", () => {
+        if (this.fittingRoom) this.fittingRoom = null;
+        else this.startFitting();
+        this.sync();
+        this.render();
+        this.root.querySelector<HTMLButtonElement>(".wardrobe-debug button")?.focus({ preventScroll: true });
+      });
+      row.append(toggle, note);
+      this.root.querySelector("header")!.after(row);
+    }
     this.root
       .querySelector(".bag-close")!
       .addEventListener("click", () => this.close());

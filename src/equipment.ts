@@ -8,7 +8,7 @@ export interface EquipmentPart {
   y: number;
   w: number;
   h: number;
-  style?: "band" | "earpieces" | "straps";
+  style?: "band" | "earpieces" | "straps" | "footwear";
   mirror?: boolean;
 }
 /** Relative to the foot baseline, using separate front/back and side views. */
@@ -52,14 +52,7 @@ export function equipmentParts(
       pose === "sitting" ? 16 : 20,
     );
   if (equipped.shoes === "ribbonShoes" || equipped.shoes === "starShoes")
-    add(
-      equipped.shoes,
-      "front",
-      facing === 1 ? -9 : -8,
-      -6 - shift,
-      facing === 1 || facing === 2 ? 12 : 17,
-      8,
-    );
+    add(equipped.shoes, "front", -16, -10 - shift, 32, 10, "footwear");
   if (body === "anniversaryPin" && facing !== 3) {
     add(
       body,

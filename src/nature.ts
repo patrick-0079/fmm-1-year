@@ -287,8 +287,9 @@ export class Nature {
     );
   }
   private toggleCrown() {
+    if (!this.inventory.has("wreath") && this.inventory.state.equipped.head !== "wreath") return;
     this.inventory.toggle("wreath");
-    this.state.wearing = this.inventory.state.equipped.head === "wreath";
+    this.state.wearing = this.inventory.has("wreath") && this.inventory.state.equipped.head === "wreath";
     this.save();
   }
   private rest() {
@@ -328,14 +329,15 @@ export class Nature {
     document.querySelector(".bag-count")!.textContent =
       `苹果 ${this.state.apple} · 花朵 ${this.state.flower} · 星屑 ${this.state.star}`;
     const crown = document.querySelector<HTMLButtonElement>(".crown-toggle")!;
-    crown.hidden = !this.inventory.has("wreath");
-    this.state.wearing = this.inventory.state.equipped.head === "wreath";
-    crown.innerHTML = `<img src="${wreathUrl}" alt=""><span>${this.state.wearing ? "摘下花环" : "戴上花环"}</span><kbd>H</kbd>`;
+    const wearing = this.inventory.state.equipped.head === "wreath";
+    crown.hidden = !this.inventory.has("wreath") && !wearing;
+    this.state.wearing = this.inventory.has("wreath") && wearing;
+    crown.innerHTML = `<img src="${wreathUrl}" alt=""><span>${wearing ? "摘下花环" : "戴上花环"}</span><kbd>H</kbd>`;
     crown.setAttribute(
       "aria-label",
-      this.state.wearing ? "摘下花环，快捷键 H" : "戴上花环，快捷键 H",
+      wearing ? "摘下花环，快捷键 H" : "戴上花环，快捷键 H",
     );
-    crown.setAttribute("aria-pressed", String(this.state.wearing));
+    crown.setAttribute("aria-pressed", String(wearing));
     document.querySelector(".day-hint")!.textContent =
       `第 ${clock.day} 天 · 十分钟一昼夜 · ${clock.phase === "dawn" ? "晨露花醒来了" : clock.phase === "dusk" ? "溪边漂来一只纸船" : clock.phase === "night" ? "萤火心愿悄悄出现" : "找长椅休息，等一场黄昏和星夜"}`;
   }

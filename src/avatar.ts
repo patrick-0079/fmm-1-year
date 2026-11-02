@@ -7,6 +7,9 @@ import {
   type EquipmentPart,
 } from "./equipment";
 import type { Equipped } from "./items";
+import footwearUrl from "./assets/fufu-footwear-v14.webp";
+const footwear = new Image();
+footwear.src = footwearUrl;
 export interface AvatarImages {
   sprite: HTMLImageElement;
   rest: HTMLImageElement;
@@ -19,9 +22,13 @@ function paintPart(
   p: EquipmentPart,
   facing: Facing,
   images: AvatarImages,
+  frame: number,
 ) {
   c.save();
-  if (p.style === "band" || p.style === "earpieces") {
+  if (p.style === "footwear") {
+    if (footwear.complete && footwear.naturalWidth)
+      c.drawImage(footwear, frame * 128, p.id === "starShoes" ? 40 : 0, 128, 40, p.x, p.y, p.w, p.h);
+  } else if (p.style === "band" || p.style === "earpieces") {
     c.translate(0, p.y + 2);
     if (p.style === "band") {
       c.fillStyle = "#806185";
@@ -77,10 +84,11 @@ export function drawAvatar(
   images: AvatarImages,
 ) {
   const parts = equipmentParts(equipped, pose, facing);
+  const frame = pose === "standing" ? facing * 3 + walkFrame : 12;
   for (const p of parts.filter((p) => p.layer === "behind"))
-    paintPart(c, p, facing, images);
+    paintPart(c, p, facing, images, frame);
   if (pose === "standing") {
-    const f = spriteFrames[facing * 3 + walkFrame],
+    const f = spriteFrames[frame],
       scale = 43 / 330;
     c.drawImage(
       images.sprite,
@@ -120,5 +128,5 @@ export function drawAvatar(
     }
   }
   for (const p of parts.filter((p) => p.layer === "front"))
-    paintPart(c, p, facing, images);
+    paintPart(c, p, facing, images, frame);
 }

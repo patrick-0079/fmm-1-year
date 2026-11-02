@@ -7,12 +7,16 @@ import type { Engine, BlocksGame } from "../src/arcade-engines";
 import { Companion } from "../src/garden-life";
 import { ARCADES } from "../src/town-data";
 import type { GameId } from "../src/arcade-engines";
-import { ITEMS, type ItemId } from "../src/items";
+import { ITEMS, INVENTORY_KEY, type ItemId } from "../src/items";
 import { GardenLife } from "../src/garden-life";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#world")!;
 const world = new World(canvas);
-const inventory = new Inventory(world, () => {}, null);
+const saves = new Map<string, string>();
+const inventory = new Inventory(world, () => {}, {
+  getItem: (id) => saves.get(id) ?? null,
+  setItem: (id, value) => { saves.set(id, value); },
+}, true);
 const activities = new Activities(world, { complete() {}, toast() {} });
 inventory.onEquip = () => activities.finishEquipmentChoice();
 const arcade = new Arcade(world, activities, inventory);
@@ -45,6 +49,24 @@ async function check(name: string, run: () => void | Promise<void>) {
   }
   document.querySelector("#results")!.append(li);
 }
+
+await check("默认试穿全部饰品，关闭后恢复真实搭配，试玩时领取的奖励可以存档", () => {
+  const switchMode = () => document.querySelector<HTMLButtonElement>(".wardrobe-debug button")!.click();
+  inventory.open();
+  assert(document.querySelectorAll("[data-equip]:enabled").length === Object.keys(ITEMS).length, "默认可试穿的数量有误");
+  inventory.toggle("starShoes");
+  assert(world.equipment.shoes === "starShoes" && !inventory.has("starShoes"), "试穿篡改了收集进度");
+  inventory.grant("anniversaryPin");
+  inventory.open(); switchMode();
+  assert(!world.equipment.shoes && document.querySelectorAll("[data-equip]:enabled").length === 1, "关闭试穿后未还原");
+  inventory.toggle("anniversaryPin");
+  inventory.open(); switchMode(); inventory.toggle("petCat");
+  const saved = JSON.parse(saves.get(INVENTORY_KEY)!);
+  assert(saved.owned.length === 1 && saved.equipped.body === "anniversaryPin" && !saved.equipped.pet, "试穿装备写入了正式存档");
+  inventory.open(); switchMode();
+  assert(world.equipment.body === "anniversaryPin" && !world.equipment.pet, "原搭配丢失");
+  inventory.reset();
+});
 
 await check("打开背包暂停小游戏与方向键；Esc 只收起背包，之后继续原局", () => {
   arcade.open("snake");

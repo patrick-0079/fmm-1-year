@@ -27,6 +27,9 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 宠物安全足迹 | `src/companion-motion.ts`；跟随真实行走点，不执行全图寻路；暂停、睡觉与小游戏期间停止更新 |
 | v12 摊位、星屑、花环、窗景 | `src/scene-art.ts` 登记图集；摊位图标和清晰招牌仍在 `src/arcade-stall.ts` 绘制 |
 | 装备定义、部位、获取说明 | `src/items.ts`；图标在 `src/item-art.ts`，佩戴定位在 `src/equipment.ts`，人物绘制在 `src/avatar.ts` |
+| 试穿与正式构建 | 根目录 `.env` 中 `VITE_WARDROBE_DEBUG=true` 开放试穿。正式构建改为 `false` 后重新部署，生产构建变量可以覆盖仓库默认值 |
+| 周年游园券、七幅棋盘与像素角色 | `src/arcade-art.ts`、`src/arcade-pixels.ts` 与 `src/festival-v11.css`。运行 `npm run art:festival` 重建游戏图和鞋子图层 |
+| 原创音乐《把晚安留给你》 | `src/lullaby.ts` 保存乐谱、各地图速度与配器。`src/sound.ts` 负责解锁音频、音量、放映时的音量变化和后台暂停 |
 | 小游戏规则与面板 | `src/arcade-engines.ts`、`src/arcade-bonus.ts`、`src/arcade.ts`；新增种类也要补 `town-data.ts` 与说明 |
 | 蛋糕、礼物、气球、烟花 | `src/activities.ts`；切割判定在 `src/cake-party.ts`，精细气球/礼盒裁切在 `src/party-art.ts` |
 | 地图与物理通道 | `src/maps.ts`、`src/town-map.ts`；小镇两条通路的四座门、落脚点、门柱在 `src/gate-layout.ts`，绘制在 `src/connections.ts` |
@@ -47,6 +50,8 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 图集不一定是等宽网格。修改角色、衣橱或庆典素材时，核对 `src/sprite-frames.ts`、`equipment.ts`、`item-art.ts`、`party-art.ts` 的实际裁切区域。生成来源与原始提示词在 `ARTWORK*.md`，v11 新素材详见 [ARTWORK-v11.md](ARTWORK-v11.md)。透明图集压缩保持原尺寸；不要仅凭格数平均裁切。
 
+周年游园券、七幅棋盘背景、飞行与跳跃角色的原画、图集顺序及提示词见 [v14 美术与配乐记录](ARTWORK-v14.md)。
+
 小镇的预览图 `anniversary-town-v13.webp` 和高清图 `anniversary-town-hd-v13.webp` 出自同一份 3072×2048 母图。进入小镇才请求高清图，解码成功后再替换；失败保留预览并在下次进镇重试。`World.paintMap` 按图片实际尺寸换算源区域，底图和树冠裁片走同一套取样。调整摊位时把两只柜脚都放在原图的空地上，预留人物可走到的柜台正面；不要用纹理多边形盖住原图来制造空地。
 
 南门及木桥门两侧的热点、对应出口、碰撞和灯光共用 `townGates`。立柱阻挡脚步，中间开口可通行；门体同人物按脚底排序。高清重绘、拼图与压缩方法见 [ARTWORK-v13.md](ARTWORK-v13.md)。窗景仍通过玻璃遮罩绘制四时图集，保留窗框、窗帘和花朵，见 [ARTWORK-v12.md](ARTWORK-v12.md)。
@@ -65,6 +70,10 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 - 场景切换、快捷前往、重新探索要关闭临时面板；过场/跌倒尚未结束时，重置会提示稍后重试。
 
 ## 本机进度与兼容
+
+试穿开启时，衣橱用内存中的全饰品列表和搭配。发奖和花园采集始终查询真实收藏，关闭开关会恢复本机搭配。正式上线前可在干净的浏览器打开背包验收，确认调试开关已隐藏，未收集物品显示「未获得」。
+
+验收鞋子时访问 `/tests/equipment-fixture.html`，对照原鞋与两双配饰的四向三帧和坐姿。鞋子使用角色原画的脚部透明轮廓。更换角色源图时要同步核对 `scripts/build-shoes.mjs` 的逐帧坐标，再运行 `npm run art:festival`。小游戏画面与可试听、可导出的原曲在开发页 `/tests/festival-preview.html`。
 
 | localStorage 键 | 内容 |
 | --- | --- |

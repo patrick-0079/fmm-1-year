@@ -9,7 +9,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "check": "npm test && npm run build",
-    "optimize:art": "node scripts/optimize-art.mjs"
+    "optimize:art": "node scripts/optimize-art.mjs",
+    "art:festival": "node scripts/build-arcade-art.mjs && node --experimental-strip-types scripts/build-shoes.mjs"
   },
   "devDependencies": {
     "sharp": "^0.35.5",

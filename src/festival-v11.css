@@ -250,4 +250,59 @@
 }
 .scene-wrap.arcade-active {
   overflow-anchor: none;
+  background-color: #eddfcb;
+  background-image: repeating-linear-gradient(45deg, transparent 0 5px, #fff4de66 5px 7px);
+}
+.scene-wrap .arcade-hud {
+  --ticket-ink: #79506b;
+  --ticket-light: #f3d3d8;
+  padding: 11px;
+  border: 2px solid #99777c;
+  border-radius: 3px;
+  background: #fff3dc;
+  box-shadow: inset 0 0 0 2px #f2d6b5, 3px 3px 0 #bd9b92;
+}
+.arcade-hud[data-game="mines"], .arcade-hud[data-game="snake"] {
+  --ticket-ink: #506b58; --ticket-light: #dce8c8;
+}
+.arcade-hud[data-game="flight"], .arcade-hud[data-game="blocks"] {
+  --ticket-ink: #65567c; --ticket-light: #e3d8eb;
+}
+.arcade-ticket {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border-bottom: 2px dashed #bba08e;
+  background: var(--ticket-light);
+  color: var(--ticket-ink);
+}
+.arcade-ticket img { width: 66px; height: 47px; object-fit: cover; border: 2px solid #fff2ce; outline: 1px solid #a87f84; image-rendering: pixelated; }
+.arcade-ticket div { display: grid; gap: 1px; }
+.arcade-ticket small { font: 700 9px/1.3 system-ui,sans-serif; letter-spacing: .11em; }
+.arcade-ticket b { font-size: 14px; }
+.arcade-ticket span { font-size: 11px; }
+.arcade-hud .arcade-heading { display: flex; justify-content: space-between; margin-top: 12px; }
+.arcade-heading small, .arcade-heading .arcade-title { color: var(--ticket-ink); }
+.arcade-heading .arcade-title { line-height: 1.3; margin: 2px 0; }
+.arcade-hud .arcade-score { padding: 2px 8px; min-width: 48px; background: var(--ticket-light); border: 1px solid #bba093; border-radius: 2px; }
+.arcade-hud .arcade-score strong { font: bold 23px/1.05 system-ui,sans-serif; font-variant-numeric: tabular-nums; color: var(--ticket-ink); }
+.arcade-hud .arcade-score span, .arcade-hud .arcade-reward-track span { color: #705b58; }
+.arcade-hud .arcade-status { color: #624e58; }
+.arcade-hud .arcade-close { margin-top: 9px; border: 0; background: transparent; text-decoration: underline; text-underline-offset: 3px; border-radius: 0; color: #715b66; }
+.arcade-hud .arcade-controls button, .arcade-hud .map-action { border-radius: 3px; }
+.arcade-controls[data-game="miner"] :is([data-game-action="up"],[data-game-action="down"]) { display: none; }
+.arcade-hud .game-primary, .arcade-hud .arcade-result-actions .map-action:first-child {
+  background: var(--ticket-ink); color: #fff7e7; border-color: var(--ticket-ink);
+}
+.wardrobe-debug { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 13px; padding: 9px 0; color: #6c5c68; font-size: 13px; }
+.wardrobe-debug button { padding: 7px 12px; border: 1px solid #968791; color: #685563; background: #fff6e9; border-radius: 3px; }
+.wardrobe-debug button[aria-checked="true"] { color: #355c4b; background: #e1edd8; border-color: #91a78d; }
+@media (max-width: 800px) {
+  .arcade-ticket { padding: 4px 6px; }
+  .arcade-ticket img { width: 45px; height: 31px; }
+  .arcade-ticket div { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+  .arcade-ticket small { display: none; }
+  .arcade-hud .arcade-heading { margin-top: 5px; }
+  .arcade-hud .arcade-controls button, .arcade-hud .map-action { min-height: 44px; min-width: 44px; }
 }

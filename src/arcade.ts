@@ -10,12 +10,15 @@ import {
   type GameAction,
 } from "./arcade-engines";
 import { sfx } from "./sound";
+import { arcadeBackdrop, booths, postcard } from "./arcade-art";
+import { motif, panel, type Backdrop } from "./arcade-pixels";
 import { LinkGame, MinesGame } from "./arcade-bonus";
 import { reservedShortcut, readingTarget } from "./input";
 export class Arcade {
   private engine: Engine | null = null;
   private id: GameId = "snake";
   private awarded = false;
+  private backdrop?: Backdrop;
   private hud: HTMLElement = document.querySelector(".arcade-hud")!;
   private previousStatus = "";
   private previousScore = -1;
@@ -113,6 +116,7 @@ export class Arcade {
     this.activities.close();
     this.world.standUp();
     this.id = id;
+    this.backdrop = arcadeBackdrop(id);
     this.hud.dataset.game = id;
     this.engine = createEngine(id);
     this.awarded = false;
@@ -219,7 +223,7 @@ export class Arcade {
     const message = this.paused
       ? "暂停休息中 · 按 P / E 或点击「继续挑战」回到这一局"
       : e.status === "ready"
-        ? `${game.title} · ${game.instructions}`
+        ? game.instructions
         : e.status === "playing"
           ? e.achieved
             ? "纪念奖励已收好 · 继续创造自己的小纪录吧"
@@ -229,7 +233,21 @@ export class Arcade {
             : `没关系，下一次会更熟练 · 本次 ${e.score} / ${e.goal}`;
     // Rebuild only the status/action row; directional controls keep pointer capture.
     if (!this.hud.querySelector(".arcade-controls")) {
-      this.hud.innerHTML = `<div class="arcade-heading"><div><small>FUFU’S 1st ANNIVERSARY · 小小游乐会</small><h3 class="arcade-title"></h3></div><div class="arcade-score"><strong></strong><span></span></div><button class="arcade-close">离开摊位 ×</button></div><div class="arcade-reward-track"><progress></progress><span></span></div><p class="arcade-status" role="status" aria-live="polite"></p><div class="arcade-result-actions"></div><div class="arcade-controls"><button data-game-action="left" aria-label="游戏向左">←</button><button data-game-action="up" aria-label="游戏向上或旋转">↑</button><button data-game-action="right" aria-label="游戏向右">→</button><button data-game-action="down" aria-label="游戏向下或加速">↓</button><button class="game-primary" data-game-action="primary"></button></div><div class="arcade-extra-actions"></div>`;
+      const booth = booths[this.id];
+      this.hud.innerHTML = `
+        <div class="arcade-ticket">
+          <img src="${postcard}" alt="" width="84" height="56">
+          <div><small>FUFU ON AIR · 1ST</small><b>芙芙直播一周年</b><span>游园券 № ${booth.number} / 07</span></div>
+        </div>
+        <div class="arcade-heading"><div><small>${booth.stamp}</small><h3 class="arcade-title"></h3></div>
+          <div class="arcade-score"><strong></strong><span></span></div></div>
+        <div class="arcade-reward-track"><progress aria-label="纪念奖励进度"></progress><span></span></div>
+        <p class="arcade-status" role="status" aria-live="polite"></p><div class="arcade-result-actions"></div>
+        <div class="arcade-controls">
+          <button data-game-action="left" aria-label="游戏向左">←</button><button data-game-action="up" aria-label="游戏向上或旋转">↑</button>
+          <button data-game-action="right" aria-label="游戏向右">→</button><button data-game-action="down" aria-label="游戏向下或加速">↓</button>
+          <button class="game-primary" data-game-action="primary"></button></div>
+        <div class="arcade-extra-actions"></div><button class="arcade-close">离开摊位 ×</button>`;
       this.hud
         .querySelector(".arcade-close")!
         .addEventListener("click", () => this.close());
@@ -354,59 +372,41 @@ export class Arcade {
   }
   private draw(c: CanvasRenderingContext2D) {
     if (!this.engine || this.world.scene !== "town") return;
-    const game = ARCADES[this.id];
+    const game = ARCADES[this.id], booth = booths[this.id];
     c.save();
     c.translate(game.x - 132, game.y - 166);
-    c.fillStyle = "#7d5b772e";
-    c.beginPath();
-    c.roundRect(-8, -21, 280, 202, 12);
-    c.fill();
-    const paper = c.createLinearGradient(0, -18, 0, 176);
-    paper.addColorStop(0, "#fff8e9");
-    paper.addColorStop(1, "#f3dce7");
-    c.fillStyle = paper;
-    c.beginPath();
-    c.roundRect(-5, -18, 274, 196, 10);
-    c.fill();
-    c.strokeStyle = "#c99bb4";
-    c.lineWidth = 2;
-    c.stroke();
-    c.strokeStyle = "#e2c08c";
-    c.lineWidth = 0.7;
-    c.strokeRect(3, -10, 258, 180);
-    c.fillStyle = "#8e6c72";
-    c.font = '9px "Microsoft YaHei",sans-serif';
-    c.textAlign = "center";
-    c.fillText("芙芙一周年 · " + game.title, 132, -2);
+    panel(c, -6, -17, 276, 194, "#ab777e", "#644f65", "#f7d6a6");
+    panel(c, -3, -14, 270, 189, "#f4deae", "#956775", "#fff2ca");
+    panel(c, 8, 3, 248, 168, "#786179", "#966d73", "#e4bb8d");
+    for (const x of [1, 260]) for (const y of [-8, 164]) {
+      c.fillStyle = "#9e7876"; c.fillRect(x, y, 3, 3);
+      c.fillStyle = "#fff0bf"; c.fillRect(x, y, 2, 1);
+    }
+    motif(c, booth.motif, 31, -5, 11);
+    c.fillStyle = "#704e61"; c.textAlign = "center";
+    c.font = 'bold 7px "Microsoft YaHei","PingFang SC",sans-serif';
+    c.fillText("芙芙直播一周年  ·  " + booth.stamp, 132, -3);
+    c.textAlign = "right"; c.font = 'bold 6px sans-serif'; c.fillText("№ " + booth.number, 248, -4);
     c.translate(12, 7);
-    c.beginPath();
-    c.rect(0, 0, 240, 160);
-    c.clip();
-    this.engine.draw(c);
-    if (this.engine.status === "ready") {
-      c.fillStyle = "#fff8e6bb";
-      c.fillRect(0, 0, 240, 160);
-      c.fillStyle = "#9f7295";
-      c.font = '12px "Microsoft YaHei", "PingFang SC", sans-serif';
-      c.fillText("为芙芙收集一份周年小快乐", 120, 75);
-    }
-    if (this.engine.status === "won") {
-      c.fillStyle = "#fff4dbaa";
-      c.fillRect(0, 0, 240, 160);
-      c.fillStyle = "#a16c8a";
-      c.font = '15px "Microsoft YaHei", "PingFang SC", sans-serif';
-      c.fillText("♡ 一周年快乐 ♡", 120, 67);
-      c.font = '10px "Microsoft YaHei",sans-serif';
-      c.fillText("已领到纪念品 · 按 E 或点继续游玩", 120, 88);
-    }
-    if (this.paused || this.world.suspended) {
-      c.fillStyle = "#fff8e6dd";
-      c.fillRect(0, 56, 240, 48);
-      c.fillStyle = "#765c80";
-      c.font = '12px "Microsoft YaHei", "PingFang SC", sans-serif';
-      c.fillText("先休息一下 ♡", 120, 76);
-      c.font = '9px "Microsoft YaHei", "PingFang SC", sans-serif';
-      c.fillText(this.world.suspended ? "收起面板，回到这场小冒险" : "按 P / E 或点「继续挑战」", 120, 94);
+    c.beginPath(); c.rect(0, 0, 240, 160); c.clip();
+    c.textAlign = "center";
+    this.engine.draw(c, this.backdrop);
+    const paused = this.paused || this.world.suspended;
+    const state = this.engine.status;
+    if (paused || state === "won" || state === "lost") {
+      panel(c, 34, 59, 172, 42, "#fff0d6f3", "#986f80", "#fff9e0");
+      motif(c, state === "won" ? "cake" : "moon", 52, 80, 20);
+      c.fillStyle = "#714e67"; c.textAlign = "center";
+      c.font = 'bold 10px "Microsoft YaHei",sans-serif';
+      c.fillText(paused ? "先休息一下" : state === "won" ? "一周年快乐，心愿达成！" : "再试一次也没关系", 130, 77);
+      c.font = '7px "Microsoft YaHei",sans-serif';
+      const note = paused ? (this.world.suspended ? "收起面板，回到这一局" : "按 P / E 继续挑战")
+        : state === "won" ? "纪念品已收好 · 可以继续这一局" : "点「再玩一次」就能重新出发";
+      c.fillText(note, 130, 90);
+    } else if (state === "ready") {
+      panel(c, 34, 137, 172, 16, "#fff1d8f2", "#a67c82");
+      c.fillStyle = "#765463"; c.textAlign = "center"; c.font = '7px "Microsoft YaHei",sans-serif';
+      c.fillText(booth.line, 120, 147.5);
     }
     c.restore();
   }

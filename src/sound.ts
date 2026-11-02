@@ -1,5 +1,6 @@
 // Original, locally synthesized music and effects. No downloads or audio service.
 import type { SceneId } from "./maps";
+import { createLullaby, eighthLength, lullabyPulses } from "./lullaby";
 let context: AudioContext | undefined;
 let master: GainNode | undefined;
 let music: GainNode | undefined;
@@ -12,10 +13,6 @@ let scene: SceneId = "room",
   nextNote = 0,
   step = 0;
 let scheduler: ReturnType<typeof setInterval> | undefined;
-const melody = [
-  72, 76, 79, 76, 74, 76, 79, 83, 81, 79, 76, 74, 72, 76, 74, 67, 69, 72, 76,
-  79, 77, 76, 74, 72, 71, 74, 79, 77, 76, 74, 72, -1,
-];
 const midi = (note: number) => 440 * 2 ** ((note - 69) / 12);
 function tone(
   note: number,
@@ -57,9 +54,11 @@ export function unlockAudio() {
     master = context.createGain();
     music = context.createGain();
     effects = context.createGain();
+    master.gain.value = music.gain.value = effects.gain.value = 0;
     music.connect(master);
     effects.connect(master);
     master.connect(context.destination);
+    const playPulse = createLullaby(context, music);
     nextNote = context.currentTime + 0.05;
     scheduler = setInterval(() => {
       if (
@@ -73,21 +72,10 @@ export function unlockAudio() {
         return;
       }
       if (nextNote < context.currentTime) nextNote = context.currentTime + 0.02;
-      const beat =
-        scene === "challenge" ? 0.3 : scene === "garden" ? 0.34 : 0.39;
       while (nextNote < context.currentTime + 0.15) {
-        const note = melody[step % melody.length];
-        if (note > 0) {
-          tone(note, nextNote, beat * 2.4, 0.13, music);
-          tone(note + 12, nextNote, beat * 1.6, 0.018, music, "triangle");
-        }
-        if (step % 4 === 0) {
-          const root = [48, 45, 53, 55][Math.floor(step / 8) % 4];
-          tone(root, nextNote, beat * 4, 0.12, music);
-          tone(root + 7, nextNote + beat, beat * 2.5, 0.055, music);
-        }
-        step++;
-        nextNote += beat;
+        playPulse(step, nextNote, scene);
+        step = (step + 1) % lullabyPulses;
+        nextNote += eighthLength(scene);
       }
     }, 60);
   }

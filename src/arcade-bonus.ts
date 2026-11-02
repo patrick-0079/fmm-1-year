@@ -1,103 +1,7 @@
 import type { Engine, GameStatus, GameAction } from "./arcade-engines.ts";
 type Cell = { x: number; y: number };
-const palette = [
-  "#cf82a6",
-  "#87b5c0",
-  "#b09acb",
-  "#d6ac67",
-  "#84ad85",
-  "#d39282",
-  "#8f9ec7",
-  "#bd90a4",
-];
-function tile(
-  c: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  color: string,
-) {
-  c.fillStyle = "#72576c22";
-  c.beginPath();
-  c.roundRect(x + 1, y + 2, w, h, 4);
-  c.fill();
-  c.fillStyle = color;
-  c.beginPath();
-  c.roundRect(x, y, w, h, 4);
-  c.fill();
-  c.strokeStyle = "#ffffffaa";
-  c.lineWidth = 1;
-  c.stroke();
-}
-function background(c: CanvasRenderingContext2D) {
-  c.fillStyle = "#fbf2e4";
-  c.fillRect(0, 0, 240, 160);
-}
-function sparkle(
-  c: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  r: number,
-  color: string,
-) {
-  c.fillStyle = color;
-  c.beginPath();
-  for (let i = 0; i < 10; i++) {
-    const a = (i * Math.PI) / 5 - Math.PI / 2,
-      k = i % 2 ? r * 0.45 : r;
-    i
-      ? c.lineTo(x + Math.cos(a) * k, y + Math.sin(a) * k)
-      : c.moveTo(x + Math.cos(a) * k, y + Math.sin(a) * k);
-  }
-  c.closePath();
-  c.fill();
-}
-function icon(c: CanvasRenderingContext2D, n: number, x: number, y: number) {
-  const color = palette[(n - 1) % palette.length];
-  c.fillStyle = color;
-  if (n % 4 === 1) sparkle(c, x, y, 7, color);
-  else if (n % 4 === 2) {
-    c.beginPath();
-    c.arc(x, y, 7, 0, Math.PI * 2);
-    c.fill();
-    c.fillStyle = "#fff6e7";
-    c.beginPath();
-    c.arc(x + 3, y - 3, 6, 0, Math.PI * 2);
-    c.fill();
-  } else if (n % 4 === 3) {
-    for (let i = 0; i < 5; i++) {
-      c.beginPath();
-      c.ellipse(
-        x + Math.cos(i * 1.256) * 4,
-        y + Math.sin(i * 1.256) * 4,
-        3.8,
-        3,
-        0,
-        0,
-        Math.PI * 2,
-      );
-      c.fill();
-    }
-    c.fillStyle = "#ffe6a2";
-    c.beginPath();
-    c.arc(x, y, 2, 0, Math.PI * 2);
-    c.fill();
-  } else {
-    c.beginPath();
-    c.moveTo(x, y + 7);
-    c.bezierCurveTo(x - 15, y - 3, x - 5, y - 12, x, y - 4);
-    c.bezierCurveTo(x + 5, y - 12, x + 15, y - 3, x, y + 7);
-    c.fill();
-  }
-  if (n > 4) {
-    c.strokeStyle = "#76576f";
-    c.lineWidth = 1;
-    c.beginPath();
-    c.arc(x, y, 9, 0, Math.PI * 2);
-    c.stroke();
-  }
-}
+import { illustrated, motif, panel, scenery, wishTokens, type Backdrop } from "./arcade-pixels.ts";
+const numbers = ["#326b78", "#416d48", "#975567", "#71518c", "#90513e", "#4c677e", "#744b67", "#4d575e"];
 abstract class BonusGame implements Engine {
   status: GameStatus = "ready";
   score = 0;
@@ -118,7 +22,7 @@ abstract class BonusGame implements Engine {
   }
   abstract input(action: GameAction, pressed: boolean): void;
   update(_dt: number) {}
-  abstract draw(c: CanvasRenderingContext2D): void;
+  abstract draw(c: CanvasRenderingContext2D, art?: Backdrop): void;
 }
 
 /** Empty outside border is part of the classic maximum-two-turn link rule. */
@@ -258,22 +162,20 @@ export class LinkGame extends BonusGame {
   update(dt: number) {
     this.flash = Math.max(0, this.flash - dt);
   }
-  draw(c: CanvasRenderingContext2D) {
-    background(c);
+  draw(c: CanvasRenderingContext2D, art?: Backdrop) {
+    scenery(c, art, "#ecdcbd");
     for (let i = 0; i < 16; i++) {
-      if (!this.board[i]) continue;
-      const x = 42 + (i % 4) * 40,
-        y = 26 + Math.floor(i / 4) * 30;
-      tile(c, x, y, 35, 25, "#fffaf0");
-      icon(c, this.board[i], x + 17.5, y + 12);
-      if (
-        this.selected === i ||
-        this.cursor === i ||
-        this.suggested.includes(i)
-      ) {
-        c.strokeStyle = this.selected === i ? "#bf6e99" : "#d8ae65";
-        c.lineWidth = 1.7;
-        c.strokeRect(x - 1, y - 1, 37, 27);
+      const x = 42 + (i % 4) * 40, y = 26 + Math.floor(i / 4) * 30;
+      if (this.board[i]) {
+        const selected = this.selected === i, hinted = this.suggested.includes(i);
+        panel(c, x, y, 35, 25, selected ? "#f9d5d9" : hinted ? "#fff0b2" : "#fff2d9", selected ? "#a44e76" : hinted ? "#aa8541" : "#b38c7c");
+        c.fillStyle = "#d9b697"; c.fillRect(x + 3, y + 19, 2, 2); c.fillRect(x + 30, y + 4, 2, 2);
+        motif(c, wishTokens[this.board[i] - 1], x + 17, y + 12, 19, 19);
+      }
+      if (this.cursor === i) {
+        c.strokeStyle = "#765068"; c.lineWidth = 1;
+        c.strokeRect(x - 1.5, y - 1.5, 38, 28);
+        c.fillStyle = "#fff4bc"; c.fillRect(x - 2, y - 2, 3, 3);
       }
     }
     if (this.flash && this.path.length) {
@@ -410,35 +312,28 @@ export class MinesGame extends BonusGame {
       else this.reveal(this.cursor);
     }
   }
-  draw(c: CanvasRenderingContext2D) {
-    background(c);
+  draw(c: CanvasRenderingContext2D, art?: Backdrop) {
+    scenery(c, art, "#c3caaa");
     for (let i = 0; i < 30; i++) {
-      const x = 38 + (i % 6) * 28,
-        y = 14 + Math.floor(i / 6) * 28;
-      tile(c, x, y, 24, 24, this.revealed.has(i) ? "#e6eddd" : "#eed7df");
-      if (this.status === "lost" && this.mines.has(i))
-        sparkle(c, x + 12, y + 12, 6, "#b07692");
-      else if (this.revealed.has(i)) {
+      const x = 38 + (i % 6) * 28, y = 14 + Math.floor(i / 6) * 28;
+      const open = this.revealed.has(i);
+      panel(c, x, y, 24, 24, open ? "#eee4c8" : "#c4d49f", open ? "#a79679" : "#788965", open ? "#f8edd5" : "#e5efc5");
+      if (this.status === "lost" && this.mines.has(i)) {
+        motif(c, "thorns", x + 12, y + 12, 17);
+      } else if (open) {
         const n = this.count(i);
         if (n) {
-          c.fillStyle = palette[n - 1];
-          c.font = 'bold 13px "Microsoft YaHei",sans-serif';
-          c.textAlign = "center";
-          c.fillText(String(n), x + 12, y + 17);
+          c.fillStyle = numbers[n - 1]; c.font = 'bold 13px "Microsoft YaHei",sans-serif';
+          c.textAlign = "center"; c.fillText(String(n), x + 12, y + 17);
         }
       } else if (this.flags.has(i)) {
-        c.fillStyle = "#bf789d";
-        c.fillRect(x + 8, y + 5, 2, 15);
-        c.beginPath();
-        c.moveTo(x + 10, y + 5);
-        c.lineTo(x + 20, y + 9);
-        c.lineTo(x + 10, y + 12);
-        c.fill();
+        motif(c, "flag", x + 12, y + 12, 18);
+      } else {
+        motif(c, "sprout", x + 12, y + 12, 13);
       }
       if (i === this.cursor) {
-        c.strokeStyle = "#a97b9b";
-        c.lineWidth = 1.5;
-        c.strokeRect(x - 1, y - 1, 26, 26);
+        c.strokeStyle = "#714f69"; c.lineWidth = 1.5;
+        c.strokeRect(x - 1.5, y - 1.5, 27, 27);
       }
     }
   }
@@ -516,66 +411,36 @@ export class MinerGame extends BonusGame {
       }
     }
   }
-  draw(c: CanvasRenderingContext2D) {
-    background(c);
-    c.fillStyle = "#e9d3b4";
-    c.fillRect(0, 42, 240, 118);
-    c.fillStyle = "#b8cdb0";
-    c.fillRect(0, 39, 240, 5);
-    for (let i = 0; i < 22; i++) {
-      c.fillStyle = "#d5b99a";
-      c.fillRect((i * 71) % 240, 54 + ((i * 29) % 104), 3, 2);
+  draw(c: CanvasRenderingContext2D, art?: Backdrop) {
+    scenery(c, art, "#94778c");
+    // Stand the winch above a real opening in the little timber work platform.
+    for (const x of [105, 132]) {
+      c.fillStyle = "#785560"; c.fillRect(x, 24, 4, 17);
+      c.fillStyle = "#c59473"; c.fillRect(x + 1, 25, 1, 15);
     }
-    for (const t of this.treasures) this.drawOre(c, t.x, t.y, t.r, t.kind);
-    const x = 120 + Math.sin(this.angle) * this.length,
-      y = 22 + Math.cos(this.angle) * this.length;
-    c.strokeStyle = "#8a7465";
-    c.lineWidth = 1.5;
-    c.beginPath();
-    c.moveTo(120, 22);
-    c.lineTo(x, y);
-    c.stroke();
-    c.beginPath();
-    c.arc(x, y, 4, 0, Math.PI);
-    c.stroke();
-    if (this.held) this.drawOre(c, x, y + 5, this.held.r, this.held.kind);
-    c.fillStyle = "#9e7494";
-    c.fillRect(110, 9, 20, 13);
-    c.fillStyle = "#f2c5d1";
-    c.fillRect(111, 5, 18, 9);
-    c.fillStyle = "#fff0d0";
-    c.fillRect(115, 6, 10, 4);
-    sparkle(c, 134, 11, 4, "#d8b971");
+    for (const x of [102, 123]) {
+      c.fillStyle = "#77525a"; c.fillRect(x, 23, 15, 4);
+      c.fillStyle = "#dfb18b"; c.fillRect(x, 23, 15, 1);
+    }
+    for (const t of this.treasures) this.drawOre(c, t.x, t.y, t.r, t.kind, art);
+    const x = Math.round(120 + Math.sin(this.angle) * this.length);
+    const y = Math.round(22 + Math.cos(this.angle) * this.length);
+    c.strokeStyle = "#624c67"; c.lineWidth = 2.6;
+    c.beginPath(); c.moveTo(120, 22); c.lineTo(x, y); c.stroke();
+    c.strokeStyle = "#e9c791"; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(120, 22); c.lineTo(x, y); c.stroke();
+    c.strokeStyle = "#ffe1ac"; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(x - 4, y + 1); c.lineTo(x - 3, y + 4); c.lineTo(x, y + 6);
+    c.lineTo(x + 3, y + 4); c.lineTo(x + 4, y + 1); c.stroke();
+    if (this.held) this.drawOre(c, x, y + 5, this.held.r, this.held.kind, art);
+    if (!illustrated(c, art, "winder", 110, 0, 20, 26)) {
+      panel(c, 109, 14, 22, 11, "#ae797e", "#684e67");
+      motif(c, "bunny", 120, 12, 17);
+    }
   }
-  private drawOre(
-    c: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    r: number,
-    kind: number,
-  ) {
-    if (kind === 1) {
-      c.fillStyle = "#bf9cc7";
-      c.beginPath();
-      c.moveTo(x, y - r);
-      c.lineTo(x + r, y);
-      c.lineTo(x, y + r);
-      c.lineTo(x - r, y);
-      c.closePath();
-      c.fill();
-      c.strokeStyle = "#f4e4f5";
-      c.stroke();
-    } else if (kind === 2) {
-      tile(c, x - r, y - r, r * 2, r * 2, "#dba8ba");
-      c.fillStyle = "#fff1d3";
-      c.fillRect(x - 1, y - r, 2, r * 2);
-      c.fillRect(x - r, y - 1, r * 2, 2);
-    } else {
-      c.fillStyle = "#bd944c";
-      c.beginPath();
-      c.ellipse(x, y, r, r * 0.8, 0, 0, Math.PI * 2);
-      c.fill();
-      sparkle(c, x, y, r * 0.7, "#ffe2a0");
-    }
+  private drawOre(c: CanvasRenderingContext2D, x: number, y: number, r: number, kind: number, art?: Backdrop) {
+    if (kind === 0 && illustrated(c, art, "gold", x-r, y-r, r*2, r*2)) return;
+    const token = (["star", "gem", "gift"] as const)[kind];
+    motif(c, token, x, y, Math.round(r * 2), Math.round(r * 2));
   }
 }
