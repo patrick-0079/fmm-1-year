@@ -3,6 +3,7 @@ import { gardenTrees, creeks } from "./landscape.ts";
 import { townScene } from "./town-map.ts";
 import { fenceSegments } from "./fences.ts";
 import { gardenGuests } from "./garden-guests.ts";
+import { townGates, gatePosts, gateSpot } from "./gate-layout.ts";
 export type SceneId = "room" | "garden" | "challenge" | "town";
 export interface Hotspot {
   id: string;
@@ -344,30 +345,7 @@ export const scenes: Record<SceneId, Scene> = {
         approach: { x: 446, y: 145 },
         color: "#67c2d8",
       },
-      {
-        id: "north-town-gate",
-        title: "北侧木桥 · 去周年小镇",
-        portal: "town",
-        portalExit: "town-north-return",
-        x: 759,
-        y: 113,
-        approach: { x: 800, y: 111 },
-        radius: 55,
-        markerOffset: 22,
-        color: "#83b8a6",
-      },
-      {
-        id: "town-gate",
-        title: "去晚安周年小镇",
-        portal: "town",
-        portalExit: "town-return",
-        x: 650,
-        y: 533,
-        approach: { x: 650, y: 511 },
-        radius: 50,
-        markerOffset: 82,
-        color: "#c5a46e",
-      },
+      ...townGates.filter((g) => g.scene === "garden").map(gateSpot),
       {
         id: "balloons",
         title: "放飞心愿气球",
@@ -479,6 +457,7 @@ export const scenes: Record<SceneId, Scene> = {
   },
 };
 
+scenes.garden.walls.push(...townGates.filter((g) => g.scene === "garden").flatMap(gatePosts));
 for (const guest of gardenGuests) {
   scenes.garden.spots.push({
     id: "garden-guest-" + guest.id,

@@ -3,6 +3,7 @@ import { ARCADES, TOWN_NPCS } from "./town-data.ts";
 import { fenceSegments } from "./fences.ts";
 import { townSurfaces } from "./town-surfaces.ts";
 import { townCanopies, festivalProps } from "./town-scenery.ts";
+import { townGates, gatePosts, gateSpot } from "./gate-layout.ts";
 export const townScene: Scene = {
   title: "晚安周年小镇",
   width: 1536,
@@ -30,6 +31,7 @@ export const townScene: Scene = {
     [70, 340],
   ].map(([x, y]) => ({ x, y })),
   walls: [
+    ...townGates.filter((g) => g.scene === "town").flatMap(gatePosts),
     { label: "花店主屋", x: 141, y: 86, w: 284, h: 159 },
     { label: "花店温室", x: 122, y: 137, w: 110, h: 102 },
     { label: "烘焙屋", x: 645, y: 73, w: 220, h: 177 },
@@ -189,33 +191,10 @@ export const townScene: Scene = {
       y: g.y,
       approach: { x: g.x, y: g.y + 35 },
       radius: 70,
-      markerOffset: 102,
+      markerOffset: 89,
       color: "#8eadda",
     })),
-    {
-      id: "town-return",
-      title: "回周年花园",
-      portal: "garden",
-      portalExit: "town-gate",
-      x: 450,
-      y: 962,
-      approach: { x: 450, y: 900 },
-      radius: 80,
-      markerOffset: 84,
-      color: "#82b4ab",
-    },
-    {
-      id: "town-north-return",
-      title: "北街小径 · 回周年花园",
-      portal: "garden",
-      portalExit: "north-town-gate",
-      x: 562,
-      y: 80,
-      approach: { x: 562, y: 126 },
-      radius: 64,
-      markerOffset: 26,
-      color: "#82b4ab",
-    },
+    ...townGates.filter((g) => g.scene === "town").map(gateSpot),
   ],
 };
 for (const npc of TOWN_NPCS)
@@ -229,8 +208,8 @@ for (const npc of TOWN_NPCS)
 for (const game of Object.values(ARCADES))
   townScene.walls.push({
     label: game.title + "摊位",
-    x: game.x - 29,
+    x: game.x - 24,
     y: game.y - 1,
-    w: 58,
-    h: 18,
+    w: 48,
+    h: 16,
   });

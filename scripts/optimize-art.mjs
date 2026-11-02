@@ -74,3 +74,12 @@ const town = await sharp(fileURLToPath(new URL("anniversary-town-v2.png", direct
   .webp({ lossless: true, effort: 6 })
   .toFile(fileURLToPath(new URL("anniversary-town-v12.webp", directory)));
 console.log(`anniversary-town-v12.webp: ${(town.size / 1024).toFixed(0)} KB`);
+
+const hd = fileURLToPath(new URL("anniversary-town-hd-v13.png", directory));
+await Promise.all([
+  sharp(hd).webp({lossless: true, effort: 6}).toFile(fileURLToPath(new URL("anniversary-town-hd-v13.webp", directory))),
+  sharp(hd).resize(1536, 1024).webp({quality: 85, smartSubsample: true, effort: 6})
+    .toFile(fileURLToPath(new URL("anniversary-town-v13.webp", directory))),
+  sharp(fileURLToPath(new URL("town-gate-v13.png", directory))).resize(384)
+    .webp({lossless: true, effort: 6}).toFile(fileURLToPath(new URL("town-gate-v13.webp", directory))),
+]);

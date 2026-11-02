@@ -29,7 +29,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 装备定义、部位、获取说明 | `src/items.ts`；图标在 `src/item-art.ts`，佩戴定位在 `src/equipment.ts`，人物绘制在 `src/avatar.ts` |
 | 小游戏规则与面板 | `src/arcade-engines.ts`、`src/arcade-bonus.ts`、`src/arcade.ts`；新增种类也要补 `town-data.ts` 与说明 |
 | 蛋糕、礼物、气球、烟花 | `src/activities.ts`；切割判定在 `src/cake-party.ts`，精细气球/礼盒裁切在 `src/party-art.ts` |
-| 地图与物理通道 | `src/maps.ts`、`src/town-map.ts`、`src/connections.ts` |
+| 地图与物理通道 | `src/maps.ts`、`src/town-map.ts`；小镇两条通路的四座门、落脚点、门柱在 `src/gate-layout.ts`，绘制在 `src/connections.ts` |
 | 小镇可走道路、遮挡与装饰 | `src/town-surfaces.ts`、`src/town-scenery.ts` |
 | 溪水和树木 | `src/landscape.ts`、`src/landscape-renderer.ts`；溪水绘制与碰撞共享形状 |
 | 昼夜和采集 | `src/day.ts`、`src/nature.ts`；现实 600 秒一天，现实离线时间也计入时钟 |
@@ -47,7 +47,9 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 图集不一定是等宽网格。修改角色、衣橱或庆典素材时，核对 `src/sprite-frames.ts`、`equipment.ts`、`item-art.ts`、`party-art.ts` 的实际裁切区域。生成来源与原始提示词在 `ARTWORK*.md`，v11 新素材详见 [ARTWORK-v11.md](ARTWORK-v11.md)。透明图集压缩保持原尺寸；不要仅凭格数平均裁切。
 
-v12 素材记录见 [ARTWORK-v12.md](ARTWORK-v12.md)。小镇运行时使用 `anniversary-town-v12.webp`，从 v2 原始 PNG 无损编码，尺寸与坐标不变。铺地使用独立像素纹理，在整张地图的统一坐标上镜像平铺，所有摊位区域合并裁切，避免错位接缝；不要恢复每块区域独立的起点或描边。窗景四时都通过实际窗玻璃遮罩绘制同一图集，保留窗框、窗帘和花朵。
+小镇的预览图 `anniversary-town-v13.webp` 和高清图 `anniversary-town-hd-v13.webp` 出自同一份 3072×2048 母图。进入小镇才请求高清图，解码成功后再替换；失败保留预览并在下次进镇重试。`World.paintMap` 按图片实际尺寸换算源区域，底图和树冠裁片走同一套取样。调整摊位时把两只柜脚都放在原图的空地上，预留人物可走到的柜台正面；不要用纹理多边形盖住原图来制造空地。
+
+南门及木桥门两侧的热点、对应出口、碰撞和灯光共用 `townGates`。立柱阻挡脚步，中间开口可通行；门体同人物按脚底排序。高清重绘、拼图与压缩方法见 [ARTWORK-v13.md](ARTWORK-v13.md)。窗景仍通过玻璃遮罩绘制四时图集，保留窗框、窗帘和花朵，见 [ARTWORK-v12.md](ARTWORK-v12.md)。
 
 `npm run optimize:art` 只重建脚本登记的 WebP。它会覆盖这些派生文件，因此运行后检查图片差异与裁切对齐，再构建。晨露花已有单独裁切的 WebP，不在批量重建列表中。
 
@@ -55,6 +57,7 @@ v12 素材记录见 [ARTWORK-v12.md](ARTWORK-v12.md)。小镇运行时使用 `an
 
 - `world.paused` 用于活动接管人物移动；小游戏虽然阻止人物移动，仍自行更新游戏规则。
 - `world.suspend(reason, true/false)` 用于背包与说明等临时暂停。不同原因分别登记，关闭一个面板不能提前解除另一个面板的暂停。
+- 佩戴／脱下后，`Inventory.toggle` 会释放背包自己的暂停并把焦点返还画布。`Activities.finishEquipmentChoice` 只结束已完成选择的对话、采集菜单或提示，不能结束正在进行的小游戏。游戏原本由玩家手动暂停时须保留该状态。
 - 暂停和清理输入会调用 `world.onInputCancel`，释放方块加速和跳跃蓄力；取消蓄力不能当成正常松开来自动起跳。
 - 小游戏 P 暂停与临时面板暂停独立。窗口失焦后小游戏保持暂停，等待玩家主动继续；不要用浏览器恢复焦点直接开始飞行或落块。
 - `src/input.ts` 保留 Ctrl / Command / Alt 组合键和阅读区域的原生操作。新增快捷键应复用过滤逻辑。

@@ -12,11 +12,11 @@
   </head>
   <body>
     <h1>周年互动状态回归检查</h1>
-    <p>调用真实世界、活动、背包和小游戏控制器；不启动动画循环，不写入本机存档。</p>
+    <p>调用真实世界、背包和小游戏，检查换装后的实际移动和交互；使用临时背包，不写入本机存档。</p>
     <p id="summary" role="status">检查中…</p><ol id="results"></ol>
     <div id="fixture">
       <button class="bag-toggle">背包</button>
-      <div class="scene-wrap"><canvas id="world"></canvas>
+      <div class="scene-wrap"><canvas id="world" tabindex="0"></canvas>
         <div class="activity-hud" hidden><span class="activity-status"></span><button class="activity-close">收起</button><div class="activity-actions"></div></div>
         <div class="arcade-hud" hidden></div>
       </div>

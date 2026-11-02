@@ -4,8 +4,9 @@ import challengeUrl from "./assets/courage-garden.webp";
 import spriteUrl from "./assets/nemu-sprites.webp";
 import restUrl from "./assets/fufu-rest-poses.webp";
 import wreathUrl from "./assets/flower-wreath.webp";
-import townUrl from "./assets/anniversary-town-v12.webp";
-import { pavingUrl, sceneArtReady } from "./scene-art";
+import townUrl from "./assets/anniversary-town-v13.webp";
+import townDetailUrl from "./assets/anniversary-town-hd-v13.webp";
+import { sceneArtReady } from "./scene-art";
 import trapsUrl from "./assets/garden-traps.webp";
 import { rewardsUrl } from "./item-art";
 import { emptyInventory, type Equipped } from "./items";
@@ -14,7 +15,7 @@ import { drawAvatar } from "./avatar";
 import type { Facing } from "./equipment";
 import { clickedInteraction } from "./interaction";
 import { reservedShortcut, readingTarget } from "./input";
-import { drawConnections } from "./connections";
+import { drawConnections, connectionLayers } from "./connections";
 import {
   advancePath,
   canStand,
@@ -51,6 +52,8 @@ export class World {
   private zoom = 1;
   private focus: { point: Point; zoom: number } | null = null;
   private images = new Map<string, HTMLImageElement>();
+  private townDetail: HTMLImageElement | null = null;
+  private townDetailPending = false;
   private keys = new Set<string>();
   private touch: Point = { x: 0, y: 0 };
   private path: Point[] = [];
@@ -77,6 +80,7 @@ export class World {
     return this.suspensions.size > 0;
   }
   suspend(reason: string, active: boolean) {
+    if (active === this.suspensions.has(reason)) return;
     if (active) this.suspensions.add(reason);
     else this.suspensions.delete(reason);
     this.canvas.parentElement!.inert = this.suspended;
@@ -287,9 +291,33 @@ export class World {
       y: (point.y - this.camera.y) * this.zoom,
     };
   }
-  drawMapFragment(c: CanvasRenderingContext2D, points: Point[]) {
-    const background = this.images.get(art[this.scene]);
+  private loadTownDetail() {
+    if (this.townDetail || this.townDetailPending) return;
+    this.townDetailPending = true;
+    const image = new Image();
+    image.decoding = "async";
+    image.src = townDetailUrl;
+    // The lightweight map is already playable. Do not pause the frame loop or
+    // replace it with a partially decoded image; a later visit can retry.
+    void image.decode().then(() => { this.townDetail = image; })
+      .catch(() => {}).finally(() => { this.townDetailPending = false; });
+  }
+  private paintMap(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+    const background = (this.scene === "town" && this.townDetail) || this.images.get(art[this.scene]);
     if (!background) return;
+    const sx = background.naturalWidth / this.config.width,
+      sy = background.naturalHeight / this.config.height;
+    c.save();
+    if (this.scene === "town" && (this.canvas.width / 600) * this.zoom < sx) {
+      // When reducing HD art, retain fine leaves and mortar instead of picking
+      // a single random source pixel. Never blur enlarged sprites or labels.
+      c.imageSmoothingEnabled = true;
+      c.imageSmoothingQuality = "high";
+    }
+    c.drawImage(background, x * sx, y * sy, w * sx, h * sy, x, y, w, h);
+    c.restore();
+  }
+  drawMapFragment(c: CanvasRenderingContext2D, points: Point[]) {
     const x = Math.floor(Math.min(...points.map((p) => p.x))),
       y = Math.floor(Math.min(...points.map((p) => p.y))),
       w = Math.ceil(Math.max(...points.map((p) => p.x))) - x,
@@ -299,67 +327,7 @@ export class World {
     points.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
     c.closePath();
     c.clip();
-    c.drawImage(background, x, y, w, h, x, y, w, h);
-    c.restore();
-  }
-  drawPavingPatch(
-    c: CanvasRenderingContext2D,
-    points: Point[],
-    surface: "town" | "garden" = "town",
-  ) {
-    this.drawPavingArea(c, [points], surface);
-  }
-  drawPavingArea(
-    c: CanvasRenderingContext2D,
-    areas: Point[][],
-    surface: "town" | "garden" = "town",
-  ) {
-    const garden = surface === "garden";
-    const image = this.images.get(garden ? gardenUrl : pavingUrl);
-    if (!image) return;
-    // Garden paths retain native brick scale. Town paving uses one shared,
-    // mirrored pixel texture aligned to world coordinates across every patch.
-    const source = garden
-      ? { x: 720, y: 730, size: 72 }
-      : { x: 0, y: 0, size: image.naturalWidth };
-    const tile = garden ? (source.size * 900) / 1536 : 96;
-    const points = areas.flat();
-    const left = Math.floor(Math.min(...points.map((p) => p.x)) / tile) * tile,
-      top = Math.floor(Math.min(...points.map((p) => p.y)) / tile) * tile;
-    const right = Math.max(...points.map((p) => p.x)),
-      bottom = Math.max(...points.map((p) => p.y));
-    c.save();
-    c.beginPath();
-    for (const polygon of areas) {
-      const area = polygon.reduce((sum, p, i) => {
-        const q = polygon[(i + 1) % polygon.length];
-        return sum + p.x * q.y - q.x * p.y;
-      }, 0);
-      const ordered = area < 0 ? [...polygon].reverse() : polygon;
-      ordered.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
-      c.closePath();
-    }
-    c.clip();
-    for (let y = top; y < bottom; y += tile)
-      for (let x = left; x < right; x += tile) {
-        const flipX = !garden && Math.round(x / tile) % 2 !== 0,
-          flipY = !garden && Math.round(y / tile) % 2 !== 0;
-        c.save();
-        c.translate(x + (flipX ? tile : 0), y + (flipY ? tile : 0));
-        c.scale(flipX ? -1 : 1, flipY ? -1 : 1);
-        c.drawImage(
-          image,
-          source.x,
-          source.y,
-          source.size,
-          source.size,
-          0,
-          0,
-          tile,
-          tile,
-        );
-        c.restore();
-      }
+    this.paintMap(c, x, y, w, h);
     c.restore();
   }
   get config() {
@@ -410,7 +378,6 @@ export class World {
         restUrl,
         wreathUrl,
         townUrl,
-        pavingUrl,
         trapsUrl,
         rewardsUrl,
       ].map(
@@ -451,6 +418,7 @@ export class World {
     this.onRestChange(null);
     this.setFocus(null);
     this.scene = scene;
+    if (scene === "town") this.loadTownDetail();
     const s = scenes[scene];
     this.player = {
       ...(arrival && canStand(arrival, s.walls, s.bounds, s.floor, s.surfaces)
@@ -606,7 +574,7 @@ export class World {
     }
   }
   private updateCamera() {
-    this.zoom = this.focus?.zoom ?? 1;
+    this.zoom = this.focus?.zoom ?? (this.scene === "town" ? 0.9 : 1);
     const center = this.focus?.point ?? this.player;
     this.camera.x = Math.round(
       Math.max(
@@ -657,15 +625,13 @@ export class World {
     c.imageSmoothingEnabled = false;
     c.fillStyle = "#f4dfbc";
     c.fillRect(0, 0, 600, 400);
-    const background = this.images.get(art[this.scene]);
     c.save();
     c.scale(this.zoom, this.zoom);
     c.translate(-this.camera.x, -this.camera.y);
-    if (background) c.drawImage(background, 0, 0, width, height);
+    const view = this.visibleArea;
+    this.paintMap(c, view.x, view.y, Math.min(view.w, width - view.x), Math.min(view.h, height - view.y));
     this.onEnvironment(c, this.time);
-    drawConnections(c, this.scene, (context, points) =>
-      this.drawPavingPatch(context, points, "garden"),
-    );
+    drawConnections(c, this.scene);
     if (this.scene === "room") {
       c.fillStyle = "#8171b0";
       c.fillRect(274, 368, 52, 11);
@@ -717,6 +683,7 @@ export class World {
     };
     const layers = [
       ...this.getDepthLayers(),
+      ...connectionLayers(this.scene),
       { y: this.player.y, draw: drawPlayer },
     ];
     layers.sort((a, b) => a.y - b.y).forEach((layer) => layer.draw(c));

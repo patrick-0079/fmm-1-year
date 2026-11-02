@@ -10,7 +10,8 @@ export const gardenTrees: Record<"garden" | "challenge", GardenTree[]> = {
     { x: 550, y: 178, scale: 0.95, tone: 0 },
     { x: 770, y: 370, scale: 0.9, tone: 10 },
     { x: 360, y: 495, scale: 1.1, tone: -4 },
-    { x: 565, y: 505, scale: 1.05, tone: 4 },
+    // Keep the southeast gate, both pillars and its approach free of branches.
+    { x: 126, y: 370, scale: 1.05, tone: 4 },
   ],
   challenge: [
     { x: 210, y: 150, scale: 1.2, tone: -8 },

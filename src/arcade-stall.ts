@@ -10,6 +10,8 @@ export function drawArcadeStall(c: CanvasRenderingContext2D, game: (typeof ARCAD
   const f = stallFrames[variant], width = 78, height = width * f.h / f.w;
   c.save();
   c.translate(game.x, game.y);
+  // Keep a booth to the scale of the original garden squares, with room to pass.
+  c.scale(0.84, 0.84);
   c.fillStyle = "#514c4928";
   c.beginPath();
   c.ellipse(0, 17, 37, 5, 0, 0, Math.PI * 2);

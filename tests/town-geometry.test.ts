@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { canStand, canTravelBetween, movePlayer } from "../src/core.ts";
 import { scenes } from "../src/maps.ts";
 import { townCanopies, festivalProps } from "../src/town-scenery.ts";
+import { townGates, gatePosts } from "../src/gate-layout.ts";
+import { ARCADES } from "../src/town-data.ts";
 
 const square = (left: number, right: number) => [
   { x: left, y: 0 },
@@ -10,6 +12,26 @@ const square = (left: number, right: number) => [
   { x: right, y: 100 },
   { x: left, y: 100 },
 ];
+
+test("gate pillars block both sides without filling the walk-through opening", () => {
+  for (const g of townGates) {
+    const s = scenes[g.scene];
+    const stands = (p: {x: number; y: number}) => canStand(p, s.walls, s.bounds, s.floor, s.surfaces);
+    assert.ok(stands(g), `${g.id}: the opening must be clear`);
+    assert.ok(canTravelBetween(g.approach, g, s), `${g.id}: the landing must lead to the threshold`);
+    for (const post of gatePosts(g)) assert.ok(!stands({x: post.x + post.w/2, y: post.y + post.h/2}));
+  }
+});
+
+test("the whole arcade counter stands on native open ground, away from fences and trees", () => {
+  const s = scenes.town;
+  for (const [id, g] of Object.entries(ARCADES)) {
+    const terrain = s.walls.filter((w) => w.label !== g.title + "摊位");
+    for (const dx of [-23, 0, 23])
+      assert.ok(canStand({x:g.x+dx, y:g.y+12}, terrain, s.bounds, s.floor, s.surfaces), `${id}: unsupported counter foot ${dx}`);
+    assert.ok(!canStand({x:g.x, y:g.y+10}, s.walls, s.bounds, s.floor, s.surfaces), `${id}: missing solid counter`);
+  }
+});
 
 test("adjoining paved surfaces have no artificial seam, tiny planted gaps cannot be crossed", () => {
   const g = {
@@ -45,9 +67,9 @@ test("town planted islands, the reported workshop roof and celebration furniture
     [1175, 227],
     [360, 380],
     [680, 600],
-    [1080, 438],
+    [550, 880],
     [1360, 625],
-    [759, 477],
+    [794, 474],
   ])
     assert.equal(
       canStand({ x, y }, s.walls, s.bounds, s.floor, s.surfaces),
@@ -83,6 +105,6 @@ test("tree occlusion silhouettes are separate from the roots, and anniversary pr
   }
   assert.deepEqual(
     new Set(festivalProps.map((p) => p.kind)),
-    new Set(["arch", "cake", "balloons", "garland"]),
+    new Set(["cake", "balloons", "garland"]),
   );
 });

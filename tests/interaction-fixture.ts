@@ -7,13 +7,17 @@ import type { Engine, BlocksGame } from "../src/arcade-engines";
 import { Companion } from "../src/garden-life";
 import { ARCADES } from "../src/town-data";
 import type { GameId } from "../src/arcade-engines";
+import { ITEMS, type ItemId } from "../src/items";
+import { GardenLife } from "../src/garden-life";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#world")!;
 const world = new World(canvas);
-const inventory = new Inventory(world, () => {});
+const inventory = new Inventory(world, () => {}, null);
 const activities = new Activities(world, { complete() {}, toast() {} });
+inventory.onEquip = () => activities.finishEquipmentChoice();
 const arcade = new Arcade(world, activities, inventory);
 new Companion(world);
+const guests = new GardenLife(world, activities, inventory);
 world.scene = "town";
 const engine = () => (arcade as unknown as { engine: Engine }).engine;
 const status = () => document.querySelector(".arcade-status")?.textContent ?? "";
@@ -148,6 +152,68 @@ await check("奶油猫与垂耳兔佩戴后七种小游戏可启动、暂停、�
       assert(!world.paused, `${pet} ${id} 离开摊位后不能移动`);
     }
   }
+});
+
+const frames = (count: number) => new Promise<void>((resolve) => {
+  const next = () => --count > 0 ? requestAnimationFrame(next) : resolve();
+  requestAnimationFrame(next);
+});
+const equipFromBag = (id: ItemId) => {
+  inventory.open();
+  const button = document.querySelector<HTMLButtonElement>(`[data-equip="${id}"]`)!;
+  button.focus(); button.click();
+  assert(!world.suspended && !canvas.parentElement!.inert, `${id} 未解除场景暂停`);
+  assert(document.activeElement === canvas, `${id} 焦点未返回游戏`);
+};
+await check("14 件纪念品经背包按钮逐一穿脱后，下一帧可用方向键行走", async () => {
+  await world.load();
+  try {
+    world.switchScene("room"); world.paused = false;
+    for (const id of Object.keys(ITEMS) as ItemId[]) {
+      inventory.grant(id);
+      for (const equipped of [true, false]) {
+        world.player = { x: 300, y: 310 };
+        equipFromBag(id);
+        assert((world.equipment[ITEMS[id].slot] === id) === equipped, `${id} 穿脱未生效`);
+        key("ArrowRight"); await frames(3);
+        canvas.dispatchEvent(new KeyboardEvent("keyup", { key: "ArrowRight", bubbles: true }));
+        assert(world.player.x > 300, `${id} 穿脱后方向键不能移动`);
+      }
+    }
+    // A visible map click immediately after the equip button must reach the
+    // normal pointer handler; its first click shouldn't be spent closing UI.
+    world.player = {x: 300, y: 310};
+    equipFromBag("berryBag");
+    const r = canvas.getBoundingClientRect();
+    canvas.dispatchEvent(new PointerEvent("pointerdown", {button:0, bubbles:true,
+      clientX: r.left + r.width * 350 / 600, clientY: r.top + r.height * 310 / 400}));
+    await frames(3);
+    assert(world.player.x > 300, "换装后第一次点地面不能行走");
+  } finally { world.stop(); }
+});
+
+await check("气球客邀请／送别桃桃后不再截获下一次互动，打开衣橱换装也会结束旧对话", () => {
+  world.switchScene("garden"); world.paused = false;
+  const id = "garden-guest-balloon-friend";
+  for (const worn of [true, false]) {
+    guests.interact(id);
+    document.querySelector<HTMLButtonElement>(".activity-actions button")!.click();
+    assert(!activities.active && !world.suspended, "伙伴选择后旧对话仍截获右键和 E");
+    assert((world.equipment.pet === "petCat") === worn, "伙伴选择未生效");
+    assert(!world.onAction(true), "地图交互仍被旧菜单截获");
+  }
+  guests.interact(id); equipFromBag("wreath");
+  assert(!activities.active && !world.onAction(true), "衣橱返回后仍在旧对话");
+});
+
+await check("进行中的方块换装后继续原局；手动暂停的局仍保持暂停", () => {
+  world.switchScene("town"); arcade.open("blocks"); world.onAction(true);
+  const original = engine() as BlocksGame, startX = original.x;
+  equipFromBag("petCat"); key("ArrowLeft");
+  assert(original === engine() && original.x === startX - 1 && original.status === "playing", "换装后原局不响应左键");
+  key("p"); equipFromBag("petCat");
+  assert(status().includes("暂停"), "脱下后误解除了手动暂停");
+  key("p"); assert(!status().includes("暂停"), "脱下后不能恢复方块");
 });
 inventory.close(false);
 arcade.close();

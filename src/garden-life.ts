@@ -56,7 +56,6 @@ export class GardenLife {
                       : "邀请伙伴一起散步",
                   run: () => {
                     this.inventory.toggle(npc.gift!);
-                    talk();
                   },
                 },
               ]

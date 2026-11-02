@@ -177,69 +177,16 @@ function ribbon(nodes: number[][]): Point[] {
   });
   return [...sides[0], ...sides[1].reverse()];
 }
-export const arcadePatios = [
-  {
-    id: "snake",
-    points: poly([
-      [468, 299],
-      [530, 290],
-      [570, 317],
-      [579, 358],
-      [548, 382],
-      [482, 365],
-      [463, 337],
-    ]),
-  },
-  {
-    id: "blocks",
-    points: poly([
-      [1051, 464],
-      [1139, 459],
-      [1166, 492],
-      [1161, 544],
-      [1114, 560],
-      [1051, 539],
-      [1034, 499],
-    ]),
-  },
-  {
-    id: "hop",
-    points: poly([
-      [439, 547],
-      [504, 538],
-      [543, 563],
-      [558, 615],
-      [528, 649],
-      [466, 643],
-      [433, 605],
-    ]),
-  },
-  {
-    id: "flight",
-    points: poly([
-      [1024, 574],
-      [1095, 566],
-      [1136, 601],
-      [1145, 655],
-      [1109, 683],
-      [1047, 668],
-      [1018, 625],
-    ]),
-  },
-];
-export const arcadeConnectors = [
-  ribbon([
-    [1039, 497, 15],
-    [974, 493, 15],
-  ]),
-  ribbon([
-    [526, 636, 15],
-    [575, 653, 15],
-  ]),
+// Existing grass/cobble squares in the artwork, not new paving painted over
+// trees and railings. Shop footprints and approach points stay inside these.
+export const arcadeLawns = [
+  poly([[408, 494], [489, 489], [550, 512], [586, 530], [572, 552], [548, 587],
+    [534, 630], [485, 660], [436, 650], [410, 609], [398, 555]]),
+  poly([[990, 451], [1042, 460], [1111, 446], [1181, 466], [1225, 504],
+    [1228, 542], [1172, 571], [1112, 569], [1050, 558], [1006, 533], [985, 490]]),
 ];
 export const townSurfaces: Point[][] = [
   ...lanes.map(ribbon),
-  ...arcadeConnectors,
   // The heart plaza has one clear entrance on each of its four sides.
   poly([
     [657, 417],
@@ -288,5 +235,5 @@ export const townSurfaces: Point[][] = [
     [1164, 455],
     [1097, 422],
   ]),
-  ...arcadePatios.map((p) => p.points),
+  ...arcadeLawns,
 ];

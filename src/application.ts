@@ -40,6 +40,9 @@ export function mountGame(tasks: Task[]) {
   let progress = readProgress(saved),
     started = false,
     transitioning = false;
+  // The guide stays clickable during the brief gate fade. Honor its latest
+  // destination as soon as the current crossing has finished.
+  let afterCrossing: (() => void) | undefined;
   const world = new World(document.querySelector("#world")!);
   const reader = new MapReader(world);
   const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
@@ -159,6 +162,7 @@ export function mountGame(tasks: Task[]) {
     toast,
     reward: (id) => inventory.grant(id),
   });
+  inventory.onEquip = () => activities.finishEquipmentChoice();
   const nature = new Nature(world, activities, toast, inventory);
   const arcade = new Arcade(world, activities, inventory);
   const town = new Town(world, activities, inventory, arcade);
@@ -175,7 +179,13 @@ export function mountGame(tasks: Task[]) {
     bedNote.close();
   }
   function transition(scene: SceneId, entrance?: string) {
-    if (world.busy || transitioning || !started) return;
+    if (world.busy || !started) return;
+    if (transitioning) {
+      afterCrossing = () => {
+        if (world.scene !== scene || entrance) transition(scene, entrance);
+      };
+      return;
+    }
     closePanels();
     cinema.close();
     arcade.close();
@@ -197,6 +207,9 @@ export function mountGame(tasks: Task[]) {
       overlay.classList.remove("active");
       world.paused = false;
       transitioning = false;
+      const next = afterCrossing;
+      afterCrossing = undefined;
+      next?.();
     }, 180);
   }
   world.onToast = toast;
@@ -419,7 +432,11 @@ export function mountGame(tasks: Task[]) {
     world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
   });
   const visit = (scene: SceneId, id: string) => {
-    if (world.busy || transitioning) return;
+    if (world.busy) return;
+    if (transitioning) {
+      afterCrossing = () => visit(scene, id);
+      return;
+    }
     closePanels();
     begin();
     if (!started) return;

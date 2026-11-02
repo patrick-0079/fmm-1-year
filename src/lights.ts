@@ -1,4 +1,5 @@
 import type { SceneId } from "./maps";
+import { townGates } from "./gate-layout";
 export interface Light {
   x: number;
   y: number;
@@ -73,11 +74,13 @@ export const sceneLights: Record<SceneId, Light[]> = {
   ]
     .map(([x, y]) => warm(x, y, 90))
     .concat([
-      warm(450, 906, 110),
-      warm(759, 430, 125),
+      warm(794, 428, 125),
       warm(628, 375, 70),
       warm(897, 450, 70),
       warm(1204, 409, 70),
       warm(1284, 845, 85),
     ]),
 };
+for (const g of townGates)
+  for (const side of [-1, 1])
+    sceneLights[g.scene].push(warm(g.x + side * g.width * 0.18, g.y - g.width * 0.62, 40));

@@ -150,6 +150,11 @@ export class Activities {
   get active() {
     return !!this.mode;
   }
+  finishEquipmentChoice() {
+    // These lightweight conversations intercept E/right click even though the
+    // character can walk. Finish the choice so the next input is a map action.
+    if (!this.world.restState && ["dialogue", "nature", "note"].includes(this.mode)) this.close();
+  }
   close() {
     this.world.actorHidden = false;
     if (this.cakeStage === 4) this.cakeStage = 2;

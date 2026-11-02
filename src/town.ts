@@ -11,7 +11,7 @@ import { drawPartyProp } from "./party-art";
 import {
   townCanopies,
   festivalProps,
-  drawTownPaving,
+  drawTownSigns,
   drawFestivalProp,
 } from "./town-scenery";
 export class Town {
@@ -159,7 +159,7 @@ export class Town {
         },
       })),
       ...festivalProps.map((p) => ({
-        y: p.y + (p.kind === "cake" ? 15 : p.kind === "arch" ? 5 : 3),
+        y: p.y + (p.kind === "cake" ? 15 : 3),
         draw: (c: CanvasRenderingContext2D) =>
           drawFestivalProp(c, p, this.time, this.cake, (x, y, color) =>
             drawPartyProp(
@@ -177,7 +177,7 @@ export class Town {
           ),
       })),
       ...Object.entries(ARCADES).map(([id, g]) => ({
-        y: g.y + 18,
+        y: g.y + 15,
         draw: (c: CanvasRenderingContext2D) =>
           drawArcadeStall(c, g, id as GameId),
       })),
@@ -225,9 +225,7 @@ export class Town {
   }
   private drawSigns(c: CanvasRenderingContext2D) {
     if (this.world.scene !== "town") return;
-    drawTownPaving(c, (context, points) =>
-      this.world.drawPavingArea(context, points),
-    );
+    drawTownSigns(c);
     c.save();
     c.fillStyle = "#87634d";
     c.fillRect(680, 371, 174, 23);

@@ -14,8 +14,13 @@ import {
 import { drawItem, wreathUrl, rewardsUrl, whenWardrobeReady } from "./item-art";
 import { reservedShortcut } from "./input";
 import { sfx } from "./sound";
+function browserStorage(): Storage | null {
+  try { return window.localStorage; } catch { return null; }
+}
 export class Inventory {
   state: InventoryState;
+  onEquip: () => void = () => {};
+  private trigger = document.querySelector<HTMLButtonElement>(".bag-toggle")!;
   private root: HTMLElement = document.querySelector(".inventory-panel")!;
   private wreath = new Image();
   private rewards = new Image();
@@ -23,12 +28,13 @@ export class Inventory {
   constructor(
     private world: World,
     private toast: (text: string) => void,
+    private storage: Pick<Storage, "getItem" | "setItem"> | null = browserStorage(),
   ) {
     let raw = null,
       legacy = null;
     try {
-      raw = localStorage.getItem(INVENTORY_KEY);
-      legacy = localStorage.getItem("fufu-garden-bag-v1");
+      raw = this.storage?.getItem(INVENTORY_KEY) ?? null;
+      legacy = this.storage?.getItem("fufu-garden-bag-v1") ?? null;
     } catch {}
     this.state = readInventory(raw, legacy);
     this.wreath.onload = () => this.drawIcons();
@@ -36,9 +42,8 @@ export class Inventory {
     this.wreath.src = wreathUrl;
     this.rewards.src = rewardsUrl;
     whenWardrobeReady(() => this.drawIcons());
-    document
-      .querySelector(".bag-toggle")!
-      .addEventListener("click", () => this.togglePanel());
+    this.trigger.setAttribute("aria-expanded", "false");
+    this.trigger.addEventListener("click", () => this.togglePanel());
     window.addEventListener("keydown", (e) => {
       if (reservedShortcut(e)) return;
       if ((e.key.toLowerCase() === "b" || (e.key === "Escape" && !this.root.hidden)) && !e.repeat) {
@@ -55,9 +60,10 @@ export class Inventory {
   }
   open() {
     this.root.hidden = false;
+    this.trigger.setAttribute("aria-expanded", "true");
     this.world.suspend("inventory", true);
     this.render();
-    this.root.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    this.root.scrollIntoView({ behavior: "instant", block: "start" });
     this.root.querySelector<HTMLButtonElement>(".bag-close")!.focus({ preventScroll: true });
   }
   grant(id: ItemId) {
@@ -76,10 +82,15 @@ export class Inventory {
     this.save();
     this.sync();
     this.render();
+    this.onEquip();
     sfx("interact");
-    this.root
-      .querySelector<HTMLButtonElement>(`[data-equip="${id}"]`)
-      ?.focus({ preventScroll: true });
+    // A wardrobe action completes the visit. Return to the canvas immediately
+    // instead of leaving the scene inert below an off-screen, focused button.
+    // Quick-equip / NPC actions must never focus controls inside a hidden bag.
+    if (!this.root.hidden) this.close();
+    else if (!this.world.suspended)
+      this.world.canvas.focus({ preventScroll: true });
+    this.toast(`${ITEMS[id].name} · ${this.state.equipped[ITEMS[id].slot] === id ? "已佩戴" : "已脱下"}`);
   }
   reset() {
     this.close(false);
@@ -95,7 +106,7 @@ export class Inventory {
   }
   private save() {
     try {
-      localStorage.setItem(INVENTORY_KEY, JSON.stringify(this.state));
+      this.storage?.setItem(INVENTORY_KEY, JSON.stringify(this.state));
     } catch {}
   }
   private togglePanel() {
@@ -106,10 +117,11 @@ export class Inventory {
     this.open();
   }
   close(restoreFocus = true) {
-    if (this.root.hidden) return;
+    const wasOpen = !this.root.hidden;
     this.root.hidden = true;
+    this.trigger.setAttribute("aria-expanded", "false");
     this.world.suspend("inventory", false);
-    if (!restoreFocus) return;
+    if (!restoreFocus || !wasOpen) return;
     if (this.world.suspended) {
       const help = document.querySelector<HTMLElement>(".inline-help:not([hidden])");
       help?.querySelector<HTMLButtonElement>(".help-close")?.focus({ preventScroll: true });
@@ -119,11 +131,11 @@ export class Inventory {
     this.world.canvas.focus({ preventScroll: true });
     if (this.world.canvas.parentElement!.classList.contains("arcade-active"))
       this.world.canvas.parentElement!.scrollIntoView({
-        behavior: "smooth",
+        behavior: "instant",
         block: "start",
       });
     else
-      this.world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
+      this.world.canvas.scrollIntoView({ behavior: "instant", block: "center" });
   }
   private render() {
     const worn = (slot: EquipSlot) =>
@@ -141,7 +153,7 @@ export class Inventory {
       })
       .join(
         "",
-      )}</div><p class="bag-footnote">整理背包时冒险暂停，B / Esc 收起后继续。六个部位可以独立搭配；睡觉时隐藏穿戴和伙伴。纪念品与佩戴选择仅保存在本机。</p>`;
+      )}</div><p class="bag-footnote">佩戴或脱下后自动返回游戏；B / Esc 也可收起。六个部位可以独立搭配，睡觉时隐藏穿戴和伙伴。纪念品与佩戴选择仅保存在本机。</p>`;
     this.root
       .querySelector(".bag-close")!
       .addEventListener("click", () => this.close());

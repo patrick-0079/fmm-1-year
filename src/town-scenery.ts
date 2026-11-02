@@ -1,5 +1,4 @@
 import type { Point } from "./core.ts";
-import { arcadePatios, arcadeConnectors } from "./town-surfaces.ts";
 
 const points = (p: number[][]): Point[] => p.map(([x, y]) => ({ x, y }));
 /** Silhouettes trace baked canopies. Only these leaves redraw above a walker. */
@@ -171,20 +170,15 @@ export const townCanopies = [
 ];
 
 export const festivalProps = [
-  { kind: "arch", x: 450, y: 962 },
-  { kind: "cake", x: 759, y: 471 },
+  { kind: "cake", x: 794, y: 468 },
   { kind: "balloons", x: 628, y: 415 },
   { kind: "balloons", x: 897, y: 490 },
   { kind: "balloons", x: 1204, y: 449 },
   { kind: "garland", x: 1284, y: 883 },
 ] as const;
 
-export function drawTownPaving(
-  c: CanvasRenderingContext2D,
-  paint: (c: CanvasRenderingContext2D, p: Point[][]) => void,
-) {
+export function drawTownSigns(c: CanvasRenderingContext2D) {
   c.save();
-  paint(c, [...arcadePatios.map((p) => p.points), ...arcadeConnectors]);
   // Small shop-front ribbons make the anniversary present on every street.
   for (const [x, y] of [
     [298, 222],
@@ -259,33 +253,7 @@ export function drawFestivalProp(
   const { x, y } = p;
   c.save();
   c.translate(x, y);
-  if (p.kind === "arch") {
-    for (const side of [-1, 1]) {
-      c.fillStyle = "#8f6775";
-      c.fillRect(side * 43 - 4, -52, 8, 54);
-      c.fillStyle = "#f1d8b6";
-      c.fillRect(side * 43 - 2, -50, 4, 51);
-      for (let i = 0; i < 5; i++) {
-        c.fillStyle = i % 2 ? "#e8b6d0" : "#f9deb0";
-        c.fillRect(side * 43 - 5, -48 + i * 10, 10, 5);
-      }
-      balloon(c, side * 43, -63, side < 0 ? "#e9a2c4" : "#a7d5d0", balloonArt);
-      c.fillStyle = "#d2ae76";
-      c.fillRect(side * 43 - 8, -2, 16, 5);
-    }
-    c.fillStyle = "#87576e";
-    c.fillRect(-46, -61, 92, 17);
-    c.fillStyle = "#f7e4bf";
-    c.fillRect(-43, -59, 86, 12);
-    c.fillStyle = "#af6688";
-    c.font = '10px "Microsoft YaHei","PingFang SC",sans-serif';
-    c.textAlign = "center";
-    c.fillText("芙芙 一周年快乐", 0, -50);
-    for (let i = 0; i < 7; i++) {
-      c.fillStyle = ["#db89ac", "#a9c6d0", "#e7c171"][i % 3];
-      c.fillRect(-35 + i * 11, -39, 7, 7);
-    }
-  } else if (p.kind === "cake") {
+  if (p.kind === "cake") {
     c.fillStyle = "#927358";
     c.fillRect(-20, -2, 40, 16);
     c.fillStyle = "#bd976b";
