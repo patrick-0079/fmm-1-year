@@ -4,7 +4,9 @@ import { townScene } from "./town-map.ts";
 import { fenceSegments } from "./fences.ts";
 import { gardenGuests } from "./garden-guests.ts";
 import { townGates, gatePosts, gateSpot } from "./gate-layout.ts";
-export type SceneId = "room" | "garden" | "challenge" | "town";
+import { rainbowFlowers, rainbowSpot, meadowGate, meadowGatePosts } from "./rainbow-flowers.ts";
+import { meadowScene } from "./meadow-map.ts";
+export type SceneId = "room" | "garden" | "challenge" | "town" | "meadow";
 export interface Hotspot {
   id: string;
   title: string;
@@ -33,6 +35,7 @@ const polygon = (label: string, coordinates: number[][]) => ({
 // Logical pixels. Follow visible object bases, not their overhead decorations.
 export const scenes: Record<SceneId, Scene> = {
   town: townScene,
+  meadow: meadowScene,
   room: {
     title: "晚安小屋",
     width: 600,
@@ -458,6 +461,8 @@ export const scenes: Record<SceneId, Scene> = {
 };
 
 scenes.garden.walls.push(...townGates.filter((g) => g.scene === "garden").flatMap(gatePosts));
+scenes.garden.spots.push(meadowGate);
+for (const flower of rainbowFlowers) scenes[flower.scene].spots.push(rainbowSpot(flower));
 for (const guest of gardenGuests) {
   scenes.garden.spots.push({
     id: "garden-guest-" + guest.id,
@@ -586,3 +591,7 @@ for (const id of ["garden", "challenge"] as const) {
     },
   );
 }
+
+export const bloomingGarden: Scene = {
+  ...scenes.garden, walls: [...scenes.garden.walls,...meadowGatePosts],
+};

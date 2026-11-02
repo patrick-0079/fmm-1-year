@@ -1,5 +1,5 @@
 import type { ItemId } from "./items";
-import { fitItem } from "./equipment";
+import { fitItem, type EquipmentPart } from "./equipment";
 import wreathUrl from "./assets/flower-wreath.webp";
 import rewardsUrl from "./assets/reward-icons.webp";
 import wardrobeUrl from "./assets/wardrobe-v11.webp";
@@ -36,6 +36,26 @@ export const rewardFrames = [
   { x: 45, y: 583, w: 598, h: 604 },
   { x: 646, y: 707, w: 585, h: 411 },
 ];
+// Worn bags show the pouch itself. The long loose carrying handles belong
+// to the inventory illustration; straps on the avatar follow the garment.
+const wornBags = {
+  moonBag: [79, 715, 548, 417],
+  berryBag: [75, 569, 339, 272],
+  rabbitSatchel: [1390, 580, 342, 255],
+} as const;
+export function drawWornBag(c: CanvasRenderingContext2D, part: EquipmentPart, profile: boolean, rewards: HTMLImageElement) {
+  const id = part.id;
+  if (id !== "moonBag" && id !== "berryBag" && id !== "rabbitSatchel") return;
+  const sheet = id === "moonBag" ? rewards : wardrobe;
+  if (!sheet.complete || !sheet.naturalWidth) return;
+  const [x, y, w, h] = wornBags[id], inset = profile ? w * .20 : 0;
+  c.translate(part.mirror ? part.x + part.w : part.x, part.y);
+  if (part.mirror) c.scale(-1,1);
+  // The top handle is behind the hair when worn; turn the visible pouch
+  // back under it with rounded shoulders instead of exposing a hard crop.
+  c.beginPath(); c.roundRect(0,0,part.w,part.h,[part.w*.32,part.w*.32,part.w*.20,part.w*.20]); c.clip();
+  c.drawImage(sheet, x+inset, y, w-inset, h, 0, 0, part.w, part.h);
+}
 export function drawItem(
   c: CanvasRenderingContext2D,
   id: ItemId,

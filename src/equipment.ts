@@ -8,7 +8,7 @@ export interface EquipmentPart {
   y: number;
   w: number;
   h: number;
-  style?: "band" | "earpieces" | "straps" | "footwear";
+  style?: "band" | "earpieces" | "straps" | "garment" | "bag" | "footwear";
   mirror?: boolean;
 }
 /** Relative to the foot baseline, using separate front/back and side views. */
@@ -18,6 +18,7 @@ export function equipmentParts(
   facing: Facing,
 ): EquipmentPart[] {
   if (pose === "lying") return [];
+  if (pose === "sitting") facing = 0;
   const shift = pose === "sitting" ? 6 : 0,
     parts: EquipmentPart[] = [];
   const add = (
@@ -33,72 +34,32 @@ export function equipmentParts(
   const head = equipped.head,
     body = equipped.body,
     bag = equipped.backpack ?? (body === "moonBag" ? body : null);
+  if (equipped.clothes === "roseDress" || equipped.clothes === "mintCape")
+    add(equipped.clothes, "front", -16, -44 - shift, 32, 44, "garment");
   if (bag === "moonBag" || bag === "berryBag" || bag === "rabbitSatchel") {
-    if (facing === 3) add(bag, "front", -9, -25, 18, 20);
-    else if (facing === 1) add(bag, "behind", 3, -26, 17, 20);
-    else if (facing === 2) add(bag, "behind", -20, -26, 17, 20);
+    if (facing === 3) add(bag, "front", -6, -19, 12, 12, "bag");
+    else if (facing === 1) add(bag, "front", 6.7, -15.6, 8.4, 9.6, "bag");
+    else if (facing === 2) add(bag, "front", -15.1, -15.6, 8.4, 9.6, "bag", true);
     else {
-      add(bag, "behind", -18, -25, 17, 20);
-      add(bag, "front", -7, -20, 14, 11, "straps");
+      add(bag, "behind", -12, -18.5, 12, 12, "bag");
+      add(bag, "front", -16, -44 - shift, 32, 44, "straps");
     }
   }
-  if (equipped.clothes === "roseDress" || equipped.clothes === "mintCape")
-    add(
-      equipped.clothes,
-      facing === 3 ? "behind" : "front",
-      -9,
-      -23,
-      18,
-      pose === "sitting" ? 16 : 20,
-    );
   if (equipped.shoes === "ribbonShoes" || equipped.shoes === "starShoes")
     add(equipped.shoes, "front", -16, -10 - shift, 32, 10, "footwear");
-  if (body === "anniversaryPin" && facing !== 3) {
-    add(
-      body,
-      "front",
-      facing === 1 ? -10 : facing === 2 ? 5 : -5,
-      -19,
-      facing === 0 ? 8 : 5,
-      9,
-    );
-  }
+  if (body === "anniversaryPin" && facing !== 3)
+    add(body, "front", facing === 1 ? -7.3 : facing === 2 ? 3.6 : -3.6, -16.7, 4.2, 4.5);
   if (head === "wreath")
-    add(
-      head,
-      "front",
-      facing === 1 ? -12 : facing === 2 ? -10 : -16,
-      -40,
-      facing === 1 || facing === 2 ? 23 : 32,
-      11,
-    );
-  if (head === "candyClip") {
-    add(
-      head,
-      "front",
-      facing === 1 ? -10 : facing === 3 ? -12 : 5,
-      -39,
-      11,
-      10,
-      undefined,
-      facing === 1 || facing === 3,
-    );
-  }
+    add(head, "front", facing === 1 ? -12.5 : facing === 2 ? -10.5 : -13.5, -38.5, facing === 1 || facing === 2 ? 23 : 27, 8.5);
+  if (head === "candyClip")
+    add(head, "front", facing === 1 ? -6.5 : facing === 2 ? .5 : -10, -36.5, 7.5, 7, undefined, facing === 1);
   if (head === "headphones") {
-    add(head, "behind", -14, -41, 28, 25, "band");
-    add(head, "front", -14, -41, 28, 25, "earpieces");
+    add(head, "front", -12, -38.5, 24, 16, "band");
+    add(head, "front", -12, -38.5, 24, 16, "earpieces");
   }
   if (head === "starWings") {
-    add(
-      head,
-      facing === 3 ? "front" : "behind",
-      facing === 1 ? -15 : facing === 2 ? -11 : -19,
-      -43,
-      facing === 1 || facing === 2 ? 26 : 38,
-      27,
-      undefined,
-      facing === 1,
-    );
+    if (facing === 3) add(head, "front", -9.5, -34, 19, 13);
+    else add(head, "front", facing === 2 ? -9.5 : 1, -37.5, 11.5, 8.5, undefined, facing === 2);
   }
   return parts;
 }

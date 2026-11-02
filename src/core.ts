@@ -1,3 +1,5 @@
+import { rainbowIds } from "./rainbow-flowers.ts";
+
 export interface Rect {
   x: number;
   y: number;
@@ -38,6 +40,7 @@ export interface Progress {
   bgm: boolean;
   volume: number;
   bedNoteUnlocked: boolean;
+  rainbowFlowers: string[];
 }
 export const SAVE_KEY = "nemu-anniversary-v1";
 export const PLAYER_RADIUS = 5;
@@ -67,6 +70,7 @@ export function readProgress(raw: string | null): Progress {
     bgm: true,
     volume: 0.45,
     bedNoteUnlocked: false,
+    rainbowFlowers: [],
   };
   if (!raw) return clean;
   try {
@@ -89,6 +93,7 @@ export function readProgress(raw: string | null): Progress {
       completed: valid(p.completed, GAME_IDS),
       sound: p.sound === true,
       bedNoteUnlocked: p.bedNoteUnlocked === true,
+      rainbowFlowers: valid(p.rainbowFlowers, rainbowIds),
       bgm: typeof p.bgm === "boolean" ? p.bgm : p.sound === true,
       volume:
         typeof p.volume === "number" && Number.isFinite(p.volume)

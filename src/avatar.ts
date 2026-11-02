@@ -1,5 +1,6 @@
 import { spriteFrames } from "./sprite-frames";
-import { drawItem } from "./item-art";
+import { drawItem, drawWornBag } from "./item-art";
+import garmentUrl from "./assets/fufu-garments-v15.webp";
 import {
   equipmentParts,
   type AvatarPose,
@@ -10,6 +11,8 @@ import type { Equipped } from "./items";
 import footwearUrl from "./assets/fufu-footwear-v14.webp";
 const footwear = new Image();
 footwear.src = footwearUrl;
+const garments = new Image();
+garments.src = garmentUrl;
 export interface AvatarImages {
   sprite: HTMLImageElement;
   rest: HTMLImageElement;
@@ -28,43 +31,33 @@ function paintPart(
   if (p.style === "footwear") {
     if (footwear.complete && footwear.naturalWidth)
       c.drawImage(footwear, frame * 128, p.id === "starShoes" ? 40 : 0, 128, 40, p.x, p.y, p.w, p.h);
+  } else if (p.style === "garment" || p.style === "straps") {
+    const row = p.style === "straps" ? 2 : p.id === "roseDress" ? 0 : 1;
+    if (garments.complete && garments.naturalWidth)
+      c.drawImage(garments, frame * 128, row * 176, 128, 176, p.x, p.y, p.w, p.h);
+  } else if (p.style === "bag") {
+    drawWornBag(c, p, facing === 1 || facing === 2, images.rewards);
   } else if (p.style === "band" || p.style === "earpieces") {
-    c.translate(0, p.y + 2);
+    c.translate(0,p.y);
+    const profile = facing === 1 || facing === 2;
+    if (facing === 2) c.scale(-1,1);
     if (p.style === "band") {
-      c.fillStyle = "#806185";
-      c.fillRect(-8, -2, 16, 3);
-      c.fillRect(-11, 0, 4, 4);
-      c.fillRect(7, 0, 4, 4);
-      c.fillRect(-13, 3, 3, 9);
-      c.fillRect(10, 3, 3, 9);
-      c.fillStyle = "#d8c3e5";
-      c.fillRect(-7, -2, 14, 2);
-      c.fillRect(-10, 0, 2, 4);
-      c.fillRect(8, 0, 2, 4);
-      c.fillRect(-12, 4, 1, 7);
-      c.fillRect(11, 4, 1, 7);
-      c.fillStyle = "#f4d48e";
-      c.fillRect(-2, -3, 4, 3);
-    } else {
-      const sides = facing === 1 ? [5] : facing === 2 ? [-10] : [-15, 10];
-      for (const x of sides) {
-        c.fillStyle = "#826081";
-        c.fillRect(x + 1, 10, 4, 11);
-        c.fillRect(x, 12, 6, 7);
-        c.fillStyle = "#d7b5d9";
-        c.fillRect(x + 1, 12, 4, 7);
-        c.fillStyle = "#ffe3a0";
-        c.fillRect(x + 2, 13, 2, 5);
-        c.fillRect(x + 1, 15, 4, 1);
+      c.beginPath();
+      if (profile) {
+        c.moveTo(7.4, 8.3); c.bezierCurveTo(7, -1.8, -3.4, -2, -1.5, 12);
+      } else {
+        c.moveTo(-10.6, 12.2); c.bezierCurveTo(-11,-1.6,10,-1.6,10.6,12.2);
       }
+      c.lineCap = "round";
+      c.lineWidth = 2.3; c.strokeStyle = "#775971"; c.stroke();
+      c.lineWidth = 1.25; c.strokeStyle = "#dcb7d4"; c.stroke();
+    } else for (const x of profile ? [-1.5] : [-10.5,10.5]) {
+      const y=12.5, width=profile ? 3.15 : 2.05;
+      c.fillStyle="#78586e"; c.beginPath(); c.ellipse(x,y,width,4.2,0,0,Math.PI*2); c.fill();
+      c.fillStyle="#c4a8d0"; c.beginPath(); c.ellipse(x,y-.15,width-.55,3.5,0,0,Math.PI*2); c.fill();
+      c.fillStyle="#fff0cc"; c.beginPath(); c.ellipse(x+.1,y,width-.95,2.65,0,0,Math.PI*2); c.fill();
+      c.fillStyle="#d28ca7"; c.fillRect(x-.9,y-.4,1.8,1.1); c.fillRect(x-.45,y+.65,.9,.65);
     }
-  } else if (p.style === "straps") {
-    c.fillStyle = "#d7b68d";
-    c.fillRect(p.x, p.y, 2, p.h);
-    c.fillRect(p.x + p.w - 2, p.y, 2, p.h);
-    c.fillStyle = "#f9dfab";
-    c.fillRect(p.x, p.y + 6, 3, 2);
-    c.fillRect(p.x + p.w - 3, p.y + 6, 3, 2);
   } else {
     if (p.mirror) {
       c.translate(p.x + p.w, p.y);
@@ -83,6 +76,7 @@ export function drawAvatar(
   equipped: Equipped,
   images: AvatarImages,
 ) {
+  if (pose === "sitting") facing = 0;
   const parts = equipmentParts(equipped, pose, facing);
   const frame = pose === "standing" ? facing * 3 + walkFrame : 12;
   for (const p of parts.filter((p) => p.layer === "behind"))

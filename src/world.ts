@@ -6,6 +6,7 @@ import restUrl from "./assets/fufu-rest-poses.webp";
 import wreathUrl from "./assets/flower-wreath.webp";
 import townUrl from "./assets/anniversary-town-v13.webp";
 import townDetailUrl from "./assets/anniversary-town-hd-v13.webp";
+import meadowUrl from "./assets/flower-meadow-v15.webp";
 import { sceneArtReady } from "./scene-art";
 import trapsUrl from "./assets/garden-traps.webp";
 import { rewardsUrl } from "./item-art";
@@ -26,7 +27,7 @@ import {
   type Hazard,
   type Point,
 } from "./core";
-import { scenes, type Hotspot, type SceneId } from "./maps";
+import { bloomingGarden, scenes, type Hotspot, type SceneId } from "./maps";
 export { scenes, type SceneId } from "./maps";
 export interface RespawnEvent {
   trap: Hazard;
@@ -37,6 +38,7 @@ const art = {
   garden: gardenUrl,
   challenge: challengeUrl,
   town: townUrl,
+  meadow: meadowUrl,
 };
 export interface DepthLayer {
   y: number;
@@ -54,6 +56,7 @@ export class World {
   private images = new Map<string, HTMLImageElement>();
   private townDetail: HTMLImageElement | null = null;
   private townDetailPending = false;
+  private meadowRequest?: Promise<void>;
   private keys = new Set<string>();
   private touch: Point = { x: 0, y: 0 };
   private path: Point[] = [];
@@ -104,6 +107,7 @@ export class World {
   onEffects: (context: CanvasRenderingContext2D) => void = () => {};
   getDepthLayers: () => DepthLayer[] = () => [];
   available: (spot: Hotspot) => boolean = () => true;
+  canEnter: (scene: SceneId) => boolean = scene => scene !== "meadow";
   equipment: Equipped = emptyInventory().equipped;
   private stepDistance = 0;
   private nearbyId = "";
@@ -145,14 +149,16 @@ export class World {
       canvas.parentElement!.append(this.debugOutput);
     }
     window.addEventListener("keydown", (e) => {
+      const key = e.key.toLowerCase();
+      const bag = e.target instanceof Element && e.target.closest(".inventory-panel");
+      const exploringFromBag = bag && !this.paused && /^(?:arrow(?:up|down|left|right)|[wasde])$/.test(key);
       if (
         reservedShortcut(e) ||
         this.suspended ||
-        readingTarget(e.target) ||
+        (readingTarget(e.target) && !exploringFromBag) ||
         this.busy
       )
         return;
-      const key = e.key.toLowerCase();
       if (key === " " && (e.target as Element).closest("button,a,audio,video"))
         return;
       if (key === "e" || key === " ") {
@@ -302,6 +308,17 @@ export class World {
     void image.decode().then(() => { this.townDetail = image; })
       .catch(() => {}).finally(() => { this.townDetailPending = false; });
   }
+  prepareScene(scene: SceneId): Promise<void> {
+    if (scene !== "meadow" || this.images.has(meadowUrl)) return Promise.resolve();
+    if (!this.canEnter(scene)) return Promise.reject(new Error("尚未集齐七色花"));
+    if (!this.meadowRequest) {
+      const image = new Image();
+      image.decoding = "async"; image.src = meadowUrl;
+      this.meadowRequest = image.decode().then(() => { this.images.set(meadowUrl,image); })
+        .finally(() => { this.meadowRequest = undefined; });
+    }
+    return this.meadowRequest;
+  }
   private paintMap(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
     const background = (this.scene === "town" && this.townDetail) || this.images.get(art[this.scene]);
     if (!background) return;
@@ -331,7 +348,7 @@ export class World {
     c.restore();
   }
   get config() {
-    return scenes[this.scene];
+    return this.scene === "garden" && this.canEnter("meadow") ? bloomingGarden : scenes[this.scene];
   }
   get visibleArea() {
     return {
@@ -412,14 +429,14 @@ export class World {
     this.targetEvent = null;
   }
   switchScene(scene: SceneId, arrival?: Point) {
-    if (this.busy) return;
+    if (this.busy || !this.canEnter(scene)) return;
     this.clearInput();
     this.restState = null;
     this.onRestChange(null);
     this.setFocus(null);
     this.scene = scene;
     if (scene === "town") this.loadTownDetail();
-    const s = scenes[scene];
+    const s = this.config;
     this.player = {
       ...(arrival && canStand(arrival, s.walls, s.bounds, s.floor, s.surfaces)
         ? arrival
@@ -446,7 +463,7 @@ export class World {
   visit(id: string) {
     if (this.busy) return;
     const spot = this.config.spots.find((s) => s.id === id);
-    if (spot) this.goTo(spot.approach, id);
+    if (spot && this.available(spot)) this.goTo(spot.approach, id);
   }
   private goTo(goal: Point, event: string | null, intendedHazard?: string) {
     this.standUp();
@@ -559,7 +576,7 @@ export class World {
       this.targetEvent = null;
       const spot = this.config.spots.find((s) => s.id === id);
       if (
-        spot &&
+        spot && this.available(spot) &&
         Math.hypot(this.player.x - spot.x, this.player.y - spot.y) <
           (spot.radius ?? 48)
       ) {

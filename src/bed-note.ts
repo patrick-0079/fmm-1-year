@@ -11,8 +11,15 @@ export class BedNote {
       .addEventListener("click", () => this.close());
     this.pin.addEventListener("click", () => this.open());
   }
-  open() {
+  open(message = "") {
     if (this.world.scene !== "room") return;
+    this.root.querySelector(".note-extra")?.remove();
+    if (message) {
+      const extra = document.createElement("p");
+      extra.className = "note-extra";
+      extra.textContent = message;
+      this.root.querySelector("small")!.before(extra);
+    }
     this.root.hidden = false;
     this.root.parentElement!.classList.add("note-open");
   }

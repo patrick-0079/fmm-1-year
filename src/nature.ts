@@ -346,7 +346,7 @@ export class Nature {
       drawRoomWindow(c, this.clock.phase, this.windowImage);
       return;
     }
-    if (this.world.scene === "town") return;
+    if (this.world.scene === "town" || this.world.scene === "meadow") return;
     drawCreek(c, creeks[this.world.scene], t);
     if (this.world.scene === "challenge") {
       // A small planted flower, replacing the old circle-and-square placeholder.

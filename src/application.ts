@@ -14,6 +14,7 @@ import { ARCADES } from "./town-data";
 import { reservedShortcut } from "./input";
 import type { GameId } from "./arcade-engines";
 import { Nature } from "./nature";
+import { FlowerTrail } from "./flower-trail";
 import { openCollection } from "./media";
 import {
   chime,
@@ -168,6 +169,7 @@ export function mountGame(tasks: Task[]) {
   const town = new Town(world, activities, inventory, arcade);
   const gardenLife = new GardenLife(world, activities, inventory);
   new Companion(world);
+  const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);
   const cinema = new GardenCinema(world, toast);
   const bedNote = new BedNote(world);
   const previousTick = world.onTick;
@@ -180,6 +182,7 @@ export function mountGame(tasks: Task[]) {
   }
   function transition(scene: SceneId, entrance?: string) {
     if (world.busy || !started) return;
+    if (!world.canEnter(scene)) { toast("还需要集齐七种彩虹花。"); return; }
     if (transitioning) {
       afterCrossing = () => {
         if (world.scene !== scene || entrance) transition(scene, entrance);
@@ -198,19 +201,22 @@ export function mountGame(tasks: Task[]) {
     world.paused = true;
     world.clearInput();
     sfx("portal");
-    setTimeout(() => {
+    void Promise.all([new Promise<void>(done => setTimeout(done,180)),world.prepareScene(scene)]).then(() => {
       const arrival = scenes[scene].spots.find(
         (s) => s.id === entrance,
       )?.approach;
       world.switchScene(scene, arrival);
       world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
+    }).catch(() => {
+      toast("花径还没准备好，请稍后再穿一次花门。");
+    }).finally(() => {
       overlay.classList.remove("active");
       world.paused = false;
       transitioning = false;
       const next = afterCrossing;
       afterCrossing = undefined;
       next?.();
-    }, 180);
+    });
   }
   world.onToast = toast;
   world.onStep = () => {
@@ -234,22 +240,20 @@ export function mountGame(tasks: Task[]) {
     .addEventListener("click", () => world.standUp());
   let encouragementIndex = 0;
   world.onRespawn = ({ trap }) => {
+    closePanels();
     cinema.close();
     arcade.close();
     activities.close();
     reader.close();
     sfx("revive");
-    if (!progress.bedNoteUnlocked) {
+    const first = !progress.bedNoteUnlocked;
+    if (first) {
       progress.bedNoteUnlocked = true;
       save();
-      bedNote.open();
-    } else {
-      const entry = encouragements.length
-        ? encouragements[encouragementIndex++ % encouragements.length]
-        : undefined;
-      if (entry) activities.note(entry.message);
-      else toast("已经回到小屋的床，休息好再出发吧。");
     }
+    const entry = !first && encouragements.length ? encouragements[encouragementIndex++ % encouragements.length] : undefined;
+    bedNote.open(entry?.message);
+    world.canvas.focus({ preventScroll: true });
     world.canvas.setAttribute(
       "aria-description",
       `在「${trap.title}」旁遇到小挫折，已回到小屋的床上休息。`,
@@ -263,9 +267,9 @@ export function mountGame(tasks: Task[]) {
   };
   world.onScene = (scene) => {
     document.querySelector("#location-name")!.textContent =
-      `${scene === "room" ? "ROOM 01" : scene === "garden" ? "GARDEN 02" : scene === "challenge" ? "GARDEN 03" : "TOWN 04"} · ${scenes[scene].title}`;
+      `${({room:"ROOM 01",garden:"GARDEN 02",challenge:"GARDEN 03",town:"TOWN 04",meadow:"SECRET 05"})[scene]} · ${scenes[scene].title}`;
     document.querySelector(".map-switch")!.innerHTML =
-      `${scene === "room" ? "周年花园" : scene === "garden" ? "勇气花园" : scene === "challenge" ? "周年小镇" : "晚安小屋"} ${icon("arrow")}`;
+      `${scene === "room" || scene === "meadow" ? "周年花园" : scene === "garden" ? "勇气花园" : scene === "challenge" ? "周年小镇" : "晚安小屋"} ${icon("arrow")}`;
     document
       .querySelectorAll<HTMLButtonElement>("[data-scene]")
       .forEach((button) => {
@@ -278,8 +282,10 @@ export function mountGame(tasks: Task[]) {
     bedNote.refresh(progress.bedNoteUnlocked);
   };
   world.onInteract = (id) => {
-    cinema.close();
     const spot = world.config.spots.find((s) => s.id === id);
+    if (!spot || !world.available(spot)) return;
+    inventory.close(false);
+    cinema.close();
     if (spot?.portal) {
       transition(spot.portal, spot.portalExit);
       return;
@@ -287,6 +293,7 @@ export function mountGame(tasks: Task[]) {
     reader.close();
     dismissRevive();
     document.querySelector<HTMLElement>(".nearby-prompt")!.hidden = true;
+    if (flowerTrail.interact(id)) return;
     if (id === "bed") {
       activities.close();
       world.lieDown();
@@ -409,13 +416,14 @@ export function mountGame(tasks: Task[]) {
   document.querySelector(".map-switch")!.addEventListener("click", () => {
     begin();
     transition(
-      world.scene === "room"
+      world.scene === "room" || world.scene === "meadow"
         ? "garden"
         : world.scene === "garden"
           ? "challenge"
           : world.scene === "challenge"
             ? "town"
             : "room",
+      world.scene === "meadow" ? "prism-arch" : undefined,
     );
   });
   document
@@ -432,7 +440,7 @@ export function mountGame(tasks: Task[]) {
     world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
   });
   const visit = (scene: SceneId, id: string) => {
-    if (world.busy) return;
+    if (world.busy || !world.canEnter(scene)) return;
     if (transitioning) {
       afterCrossing = () => visit(scene, id);
       return;
@@ -532,11 +540,13 @@ export function mountGame(tasks: Task[]) {
       visited: [],
       completed: [],
       bedNoteUnlocked: false,
+      rainbowFlowers: [],
     };
     cinema.reset();
     activities.reset();
     nature.reset();
     inventory.reset();
+    flowerTrail.refresh();
     town.reset();
     arcade.close();
     reader.close();

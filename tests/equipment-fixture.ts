@@ -8,6 +8,8 @@ import rewards from "../src/assets/reward-icons.webp";
 import wardrobe from "../src/assets/wardrobe-v11.webp";
 import { drawItem } from "../src/item-art";
 import shoes from "../src/assets/fufu-footwear-v14.webp";
+import garments from "../src/assets/fufu-garments-v15.webp";
+import type { Equipped } from "../src/items";
 const load = (src: string) =>
   new Promise<HTMLImageElement>((resolve) => {
     const i = new Image();
@@ -15,9 +17,20 @@ const load = (src: string) =>
     i.src = src;
   });
 const [a, b, c, d] = await Promise.all(
-  [sprite, rest, wreath, rewards, wardrobe, shoes].map(load),
+  [sprite, rest, wreath, rewards, wardrobe, shoes, garments].map(load),
 );
 const images = { sprite: a, rest: b, wreath: c, rewards: d };
+const cloth = document.querySelector<HTMLCanvasElement>("#garments")!.getContext("2d")!;
+cloth.fillStyle="#e4e7d5"; cloth.fillRect(0,0,1176,440); cloth.imageSmoothingEnabled=false;
+const outfits: Equipped[] = [{},{clothes:"roseDress"},{clothes:"mintCape"},{clothes:"mintCape",backpack:"rabbitSatchel",head:"headphones",shoes:"starShoes"}];
+outfits.forEach((outfit,row) => {
+  for(let frame=0;frame<14;frame++) {
+    const sleeping=frame===13, zoom=sleeping ? 1.12 : 2.25;
+    cloth.save(); cloth.translate(frame*84+42,row*110+(sleeping?77:103)); cloth.scale(zoom,zoom);
+    drawAvatar(cloth,sleeping?"lying":frame===12?"sitting":"standing",(Math.floor(frame/3)%4) as Facing,frame%3,outfit,images);
+    cloth.restore();
+  }
+});
 const steps = document.querySelector<HTMLCanvasElement>("#footsteps")!.getContext("2d")!;
 steps.fillStyle = "#e8e6d2"; steps.fillRect(0,0,1092,350);
 steps.imageSmoothingEnabled = false;
@@ -37,6 +50,8 @@ const poses: [string, AvatarPose, Facing][] = [
   ["坐下", "sitting", 0],
   ["睡觉 · 无饰品", "lying", 0],
 ];
+const catalog = document.querySelector<HTMLCanvasElement>("#catalog")!.getContext("2d")!;
+catalog.fillStyle="#e6e9d9"; catalog.fillRect(0,0,1152,630); catalog.imageSmoothingEnabled=false;
 for (const [id, item] of Object.entries(ITEMS))
   for (const [label, pose, facing] of poses) {
     const card = document.createElement("article"),
@@ -55,4 +70,10 @@ for (const [id, item] of Object.entries(ITEMS))
     drawAvatar(ctx, pose, facing, 0, { [item.slot]: id as ItemId }, images);
     if (item.slot === "pet" && pose !== "lying")
       drawItem(ctx, id as ItemId, 16, -18, 20, 19);
+    const index=Object.keys(ITEMS).indexOf(id), column=poses.findIndex(p=>p[0]===label);
+    const x=Math.floor(index/7)*576, y=(index%7)*90;
+    if (!column) {
+      catalog.fillStyle="#685663"; catalog.font="12px sans-serif"; catalog.fillText(item.name,x+6,y+13);
+    }
+    catalog.drawImage(canvas,x+column*93+7,y+13,79,77);
   }

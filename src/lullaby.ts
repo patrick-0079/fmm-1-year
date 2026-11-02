@@ -26,6 +26,7 @@ const orchestration = {
   garden:    { tempo: 52, harp: 1.00, pad: 0.68, bell: 0.75 },
   challenge: { tempo: 50, harp: 0.75, pad: 0.96, bell: 0.54 },
   town:      { tempo: 54, harp: 0.90, pad: 0.74, bell: 0.88 },
+  meadow:    { tempo: 47, harp: 0.93, pad: 0.88, bell: 0.82 },
 } as const;
 export const eighthLength = (scene: SceneId) => 60 / orchestration[scene].tempo / 3;
 export const lullabyPulses = melody.length * 6;

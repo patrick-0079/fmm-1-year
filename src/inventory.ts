@@ -69,9 +69,12 @@ export class Inventory {
   open() {
     this.root.hidden = false;
     this.trigger.setAttribute("aria-expanded", "true");
-    this.world.suspend("inventory", true);
+    // Exploration is live beside the wardrobe. An ongoing activity keeps
+    // its own turn or timer on hold until the player returns to it.
+    const scene = this.world.canvas.parentElement!;
+    this.world.suspend("inventory", scene.matches(".inspecting, .arcade-active, .cinema-active, .reading-letter"));
     this.render();
-    this.root.scrollIntoView({ behavior: "instant", block: "start" });
+    this.world.canvas.parentElement!.scrollIntoView({ behavior: "instant", block: "start" });
     this.root.querySelector<HTMLButtonElement>(".bag-close")!.focus({ preventScroll: true });
   }
   grant(id: ItemId) {
@@ -162,7 +165,7 @@ export class Inventory {
       })
       .join(
         "",
-      )}</div><p class="bag-footnote">佩戴或脱下后自动返回游戏。B / Esc 也可收起。六个部位可以独立搭配，睡觉时隐藏穿戴和伙伴。</p>`;
+      )}</div><p class="bag-footnote">背包展开时可继续走动、点地图。佩戴或脱下后自动收起，B / Esc 也可收起。</p>`;
     if (this.debugAvailable) {
       const row = document.createElement("div");
       row.className = "wardrobe-debug";
