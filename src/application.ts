@@ -15,6 +15,7 @@ import { reservedShortcut } from "./input";
 import type { GameId } from "./arcade-engines";
 import { Nature } from "./nature";
 import { FlowerTrail } from "./flower-trail";
+import { NightMeadow } from "./night-meadow";
 import { openCollection } from "./media";
 import {
   chime,
@@ -170,6 +171,7 @@ export function mountGame(tasks: Task[]) {
   const gardenLife = new GardenLife(world, activities, inventory);
   new Companion(world);
   const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);
+  const meadow = new NightMeadow(world, () => progress.creditStars, save);
   const cinema = new GardenCinema(world, toast);
   const bedNote = new BedNote(world);
   const previousTick = world.onTick;
@@ -228,7 +230,7 @@ export function mountGame(tasks: Task[]) {
     tools.hidden = !state;
     if (state)
       tools.querySelector("span")!.textContent =
-        state.kind === "lying" ? "在小屋的床上休息" : "坐在长椅上";
+        state.kind === "lying" ? "在小屋的床上休息" : state.scene === "meadow" ? "在营火边歇脚" : "坐在长椅上";
     else {
       bedNote.close();
       activities.close();
@@ -266,6 +268,8 @@ export function mountGame(tasks: Task[]) {
     if (spot) prompt.querySelector("span")!.textContent = spot.title;
   };
   world.onScene = (scene) => {
+    if (scene !== "meadow") meadow.leave();
+    nature.refreshClock();
     document.querySelector("#location-name")!.textContent =
       `${({room:"ROOM 01",garden:"GARDEN 02",challenge:"GARDEN 03",town:"TOWN 04",meadow:"SECRET 05"})[scene]} · ${scenes[scene].title}`;
     document.querySelector(".map-switch")!.innerHTML =
@@ -293,7 +297,7 @@ export function mountGame(tasks: Task[]) {
     reader.close();
     dismissRevive();
     document.querySelector<HTMLElement>(".nearby-prompt")!.hidden = true;
-    if (flowerTrail.interact(id)) return;
+    if (flowerTrail.interact(id) || meadow.interact(id)) return;
     if (id === "bed") {
       activities.close();
       world.lieDown();
@@ -541,6 +545,7 @@ export function mountGame(tasks: Task[]) {
       completed: [],
       bedNoteUnlocked: false,
       rainbowFlowers: [],
+      creditStars: [],
     };
     cinema.reset();
     activities.reset();

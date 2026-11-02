@@ -13,11 +13,7 @@ const warm = (x: number, y: number, radius = 48): Light => ({
   color: "#ffc36b",
 });
 export const sceneLights: Record<SceneId, Light[]> = {
-  meadow: [
-    warm(402,548,60), warm(489,548,60), warm(406,78,54), warm(500,78,54),
-    warm(343,329,52), warm(556,329,52), warm(136,256,45), warm(241,250,45),
-    warm(621,234,62), warm(841,232,63), warm(418,182,50), warm(488,182,50),
-  ],
+  meadow: [], // Moonlight is painted into the map; the campfire has its own glow.
   room: [
     warm(558, 76, 70),
     warm(45, 158, 72),

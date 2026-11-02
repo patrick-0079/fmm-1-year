@@ -8,8 +8,8 @@ import "./exploration.css";
 import { helpMarkup } from "./help";
 import { ARCADES, TOWN_NPCS } from "./town-data";
 import { ITEMS } from "./items";
-import { anniversary, collections, producers } from "./content";
-import { escapeHtml, icon } from "./icons";
+import { anniversary, collections } from "./content";
+import { icon } from "./icons";
 
 const tasks = [
   {
@@ -102,7 +102,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
         </aside>
       </div>
       <section class="world-note"><span>${icon("tv")} 小电视也来庆祝啦</span><p>穿过小屋的门，到花园看一段周年回忆、放飞一只气球，<br class="desktop-break">再为这场相遇，点亮一片小小的星空。</p><button class="text-button garden-link">去花园看看 ${icon("arrow")}</button></section>
-      <section class="credits" aria-labelledby="credits-title"><div class="credits-heading"><span class="eyebrow">MADE TOGETHER, WITH LOVE</span><h2 id="credits-title">制作人名单</h2><p>谢谢每一份心意，让这场小冒险成为可能。</p></div><ul class="producer-list">${producers.map((name) => `<li>${icon("star")}<span>${escapeHtml(name)}</span></li>`).join("")}</ul><span class="credits-footnote">一起，把晚安变成一份礼物。</span></section>
+      <section class="credits" aria-labelledby="credits-title"><div class="credits-heading"><span class="eyebrow">MADE TOGETHER, WITH LOVE</span><h2 id="credits-title">草地上的署名</h2><p>集齐七色花，去夜里的花海走走。拾起一颗落星，就能遇见一位制作人。</p></div></section>
     </main>
     <footer><span>MADE WITH ${icon("heart")} FOR 芙眠眠</span><p>粉丝制作的一周年纪念礼物 · 愿下一个晚安，依然有你。</p><button class="text-button reset-button">重新探索</button><span class="reset-confirmation" hidden>清除本机进度？<button class="reset-confirm map-action">重新开始</button><button class="reset-cancel map-action">保留进度</button></span></footer>
   </div><div class="toast" role="status" aria-live="polite"></div><div class="confetti-layer" aria-hidden="true"></div>`;

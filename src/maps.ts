@@ -18,6 +18,8 @@ export interface Hotspot {
   portal?: SceneId;
   portalExit?: string;
   markerOffset?: number;
+  /** The illustrated object is itself the click target. */
+  selfMarked?: boolean;
 }
 export interface Scene extends Geometry {
   title: string;
@@ -454,6 +456,7 @@ export const scenes: Record<SceneId, Scene> = {
         y: 100,
         approach: { x: 450, y: 125 },
         radius: 52,
+        markerOffset: 29,
         color: "#e4b458",
       },
     ],
@@ -523,6 +526,7 @@ for (const id of ["garden", "challenge"] as const) {
       y: tree.y,
       approach: { x: tree.x + 30, y: tree.y + 31 },
       radius: 65,
+      markerOffset: 61,
       color: "#e99585",
     },
     {
@@ -530,8 +534,9 @@ for (const id of ["garden", "challenge"] as const) {
       title: "采一朵小花",
       x: flowers.x,
       y: flowers.y,
-      approach: { x: flowers.x, y: flowers.y + 23 },
+      approach: { x: flowers.x, y: flowers.y + 14 },
       radius: 50,
+      markerOffset: 31,
       color: "#eaa7bc",
     },
     {

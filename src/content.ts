@@ -21,14 +21,14 @@ export const anniversary = {
   bilibili: "https://space.bilibili.com/3546844953054084",
 };
 
-// 按展示顺序排列；后续增加制作人只需在数组末尾追加名字。
+// id 也是落星的存档键。改署名或寄语时保留 id；新增成员选一处空草地。
 export const producers = [
-  "派大星",
-  "Kerry",
-  "苏颜",
-  "卿取之于蓝",
-  "正号",
-  "千羽",
+  { id: "star-patrick", name: "派大星", message: "xxx", x: 390, y: 450 },
+  { id: "star-kerry", name: "Kerry", message: "xxx", x: 172, y: 308 },
+  { id: "star-suyan", name: "苏颜", message: "xxx", x: 415, y: 160 },
+  { id: "star-qing", name: "卿取之于蓝", message: "xxx", x: 724, y: 142 },
+  { id: "star-zhenghao", name: "正号", message: "xxx", x: 754, y: 378 },
+  { id: "star-qianyu", name: "千羽", message: "xxx", x: 578, y: 502 },
 ];
 
 export interface Encouragement {
@@ -36,7 +36,7 @@ export interface Encouragement {
   author?: string;
   title?: string;
 }
-// 后续把真实鼓励文案添加到这里。空数组显示只读占位，不提供输入入口。
+// 再次回床时可在小叶子的固定便签后附一条鼓励。
 export const encouragements: Encouragement[] = [];
 
 // 将媒体放进 public/media/，src 填写 /media/文件名。空数组会显示正式占位界面。

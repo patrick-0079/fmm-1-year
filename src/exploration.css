@@ -24,6 +24,26 @@
 .prism-list i { width: 8px; height: 8px; border: 1px solid #766875; border-radius: 50%; }
 .prism-list small { grid-column: 2; font-size: 12px; color: #696958; }
 .note-extra { margin: 6px 0; color: #715565; font-size: 14px; }
+.star-whisper {
+  position: absolute;
+  left: clamp(min(34%, 122px), var(--star-x, 50%), max(66%, calc(100% - 122px)));
+  transform: translate(-50%, -100%);
+  z-index: 2;
+  max-width: min(64%, 234px);
+  box-sizing: border-box;
+  padding: 6px 19px 9px;
+  background: radial-gradient(ellipse at center, #19343de0 10%, #203b4280 55%, transparent 75%);
+  color: #fff4da;
+  text-shadow: 0 1px 2px #142d36, 0 0 5px #19343d;
+  text-align: center;
+  font: 15px/1.45 system-ui, "Microsoft YaHei", sans-serif;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+  pointer-events: none;
+}
+.star-whisper strong, .star-whisper span, .star-whisper small { display: block; }
+.star-whisper strong { font-weight: 650; color: #ffe7b1; }
+.star-whisper small { color: #e0eadc; font-size: 11px; }
 @media (min-width: 801px) {
   .adventure-layout:has(> .inventory-panel:not([hidden])) { grid-template-columns: minmax(0, 1fr) clamp(268px, 25vw, 360px); }
 }

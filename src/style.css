@@ -2642,36 +2642,7 @@ footer .reset-button {
   font-size: 11px;
   color: #938a97;
   line-height: 1.9;
-  margin: 12px 0 24px;
-}
-.producer-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  gap: 12px 27px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.producer-list li {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-  font-size: 13px;
-  color: #77707d;
-  line-height: 1.8;
-}
-.producer-list .icon {
-  width: 10px;
-  height: 10px;
-  color: #b3acbb;
-}
-.credits-footnote {
-  display: block;
-  font-size: 10px;
-  color: #a49aa8;
-  margin-top: 25px;
-  letter-spacing: 1px;
+  margin: 12px 0 0;
 }
 .checkpoint-pill {
   position: absolute;
@@ -2871,17 +2842,8 @@ footer .reset-button {
   .credits h2 {
     font-size: 17px;
   }
-  .producer-list {
-    gap: 12px 22px;
-  }
-  .producer-list li {
-    font-size: 12px;
-  }
   .credits-heading p {
-    font-size: 10px;
-  }
-  .credits-footnote {
-    font-size: 9px;
+    font-size: 12px;
   }
 }
 

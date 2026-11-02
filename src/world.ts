@@ -6,7 +6,8 @@ import restUrl from "./assets/fufu-rest-poses.webp";
 import wreathUrl from "./assets/flower-wreath.webp";
 import townUrl from "./assets/anniversary-town-v13.webp";
 import townDetailUrl from "./assets/anniversary-town-hd-v13.webp";
-import meadowUrl from "./assets/flower-meadow-v15.webp";
+import meadowUrl from "./assets/night-meadow-v16.webp";
+import { meadowAtlasUrl, orchardAtlasUrl } from "./wild-art";
 import { sceneArtReady } from "./scene-art";
 import trapsUrl from "./assets/garden-traps.webp";
 import { rewardsUrl } from "./item-art";
@@ -312,13 +313,18 @@ export class World {
     if (scene !== "meadow" || this.images.has(meadowUrl)) return Promise.resolve();
     if (!this.canEnter(scene)) return Promise.reject(new Error("尚未集齐七色花"));
     if (!this.meadowRequest) {
-      const image = new Image();
-      image.decoding = "async"; image.src = meadowUrl;
-      this.meadowRequest = image.decode().then(() => { this.images.set(meadowUrl,image); })
+      this.meadowRequest = Promise.all([meadowUrl, meadowAtlasUrl].map(async url => {
+        const image = new Image();
+        image.decoding = "async"; image.src = url;
+        await image.decode();
+        return [url, image] as const;
+      })).then(images => { for (const [url, image] of images) this.images.set(url,image); })
         .finally(() => { this.meadowRequest = undefined; });
     }
     return this.meadowRequest;
   }
+  get meadowSprites() { return this.images.get(meadowAtlasUrl); }
+  get orchardSprites() { return this.images.get(orchardAtlasUrl); }
   private paintMap(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
     const background = (this.scene === "town" && this.townDetail) || this.images.get(art[this.scene]);
     if (!background) return;
@@ -388,6 +394,7 @@ export class World {
     await Promise.all([
       sceneArtReady,
       ...[
+        orchardAtlasUrl,
         roomUrl,
         gardenUrl,
         challengeUrl,
@@ -613,6 +620,7 @@ export class World {
     );
   }
   private markerY(spot: Hotspot) {
+    if (spot.selfMarked) return spot.y - (spot.markerOffset ?? 10);
     const y = Math.round(
       spot.y -
         (spot.markerOffset ?? 12) +
@@ -656,7 +664,7 @@ export class World {
       c.fillRect(278, 370, 44, 7);
     }
     this.drawHazards();
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; this.scene !== "meadow" && i < 12; i++) {
       const t = this.reducedMotion.matches ? 0 : this.time;
       c.fillStyle = `rgba(255,245,195,${0.22 + Math.sin(t * 2 + i) * 0.18})`;
       c.fillRect(
@@ -705,7 +713,7 @@ export class World {
     ];
     layers.sort((a, b) => a.y - b.y).forEach((layer) => layer.draw(c));
     for (const spot of this.config.spots) {
-      if (!this.available(spot)) continue;
+      if (spot.selfMarked || !this.available(spot)) continue;
       if (this.restState && (spot.id === "rest" || spot.id === "bed")) continue;
       if (this.focus) continue;
       const y = this.markerY(spot);

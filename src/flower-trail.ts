@@ -1,14 +1,11 @@
 import flowerAtlas from "./assets/rainbow-flowers-v15.webp";
 import { rainbowFlowers, rainbowIds, pickRainbow, meadowOpen, meadowGate } from "./rainbow-flowers";
-import { meadowArchCrown } from "./meadow-map";
 import type { World, DepthLayer } from "./world";
 import { sfx } from "./sound";
 
-const petals = ["#ea9caa","#efa772","#f9da83","#a7d3a4","#9bd5dc","#a7afd8","#d1abd9"];
 export class FlowerTrail {
   private art = new Image();
   private time = 0;
-  private breeze = 6;
   private reduce = matchMedia("(prefers-reduced-motion: reduce)");
   constructor(private world: World, private found: () => string[], private save: () => void, private toast: (text: string) => void) {
     this.art.src = flowerAtlas;
@@ -19,12 +16,7 @@ export class FlowerTrail {
       return available(spot) && !(rainbowIds.includes(spot.id) && found().includes(spot.id));
     };
     world.getDepthLayers = () => [...layers(), ...this.layers()];
-    world.onTick = (dt,t) => { tick(dt,t); this.time=t; this.breeze+=dt; };
-    const environment = world.onEnvironment;
-    world.onEnvironment = (c,t) => {
-      environment(c,t);
-      if (world.scene === "meadow") this.drift(c);
-    };
+    world.onTick = (dt,t) => { tick(dt,t); this.time=t; };
     this.refresh();
   }
   refresh() {
@@ -56,19 +48,6 @@ export class FlowerTrail {
       }
       return true;
     }
-    if (this.world.scene !== "meadow") return false;
-    if (id === "meadow-breeze" || id === "meadow-echo") {
-      this.breeze = 0;
-      sfx(id === "meadow-echo" ? "revive" : "release");
-      this.toast(id === "meadow-echo" ? "花间回声轻轻应和：芙芙，直播一周年快乐。晚安，明天见。" : "七色花瓣乘着风来啦 · 芙芙，愿下一年的每个夜晚也有花开。");
-      return true;
-    }
-    if (id.startsWith("meadow-seat-")) {
-      const seat=this.world.config.spots.find(s=>s.id===id);
-      if (!seat) return false;
-      this.world.sit({x:seat.x,y:seat.y-4},seat.approach);
-      this.toast("坐在花海里，听一会儿风。"); return true;
-    }
     return false;
   }
   private stamp(c: CanvasRenderingContext2D, index: number, x: number, y: number, size: number) {
@@ -76,19 +55,6 @@ export class FlowerTrail {
     c.drawImage(this.art,(index%4)*192,Math.floor(index/4)*192,192,192,x-size/2,y-size,size,size);
   }
   private layers(): DepthLayer[] {
-    if (this.world.scene === "meadow") {
-      const center = this.world.config.spots.find(s=>s.id==="meadow-breeze")!;
-      return [
-        {y:568, draw:c=>this.world.drawMapFragment(c,meadowArchCrown)},
-        {y:center.y+4, draw:c=>{
-          const bouquet = [[-12,-1],[-6,-5],[0,-7],[7,-5],[13,-1],[-4,3],[4,4]];
-          bouquet.forEach(([dx,dy],i) => {
-            const sway = this.reduce.matches || this.breeze>=5 ? 0 : Math.sin(this.time*3+i)*1.3;
-            this.stamp(c,i,center.x+dx+sway,center.y+dy,14);
-          });
-        }},
-      ];
-    }
     const found=this.found(), layers: DepthLayer[]=[];
     rainbowFlowers.forEach((flower,i) => {
       if (flower.scene !== this.world.scene || found.includes(flower.id)) return;
@@ -103,19 +69,5 @@ export class FlowerTrail {
       layers.push({y:meadowGate.y+1,draw:c=>this.stamp(c,7,meadowGate.x,meadowGate.y,70)});
     }
     return layers;
-  }
-  private drift(c: CanvasRenderingContext2D) {
-    if (this.reduce.matches && this.breeze >= 5) return;
-    const wave = this.breeze < 5, time=this.reduce.matches ? 1 : this.time;
-    const view=this.world.visibleArea;
-    c.save();
-    for(let i=0;i<(wave ? 65 : 14);i++) {
-      const x=view.x+((i*97+time*(wave ? 60 : 8))%view.w);
-      const y=view.y+((i*67+time*7+Math.sin(time*.9+i)*8+view.h)%view.h);
-      c.globalAlpha=wave ? .68*Math.min(1,(5-this.breeze)*1.7) : .44;
-      c.fillStyle=petals[i%petals.length]; c.fillRect(Math.round(x),Math.round(y),3,1.5);
-      c.fillRect(Math.round(x+1),Math.round(y-1),2,1);
-    }
-    c.restore();
   }
 }

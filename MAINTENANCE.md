@@ -17,11 +17,12 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 | 内容 | 文件与维护要点 |
 | --- | --- |
-| 主播链接、纪念日期、制作人 | `src/content.ts` 的 `anniversary`、`producers`；追加名单即可，保留现有顺序 |
+| 主播链接、纪念日期、制作人 | `src/content.ts` 的 `anniversary`、`producers`。制作人记录的 `id` 对应存档，`name` 与 `message` 在拾星时揭晓。待收文案见 [todo.md](todo.md) |
 | 文字、图片、录音、视频收藏 | `src/content.ts` 的 `collections`；本地文件放 `public/media/`，页面路径写 `/media/文件名` |
 | 花园大屏视频 | `src/cinema-config.ts`；使用直接可读取的 MP4 地址，推荐 H.264 + AAC，替换后核对 CORS |
 | 每次复活的床边便签 | `src/bed-note.ts`、`src/assets/xiaoye-note.webp`。首遇解锁图钉，之后每次回床也自动展信。附加文案在 `content.ts` 的 `encouragements` |
-| 七色花与花海 | `src/rainbow-flowers.ts` 定义七种花与入口，`src/flower-trail.ts` 处理收集、花谱和互动，`src/meadow-map.ts` 描出花海道路与碰撞 |
+| 七色花与夜间花海 | `src/rainbow-flowers.ts` 和 `src/flower-trail.ts` 维护七种花与入口。`src/meadow-map.ts` 描出草地、帐篷、火圈和水壶。`src/night-meadow.ts` 绘制羊、萤火与落星，管理寄语和星光瓶 |
+| 苹果、可采花丛、勇气花和黄昏纸船 | `src/nature.ts` 按剩余数量和时段绘制，`src/wild-art.ts` 按脚底锚点读取四格图集。运行 `npm run art:night` 重建花海和采集物美术。[v16 素材说明](ARTWORK-v16.md) |
 | 烟花祝福 | `src/celebration.ts` 的 `fireworkWishes`；全部是预设文字 |
 | 小镇居民和小游戏摊位 | `src/town-data.ts`；位置、靠近点和半径需要一起验证 |
 | 庭院来宾与动物 | `src/garden-guests.ts`；对话与跟随逻辑在 `src/garden-life.ts` |
@@ -76,9 +77,11 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 验收鞋子时访问 `/tests/equipment-fixture.html`，对照原鞋与两双配饰的四向三帧和坐姿。鞋子使用角色原画的脚部透明轮廓。更换角色源图时要同步核对 `scripts/build-shoes.mjs` 的逐帧坐标，再运行 `npm run art:festival`。小游戏画面与可试听、可导出的原曲在开发页 `/tests/festival-preview.html`。
 
-验收蔷薇裙、薄荷披肩、头戴与背包叠穿时查看同页第一组逐帧对照。`npm run art:meadow` 从人物原画重建衣料及肩带遮罩，并从花海和花朵源图导出运行素材。[v15 素材说明](ARTWORK-v15.md)
+验收蔷薇裙、薄荷披肩、头戴与背包叠穿时查看同页第一组逐帧对照。`npm run art:meadow` 从人物原画重建衣料及肩带遮罩，也会导出 v15 的七色花和花门。当前夜间场景使用 `npm run art:night`。[v15 素材说明](ARTWORK-v15.md)
 
-开发页 `/tests/exploration-fixture.html` 使用独立的临时存档。点击「运行完整验收」检查开包移动、连续两次复活、七种花的实际互动与花门双向通行。完成后点击「刷新并验证存档」检查重新进入花海。
+开发页 `/tests/exploration-fixture.html` 使用独立的临时存档。「运行完整验收」检查开包移动、连续两次复活、采空苹果和花丛、七色花门往返、营火小坐、拾星与重读。「刷新并验证存档」从部分落星的存档继续收齐，核对星光瓶中的每条寄语。「预览夜间营地」用于查看羊群与草地美术，使用同一套七色花互动进入花海。
+
+追加制作人时，选取草地上的空位，与营火、星光瓶及其他落星保持至少约 60 个逻辑像素的间距。`npm run check` 会验证署名 ID、点击和按键命中、落脚点以及寻路。已有玩家按稳定的 ID 记录收集进度。花海底图和羊群图集在集齐七朵花后一起预载。
 
 | localStorage 键 | 内容 |
 | --- | --- |

@@ -15,6 +15,7 @@ import dewUrl from "./assets/morning-dew-flower.webp";
 import roomArtUrl from "./assets/room-interactive.webp";
 import { drawRoomWindow } from "./window-sky";
 import { drawKeepsake } from "./scene-art";
+import { drawWildSprite } from "./wild-art";
 interface NatureSave {
   picked: Record<string, number>;
   apple: number;
@@ -278,7 +279,7 @@ export class Nature {
     this.activities.menu(
       remaining > 0
         ? "采到小花，编进花环里 · 按 H 或点游戏里的花环按钮佩戴"
-        : "这片花今天采够啦 · 让剩下的小花继续盛开吧",
+        : "这片花今天采完啦，明天再来看看。",
       [
         ...(remaining > 1
           ? [{ title: "再采一朵", run: () => this.pickFlower() }]
@@ -303,6 +304,7 @@ export class Nature {
   }
   private tick(dt: number) {
     const clock = this.clock;
+    const meadow = this.world.scene === "meadow";
     const target: Record<string, number[]> = {
       dawn: [242, 184, 171, 0.11],
       day: [255, 234, 167, 0.03],
@@ -314,17 +316,17 @@ export class Nature {
     for (let i = 0; i < 4; i++)
       this.tint[i] += (target[clock.phase][i] - this.tint[i]) * amount;
     if (this.oldPhase !== clock.phase) {
-      if (this.oldPhase)
+      if (this.oldPhase && !meadow)
         this.toast(`${phaseNames[clock.phase]}到了 · 花园里的风景悄悄变了`);
       this.oldPhase = clock.phase;
     }
     if (Date.now() - this.lastUi < 350) return;
     this.lastUi = Date.now();
     const time = document.querySelector(".time-pill")!;
-    time.textContent = `${{ dawn: "☀", day: "☀", dusk: "◒", night: "☾" }[clock.phase]} ${clock.label} · ${phaseNames[clock.phase]}`;
+    time.textContent = meadow ? "☾ 花海 · 静夜" : `${{ dawn: "☀", day: "☀", dusk: "◒", night: "☾" }[clock.phase]} ${clock.label} · ${phaseNames[clock.phase]}`;
     time.setAttribute(
       "title",
-      `第 ${clock.day} 天 · 现实十分钟为一天；花园长椅可休息到下一时段`,
+      meadow ? "花海长夜，庭院的时钟仍在走动" : `第 ${clock.day} 天 · 现实十分钟为一天；花园长椅可休息到下一时段`,
     );
     document.querySelector(".bag-count")!.textContent =
       `苹果 ${this.state.apple} · 花朵 ${this.state.flower} · 星屑 ${this.state.star}`;
@@ -338,8 +340,12 @@ export class Nature {
       wearing ? "摘下花环，快捷键 H" : "戴上花环，快捷键 H",
     );
     crown.setAttribute("aria-pressed", String(wearing));
-    document.querySelector(".day-hint")!.textContent =
+    document.querySelector(".day-hint")!.textContent = meadow ? "草间有落星，营火旁有一只收着星光的玻璃瓶。" :
       `第 ${clock.day} 天 · 十分钟一昼夜 · ${clock.phase === "dawn" ? "晨露花醒来了" : clock.phase === "dusk" ? "溪边漂来一只纸船" : clock.phase === "night" ? "萤火心愿悄悄出现" : "找长椅休息，等一场黄昏和星夜"}`;
+  }
+  refreshClock() {
+    this.lastUi = 0;
+    this.tick(0);
   }
   private draw(c: CanvasRenderingContext2D, t: number) {
     if (this.world.scene === "room") {
@@ -348,43 +354,16 @@ export class Nature {
     }
     if (this.world.scene === "town" || this.world.scene === "meadow") return;
     drawCreek(c, creeks[this.world.scene], t);
+    const atlas = this.world.orchardSprites;
     if (this.world.scene === "challenge") {
-      // A small planted flower, replacing the old circle-and-square placeholder.
-      c.fillStyle = "#507b49";
-      c.fillRect(449, 96, 2, 13);
-      c.fillRect(443, 101, 6, 3);
-      c.fillRect(451, 99, 6, 3);
-      c.fillStyle = "#ae668b";
-      for (const [dx, dy] of [
-        [-6, -3],
-        [3, -3],
-        [-2, -7],
-        [-2, 1],
-      ])
-        c.fillRect(450 + dx, 95 + dy, 5, 5);
-      c.fillStyle = "#f5bad0";
-      for (const [dx, dy] of [
-        [-5, -3],
-        [3, -3],
-        [-1, -6],
-        [-1, 2],
-      ])
-        c.fillRect(450 + dx, 95 + dy, 3, 3);
-      c.fillStyle = "#ffe5a0";
-      c.fillRect(449, 94, 3, 3);
+      drawWildSprite(c, atlas, 2, 450, 110, 25);
     }
     const flowers = this.world.config.spots.find((s) => s.id === "flowers")!;
     const picked = this.picked("flowers");
-    for (let i = picked; i < 8; i++) {
-      const fx = flowers.x + (i % 4) * 8 - 12,
-        fy = flowers.y + Math.floor(i / 4) * 9 - 4;
-      c.fillStyle = "#7eaa74";
-      c.fillRect(fx, fy, 2, 8);
-      c.fillStyle = ["#f2adbf", "#cdb6ed", "#fff0b4"][i % 3];
-      c.fillRect(fx - 3, fy - 3, 7, 3);
-      c.fillRect(fx - 1, fy - 5, 3, 7);
-      c.fillStyle = "#e6b468";
-      c.fillRect(fx - 1, fy - 2, 3, 3);
+    const tufts = [[9, -2, 15], [-11, 4, 17], [3, 7, 19]];
+    for (let i = 0; i < tufts.length - picked; i++) {
+      const [dx, dy, size] = tufts[i];
+      drawWildSprite(c, atlas, 1, flowers.x + dx, flowers.y + dy, size, i === 1);
     }
     for (const spot of this.world.config.spots) {
       if (!this.available(spot)) continue;
@@ -398,15 +377,7 @@ export class Nature {
           c.drawImage(this.dewImage, spot.x - 16, spot.y - 30, 32, 40);
       }
       if (spot.id === "sunset") {
-        c.fillStyle = "#f5cf85";
-        c.beginPath();
-        c.moveTo(spot.x - 11, spot.y);
-        c.lineTo(spot.x + 11, spot.y);
-        c.lineTo(spot.x + 5, spot.y + 7);
-        c.lineTo(spot.x - 5, spot.y + 7);
-        c.closePath();
-        c.fill();
-        c.fillRect(spot.x, spot.y - 10, 1, 10);
+        drawWildSprite(c, atlas, 3, spot.x, spot.y + 7, 31);
       }
       if (spot.id === "firefly")
         for (let i = 0; i < 12; i++) {
@@ -453,14 +424,8 @@ export class Nature {
             tone: 0,
           });
           for (let i = this.picked("apple"); i < 3; i++) {
-            const x = apple.x + [-16, 17, 2][i],
-              y = apple.y + [-14, -10, -28][i];
-            c.fillStyle = "#d96974";
-            c.fillRect(x - 3, y - 2, 7, 7);
-            c.fillStyle = "#fff0b9";
-            c.fillRect(x - 2, y - 1, 2, 2);
-            c.fillStyle = "#578a55";
-            c.fillRect(x + 1, y - 4, 4, 2);
+            const x = apple.x + [-19, 17, -1][i], y = apple.y + [-3, -8, -23][i];
+            drawWildSprite(c, this.world.orchardSprites, 0, x, y, [14, 15, 13][i], i === 1);
           }
         },
       },
@@ -474,6 +439,7 @@ export class Nature {
     ];
   }
   private lighting(c: CanvasRenderingContext2D) {
+    if (this.world.scene === "meadow") return;
     const shade = Math.max(0, Math.min(1, (this.tint[3] - 0.07) / 0.28));
     if (shade <= 0) return;
     const { width, height } = this.world.config;

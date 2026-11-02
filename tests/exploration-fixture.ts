@@ -1,6 +1,7 @@
 import { World, scenes } from "../src/world";
 import { SAVE_KEY, readProgress } from "../src/core";
 import { rainbowFlowers, meadowGate } from "../src/rainbow-flowers";
+import { producers } from "../src/content";
 
 // Same application as the homepage; all its saves are private to this QA tab.
 const space="fufu-only-exploration-fixture/";
@@ -30,15 +31,54 @@ async function start() {
   q(".enter-button").click();
 }
 async function insideMeadow() {
-  await wait(()=>world.scene==="meadow");
+  await wait(()=>world.scene==="meadow" && !world.paused);
   expect(q("#location-name").textContent?.includes("花海"),"新地图标签有误");
-  const center=scenes.meadow.spots.find(s=>s.id==="meadow-breeze")!;
-  world.switchScene("meadow",center.approach); world.interact();
-  expect(q(".toast").textContent?.includes("花瓣"),"花潮没有响应");
+  expect(q(".time-pill").textContent?.includes("静夜"),"花海错误地显示普通地图的时间");
+  expect(world.meadowSprites?.naturalWidth,"花海可互动时小羊与落星尚未就绪");
+}
+const meadowSpot = (id: string) => scenes.meadow.spots.find(s => s.id === id)!;
+async function collectStar(person: typeof producers[number], pointer = false) {
+  const spot = meadowSpot(person.id), count = state().creditStars.length;
+  world.switchScene("meadow", pointer ? {x: spot.x - 39, y: spot.y + 12} : spot.approach);
+  if (pointer) {
+    const r = world.canvas.getBoundingClientRect(), pos = world.project({x: spot.x, y: spot.y - 10});
+    world.canvas.dispatchEvent(new PointerEvent("pointerdown", {bubbles:true, button:0,
+      clientX:r.left + pos.x * r.width / 600, clientY:r.top + pos.y * r.height / 400}));
+  } else { key("e"); key("e",false); }
+  await wait(()=>state().creditStars.includes(person.id));
+  expect(q(".star-whisper strong").textContent === person.name && q(".star-whisper span").textContent === person.message,
+    "署名或寄语没有在地图中显示");
+  expect(!q(".star-whisper").hidden && !world.available(spot) && !world.paused, "落星重复出现或阻挡探索");
+  world.onInteract(spot.id);
+  expect(state().creditStars.length===count+1, "落星被重复收集");
+}
+function checkHarvest() {
+  const apple = scenes.garden.spots.find(s=>s.id==="apple")!;
+  world.switchScene("garden", apple.approach);
+  for (let i = 1; i <= 3; i++) {
+    world.interact();
+    expect(q(".bag-count").textContent?.includes("苹果 "+i),"苹果没有入袋");
+    expect(q(".activity-status").textContent?.includes("还剩 "+(3-i)+" 颗"),"剩余的树果数量不正确");
+    q(".activity-close").click();
+  }
+  world.interact(); expect(q(".activity-status").textContent?.includes("摘完"),"同一天能收第四颗苹果");
+  q(".activity-close").click();
+  const flowers = scenes.garden.spots.find(s=>s.id==="flowers")!;
+  world.switchScene("garden", flowers.approach);
+  for (let i = 1; i <= 3; i++) {
+    world.interact();
+    expect(q(".bag-count").textContent?.includes("花朵 "+i),"花朵没有入袋");
+    q(".activity-close").click();
+  }
+  world.interact(); expect(q(".activity-status").textContent?.includes("今天采完"),"同一天能收第四丛花");
+  q(".activity-close").click();
+  log("摘三颗苹果、采三丛花后当日采空，背包数量与树果剩余数相符");
 }
 async function checkAll() {
   await start();
   q(".reset-button").click(); q(".reset-confirm").click();
+  expect(!state().creditStars.length && !state().rainbowFlowers.length, "重置没有清空花谱和落星");
+  expect(!producers.some(p=>q(".credits").textContent?.includes(p.name)),"页尾提前公开了名单");
   q(".bag-toggle").click();
   expect(!world.suspended && !world.canvas.parentElement!.inert,"探索打开背包锁住了画布");
   const x=world.player.x;
@@ -61,6 +101,7 @@ async function checkAll() {
     q(".note-close").click(); q(".stand-up").click();
   }
   log("两次实际撞到不同陷阱均回到床上并自动展开小叶子图文便签");
+  checkHarvest();
   for(const [i,flower] of rainbowFlowers.entries()) {
     expect(q<HTMLButtonElement>('[data-scene="meadow"]').hidden, "提前出现花海导航");
     world.switchScene("meadow"); expect(world.scene!=="meadow","未集齐时可以绕过入口");
@@ -78,12 +119,22 @@ async function checkAll() {
   }
   log("三张地图的七处交互均可采集，真实存档去重，前六朵时入口与直达均锁定");
   world.switchScene("garden",meadowGate.approach); world.interact(); await insideMeadow();
+  const jar = meadowSpot("meadow-jar"), fire = meadowSpot("meadow-camp");
+  world.switchScene("meadow", jar.approach); world.interact();
+  expect(q(".star-whisper").textContent?.includes("瓶子还空着"), "空瓶泄露了未发现的署名");
+  world.switchScene("meadow",fire.approach); world.interact();
+  expect(world.restState?.kind==="sitting" && q(".rest-tools").textContent?.includes("营火"),"营火旁不能坐下");
+  world.interact();
+  for (const [i, person] of producers.slice(0,-1).entries()) await collectStar(person,i===0);
+  world.switchScene("meadow",jar.approach); world.interact();
+  expect(q(".star-whisper strong").textContent===producers[0].name,"星光瓶未能重读署名");
   const exit=scenes.meadow.spots.find(s=>s.id==="meadow-exit")!;
   world.switchScene("meadow",exit.approach); world.interact();
   await wait(()=>world.scene==="garden");
+  expect(q(".star-whisper").hidden && !q(".time-pill").textContent?.includes("静夜"),"花海特效或时钟泄漏到庭院");
   expect(Math.hypot(world.player.x-meadowGate.approach.x,world.player.y-meadowGate.approach.y)<3,"返回落脚点错误");
   world.interact(); await insideMeadow();
-  log("采齐后实体花门可往返，花潮可交互");
+  log("实体花门可往返，营火可坐，鼠标寻路和 E 均能拾星，已拾署名可在瓶中重读");
 }
 async function run(check:()=>Promise<void>) {
   q<HTMLButtonElement>("#verify").disabled=true; q("#report").textContent="验收中…"; q("#evidence").replaceChildren();
@@ -91,6 +142,19 @@ async function run(check:()=>Promise<void>) {
   finally {q<HTMLButtonElement>("#verify").disabled=false;}
 }
 q("#verify").addEventListener("click",()=>void run(checkAll));
+q("#camp-preview").addEventListener("click",()=>void run(async()=>{
+  if (!q(".intro-screen").hidden && world.paused) await start();
+  for (const flower of rainbowFlowers) {
+    if (state().rainbowFlowers.includes(flower.id)) continue;
+    world.switchScene(flower.scene,flower.approach);
+    world.interact();
+  }
+  q('[data-scene="meadow"]').click(); await insideMeadow();
+  world.switchScene("meadow",{x:232,y:227});
+  world.canvas.scrollIntoView({block:"center"});
+  world.canvas.focus({preventScroll:true});
+  log("营地实景，可直接点草地上的星星、营火或星光瓶");
+}));
 q("#recheck").addEventListener("click",()=>{sessionStorage.setItem(space+"reload","1");location.reload();});
 if (sessionStorage.getItem(space+"reload")) {
   sessionStorage.removeItem(space+"reload");
@@ -103,6 +167,17 @@ if (sessionStorage.getItem(space+"reload")) {
     log("已解锁便签的旧存档再次触发陷阱，也会自动展信");
     q(".note-close").click(); q(".stand-up").click();
     q('[data-scene="meadow"]').click(); await insideMeadow();
-    log("刷新后完整存档可重入，花海底图已就绪");
+    expect(state().creditStars.length>=producers.length-1,"刷新后落星进度丢失");
+    for (const p of producers.filter(p=>state().creditStars.includes(p.id)))
+      expect(!world.available(meadowSpot(p.id)), "读档后星星重新出现");
+    const last=producers.at(-1)!;
+    if (!state().creditStars.includes(last.id)) await collectStar(last);
+    const jar=meadowSpot("meadow-jar");
+    world.switchScene("meadow",jar.approach);
+    for(const p of producers) {
+      world.interact();
+      expect(q(".star-whisper strong").textContent===p.name,"星光瓶回看漏掉 "+p.name);
+    }
+    log("刷新后继续拾齐全部落星，星光瓶能够依次重读每一位制作人的寄语");
   });
 }

@@ -103,6 +103,11 @@ export function duckMusic(value: boolean) {
 }
 export function sfx(name: string) {
   if (!enabled || !context || !effects || document.hidden) return;
+  if (name === "starlight") {
+    tone(76, context.currentTime, .58, .065, effects, "sine");
+    tone(83, context.currentTime + .14, .88, .046, effects, "sine");
+    return;
+  }
   const notes: Record<string, number[]> = {
     step: [41],
     interact: [79],
