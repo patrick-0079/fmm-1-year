@@ -105,3 +105,16 @@
   background: #e7e9ff;
   color: #514b78;
 }
+.debug-panel .debug-erase-check:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.debug-erase-check p {
+  flex-basis: 100%;
+}
+.debug-panel [data-debug="confirm-erase"] {
+  background: #f9e2dc;
+  border-color: #bf8a85;
+  color: #7c3c49;
+}

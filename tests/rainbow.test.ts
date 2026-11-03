@@ -38,6 +38,13 @@ test("old and malformed saves cannot unlock the meadow; real collections survive
   assert.ok(!meadowOpen(readProgress(stored).rainbowFlowers));
   assert.ok(meadowOpen(readProgress(JSON.stringify({rainbowFlowers:rainbowIds})).rainbowFlowers));
 });
+test("the former orange flower migrates once and a complete old flower book still opens the meadow",()=>{
+  const old=rainbowIds.map(id=>id==="prism-calendula"?"prism-poppy":id);
+  const p=readProgress(JSON.stringify({rainbowFlowers:[...old,"prism-calendula","unknown"]}));
+  assert.deepEqual(p.rainbowFlowers,rainbowIds);
+  assert.ok(meadowOpen(p.rainbowFlowers));
+  assert.equal(pickRainbow(p.rainbowFlowers,"garden","prism-calendula"),undefined);
+});
 test("when the rainbow arch appears its pillars are solid, its mouth and the courtyard routes stay open", () => {
   for (const post of meadowGatePosts) {
     const center={x:post.x+post.w/2,y:post.y+post.h/2};

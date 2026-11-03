@@ -40,7 +40,7 @@ export const notePitch = (n: BassNote) => openPitches[n.string] + n.fret;
 export class BassLesson {
   played = 0;
   preview: number | null = null;
-  private due = 0;
+  private started = 0;
   get complete() {
     return this.played === bassScore.length;
   }
@@ -57,22 +57,27 @@ export class BassLesson {
   }
   listen(now: number) {
     this.preview = 0;
-    this.due = now + bassScore[0].beats * beatSeconds;
+    this.started = now;
     return bassScore[0];
   }
   stopListening() {
     this.preview = null;
   }
-  // At most one note per frame; after a stall do not burst the missed notes at once.
+  // The demo is one recorded take. Show the note at its real media playhead,
+  // even when buffering or after a slow frame; never replay skipped notes.
   advance(now: number) {
-    if (this.preview === null || now < this.due) return undefined;
-    const next = ++this.preview;
-    if (next === bassScore.length) {
-      this.stopListening();
-      return null;
+    if (this.preview === null) return undefined;
+    const elapsed = now - this.started;
+    let end = 0;
+    for (const [index, n] of bassScore.entries()) {
+      end += n.beats * beatSeconds;
+      if (elapsed + 1e-8 < end) {
+        if (index === this.preview) return undefined;
+        this.preview = index;
+        return n;
+      }
     }
-    const n = bassScore[next];
-    this.due = Math.max(this.due, now - 0.035) + n.beats * beatSeconds;
-    return n;
+    this.stopListening();
+    return null;
   }
 }

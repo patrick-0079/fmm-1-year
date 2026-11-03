@@ -185,8 +185,16 @@ export const arcadeLawns = [
   poly([[990, 451], [1042, 460], [1111, 446], [1181, 466], [1225, 504],
     [1228, 542], [1172, 571], [1112, 569], [1050, 558], [1006, 533], [985, 490]]),
 ];
+// The market grass and its stone apron meet the diagonal main street. There
+// is no fence along this curb; the pots and lampposts have separate footprints.
+const moonRabbitForecourt = poly([
+  [537, 510], [565, 520], [592, 542], [611, 567], [608, 589],
+  [590, 621], [566, 649], [540, 676], [506, 688], [476, 681],
+  [463, 662], [494, 642], [514, 613], [526, 575],
+]);
 export const townSurfaces: Point[][] = [
   ...lanes.map(ribbon),
+  moonRabbitForecourt,
   // The heart plaza has one clear entrance on each of its four sides.
   poly([
     [657, 417],

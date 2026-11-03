@@ -14,6 +14,7 @@ import {
   drawTownSigns,
   drawFestivalProp,
 } from "./town-scenery";
+export const TOWN_TALKED_KEY = "fufu-town-talked-v1";
 export class Town {
   private sprites = new Image();
   private cake = new Image();
@@ -29,7 +30,7 @@ export class Town {
     this.cake.src = cakeUrl;
     try {
       const list = JSON.parse(
-        localStorage.getItem("fufu-town-talked-v1") || "[]",
+        localStorage.getItem(TOWN_TALKED_KEY) || "[]",
       );
       if (Array.isArray(list))
         for (const id of list)
@@ -133,7 +134,7 @@ export class Town {
   private save() {
     try {
       localStorage.setItem(
-        "fufu-town-talked-v1",
+        TOWN_TALKED_KEY,
         JSON.stringify([...this.visited]),
       );
     } catch {}

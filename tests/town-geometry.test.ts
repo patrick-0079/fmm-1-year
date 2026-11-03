@@ -51,6 +51,18 @@ test("the whole arcade counter stands on native open ground, away from fences an
     assert.ok(!canStand({x:g.x, y:g.y+10}, s.walls, s.bounds, s.floor, s.surfaces), `${id}: missing solid counter`);
   }
 });
+test("the Moon Rabbit counter and its keeper are accessible across the southeast curb in both directions",()=>{
+  const s=scenes.town, street={x:572,y:644}, counter=s.spots.find(p=>p.id==="arcade-hop")!.approach;
+  const sidewalk=[street,{x:546,y:638},{x:507,y:630},{x:477,y:623},counter];
+  for(let i=1;i<sidewalk.length;i++) {
+    assert.ok(canTravelBetween(sidewalk[i-1],sidewalk[i],s));
+    assert.ok(canTravelBetween(sidewalk[i],sidewalk[i-1],s));
+  }
+  const keeper=s.spots.find(p=>p.id==="npc-hop-keeper")!.approach;
+  assert.ok(canTravelBetween({x:566,y:640},keeper,s));
+  for(const prop of [{x:544,y:620},{x:559,y:609},{x:583,y:592}])
+    assert.ok(!canStand(prop,s.walls,s.bounds,s.floor,s.surfaces));
+});
 
 test("adjoining paved surfaces have no artificial seam, tiny planted gaps cannot be crossed", () => {
   const g = {

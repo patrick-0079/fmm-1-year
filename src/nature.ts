@@ -26,8 +26,8 @@ interface NatureSave {
   wearing: boolean;
   wreath: boolean;
 }
-const NATURE_KEY = "fufu-garden-bag-v1",
-  CLOCK_KEY = "fufu-world-clock-v1";
+export const NATURE_KEY = "fufu-garden-bag-v1";
+const CLOCK_KEY = "fufu-world-clock-v1";
 const initial = (): NatureSave => ({
   picked: {},
   apple: 0,

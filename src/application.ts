@@ -7,13 +7,14 @@ import { BedNote } from "./bed-note";
 import { MapReader } from "./reader";
 import { Inventory } from "./inventory";
 import { Arcade } from "./arcade";
-import { Town } from "./town";
+import { Town, TOWN_TALKED_KEY } from "./town";
 import { GardenCinema } from "./cinema";
 import { GardenLife, Companion } from "./garden-life";
 import { ARCADES } from "./town-data";
 import { reservedShortcut } from "./input";
 import type { GameId } from "./arcade-engines";
-import { Nature } from "./nature";
+import { Nature, NATURE_KEY } from "./nature";
+import { INVENTORY_KEY } from "./items";
 import { FlowerTrail } from "./flower-trail";
 import { NightMeadow } from "./night-meadow";
 import { RoomBass } from "./room-bass";
@@ -106,8 +107,9 @@ export function mountGame(tasks: Task[]) {
   };
   function audio() {
     setSound(progress.sound);
-    setMusic(progress.bgm);
+    setMusic(started && progress.bgm);
     setVolume(progress.volume);
+    bass.refreshSound();
   }
   function update() {
     world.visited = progress.visited;
@@ -218,6 +220,10 @@ export function mountGame(tasks: Task[]) {
   const meadow = new NightMeadow(world, () => progress.creditStars, save);
   const bass = new RoomBass(world, () => progress.bassSongPlayed, () => {
     if (!progress.bassSongPlayed) { progress.bassSongPlayed = true; save(); }
+  }, () => ({ enabled:progress.bassSound, volume:progress.volume }), () => {
+    if(progress.volume===0) { progress.volume=.45; progress.bassSound=true; }
+    else progress.bassSound=!progress.bassSound;
+    update(); save();
   });
   const cinema = new GardenCinema(world, toast);
   const bedNote = new BedNote(world);
@@ -608,34 +614,39 @@ export function mountGame(tasks: Task[]) {
   document.querySelector(".reset-cancel")!.addEventListener("click", () => {
     document.querySelector<HTMLElement>(".reset-confirmation")!.hidden = true;
   });
-  document.querySelector(".reset-confirm")!.addEventListener("click", () => {
-    if (world.busy || transitioning) {
+  function resetAdventure(freshStart = false) {
+    if (!worldReady || world.busy || transitioning) {
       toast("正在回到安全的位置，请稍等一下再重新开始。");
-      return;
+      return false;
     }
     closePanels();
     resetInProgress = true;
+    if (freshStart) {
+      started = false;
+      saveNow.disabled = true;
+      document.querySelector(".intro-screen")!.classList.remove("dismissed");
+    }
     journey = null;
     try { localStorage.removeItem(JOURNEY_KEY); } catch { /* optional storage */ }
-    progress = {
-      ...progress,
-      visited: [],
-      completed: [],
-      bedNoteUnlocked: false,
-      bassSongPlayed: false,
-      rainbowFlowers: [],
-      creditStars: [],
-      arcadeBests: {},
-    };
+    const { sound, bgm, bassSound, volume } = progress;
+    progress = { ...readProgress(null), sound, bgm, bassSound, volume };
     cinema.reset();
     activities.reset();
     nature.reset();
     inventory.reset();
     flowerTrail.setPreviewOpen(false);
-    flowerTrail.refresh();
     town.reset();
     arcade.close();
     reader.close();
+    dismissRevive();
+    meadow.leave();
+    if (freshStart) {
+      inventory.setFitting(false);
+      // Nature.reset has already started a fresh day; keep that new clock across reloads.
+      for (const key of [NATURE_KEY, TOWN_TALKED_KEY, INVENTORY_KEY, SAVE_KEY]) {
+        try { localStorage.removeItem(key); } catch { /* Storage can be unavailable. */ }
+      }
+    }
     save();
     update();
     world.switchScene("room");
@@ -648,8 +659,11 @@ export function mountGame(tasks: Task[]) {
     }
     world.paused = !started;
     document.querySelector<HTMLElement>(".reset-confirmation")!.hidden = true;
-    toast("新的一场小冒险开始啦。");
-  });
+    if (freshStart) revealMapIfOffscreen();
+    toast(freshStart ? "本机游戏存档已清空。" : "新的一场小冒险开始啦。");
+    return true;
+  }
+  document.querySelector(".reset-confirm")!.addEventListener("click", () => resetAdventure());
   update();
   world.onScene("room");
   mountDebugPanel(world,inventory,nature,flowerTrail,async(scene,id,mode)=>{
@@ -662,7 +676,7 @@ export function mountGame(tasks: Task[]) {
     world.switchScene(scene,arrival); world.canvas.focus({preventScroll:true});
     if(mode==="open" && spot) world.onInteract(spot.id);
     revealMapIfOffscreen(); return true;
-  },toast);
+  }, toast, () => resetAdventure(true));
   for (const id of GAME_IDS)
     if (!Object.values(scenes).some((s) => s.spots.some((p) => p.id === id)))
       throw new Error(`Missing activity: ${id}`);

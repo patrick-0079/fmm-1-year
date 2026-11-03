@@ -1,15 +1,13 @@
 import { sceneArt } from "./scene-art";
 import { bassStand } from "./room-props";
-import { duckMusic, pluckBass } from "./sound";
+import { duckMusic } from "./sound";
+import { BassAudio, type BassMix } from "./bass-audio";
 import {
   BassLesson,
   bassScore,
   bassSongTitle,
   bassStrings,
-  beatSeconds,
-  notePitch,
   type BassString,
-  type BassNote,
 } from "./bass-score";
 import { readingTarget, reservedShortcut } from "./input";
 import type { World } from "./world";
@@ -24,6 +22,7 @@ export class RoomBass {
   private ringing = -1;
   private ringTimer?: ReturnType<typeof setTimeout>;
   private message = "";
+  private voice: BassAudio;
   get active() {
     return this.lesson !== null;
   }
@@ -31,6 +30,8 @@ export class RoomBass {
     private world: World,
     private hasPlayed: () => boolean,
     private dedicate: () => void,
+    private mix: () => BassMix,
+    private toggleVoice: () => void,
   ) {
     this.panel.className = "bass-hud";
     this.panel.hidden = true;
@@ -46,7 +47,19 @@ export class RoomBass {
       </div>
       <p class="bass-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
       <p class="bass-guide">点琴弦，或按 <b>1–4</b> 跟弹。慢慢来，不用抢拍。</p>
-      <div class="bass-actions"><button type="button" class="bass-listen">▷ 听示范</button><button type="button" class="bass-again">从头弹</button><button type="button" class="bass-leave">收起琴谱 <kbd>Esc</kbd></button></div>`;
+      <div class="bass-actions"><button type="button" class="bass-listen">▷ 听示范</button><button type="button" class="bass-voice"></button><button type="button" class="bass-again">从头弹</button><button type="button" class="bass-leave">收起琴谱 <kbd>Esc</kbd></button></div>`;
+    this.voice = new BassAudio(
+      this.panel,
+      () => this.stopDemo(),
+      () => {
+        this.stopDemo();
+        this.message = "琴声未能播放，请再点一次琴弦或「听示范」。";
+        this.render();
+      },
+    );
+    this.panel
+      .querySelector(".bass-voice")!
+      .addEventListener("click", () => this.toggleVoice());
     world.canvas.parentElement!.insertBefore(
       this.panel,
       world.canvas.nextSibling,
@@ -90,7 +103,10 @@ export class RoomBass {
       },
       { capture: true },
     );
-    const stop = () => this.stopDemo();
+    const stop = () => {
+      this.stopDemo();
+      this.voice.stop();
+    };
     window.addEventListener("blur", stop);
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) stop();
@@ -110,8 +126,8 @@ export class RoomBass {
       tick(dt, t);
       this.age = world.scene === "room" ? Math.min(2, this.age + dt) : 2;
       if (dt > 0 && this.lesson?.preview != null) {
-        const n = this.lesson.advance(t);
-        if (n) this.soundDemo(n);
+        const n = this.lesson.advance(this.voice.demoTime);
+        if (n) this.ring(n.string);
         if (n !== undefined) this.render();
       }
     };
@@ -124,6 +140,8 @@ export class RoomBass {
     world.paused = true;
     world.canvas.parentElement!.classList.add("bass-playing");
     this.panel.hidden = false;
+    this.voice.prepare();
+    this.refreshSound();
     duckMusic(true, "bass");
     this.restart();
     this.panel.focus({ preventScroll: true });
@@ -131,6 +149,7 @@ export class RoomBass {
   close(focus = true) {
     if (!this.active) return;
     this.lesson = null;
+    this.voice.stop();
     this.clearRing();
     this.age = 2;
     this.panel.hidden = true;
@@ -143,6 +162,7 @@ export class RoomBass {
       this.world.canvas.focus({ preventScroll: true });
   }
   private restart() {
+    this.voice.stop();
     this.clearRing();
     this.lesson = new BassLesson();
     this.age = 2;
@@ -166,18 +186,14 @@ export class RoomBass {
   private play(index: BassString) {
     const lesson = this.lesson;
     if (!lesson || this.world.suspended) return;
-    const n = bassScore[lesson.played],
-      hit = lesson.pluck(index);
+    const hit = lesson.pluck(index);
     if (!hit) return;
     this.ring(index);
-    pluckBass(
-      hit.pitch,
-      hit.matched ? Math.min(1.4, n.beats * beatSeconds + 0.12) : 0.63,
-    );
     this.message = "";
     if (hit.finished) this.dedicate();
     else if (!hit.matched && !lesson.complete)
       this.message = "没关系，这个音再试一次。";
+    this.voice.note(hit.pitch);
     this.render();
   }
   private listen() {
@@ -187,18 +203,31 @@ export class RoomBass {
       return;
     }
     this.message = "";
-    this.soundDemo(this.lesson.listen(performance.now() / 1000));
+    this.ring(this.lesson.listen(0).string);
+    this.voice.listen();
     this.render();
   }
   private stopDemo() {
     if (!this.lesson || this.lesson.preview === null) return;
     this.lesson.stopListening();
+    this.voice.stop();
     this.clearRing();
     this.render();
   }
-  private soundDemo(n: BassNote) {
-    this.ring(n.string);
-    pluckBass(notePitch(n), Math.min(1.4, n.beats * beatSeconds + 0.12));
+  refreshSound() {
+    const mix = this.mix();
+    this.voice.setMix(mix);
+    const button = this.panel.querySelector<HTMLButtonElement>(".bass-voice")!;
+    const audible = mix.enabled && mix.volume > 0;
+    button.textContent =
+      mix.volume === 0 ? "恢复总音量" : audible ? "琴声已开" : "开启琴声";
+    button.setAttribute("aria-pressed", String(audible));
+    button.title =
+      mix.volume === 0
+        ? "将总音量恢复到 45%，并开启琴声"
+        : audible
+          ? "关闭琴声"
+          : "开启琴声";
   }
   private render() {
     const l = this.lesson;

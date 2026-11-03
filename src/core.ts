@@ -40,6 +40,7 @@ export interface Progress {
   visited: string[];
   completed: string[];
   sound: boolean;
+  bassSound: boolean;
   bgm: boolean;
   volume: number;
   bedNoteUnlocked: boolean;
@@ -73,6 +74,7 @@ export function readProgress(raw: string | null): Progress {
     visited: [],
     completed: [],
     sound: true,
+    bassSound: true,
     bgm: true,
     volume: 0.45,
     bedNoteUnlocked: false,
@@ -101,9 +103,12 @@ export function readProgress(raw: string | null): Progress {
       visited: valid(p.visited, EVENT_IDS),
       completed: valid(p.completed, GAME_IDS),
       sound: p.sound === true,
+      bassSound: p.bassSound !== false,
       bedNoteUnlocked: p.bedNoteUnlocked === true,
       bassSongPlayed: p.bassSongPlayed === true,
-      rainbowFlowers: valid(p.rainbowFlowers, rainbowIds),
+      rainbowFlowers: valid(Array.isArray(p.rainbowFlowers)
+        ? p.rainbowFlowers.map(id => id === "prism-poppy" ? "prism-calendula" : id)
+        : [], rainbowIds),
       creditStars: valid(p.creditStars, producers.map(p => p.id)),
       arcadeBests: Object.fromEntries(Object.entries(p.arcadeBests ?? {}).filter(([id, score]) =>
         Object.hasOwn(ARCADES, id) && Number.isSafeInteger(score) && score > 0)),

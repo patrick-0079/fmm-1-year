@@ -287,6 +287,73 @@ q("#camp-preview").addEventListener("click",()=>void run(async()=>{
   world.canvas.focus({preventScroll:true});
   log("营地实景，可直接点草地上的星星、营火或星光瓶");
 }));
+// Meter the game's own media elements. The graph stays entirely inside this QA page.
+let meterContext: AudioContext | undefined;
+const meters=new WeakMap<HTMLAudioElement,AnalyserNode>();
+q("#check-sound").addEventListener("click",()=>void run(async()=>{
+  meterContext ??= new AudioContext();
+  await meterContext.resume();
+  if(!q(".intro-screen").classList.contains("dismissed")) await start();
+  const saved=state();
+  if(saved.bgm) q(".music-toggle").click();
+  if(saved.sound) q(".sound-toggle").click();
+  world.switchScene("room",bassStand.spot.approach); world.interact();
+  if(!state().bassSound || state().volume===0) q(".bass-voice").click();
+  const measure=async(audio:HTMLAudioElement,trigger:()=>void,label:string)=>{
+    let meter=meters.get(audio);
+    if(!meter) {
+      meter=meterContext!.createAnalyser(); meter.fftSize=4096;
+      meterContext!.createMediaElementSource(audio).connect(meter).connect(meterContext!.destination);
+      meters.set(audio,meter);
+    }
+    const wave=new Float32Array(meter.fftSize); let peak=0;
+    trigger();
+    await wait(()=>{meter.getFloatTimeDomainData(wave);for(const s of wave) peak=Math.max(peak,Math.abs(s));
+      return !audio.muted && audio.currentTime>0 && peak>.008;},10000);
+    log(label+"：媒体实际前进，输出峰值 "+peak.toFixed(3));
+  };
+  for(const [index,pitch] of [31,35,38,43].entries()) {
+    const audio=q<HTMLAudioElement>('[data-bass-note="'+pitch+'"]');
+    await measure(audio,()=>{if(index%2) {key(String(index+1));key(String(index+1),false);}
+      else q<HTMLButtonElement>('[data-string="'+index+'"]').click();},["E 弦","A 弦","D 弦","G 弦"][index]);
+  }
+  const demo=q<HTMLAudioElement>("[data-bass-demo]");
+  await measure(demo,()=>q(".bass-listen").click(),"完整周年示范");
+  await wait(()=>demo.currentTime>1.6 && q(".bass-phrase .current strong").textContent!=="窗");
+  q(".bass-voice").click(); expect(demo.muted,"示范没有响应琴声静音");
+  q(".bass-voice").click(); expect(!demo.muted,"示范没有恢复声音");
+  q(".bass-leave").click(); expect(demo.paused,"离开琴谱后仍然播放");
+  log("背景音乐和游戏音效关闭时仍可弹琴，示范随音轨走谱；静音、恢复和离开均正常");
+}));
+q("#check-market").addEventListener("click",()=>void run(async()=>{
+  if(!q(".intro-screen").classList.contains("dismissed")) await start();
+  q(".reset-button").click(); q(".reset-confirm").click();
+  world.switchScene("town",{x:572,y:644});
+  key("ArrowLeft");try{await wait(()=>world.player.x<=518);}finally{key("ArrowLeft",false);}
+  expect(world.player.y===644,"没有跨过南侧路沿");
+  const counter=scenes.town.spots.find(s=>s.id==="arcade-hop")!;
+  const rect=world.canvas.getBoundingClientRect(),pos=world.project({x:counter.x,y:counter.y-24});
+  world.canvas.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,button:0,
+    clientX:rect.left+pos.x*rect.width/600,clientY:rect.top+pos.y*rect.height/400}));
+  await wait(()=>!q(".arcade-hud").hidden);
+  expect(q(".arcade-title").textContent==="月兔跳一跳","未能从主街进入月兔台");
+  q(".arcade-close").click(); log("方向键从主街跨过路沿，点击月兔台可从摊位正面进入跳一跳");
+  const orange=rainbowFlowers[1];world.switchScene(orange.scene,orange.approach);world.interact();
+  expect(state().rainbowFlowers.includes("prism-calendula"),"橙色金盏菊没有正常采集");
+  const wreath=scenes.garden.spots.find(s=>s.id==="wreath")!;
+  world.switchScene("garden",wreath.approach);world.interact();q(".activity-close").click();
+  const prefs=state(), bag=localStorage.getItem("fufu-souvenirs-v1");
+  expect(bag?.includes("wreath") && !!landing(),"清档验收缺少真实收藏或位置存档");
+  const debug=(cmd:string)=>q<HTMLButtonElement>('[data-debug="'+cmd+'"]');
+  q(".debug-trigger").click(); q<HTMLDetailsElement>(".debug-storage").open=true;
+  debug("erase").click();debug("keep").click();
+  expect(localStorage.getItem("fufu-souvenirs-v1")===bag && state().rainbowFlowers.includes(orange.id),"取消也清空了存档");
+  debug("erase").click();debug("confirm-erase").click();
+  expect(!landing() && !state().rainbowFlowers.length && !localStorage.getItem("fufu-souvenirs-v1"),"清档仍有收藏或旧位置");
+  expect(world.scene==="room" && world.paused && !q(".intro-screen").classList.contains("dismissed"),"清档没有回到开始页");
+  const empty=state(); expect(empty.volume===prefs.volume && empty.bgm===prefs.bgm && empty.sound===prefs.sound && empty.bassSound===prefs.bassSound,"清档丢失声音设置");
+  log("取消保留金盏菊和背包；确认清空后开始页、收集、位置及音量设置均正确");
+}));
 q("#recheck").addEventListener("click",()=>{sessionStorage.setItem(space+"reload","1");location.reload();});
 if (sessionStorage.getItem(space+"reload")) {
   sessionStorage.removeItem(space+"reload");

@@ -2,7 +2,7 @@ import type { Hotspot, SceneId } from "./maps.ts";
 
 export const rainbowFlowers = [
   { id: "prism-rose", name: "绯红心愿蔷薇", scene: "garden", place: "周年庭院 · 粉伞茶桌下方", color: "#c95673", x: 291, y: 160, approach: {x:314,y:169} },
-  { id: "prism-poppy", name: "橙光晚霞罂粟", scene: "garden", place: "周年庭院 · 放映草坪南缘", color: "#d3844f", x: 686, y: 365, approach: {x:710,y:374} },
+  { id: "prism-calendula", name: "橙光晚霞金盏菊", scene: "garden", place: "周年庭院 · 放映草坪南缘", color: "#db963d", x: 686, y: 365, approach: {x:710,y:374} },
   { id: "prism-lily", name: "金黄星愿百合", scene: "challenge", place: "勇气花园 · 石桥东边的草地", color: "#b5913f", x: 370, y: 287, approach: {x:393,y:294} },
   { id: "prism-peony", name: "碧绿四叶芍药", scene: "challenge", place: "勇气花园 · 苹果树西边", color: "#4f956f", x: 650, y: 361, approach: {x:674,y:371} },
   { id: "prism-bell", name: "天青溪语风铃", scene: "town", place: "周年小镇 · 南岸池塘边", color: "#4f9fae", x: 685, y: 949, approach: {x:710,y:966} },

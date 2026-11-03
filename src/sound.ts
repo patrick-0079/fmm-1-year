@@ -101,13 +101,6 @@ export function duckMusic(value: boolean, source: "cinema" | "bass" = "cinema") 
   if (value) quietFor.add(source); else quietFor.delete(source);
   levels();
 }
-export function pluckBass(note: number, hold = .86) {
-  if (!enabled || !context || !effects || document.hidden) return;
-  const t=context.currentTime;
-  tone(note,t,hold,.36,effects,"triangle");
-  tone(note+12,t,Math.min(hold,.55),.19,effects,"sine");
-  tone(note+19,t,Math.min(hold,.18),.07,effects,"sine");
-}
 export function sfx(name: string) {
   if (!enabled || !context || !effects || document.hidden) return;
   if (name === "starlight") {

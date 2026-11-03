@@ -32,6 +32,9 @@ export const townScene: Scene = {
   ].map(([x, y]) => ({ x, y })),
   walls: [
     ...townGates.filter((g) => g.scene === "town").flatMap(gatePosts),
+    { label: "月兔台前的红邮筒", x: 535, y: 614, w: 19, h: 12 },
+    { label: "月兔台前的花盆", x: 550, y: 604, w: 20, h: 12 },
+    { label: "月兔台东侧路灯", x: 578, y: 583, w: 12, h: 13 },
     { label: "花店主屋", x: 141, y: 86, w: 284, h: 159 },
     { label: "花店温室", x: 122, y: 137, w: 110, h: 102 },
     { label: "烘焙屋", x: 645, y: 73, w: 220, h: 177 },

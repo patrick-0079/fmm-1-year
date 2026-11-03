@@ -29,6 +29,7 @@ export function mountDebugPanel(
   flowers: FlowerTrail,
   go: Travel,
   toast: (s: string) => void,
+  eraseProgress: () => boolean,
 ) {
   const book = document.querySelector<HTMLElement>(".flower-book")!;
   if (import.meta.env.VITE_WARDROBE_DEBUG !== "true") {
@@ -62,12 +63,26 @@ export function mountDebugPanel(
       ]
         .map(([id, name]) => button("event:" + id, name))
         .join("")}${button("trap", "体验陷阱与复活")}</div></details>
+      <details class="debug-storage"><summary>本机存档</summary>
+        ${button("erase", "清空本机游戏存档")}
+        <div class="debug-erase-check" hidden><p>将清空位置、收集、装备、居民记录和成绩，回到开始页。声音设置、视频和贴图缓存会保留。</p>
+          ${button("keep", "保留存档")} ${button("confirm-erase", "确认清空")}</div>
+      </details>
     </aside>`;
   document.querySelector("#app")!.append(holder);
   const panel = holder.querySelector<HTMLElement>(".debug-panel")!,
     trigger = holder.querySelector<HTMLButtonElement>(".debug-trigger")!;
   holder.querySelector(".debug-flowers")!.append(book);
   book.hidden = false;
+  const eraseCheck = holder.querySelector<HTMLElement>(".debug-erase-check")!;
+  const resetButton = holder.querySelector<HTMLButtonElement>(
+    '[data-debug="erase"]',
+  )!;
+  const cancelErase = (focus = false) => {
+    eraseCheck.hidden = true;
+    resetButton.hidden = false;
+    if (focus) resetButton.focus({ preventScroll: true });
+  };
   let travelling = false;
   const refresh = () => {
     const flags: Record<string, boolean> = {
@@ -93,6 +108,7 @@ export function mountDebugPanel(
   const close = (focus = false) => {
     if (panel.hidden) return;
     panel.hidden = true;
+    cancelErase();
     trigger.setAttribute("aria-expanded", "false");
     world.suspend("debug", false);
     if (focus) trigger.focus({ preventScroll: true });
@@ -126,7 +142,8 @@ export function mountDebugPanel(
       if (!panel.hidden && e.key === "Escape" && !reservedShortcut(e)) {
         e.preventDefault();
         e.stopImmediatePropagation();
-        close(true);
+        if (!eraseCheck.hidden) cancelErase(true);
+        else close(true);
       }
     },
     { capture: true },
@@ -152,7 +169,21 @@ export function mountDebugPanel(
       ?.dataset.debug;
     if (!cmd) return;
     const [type, key, id] = cmd.split(":");
-    if (type === "wardrobe") bag.setFitting(!bag.fitting);
+    if (type === "erase") {
+      resetButton.hidden = true;
+      eraseCheck.hidden = false;
+      eraseCheck
+        .querySelector<HTMLButtonElement>('[data-debug="keep"]')!
+        .focus({ preventScroll: true });
+    } else if (type === "keep") cancelErase(true);
+    else if (type === "confirm-erase") {
+      if (!eraseCheck.hidden && !travelling && eraseProgress()) {
+        close();
+        document
+          .querySelector<HTMLButtonElement>(".enter-button")!
+          .focus({ preventScroll: true });
+      }
+    } else if (type === "wardrobe") bag.setFitting(!bag.fitting);
     else if (type === "collision")
       world.showCollisionOverlay(!world.collisionOverlay);
     else if (type === "time")
