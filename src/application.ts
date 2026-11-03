@@ -16,6 +16,7 @@ import type { GameId } from "./arcade-engines";
 import { Nature } from "./nature";
 import { FlowerTrail } from "./flower-trail";
 import { NightMeadow } from "./night-meadow";
+import { JOURNEY_KEY, readJourney, type Journey } from "./journey";
 import { openCollection } from "./media";
 import {
   chime,
@@ -42,12 +43,39 @@ export function mountGame(tasks: Task[]) {
   let progress = readProgress(saved),
     started = false,
     transitioning = false;
+  let journey: Journey | null = null;
+  try { journey = readJourney(localStorage.getItem(JOURNEY_KEY), progress.rainbowFlowers); } catch { /* optional storage */ }
+  let worldReady = false, resetInProgress = false, lastPositionCheck = 0;
   // The guide stays clickable during the brief gate fade. Honor its latest
   // destination as soon as the current crossing has finished.
   let afterCrossing: (() => void) | undefined;
   const world = new World(document.querySelector("#world")!);
   const reader = new MapReader(world);
   const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
+  const saveNow = document.querySelector<HTMLButtonElement>(".save-now")!;
+  const saveStatus = document.querySelector<HTMLElement>(".save-status")!;
+  const showJourney = () => {
+    if (!journey) { saveStatus.textContent = "开始冒险后自动保存"; saveStatus.removeAttribute("title"); return; }
+    const date = new Date(journey.savedAt);
+    const when = date.toLocaleTimeString("zh-CN", {hour: "2-digit", minute: "2-digit"});
+    saveStatus.textContent = `本机已保存 · ${scenes[journey.scene].title} ${when}`;
+    saveStatus.title = date.toLocaleString("zh-CN");
+  };
+  const saveLocation = (manual = false) => {
+    if (!started || !worldReady || resetInProgress || world.busy) return;
+    const {x,y} = world.restState?.exit ?? world.player;
+    if (!manual && journey?.scene === world.scene && journey.x === x && journey.y === y) return;
+    const next = {scene: world.scene, x, y, savedAt: Date.now()};
+    try {
+      localStorage.setItem(JOURNEY_KEY, JSON.stringify(next));
+      journey = next;
+      showJourney();
+    } catch { saveStatus.textContent = "浏览器未能保存本次进度"; }
+  };
+  showJourney();
+  window.addEventListener("pagehide", () => saveLocation());
+  document.addEventListener("visibilitychange", () => { if (document.hidden) saveLocation(); });
+  saveNow.addEventListener("click", () => { saveLocation(true); world.canvas.focus({preventScroll:true}); });
   const toastElement = document.querySelector<HTMLElement>(".toast")!;
   document.querySelector(".scene-wrap")!.append(toastElement);
   let toastTimeout: ReturnType<typeof setTimeout>;
@@ -166,7 +194,13 @@ export function mountGame(tasks: Task[]) {
   });
   inventory.onEquip = () => activities.finishEquipmentChoice();
   const nature = new Nature(world, activities, toast, inventory);
-  const arcade = new Arcade(world, activities, inventory);
+  const arcade = new Arcade(world, activities, inventory, (id, score) => {
+    const best = progress.arcadeBests[id] ?? 0;
+    if (score <= best) return best;
+    progress.arcadeBests[id] = score;
+    save();
+    return score;
+  });
   const town = new Town(world, activities, inventory, arcade);
   const gardenLife = new GardenLife(world, activities, inventory);
   new Companion(world);
@@ -178,6 +212,10 @@ export function mountGame(tasks: Task[]) {
   world.onTick = (dt, t) => {
     previousTick(dt, t);
     bedNote.refresh(progress.bedNoteUnlocked);
+    if (t - lastPositionCheck > 2) {
+      lastPositionCheck = t;
+      saveLocation();
+    }
   };
   function dismissRevive() {
     bedNote.close();
@@ -226,6 +264,7 @@ export function mountGame(tasks: Task[]) {
     dismissRevive();
   };
   world.onRestChange = (state) => {
+    if (state) saveLocation();
     const tools = document.querySelector<HTMLElement>(".rest-tools")!;
     tools.hidden = !state;
     if (state)
@@ -268,6 +307,7 @@ export function mountGame(tasks: Task[]) {
     if (spot) prompt.querySelector("span")!.textContent = spot.title;
   };
   world.onScene = (scene) => {
+    saveLocation();
     if (scene !== "meadow") meadow.leave();
     nature.refreshClock();
     document.querySelector("#location-name")!.textContent =
@@ -361,8 +401,10 @@ export function mountGame(tasks: Task[]) {
     }
   };
   function begin() {
-    if (enter.disabled || started) return;
+    if (!worldReady || enter.disabled || started) return;
     started = true;
+    saveNow.disabled = false;
+    saveLocation();
     document.querySelector(".intro-screen")!.classList.add("dismissed");
     world.paused = false;
     audio();
@@ -377,9 +419,27 @@ export function mountGame(tasks: Task[]) {
   enter.addEventListener("click", begin);
   world
     .load()
-    .then(() => {
+    .then(async () => {
+      const resume = journey;
+      if (resume) {
+        try {
+          await world.prepareScene(resume.scene);
+          if (journey === resume) world.switchScene(resume.scene, resume);
+        } catch {
+          if (journey === resume) {
+            world.switchScene("garden");
+            toast("花海暂未载入，先回庭院歇一会儿。");
+          }
+        }
+      }
+      // Switching a scene dismisses activities and normally resumes walking.
+      // A restored adventure must still wait for the player's Continue gesture.
+      world.paused = !started;
+      worldReady = true;
       enter.disabled = false;
-      enter.innerHTML = `开始小冒险 ${icon("arrow")}`;
+      enter.innerHTML = `${journey ? "继续上次的冒险" : "开始小冒险"} ${icon("arrow")}`;
+      if (journey) document.querySelector(".intro-screen small")!.textContent =
+        `本机存档 · ${scenes[world.scene].title} · 点击继续`;
     })
     .catch(() => {
       enter.disabled = false;
@@ -539,6 +599,9 @@ export function mountGame(tasks: Task[]) {
       return;
     }
     closePanels();
+    resetInProgress = true;
+    journey = null;
+    try { localStorage.removeItem(JOURNEY_KEY); } catch { /* optional storage */ }
     progress = {
       ...progress,
       visited: [],
@@ -546,6 +609,7 @@ export function mountGame(tasks: Task[]) {
       bedNoteUnlocked: false,
       rainbowFlowers: [],
       creditStars: [],
+      arcadeBests: {},
     };
     cinema.reset();
     activities.reset();
@@ -558,6 +622,13 @@ export function mountGame(tasks: Task[]) {
     save();
     update();
     world.switchScene("room");
+    resetInProgress = false;
+    if (started) saveLocation(true);
+    else {
+      showJourney();
+      enter.innerHTML = `开始小冒险 ${icon("arrow")}`;
+      document.querySelector(".intro-screen small")!.textContent = "点击开始会播放轻柔音乐 · 可随时关闭 ♡";
+    }
     world.paused = !started;
     document.querySelector<HTMLElement>(".reset-confirmation")!.hidden = true;
     toast("新的一场小冒险开始啦。");

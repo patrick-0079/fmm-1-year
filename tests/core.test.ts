@@ -13,6 +13,7 @@ test("corrupt or unexpected saved data cannot break a new visit", () => {
       bedNoteUnlocked: false,
       rainbowFlowers: [],
       creditStars: [],
+      arcadeBests: {},
     });
   }
   assert.deepEqual(
@@ -32,6 +33,7 @@ test("corrupt or unexpected saved data cannot break a new visit", () => {
       bedNoteUnlocked: false,
       rainbowFlowers: [],
       creditStars: [],
+      arcadeBests: {},
     },
   );
 });

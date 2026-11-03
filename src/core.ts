@@ -1,5 +1,7 @@
 import { rainbowIds } from "./rainbow-flowers.ts";
 import { producers } from "./content.ts";
+import { ARCADES } from "./town-data.ts";
+import type { GameId } from "./arcade-engines.ts";
 
 export interface Rect {
   x: number;
@@ -43,6 +45,7 @@ export interface Progress {
   bedNoteUnlocked: boolean;
   rainbowFlowers: string[];
   creditStars: string[];
+  arcadeBests: Partial<Record<GameId, number>>;
 }
 export const SAVE_KEY = "nemu-anniversary-v1";
 export const PLAYER_RADIUS = 5;
@@ -74,6 +77,7 @@ export function readProgress(raw: string | null): Progress {
     bedNoteUnlocked: false,
     rainbowFlowers: [],
     creditStars: [],
+    arcadeBests: {},
   };
   if (!raw) return clean;
   try {
@@ -98,6 +102,8 @@ export function readProgress(raw: string | null): Progress {
       bedNoteUnlocked: p.bedNoteUnlocked === true,
       rainbowFlowers: valid(p.rainbowFlowers, rainbowIds),
       creditStars: valid(p.creditStars, producers.map(p => p.id)),
+      arcadeBests: Object.fromEntries(Object.entries(p.arcadeBests ?? {}).filter(([id, score]) =>
+        Object.hasOwn(ARCADES, id) && Number.isSafeInteger(score) && score > 0)),
       bgm: typeof p.bgm === "boolean" ? p.bgm : p.sound === true,
       volume:
         typeof p.volume === "number" && Number.isFinite(p.volume)

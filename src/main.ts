@@ -10,6 +10,7 @@ import { ARCADES, TOWN_NPCS } from "./town-data";
 import { ITEMS } from "./items";
 import { anniversary, collections } from "./content";
 import { icon } from "./icons";
+import { prepareTextureCache } from "./texture-cache";
 
 const tasks = [
   {
@@ -85,7 +86,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
         <aside class="journal" aria-label="庆典手账">
           <div class="journal-heading"><span class="eyebrow">TONIGHT’S LITTLE WISHES</span><h2>今晚的小心愿 ${icon("heart")}</h2><p>做一点小事，收集一点快乐。</p></div>
           <div class="task-list">${tasks.map((task, i) => `<button class="task" data-task="${task.id}"><span class="task-icon task-color-${i}">${icon(task.icon)}</span><span class="task-label"><strong>${task.title}</strong><small>${task.subtitle}</small></span><span class="task-check" aria-hidden="true"></span></button>`).join("")}</div>
-          <div class="journal-progress"><div><span>庆典心愿</span><strong id="completed">0 / 5</strong></div><div class="progress-track"><span></span></div><p id="progress-note">第一份快乐，会藏在哪里呢？</p></div>
+          <div class="journal-progress"><div><span>庆典心愿</span><strong id="completed">0 / 5</strong></div><div class="progress-track"><span></span></div><p id="progress-note">第一份快乐，会藏在哪里呢？</p><div class="local-save"><small class="save-status">开始冒险后自动保存</small><button class="save-now map-action" disabled>保存进度</button></div></div>
           <div class="journal-divider"><span>✧</span></div>
           <div class="memory-heading-small"><h3>留一格，给回忆</h3><span>慢慢收集，慢慢珍藏</span></div>
           <div class="memory-shortcuts">${memories.map((memory) => `<button data-memory="${memory.id}">${icon(memory.icon)}<span>${collections[memory.id].title}</span><small>${collections[memory.id].items.length ? `${collections[memory.id].items.length} ${memory.unit}` : memory.empty}</small></button>`).join("")}</div>
@@ -107,6 +108,11 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
     <footer><span>MADE WITH ${icon("heart")} FOR 芙眠眠</span><p>粉丝制作的一周年纪念礼物 · 愿下一个晚安，依然有你。</p><button class="text-button reset-button">重新探索</button><span class="reset-confirmation" hidden>清除本机进度？<button class="reset-confirm map-action">重新开始</button><button class="reset-cancel map-action">保留进度</button></span></footer>
   </div><div class="toast" role="status" aria-live="polite"></div><div class="confetti-layer" aria-hidden="true"></div>`;
 
-import { mountGame } from "./application";
 document.querySelector(".inline-help")!.innerHTML = helpMarkup;
-mountGame(tasks);
+void prepareTextureCache().then(() => import("./application")).then(({mountGame}) => mountGame(tasks))
+  .catch(() => {
+    const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
+    enter.disabled = false;
+    enter.textContent = "游戏未能载入，点击重试";
+    enter.onclick = () => location.reload();
+  });

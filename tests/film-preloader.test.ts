@@ -2,6 +2,99 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { FilmPreloader, downloadLabel } from "../src/film-preloader.ts";
 
+const filmSrc = "https://example.com/persistent.mp4";
+function memoryCache() {
+  const entries = new Map<string, Response>();
+  return {
+    match: async (url: string) => entries.get(url)?.clone(),
+    put: async (url: string, response: Response) => { entries.set(url, response.clone()); },
+    delete: async (url: string) => entries.delete(url),
+  };
+}
+async function playBytes(film: FilmPreloader) {
+  const url = await film.start();
+  try { return [...new Uint8Array(await (await fetch(url)).arrayBuffer())]; }
+  finally { URL.revokeObjectURL(url); }
+}
+
+test("unchanged films cost only a HEAD, and a new ETag replaces even an equally large file", async () => {
+  const cache = memoryCache(), requests: string[] = [];
+  let version = 1, network = true;
+  const open = () => new FilmPreloader(filmSrc, () => {}, async (_, options) => {
+    const method = options?.method ?? "GET";
+    requests.push(method);
+    assert.equal(options?.cache,"no-store");
+    if (!network) throw new TypeError("offline");
+    return new Response(method === "HEAD" ? null : Uint8Array.of(version, version), {
+      headers: {ETag: '"version-' + version + '"', "Content-Length":"2", "Last-Modified":"Sun, 01 Nov 2026 06:18:05 GMT"},
+    });
+  }, 500, async () => cache);
+  assert.deepEqual(await playBytes(open()),[1,1]);
+  const warm = open();
+  assert.deepEqual(await playBytes(warm),[1,1]);
+  assert.equal(warm.progress.source,"local");
+  version++;
+  assert.deepEqual(await playBytes(open()),[2,2]);
+  network = false;
+  const offline = open();
+  assert.deepEqual(await playBytes(offline),[2,2]);
+  assert.equal(offline.progress.source,"unverified");
+  assert.deepEqual(requests,["GET","HEAD","HEAD","GET","HEAD"]);
+});
+
+test("hidden ETags require both a modification date and source length, never just a size", async () => {
+  const cache = memoryCache(), requests: string[] = [];
+  let date = "Sun, 01 Nov 2026 06:18:05 GMT";
+  const open = () => new FilmPreloader(filmSrc, () => {}, async (_, options) => {
+    const method = options?.method ?? "GET";
+    requests.push(method);
+    const headers = new Headers({"Content-Length":"2"});
+    if (date) headers.set("Last-Modified",date);
+    return new Response(method === "HEAD" ? null : Uint8Array.of(1,2), {headers});
+  }, 500, async () => cache);
+  await playBytes(open()); await playBytes(open());
+  date = "Mon, 02 Nov 2026 06:18:05 GMT";
+  await playBytes(open());
+  date = "";
+  await playBytes(open()); await playBytes(open());
+  assert.deepEqual(requests, ["GET","HEAD","HEAD","GET","HEAD","GET","HEAD","GET"]);
+});
+
+test("failed replacement preserves the last complete copy and disk quota cannot block playback", async () => {
+  const cache = memoryCache();
+  let id = "v1", body = Uint8Array.of(1,2);
+  const get: typeof fetch = async (_, options) => new Response(options?.method === "HEAD" ? null : body, {
+    headers: {ETag: id, "Content-Length":"2"},
+  });
+  const open = () => new FilmPreloader(filmSrc, () => {}, get, 500, async () => cache);
+  await playBytes(open());
+  id = "v2"; body = Uint8Array.of(3);
+  await assert.rejects(open().start(),/Incomplete/);
+  assert.equal((await cache.match(filmSrc))?.headers.get("ETag"),"v1");
+  cache.put = async () => { throw new Error("quota"); };
+  body = Uint8Array.of(3,4);
+  assert.deepEqual(await playBytes(open()),[3,4]);
+});
+
+test("the CDN can turn off local storage without leaving an obsolete playable entry", async () => {
+  const cache = memoryCache();
+  let allow = true, gets = 0;
+  const open = () => new FilmPreloader(filmSrc, () => {}, async (_, opt) => {
+    const head = opt?.method === "HEAD";
+    if (!head) gets++;
+    return new Response(head ? null : Uint8Array.of(4,5), { headers: {
+      ETag:'"same"', "Content-Length":"2", "Cache-Control":allow ? "public" : "no-store",
+    } });
+  }, 500, async () => cache);
+  await playBytes(open());
+  assert.ok(await cache.match(filmSrc));
+  allow = false;
+  assert.deepEqual(await playBytes(open()),[4,5]);
+  assert.equal(await cache.match(filmSrc),undefined);
+  await playBytes(open());
+  assert.equal(gets,3);
+});
+
 test("full preload continues independently of playback and publishes a Blob only after the final chunk", async () => {
   let controller: ReadableStreamDefaultController<Uint8Array>;
   let requests = 0;

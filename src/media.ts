@@ -1,6 +1,7 @@
 import { collections } from "./content";
 import { escapeHtml, icon } from "./icons";
 import { duckMusic } from "./sound";
+import { FilmPreloader, downloadLabel } from "./film-preloader";
 export interface CollectionSurface {
   open(title: string, subtitle: string, label: string): HTMLElement;
   close(): void;
@@ -28,6 +29,7 @@ export function openCollection(modal: CollectionSurface, id: string) {
   const list = body.querySelector(".collection-list")!,
     detail = body.querySelector(".memory-detail")!;
   let media: HTMLMediaElement | null = null;
+  let filmUrl: string | undefined;
   const stop = () => {
     if (media) {
       media.pause();
@@ -36,6 +38,7 @@ export function openCollection(modal: CollectionSurface, id: string) {
       media = null;
       duckMusic(false);
     }
+    if (filmUrl) { URL.revokeObjectURL(filmUrl); filmUrl = undefined; }
   };
   const select = (index: number) => {
     stop();
@@ -72,7 +75,6 @@ export function openCollection(modal: CollectionSurface, id: string) {
         for (const event of ["pause", "ended"])
           player.addEventListener(event, () => duckMusic(false));
       }
-      element.src = item.src;
       content.append(element);
       const error = document.createElement("div");
       error.className = "media-error";
@@ -82,12 +84,37 @@ export function openCollection(modal: CollectionSurface, id: string) {
       element.addEventListener("error", () => {
         error.hidden = false;
       });
-      error.querySelector("button")!.addEventListener("click", () => {
+      const src = item.src;
+      const status = document.createElement("small");
+      let download: FilmPreloader | null = null;
+      if (element instanceof HTMLVideoElement) {
+        try {
+          const url = new URL(src, document.baseURI);
+          if (/^https?:$/.test(url.protocol)) {
+            const film: FilmPreloader = new FilmPreloader(url.href, () => { status.textContent = downloadLabel(film.progress); });
+            download = film;
+          }
+        } catch { /* Native media elements report invalid sources through their error UI. */ }
+      }
+      if (download) content.append(status);
+      const load = () => {
         error.hidden = true;
-        element.src = item.src!;
-        if (element instanceof HTMLMediaElement) element.load();
-      });
+        if (download && !filmUrl) {
+          void download.start().then(url => {
+            if (element !== media) { URL.revokeObjectURL(url); return; }
+            filmUrl = url;
+            element.src = url;
+          }).catch(() => {
+            if (element !== media) return;
+            // Some third-party videos allow native playback but disallow CORS reads.
+            status.textContent = "正在使用浏览器播放器载入影片";
+            element.src = src;
+          });
+        } else element.src = filmUrl ?? src;
+      };
+      error.querySelector("button")!.addEventListener("click", load);
       content.append(error);
+      load();
       if (item.text) {
         const caption = document.createElement("p");
         caption.textContent = item.text;

@@ -2,12 +2,14 @@ import { World, scenes } from "../src/world";
 import { SAVE_KEY, readProgress } from "../src/core";
 import { rainbowFlowers, meadowGate } from "../src/rainbow-flowers";
 import { producers } from "../src/content";
+import { JOURNEY_KEY, readJourney } from "../src/journey";
 
 // Same application as the homepage; all its saves are private to this QA tab.
 const space="fufu-only-exploration-fixture/";
 Object.defineProperty(window,"localStorage",{value:{
   getItem:(key:string)=>sessionStorage.getItem(space+key),
   setItem:(key:string,value:string)=>sessionStorage.setItem(space+key,value),
+  removeItem:(key:string)=>sessionStorage.removeItem(space+key),
 }});
 let world!: World;
 const originalLoad=World.prototype.load;
@@ -21,6 +23,7 @@ const q=<T extends HTMLElement=HTMLElement>(selector:string) => document.querySe
 const expect=(ok:unknown,label:string)=>{if(!ok) throw new Error(label);};
 const log=(label:string)=> {const li=document.createElement("li");li.textContent=label;q("#evidence").append(li);};
 const state=()=>readProgress(localStorage.getItem(SAVE_KEY));
+const landing=()=>readJourney(localStorage.getItem(JOURNEY_KEY),state().rainbowFlowers);
 const wait=async(check:()=>boolean,ms=8000)=>{
   const until=performance.now()+ms;
   while (!check()) {if(performance.now()>until) throw new Error("等待游戏状态超时"); await new Promise(r=>setTimeout(r,24));}
@@ -96,11 +99,18 @@ async function checkAll() {
     world.switchScene("challenge",hazard); q(".bag-toggle").click();
     await wait(()=>world.scene==="room" && !q(".bed-note").hidden);
     expect(world.restState?.kind==="lying" && !world.suspended && q(".inventory-panel").hidden,"复活时角色或背包状态不正确");
+    expect(landing()?.scene==="room" && landing()?.x===world.restState?.exit.x && landing()?.y===world.restState?.exit.y,"复活没存到床边的安全位置");
     expect(q(".bed-note").textContent?.includes("辛苦啦宝宝"),"便签正文未显示");
     expect(q<HTMLImageElement>(".bed-note img").naturalWidth>0,"便签图片未载入");
     q(".note-close").click(); q(".stand-up").click();
   }
   log("两次实际撞到不同陷阱均回到床上并自动展开小叶子图文便签");
+  world.switchScene("town",scenes.town.spots.find(s=>s.id==="arcade-mines")!.approach);
+  world.onInteract("arcade-mines");
+  world.onAction(true); world.onAction(false); world.onAction(true); world.onAction(false);
+  await wait(()=>(state().arcadeBests.mines ?? 0)>0);
+  expect(q(".arcade-score span").textContent?.includes("最高 "+state().arcadeBests.mines),"翻开花田未记录实得的最高分");
+  key("Escape"); key("Escape",false);
   checkHarvest();
   for(const [i,flower] of rainbowFlowers.entries()) {
     expect(q<HTMLButtonElement>('[data-scene="meadow"]').hidden, "提前出现花海导航");
@@ -135,6 +145,15 @@ async function checkAll() {
   expect(Math.hypot(world.player.x-meadowGate.approach.x,world.player.y-meadowGate.approach.y)<3,"返回落脚点错误");
   world.interact(); await insideMeadow();
   log("实体花门可往返，营火可坐，鼠标寻路和 E 均能拾星，已拾署名可在瓶中重读");
+  const initialX=world.player.x;
+  key("ArrowRight"); await wait(()=>world.player.x>initialX+10); key("ArrowRight",false);
+  await wait(()=>landing()?.x===world.player.x && landing()?.y===world.player.y);
+  const initialY=world.player.y;
+  key("ArrowDown"); await wait(()=>world.player.y>initialY+10); key("ArrowDown",false);
+  q(".save-now").click();
+  expect(landing()?.x===world.player.x && landing()?.y===world.player.y && q(".save-status").textContent?.includes("本机已保存 · 花海"),"手动保存没有记住地图上的实际落脚点");
+  sessionStorage.setItem(space+"expected",JSON.stringify({x:world.player.x,y:world.player.y}));
+  log("移动时自动存下草地上的实际位置；手账的保存按钮立即记录新位置并显示地图名");
 }
 async function run(check:()=>Promise<void>) {
   q<HTMLButtonElement>("#verify").disabled=true; q("#report").textContent="验收中…"; q("#evidence").replaceChildren();
@@ -159,13 +178,25 @@ q("#recheck").addEventListener("click",()=>{sessionStorage.setItem(space+"reload
 if (sessionStorage.getItem(space+"reload")) {
   sessionStorage.removeItem(space+"reload");
   void run(async()=>{
+    await wait(()=>!q<HTMLButtonElement>(".enter-button").disabled);
+    const p=JSON.parse(sessionStorage.getItem(space+"expected") || "null");
+    expect(world.paused && q(".enter-button").textContent?.includes("继续上次的冒险") && q(".intro-screen small").textContent?.includes("花海"),"读档前没有在开始页等候点击继续");
     await start();
+    await insideMeadow();
+    expect(p && world.player.x===p.x && world.player.y===p.y,"继续冒险后没有回到原来站立的草地");
+    log("刷新后从「继续上次的冒险」进入花海，精确恢复上次站立位置");
     expect(state().rainbowFlowers.length===7 && !q<HTMLButtonElement>('[data-scene="meadow"]').hidden,"读档未恢复七花入口");
     expect(state().bedNoteUnlocked,"便签解锁没有保存在本机");
     world.switchScene("challenge",scenes.challenge.hazards[2]);
     await wait(()=>world.scene==="room" && !q(".bed-note").hidden);
     log("已解锁便签的旧存档再次触发陷阱，也会自动展信");
     q(".note-close").click(); q(".stand-up").click();
+    world.switchScene("town",scenes.town.spots.find(s=>s.id==="arcade-mines")!.approach);
+    world.onInteract("arcade-mines");
+    expect((state().arcadeBests.mines ?? 0)>0 && q(".arcade-score strong").textContent==="0" &&
+      q(".arcade-score span").textContent?.includes("最高 "+state().arcadeBests.mines),"新一局没有保留之前实际打出的最高分");
+    log("新一局扫雷从零开始，分数牌仍显示刷新前打出的个人最高分");
+    key("Escape"); key("Escape",false);
     q('[data-scene="meadow"]').click(); await insideMeadow();
     expect(state().creditStars.length>=producers.length-1,"刷新后落星进度丢失");
     for (const p of producers.filter(p=>state().creditStars.includes(p.id)))

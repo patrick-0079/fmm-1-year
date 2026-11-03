@@ -24,6 +24,9 @@
 .prism-list i { width: 8px; height: 8px; border: 1px solid #766875; border-radius: 50%; }
 .prism-list small { grid-column: 2; font-size: 12px; color: #696958; }
 .note-extra { margin: 6px 0; color: #715565; font-size: 14px; }
+.local-save { align-items: center; flex-wrap: wrap; gap: 6px; padding-top: 8px; }
+.local-save .save-status { color: #695d68; font-size: 12px; }
+.local-save .save-now { padding: 4px 9px; font-size: 12px; }
 .star-whisper {
   position: absolute;
   left: clamp(min(34%, 122px), var(--star-x, 50%), max(66%, calc(100% - 122px)));

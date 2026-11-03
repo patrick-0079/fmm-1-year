@@ -27,6 +27,7 @@ export class Arcade {
     private world: World,
     private activities: Activities,
     private inventory: Inventory,
+    private personalBest: (id: GameId, score: number) => number = () => 0,
   ) {
     const effects = world.onEffects,
       tick = world.onTick,
@@ -291,9 +292,9 @@ export class Arcade {
     this.hud.querySelector(".arcade-score strong")!.textContent = String(
       e.score,
     );
-    this.hud.querySelector(".arcade-score span")!.textContent = e.achieved
-      ? "挑战纪录"
-      : `目标 ${e.goal}`;
+    const best = this.personalBest(this.id, e.score);
+    this.hud.querySelector(".arcade-score span")!.textContent =
+      (e.achieved ? "挑战纪录" : `目标 ${e.goal}`) + (best ? ` · 最高 ${best}` : "");
     const track = this.hud.querySelector<HTMLProgressElement>("progress")!;
     track.max = e.goal;
     track.value = Math.min(e.goal, e.score);
