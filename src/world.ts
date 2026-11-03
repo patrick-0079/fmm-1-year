@@ -80,6 +80,15 @@ export class World {
   private debug =
     import.meta.env.DEV && new URLSearchParams(location.search).has("debug");
   private debugOutput: HTMLOutputElement | null = null;
+  get collisionOverlay() { return this.debug; }
+  showCollisionOverlay(on:boolean) {
+    this.debug=on;
+    if(on && !this.debugOutput) {
+      this.debugOutput=document.createElement("output"); this.debugOutput.className="debug-readout";
+      this.canvas.parentElement!.append(this.debugOutput);
+    }
+    if(this.debugOutput) this.debugOutput.hidden=!on;
+  }
   paused = true;
   private suspensions = new Set<string>();
   get suspended() {
@@ -146,11 +155,7 @@ export class World {
     new ResizeObserver(resize).observe(canvas);
     window.addEventListener("resize", resize);
     resize();
-    if (this.debug) {
-      this.debugOutput = document.createElement("output");
-      this.debugOutput.className = "debug-readout";
-      canvas.parentElement!.append(this.debugOutput);
-    }
+    if (this.debug) this.showCollisionOverlay(true);
     window.addEventListener("keydown", (e) => {
       const key = e.key.toLowerCase();
       const bag = e.target instanceof Element && e.target.closest(".inventory-panel");
@@ -225,11 +230,7 @@ export class World {
           return;
         }
         if (this.onAction(true) || this.paused) return;
-        const spot = clickedInteraction(
-          point,
-          this.config.spots.filter((s) => this.available(s)),
-          (s) => this.markerY(s),
-        );
+        const spot = this.spotAt(point);
         if (spot) this.goTo(spot.approach, spot.id);
         else this.interact();
         return;
@@ -240,11 +241,7 @@ export class World {
         return;
       }
       if (this.paused || this.busy) return;
-      const spot = clickedInteraction(
-        point,
-        this.config.spots.filter((s) => this.available(s)),
-        (s) => this.markerY(s),
-      );
+      const spot = this.spotAt(point);
       const hazard = this.config.hazards.find(
         (h) => Math.hypot(h.x - point.x, h.y - point.y) < h.radius + 10,
       );
@@ -255,6 +252,7 @@ export class World {
       );
     });
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+    canvas.addEventListener("pointerleave",()=>canvas.removeAttribute("data-pointable"));
     const scene = canvas.parentElement!;
     scene.addEventListener("contextmenu", (e) => e.preventDefault());
     scene.addEventListener("pointerdown", (e) => {
@@ -267,6 +265,8 @@ export class World {
     });
     for (const type of ["pointermove", "pointerup", "pointercancel"] as const)
       canvas.addEventListener(type, (e) => {
+        if (type === "pointermove" && e.pointerType !== "touch" && !e.buttons)
+          canvas.toggleAttribute("data-pointable",!this.paused && !this.suspended && !this.busy && !!this.spotAt(this.pointerPoint(e)));
         if (this.secondaryPressed || e.button === 2) {
           if (type !== "pointermove") {
             this.secondaryPressed = false;
@@ -277,6 +277,9 @@ export class World {
         if (!this.suspended)
           this.onPointer(type.replace("pointer", ""), this.pointerPoint(e));
       });
+  }
+  private spotAt(point: Point) {
+    return clickedInteraction(point,this.config.spots.filter(s=>this.available(s)),s=>this.markerY(s));
   }
   private pointerPoint(e: PointerEvent): Point {
     const rect = this.canvas.getBoundingClientRect();
@@ -290,6 +293,7 @@ export class World {
     };
   }
   setFocus(point: Point | null, zoom = 1) {
+    this.canvas.removeAttribute("data-pointable");
     this.focus = point ? { point, zoom } : null;
     this.canvas.parentElement!.classList.toggle("inspecting", !!point);
     this.updateCamera();

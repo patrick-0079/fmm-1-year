@@ -5,6 +5,7 @@ import { producers } from "../src/content";
 import { JOURNEY_KEY, readJourney } from "../src/journey";
 import { townGates, gateSignFoot } from "../src/gate-layout";
 import { bassStand } from "../src/room-props";
+import { bassScore } from "../src/bass-score";
 
 // Same application as the homepage; all its saves are private to this QA tab.
 const space="fufu-only-exploration-fixture/";
@@ -186,10 +187,12 @@ q("#check-lanes").addEventListener("click",()=>void run(async()=>{
   };
   world.switchScene("room",bassStand.spot.approach);
   clickAt(bassStand.x,bassStand.y-29);
-  await wait(()=>q(".toast").textContent==="白色贝斯 · E 弦");
-  for (const note of ["A","D","G"]) { world.interact(); expect(q(".toast").textContent==="白色贝斯 · "+note+" 弦","琴弦未按顺序拨响"); }
+  await wait(()=>!q(".bass-hud").hidden);
+  q<HTMLButtonElement>('[data-string="0"]').click(); key("2");key("2",false);
+  expect(q(".bass-count").textContent==="已弹 2 / 16","乐谱没有收到鼠标和键盘拨弦");
+  key("Escape"); key("Escape",false);
   await capture("晚安小屋 · 窗边的白色贝斯",403,92,146);
-  log("点琴身和键盘互动都能拨弦，四根弦依 E、A、D、G 循环");
+  log("点琴身打开周年琴谱，鼠标和键盘都能跟弹，Esc 返回原地");
   const flower=rainbowFlowers[0];
   world.switchScene("garden",flower.approach);
   await capture("周年庭院 · 茶桌旁的七色小花",flower.x+6,flower.y-13,115);
@@ -223,6 +226,53 @@ q("#check-lanes").addEventListener("click",()=>void run(async()=>{
   await walkUntil("ArrowLeft",()=>wait(()=>world.scene==="garden" && !world.paused));
   expect(Math.hypot(world.player.x-meadowGate.approach.x,world.player.y-meadowGate.approach.y)<1,"踏入阵心没有回到七色花门");
   log("月芽传送阵不会在落地时触发；走入阵心才返回庭院七色花门");
+}));
+q("#check-bass").addEventListener("click",()=>void run(async()=>{
+  if(!q(".intro-screen").classList.contains("dismissed")) await start();
+  q(".reset-button").click(); q(".reset-confirm").click();
+  world.switchScene("room",bassStand.spot.approach);
+  const pos=world.project({x:bassStand.x,y:bassStand.y-28}), rect=world.canvas.getBoundingClientRect();
+  const pointer={bubbles:true,pointerType:"mouse",clientX:rect.left+pos.x*rect.width/600,clientY:rect.top+pos.y*rect.height/400};
+  world.canvas.dispatchEvent(new PointerEvent("pointermove",pointer));
+  expect(world.canvas.hasAttribute("data-pointable"),"琴身没有显示互动指针");
+  world.canvas.dispatchEvent(new PointerEvent("pointerdown",{...pointer,button:0})); await wait(()=>!q(".bass-hud").hidden);
+  q<HTMLButtonElement>('[data-string="3"]').click(); expect(q(".bass-count").textContent==="已弹 0 / 16","弹错不该推进");
+  q(".bass-listen").click(); expect(q(".bass-hud").dataset.mode==="demo","示范没有开始");
+  q(".bag-toggle").click(); expect(!q(".inventory-panel").hidden && world.suspended && q(".bass-hud").dataset.mode==="practice","背包未暂停示范");
+  key("Escape"); expect(!world.suspended && !q(".bass-hud").hidden,"合上背包后曲谱没有恢复");
+  for(const n of bassScore) q<HTMLButtonElement>('[data-string="'+n.string+'"]').click();
+  expect(state().bassSongPlayed && q(".bass-hud").dataset.mode==="complete","鼠标演奏没有赠曲");
+  q(".bass-again").click();
+  for(const n of bassScore) {const k=String(n.string+1); key(k);key(k,false);}
+  expect(q(".bass-count").textContent==="已弹 16 / 16","纯键盘未能完成");
+  key("Escape");key("Escape",false); expect(q(".bass-hud").hidden && !world.paused,"收谱后仍然锁住地图");
+  log("点琴身、错弦、示范、打开背包再返回、全鼠标与全键盘各弹完 16 音、赠曲本机记录均正常");
+  const dbg=(cmd:string)=>q<HTMLButtonElement>('[data-debug="'+cmd+'"]');
+  q(".debug-trigger").click(); dbg("wardrobe").click(); expect(dbg("wardrobe").getAttribute("aria-pressed")==="false","试穿开关没有切换");
+  dbg("wardrobe").click(); dbg("flower-door").click();expect(world.canEnter("meadow") && state().rainbowFlowers.length===0,"临时花门污染了花谱");
+  dbg("flower-door").click(); expect(!world.canEnter("meadow"),"临时花门没有关闭");
+  dbg("map:town").click(); await wait(()=>world.scene==="town" && !world.suspended);
+  const photos=q("#town-samples");photos.replaceChildren();
+  for(const [phase,label] of [["dawn","清晨"],["day","白昼"],["dusk","黄昏"],["night","星夜"]]) {
+    q(".debug-trigger").click();dbg("time:"+phase).click();q(".debug-close").click();
+    await new Promise<void>(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r())));
+    const cell=document.createElement("figure"), picture=document.createElement("canvas"), cap=document.createElement("figcaption");
+    picture.width=300;picture.height=200;picture.getContext("2d")!.drawImage(world.canvas,0,0,300,200);
+    cap.textContent=label;cell.append(picture,cap);photos.append(cell);
+    expect(q(".time-pill").dataset.phase===phase,"小镇时段错误");
+  }
+  q(".debug-trigger").click();dbg("time:auto").click();q(".debug-close").click();
+  const board=world.canvas.parentElement!; board.scrollIntoView({block:"center",behavior:"instant"});
+  const sy=scrollY;
+  world.switchScene("town",scenes.town.spots.find(s=>s.id==="arcade-hop")!.approach);
+  world.interact();world.onAction(true);world.onAction(false);
+  await new Promise(r=>setTimeout(r,450));
+  expect(Math.abs(scrollY-sy)<3,"打开或开始小游戏后页面被滚动："+sy+" → "+scrollY);
+  const sy2=scrollY;q(".bag-toggle").click();const b=q(".inventory-panel").getBoundingClientRect();
+  expect(!q(".inventory-panel").hidden && b.top>=0 && b.bottom<=innerHeight+1 && Math.abs(scrollY-sy2)<3,"背包没有在当前视口打开");
+  key("Escape"); expect(!q(".arcade-hud").hidden && !world.suspended,"背包关闭后小游戏未恢复");
+  key("Escape");
+  log("调试试穿、花门预览与真实存档相互独立；小镇四时段、跳台开局不滚动、小游戏内打开背包均通过");
 }));
 q("#camp-preview").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").hidden && world.paused) await start();

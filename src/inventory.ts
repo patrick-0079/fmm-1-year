@@ -49,7 +49,7 @@ export class Inventory {
     this.trigger.setAttribute("aria-expanded", "false");
     this.trigger.addEventListener("click", () => this.togglePanel());
     window.addEventListener("keydown", (e) => {
-      if (reservedShortcut(e)) return;
+      if (reservedShortcut(e) || document.querySelector(".debug-panel:not([hidden])")) return;
       if ((e.key.toLowerCase() === "b" || (e.key === "Escape" && !this.root.hidden)) && !e.repeat) {
         e.preventDefault();
         e.stopImmediatePropagation();
@@ -66,15 +66,22 @@ export class Inventory {
   private startFitting() {
     this.fittingRoom = { owned: Object.keys(ITEMS) as ItemId[], equipped: { ...this.earned.equipped } };
   }
+  get fitting() { return !!this.fittingRoom; }
+  setFitting(active:boolean) {
+    if (!this.debugAvailable || active===this.fitting) return;
+    if (active) this.startFitting(); else this.fittingRoom=null;
+    this.sync(); this.render();
+  }
   open() {
     this.root.hidden = false;
+    this.trigger.setAttribute("aria-label","收起纪念背包，快捷键 B");
     this.trigger.setAttribute("aria-expanded", "true");
     // Exploration is live beside the wardrobe. An ongoing activity keeps
     // its own turn or timer on hold until the player returns to it.
     const scene = this.world.canvas.parentElement!;
     this.world.suspend("inventory", scene.matches(".inspecting, .arcade-active, .cinema-active, .reading-letter"));
     this.render();
-    this.world.canvas.parentElement!.scrollIntoView({ behavior: "instant", block: "start" });
+    this.root.scrollTop=0;
     this.root.querySelector<HTMLButtonElement>(".bag-close")!.focus({ preventScroll: true });
   }
   grant(id: ItemId) {
@@ -132,6 +139,7 @@ export class Inventory {
     const wasOpen = !this.root.hidden;
     this.root.hidden = true;
     this.trigger.setAttribute("aria-expanded", "false");
+    this.trigger.setAttribute("aria-label","打开纪念背包，快捷键 B");
     this.world.suspend("inventory", false);
     if (!restoreFocus || !wasOpen) return;
     if (this.world.suspended) {
@@ -141,13 +149,6 @@ export class Inventory {
       return;
     }
     this.world.canvas.focus({ preventScroll: true });
-    if (this.world.canvas.parentElement!.classList.contains("arcade-active"))
-      this.world.canvas.parentElement!.scrollIntoView({
-        behavior: "instant",
-        block: "start",
-      });
-    else
-      this.world.canvas.scrollIntoView({ behavior: "instant", block: "center" });
   }
   private render() {
     const worn = (slot: EquipSlot) =>
@@ -166,29 +167,6 @@ export class Inventory {
       .join(
         "",
       )}</div><p class="bag-footnote">背包展开时可继续走动、点地图。佩戴或脱下后自动收起，B / Esc 也可收起。</p>`;
-    if (this.debugAvailable) {
-      const row = document.createElement("div");
-      row.className = "wardrobe-debug";
-      const toggle = document.createElement("button");
-      toggle.type = "button";
-      toggle.setAttribute("role", "switch");
-      toggle.setAttribute("aria-checked", String(!!this.fittingRoom));
-      toggle.setAttribute("aria-label", "调试 · 全饰品试穿");
-      toggle.textContent = "全饰品试穿 " + (this.fittingRoom ? "开" : "关");
-      const note = document.createElement("span");
-      note.textContent = this.fittingRoom
-        ? `调试衣橱 · 已实际收集 ${this.earned.owned.length} 件。试穿搭配仅在本次预览生效。`
-        : "调试衣橱 · 当前显示实际收集的纪念品。";
-      toggle.addEventListener("click", () => {
-        if (this.fittingRoom) this.fittingRoom = null;
-        else this.startFitting();
-        this.sync();
-        this.render();
-        this.root.querySelector<HTMLButtonElement>(".wardrobe-debug button")?.focus({ preventScroll: true });
-      });
-      row.append(toggle, note);
-      this.root.querySelector("header")!.after(row);
-    }
     this.root
       .querySelector(".bag-close")!
       .addEventListener("click", () => this.close());

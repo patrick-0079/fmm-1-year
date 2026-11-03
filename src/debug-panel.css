@@ -1,0 +1,107 @@
+.debug-dock {
+  position: fixed;
+  z-index: 42;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  right: max(12px, env(safe-area-inset-right));
+}
+.debug-trigger,
+.debug-panel button {
+  color: #594959;
+  border: 1px solid #b8a69d;
+  background: #fff9ed;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+.debug-trigger {
+  min-height: 36px;
+  padding: 6px 12px;
+  box-shadow: 0 2px 8px #5f47552e;
+}
+.debug-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 7px);
+  width: min(352px, calc(100vw - 24px));
+  max-height: min(70svh, 620px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 13px;
+  text-align: left;
+  color: #594656;
+  background: #fff7e9;
+  border: 1px solid #b89c95;
+  border-radius: 9px;
+  box-shadow: 0 5px 24px #50374f44;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.debug-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.debug-panel header small {
+  color: #8c6475;
+  letter-spacing: 0.1em;
+}
+.debug-panel h3 {
+  font-size: 20px;
+  margin: 0;
+}
+.debug-panel .debug-note,
+.debug-panel details p {
+  color: #765f64;
+  margin: 6px 0;
+}
+.debug-panel section,
+.debug-panel > details {
+  padding: 8px 0;
+  border-top: 1px solid #e2cfba;
+}
+.debug-panel h4,
+.debug-panel summary {
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+.debug-panel :is(section, details) > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.debug-panel button {
+  min-height: 34px;
+  padding: 5px 9px;
+}
+.debug-panel button[aria-pressed="true"] {
+  background: #e2eddd;
+  border-color: #94ae90;
+  color: #385a47;
+}
+.debug-panel button[aria-pressed="true"]::before {
+  content: "✓ ";
+}
+.debug-panel button:disabled {
+  opacity: 0.55;
+}
+.debug-panel .flower-book {
+  margin-top: 7px;
+  padding: 5px;
+  background: #f7f0e1;
+}
+.debug-panel .prism-list {
+  grid-template-columns: 1fr;
+}
+.scene-wrap[data-light-scene="town"] .time-pill[data-phase="dawn"] {
+  background: #fff2ce;
+  color: #79563c;
+}
+.scene-wrap[data-light-scene="town"] .time-pill[data-phase="dusk"] {
+  background: #ffe1c5;
+  color: #844f55;
+}
+.scene-wrap[data-light-scene="town"] .time-pill[data-phase="night"] {
+  background: #e7e9ff;
+  color: #514b78;
+}

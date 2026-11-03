@@ -10,6 +10,7 @@ import {
   LinkGame,
   MinesGame,
   MinerGame,
+  minerHook,
   linkPath,
 } from "../src/arcade-bonus.ts";
 import { cakeGuides, cakePlates, followsCakeGuide } from "../src/cake-party.ts";
@@ -183,6 +184,16 @@ test("mines begins with a safe neighbourhood, respects flags and continues with 
   assert.ok(game.score > 26 && game.achieved);
 });
 
+test("the rotated jaws point along the rope and recover treasure at the visible tip on either side",()=>{
+  for(const angle of [-.91,0,.91]) {
+    const hook=minerHook(angle,60);
+    assert.ok(Math.abs(hook.tipX-(hook.x-5*Math.sin(hook.rotation)))<1e-8);
+    assert.ok(Math.abs(hook.tipY-(hook.y+5*Math.cos(hook.rotation)))<1e-8);
+    const g=new MinerGame(()=>.5);g.start();g.angle=angle;g.length=58;
+    g.treasures=[{x:hook.tipX,y:hook.tipY,r:2,value:40,kind:1}];
+    g.input("primary",true);g.update(.02);assert.ok(g.held);
+  }
+});
 test("miner misses have no penalty and rewards can be followed by another full field", () => {
   const game = new MinerGame(() => 0.5);
   game.start();

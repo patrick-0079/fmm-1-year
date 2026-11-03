@@ -8,6 +8,15 @@ import {
 } from "../src/day.ts";
 import { readProgress } from "../src/core.ts";
 import { spriteFrames } from "../src/sprite-frames.ts";
+import { townLightMix } from "../src/town-light.ts";
+
+test("the town has four distinct light phases and blends them gently at sunrise and sunset",()=>{
+  for(const [hours,phase] of [[0,"night"],[6,"dawn"],[12,"day"],[18,"dusk"],[22,"night"]] as const)
+    assert.equal(townLightMix(hours).from,phase);
+  const dusk=townLightMix(17);
+  assert.equal(dusk.from,"day");assert.equal(dusk.to,"dusk");assert.ok(Math.abs(dusk.mix-.5)<1e-8);
+  assert.deepEqual(townLightMix(23.99),townLightMix(.01));
+});
 
 test("one real ten-minute interval is exactly one complete world day", () => {
   assert.equal(DAY_SECONDS, 600);

@@ -1,5 +1,5 @@
 import type { SceneId } from "./maps";
-import { townGates, southStreetLamp } from "./gate-layout";
+import { townGates, southStreetLamp } from "./gate-layout.ts";
 export interface Light {
   x: number;
   y: number;

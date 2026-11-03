@@ -51,7 +51,7 @@ async function check(name: string, run: () => void | Promise<void>) {
 }
 
 await check("默认试穿全部饰品，关闭后恢复真实搭配，试玩时领取的奖励可以存档", () => {
-  const switchMode = () => document.querySelector<HTMLButtonElement>(".wardrobe-debug button")!.click();
+  const switchMode = () => inventory.setFitting(!inventory.fitting);
   inventory.open();
   assert(document.querySelectorAll("[data-equip]:enabled").length === Object.keys(ITEMS).length, "默认可试穿的数量有误");
   inventory.toggle("starShoes");

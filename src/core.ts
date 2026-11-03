@@ -43,6 +43,7 @@ export interface Progress {
   bgm: boolean;
   volume: number;
   bedNoteUnlocked: boolean;
+  bassSongPlayed: boolean;
   rainbowFlowers: string[];
   creditStars: string[];
   arcadeBests: Partial<Record<GameId, number>>;
@@ -75,6 +76,7 @@ export function readProgress(raw: string | null): Progress {
     bgm: true,
     volume: 0.45,
     bedNoteUnlocked: false,
+    bassSongPlayed: false,
     rainbowFlowers: [],
     creditStars: [],
     arcadeBests: {},
@@ -100,6 +102,7 @@ export function readProgress(raw: string | null): Progress {
       completed: valid(p.completed, GAME_IDS),
       sound: p.sound === true,
       bedNoteUnlocked: p.bedNoteUnlocked === true,
+      bassSongPlayed: p.bassSongPlayed === true,
       rainbowFlowers: valid(p.rainbowFlowers, rainbowIds),
       creditStars: valid(p.creditStars, producers.map(p => p.id)),
       arcadeBests: Object.fromEntries(Object.entries(p.arcadeBests ?? {}).filter(([id, score]) =>

@@ -13,7 +13,8 @@
     "art:festival": "node scripts/build-arcade-art.mjs && node --experimental-strip-types scripts/build-shoes.mjs",
     "art:meadow": "node scripts/build-meadow-art.mjs && node --experimental-strip-types scripts/build-garments.mjs",
     "art:night": "node scripts/build-night-meadow.mjs",
-    "art:lanes": "node scripts/build-lanes.mjs"
+    "art:lanes": "node scripts/build-lanes.mjs",
+    "art:cursors": "node scripts/build-cursors.mjs"
   },
   "devDependencies": {
     "sharp": "^0.35.5",

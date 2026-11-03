@@ -131,7 +131,6 @@ export class Arcade {
     this.world.paused = true;
     this.hud.hidden = false;
     this.render();
-    this.showBoard();
   }
   close() {
     if (!this.active) return;
@@ -149,7 +148,6 @@ export class Arcade {
     this.world.canvas.focus({ preventScroll: true });
     sfx("interact");
     this.render();
-    this.showBoard();
   }
   private action(action: GameAction, pressed: boolean) {
     if (!this.engine || this.world.suspended) return;
@@ -196,7 +194,6 @@ export class Arcade {
     this.world.clearInput();
     this.world.canvas.focus({ preventScroll: true });
     this.render();
-    this.showBoard();
   }
   private setPaused(paused: boolean, reveal = true) {
     if (!this.engine || this.engine.status !== "playing" || this.paused === paused) return;
@@ -207,13 +204,6 @@ export class Arcade {
     if (!reveal) return;
     if (!paused) this.world.canvas.focus({ preventScroll: true });
     else this.hud.querySelector<HTMLButtonElement>(".arcade-result-actions button")?.focus({ preventScroll: true });
-    this.showBoard();
-  }
-  private showBoard() {
-    this.world.canvas.parentElement!.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
   }
   private render() {
     if (!this.engine) return;
@@ -334,7 +324,6 @@ export class Arcade {
         const next = extra.children[index] as HTMLButtonElement | undefined;
         if (next && !next.disabled) next.focus({ preventScroll: true });
         else this.world.canvas.focus({ preventScroll: true });
-        this.showBoard();
       });
       extra.append(b);
       return b;

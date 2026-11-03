@@ -1,4 +1,6 @@
 import { eggAvailable, phaseNames, untilNextPhase, worldTime } from "./day";
+import type { Phase } from "./day";
+import { drawTownLight } from "./town-light";
 import { sfx } from "./sound";
 import { reservedShortcut, readingTarget } from "./input";
 import type { Activities } from "./activities";
@@ -45,6 +47,8 @@ export class Nature {
   private lastUi = 0;
   private oldPhase = "";
   private tint = [0, 0, 0, 0];
+  private previewPhase: Phase | null = null;
+  private reduce = matchMedia("(prefers-reduced-motion: reduce)");
   private lightMap = document.createElement("canvas");
   constructor(
     private world: World,
@@ -129,8 +133,13 @@ export class Nature {
     return Math.max(0, (Date.now() - this.origin) / 1000 + this.shift);
   }
   private get clock() {
-    return worldTime(this.elapsed);
+    const time=worldTime(this.elapsed), phase=this.previewPhase;
+    if(!phase) return time;
+    const hours={dawn:6,day:12,dusk:18,night:22}[phase];
+    return {...time,hours,phase,label:String(hours).padStart(2,"0")+":00"};
   }
+  setPreviewPhase(phase:Phase|null) { this.previewPhase=phase; this.refreshClock(); }
+  get timePreview() { return this.previewPhase; }
   private key(id: string) {
     return `${this.clock.day}:${this.world.scene}:${id}`;
   }
@@ -163,6 +172,7 @@ export class Nature {
     this.state = initial();
     this.origin = Date.now();
     this.shift = 0;
+    this.previewPhase=null;
     this.oldPhase = "";
     this.lastUi = 0;
     this.saveClock();
@@ -317,12 +327,14 @@ export class Nature {
       this.tint[i] += (target[clock.phase][i] - this.tint[i]) * amount;
     if (this.oldPhase !== clock.phase) {
       if (this.oldPhase && !meadow)
-        this.toast(`${phaseNames[clock.phase]}到了 · 花园里的风景悄悄变了`);
+        this.toast(`${phaseNames[clock.phase]}到了 · ${this.world.scene==="town"?"小镇换了光景":"花园里的风景悄悄变了"}`);
       this.oldPhase = clock.phase;
     }
     if (Date.now() - this.lastUi < 350) return;
     this.lastUi = Date.now();
     const time = document.querySelector(".time-pill")!;
+    this.world.canvas.parentElement!.dataset.lightScene=this.world.scene;
+    (time as HTMLElement).dataset.phase=clock.phase;
     time.textContent = meadow ? "☾ 花海 · 静夜" : `${{ dawn: "☀", day: "☀", dusk: "◒", night: "☾" }[clock.phase]} ${clock.label} · ${phaseNames[clock.phase]}`;
     time.setAttribute(
       "title",
@@ -440,6 +452,9 @@ export class Nature {
   }
   private lighting(c: CanvasRenderingContext2D) {
     if (this.world.scene === "meadow") return;
+    if (this.world.scene === "town") {
+      drawTownLight(c,this.clock.hours,performance.now()/1000,this.reduce.matches); return;
+    }
     const shade = Math.max(0, Math.min(1, (this.tint[3] - 0.07) / 0.28));
     if (shade <= 0) return;
     const { width, height } = this.world.config;
@@ -454,9 +469,7 @@ export class Nature {
     // Cut the complete night tint out around each light, keeping the flowers and
     // paving warm and saturated there rather than leaving a global grey filter.
     const nightOpacity =
-      this.world.scene === "town"
-        ? 0.2
-        : this.world.scene === "room"
+      this.world.scene === "room"
           ? 0.18
           : 0.24;
     g.fillStyle = `rgba(24,36,70,${shade * nightOpacity})`;

@@ -29,13 +29,15 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 宠物安全足迹 | `src/companion-motion.ts`；跟随真实行走点，不执行全图寻路；暂停、睡觉与小游戏期间停止更新 |
 | v12 摊位、星屑、花环、窗景 | `src/scene-art.ts` 登记图集；摊位图标和清晰招牌仍在 `src/arcade-stall.ts` 绘制 |
 | 装备定义、部位、获取说明 | `src/items.ts`；图标在 `src/item-art.ts`，佩戴定位在 `src/equipment.ts`，人物绘制在 `src/avatar.ts` |
-| 试穿与正式构建 | 根目录 `.env` 中 `VITE_WARDROBE_DEBUG=true` 开放试穿。正式构建改为 `false` 后重新部署，生产构建变量可以覆盖仓库默认值 |
+| 调试台与正式构建 | `src/debug-panel.ts` 集中管理地图、七色花、游戏、时间、碰撞和衣橱。根目录 `.env` 中 `VITE_WARDROBE_DEBUG=true` 同时开启面板和试穿。正式构建改为 `false` 后重新部署，生产构建变量可以覆盖仓库默认值 |
 | 周年游园券、七幅棋盘与像素角色 | `src/arcade-art.ts`、`src/arcade-pixels.ts` 与 `src/festival-v11.css`。运行 `npm run art:festival` 重建游戏图和鞋子图层 |
 | 原创音乐《把晚安留给你》 | `src/lullaby.ts` 保存乐谱、各地图速度与配器。`src/sound.ts` 负责解锁音频、音量、放映时的音量变化和后台暂停 |
 | 小游戏规则与面板 | `src/arcade-engines.ts`、`src/arcade-bonus.ts`、`src/arcade.ts`；新增种类也要补 `town-data.ts` 与说明 |
 | 蛋糕、礼物、气球、烟花 | `src/activities.ts`；切割判定在 `src/cake-party.ts`，精细气球/礼盒裁切在 `src/party-art.ts` |
 | 地图与物理通道 | `src/gate-layout.ts` 共用南门、北桥 / 石阶的路牌、碰撞和单向过线判定；`src/maps.ts` 的庭院边界沿两条实际石径。路线参考图及重建方式见 [v18 素材说明](ARTWORK-v18.md) |
 | 月芽传送阵与白色贝斯 | `src/moon-circle.ts` 在草地层绘制阵纹，中心进入判定在 `src/meadow-map.ts`。琴的位置、琴架占地在 `src/room-props.ts`；琴声与音符分别由 `src/sound.ts`、`src/room-bass.ts` 处理 |
+| 窗边周年曲《把晚安弹给你》 | `src/bass-score.ts` 维护弦号、品位、节拍和每个音对应的歌词；示范与玩家练习各有自己的进度。`src/room-bass.ts` 和 `src/bass-stage.css` 控制场内乐谱。仅弹完整首后在原存档记下 `bassSongPlayed`，旧存档默认未演奏 |
+| 芙芙主题鼠标指针 | `scripts/build-cursors.mjs` 是两款指针的矢量母稿。`npm run art:cursors` 更新 `src/assets/fufu-cursor-*` 的 SVG 和 PNG。两种指针均为 32×32，尖端热点都是 (2, 2)。`src/fufu-cursors.css` 定义鼠标适用范围；地图悬停和点击共用 `World.spotAt` |
 | 小镇可走道路、遮挡与装饰 | `src/town-surfaces.ts`、`src/town-scenery.ts` |
 | 溪水和树木 | `src/landscape.ts`、`src/landscape-renderer.ts`；溪水绘制与碰撞共享形状 |
 | 昼夜和采集 | `src/day.ts`、`src/nature.ts`；现实 600 秒一天，现实离线时间也计入时钟 |
@@ -80,7 +82,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 验收蔷薇裙、薄荷披肩、头戴与背包叠穿时查看同页第一组逐帧对照。`npm run art:meadow` 从人物原画重建衣料及肩带遮罩，也会导出 v15 的七色花和花门。当前夜间场景使用 `npm run art:night`。[v15 素材说明](ARTWORK-v15.md)
 
-开发页 `/tests/exploration-fixture.html` 使用独立的临时存档。「运行完整验收」检查开包移动、床边安全存档、采集、七色花门往返、营火小坐、拾星与重读，以及移动后的自动与手动保存。「刷新并验证存档」从开始页继续到上次在花海站立的位置，再收齐剩余落星并核对星光瓶。「预览夜间营地」使用同一套七色花互动进入花海。
+开发页 `/tests/exploration-fixture.html` 使用独立的临时存档。「验收周年演奏、调试与背包」检查错音、示范、鼠标与键盘各自弹完整首曲、调试隔离、背包可见范围、打开小游戏不滚动，并生成小镇四个时段的对照图。四种光照由 `src/town-light.ts` 平滑混合，灯的位置在 `src/lights.ts`。「运行完整验收」检查开包移动、床边安全存档、采集、七色花门往返、营火小坐、拾星与重读，以及移动后的自动与手动保存。「刷新并验证存档」从开始页继续到上次在花海站立的位置，再收齐剩余落星并核对星光瓶。「预览夜间营地」使用同一套七色花互动进入花海。
 
 追加制作人时，选取草地上的空位，与营火、星光瓶及其他落星保持至少约 60 个逻辑像素的间距。`npm run check` 会验证署名 ID、点击和按键命中、落脚点以及寻路。已有玩家按稳定的 ID 记录收集进度。花海底图和羊群图集在集齐七朵花后一起预载。
 
@@ -142,6 +144,6 @@ R2 CORS 完整示例在 [README](README.md#花园小电视cdn-周年放映)。`C
 
 ## 2026-11-02 检查修复记录
 
-先前的回归包含小游戏中背包和说明未暂停、后台加速/蓄力残留、礼盒计时串扰、扫雷无效提示扣次数、浏览器组合键被拦截、慢加载衣橱图标不刷新、视频无进展无限等待，以及浏览器页面缓存返回后音频失效。收起说明、点击小游戏提示或暂停后会回到完整游戏画面，并保留适当的键盘焦点。重新探索也会重置昼夜时钟。
+先前的回归包含小游戏中背包和说明未暂停、后台加速/蓄力残留、礼盒计时串扰、扫雷无效提示扣次数、浏览器组合键被拦截、慢加载衣橱图标不刷新、视频无进展无限等待，以及浏览器页面缓存返回后音频失效。开始、暂停、提示、继续小游戏及收起背包均保留页面位置；交互结束后键盘焦点返回画布。重新探索也会重置昼夜时钟。
 
 寻路增加安全直达与目标附近提前结束，保留碰撞检测和阻挡目标的邻近回退。新增回归用例和控制器验收页；`npm run check` 可复查。

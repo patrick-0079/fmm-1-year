@@ -18,6 +18,8 @@ import { FlowerTrail } from "./flower-trail";
 import { NightMeadow } from "./night-meadow";
 import { RoomBass } from "./room-bass";
 import { bassStand } from "./room-props";
+import { mountDebugPanel } from "./debug-panel";
+import { meadowOpen } from "./rainbow-flowers";
 import { JOURNEY_KEY, readJourney, type Journey } from "./journey";
 import { openCollection } from "./media";
 import {
@@ -52,6 +54,10 @@ export function mountGame(tasks: Task[]) {
   // destination as soon as the current crossing has finished.
   let afterCrossing: (() => void) | undefined;
   const world = new World(document.querySelector("#world")!);
+  const revealMapIfOffscreen = () => {
+    const board=world.canvas.parentElement!, rect=board.getBoundingClientRect();
+    if (rect.bottom<=0 || rect.top>=window.innerHeight) board.scrollIntoView({block:"nearest",behavior:"instant"});
+  };
   const reader = new MapReader(world);
   const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
   const saveNow = document.querySelector<HTMLButtonElement>(".save-now")!;
@@ -65,6 +71,7 @@ export function mountGame(tasks: Task[]) {
   };
   const saveLocation = (manual = false) => {
     if (!started || !worldReady || resetInProgress || world.busy) return;
+    if (world.scene==="meadow" && !meadowOpen(progress.rainbowFlowers)) return;
     const {x,y} = world.restState?.exit ?? world.player;
     if (!manual && journey?.scene === world.scene && journey.x === x && journey.y === y) return;
     const next = {scene: world.scene, x, y, savedAt: Date.now()};
@@ -172,6 +179,7 @@ export function mountGame(tasks: Task[]) {
     }
   };
   const closePanels = () => {
+    bass.close(false);
     inventory.close(false);
     if (!help.hidden) setHelp(false);
   };
@@ -208,7 +216,9 @@ export function mountGame(tasks: Task[]) {
   new Companion(world);
   const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);
   const meadow = new NightMeadow(world, () => progress.creditStars, save);
-  const bass = new RoomBass(world,toast);
+  const bass = new RoomBass(world, () => progress.bassSongPlayed, () => {
+    if (!progress.bassSongPlayed) { progress.bassSongPlayed = true; save(); }
+  });
   const cinema = new GardenCinema(world, toast);
   const bedNote = new BedNote(world);
   const previousTick = world.onTick;
@@ -249,7 +259,7 @@ export function mountGame(tasks: Task[]) {
       const arrival = opposite?.approach;
       const dx = opposite ? opposite.approach.x-opposite.x : 0, dy = opposite ? opposite.approach.y-opposite.y : 0;
       world.switchScene(scene, arrival, Math.abs(dx)>Math.abs(dy) ? (dx>0 ? 2 : 1) : (dy<0 ? 3 : 0));
-      world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
+      revealMapIfOffscreen();
     }).catch(() => {
       toast("花径还没准备好，请稍后再穿一次花门。");
     }).finally(() => {
@@ -302,14 +312,15 @@ export function mountGame(tasks: Task[]) {
       "aria-description",
       `在「${trap.title}」旁遇到小挫折，已回到小屋的床上休息。`,
     );
-    world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
+    revealMapIfOffscreen();
   };
   world.onNearby = (spot) => {
     const prompt = document.querySelector<HTMLElement>(".nearby-prompt")!;
-    prompt.hidden = !spot || activities.active || cinema.active;
+    prompt.hidden = !spot || activities.active || cinema.active || bass.active;
     if (spot) prompt.querySelector("span")!.textContent = spot.title;
   };
   world.onScene = (scene) => {
+    bass.close(false);
     saveLocation();
     if (scene !== "meadow") meadow.leave();
     nature.refreshClock();
@@ -318,7 +329,7 @@ export function mountGame(tasks: Task[]) {
     document.querySelector(".map-switch")!.innerHTML =
       `${scene === "room" || scene === "meadow" ? "周年花园" : scene === "garden" ? "勇气花园" : scene === "challenge" ? "周年小镇" : "晚安小屋"} ${icon("arrow")}`;
     document
-      .querySelectorAll<HTMLButtonElement>("[data-scene]")
+      .querySelectorAll<HTMLButtonElement>(".scene-nav button[data-scene]")
       .forEach((button) => {
         button.setAttribute(
           "aria-pressed",
@@ -341,7 +352,7 @@ export function mountGame(tasks: Task[]) {
     dismissRevive();
     document.querySelector<HTMLElement>(".nearby-prompt")!.hidden = true;
     if (flowerTrail.interact(id) || meadow.interact(id)) return;
-    if (id===bassStand.spot.id) { bass.play(); return; }
+    if (id===bassStand.spot.id) { activities.close(); bass.open(); return; }
     if (id === "bed") {
       activities.close();
       world.lieDown();
@@ -495,7 +506,7 @@ export function mountGame(tasks: Task[]) {
     );
   });
   document
-    .querySelectorAll<HTMLButtonElement>("[data-scene]")
+    .querySelectorAll<HTMLButtonElement>(".scene-nav button[data-scene]")
     .forEach((button) =>
       button.addEventListener("click", () => {
         begin();
@@ -505,7 +516,7 @@ export function mountGame(tasks: Task[]) {
   document.querySelector(".garden-link")!.addEventListener("click", () => {
     begin();
     transition("garden");
-    world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
+    revealMapIfOffscreen();
   });
   const visit = (scene: SceneId, id: string) => {
     if (world.busy || !world.canEnter(scene)) return;
@@ -524,7 +535,7 @@ export function mountGame(tasks: Task[]) {
     if (world.scene !== scene) world.switchScene(scene);
     world.visit(id);
     world.canvas.focus({ preventScroll: true });
-    world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
+    revealMapIfOffscreen();
   };
   document
     .querySelectorAll<HTMLButtonElement>("[data-task]")
@@ -611,6 +622,7 @@ export function mountGame(tasks: Task[]) {
       visited: [],
       completed: [],
       bedNoteUnlocked: false,
+      bassSongPlayed: false,
       rainbowFlowers: [],
       creditStars: [],
       arcadeBests: {},
@@ -619,6 +631,7 @@ export function mountGame(tasks: Task[]) {
     activities.reset();
     nature.reset();
     inventory.reset();
+    flowerTrail.setPreviewOpen(false);
     flowerTrail.refresh();
     town.reset();
     arcade.close();
@@ -639,6 +652,17 @@ export function mountGame(tasks: Task[]) {
   });
   update();
   world.onScene("room");
+  mountDebugPanel(world,inventory,nature,flowerTrail,async(scene,id,mode)=>{
+    if(!worldReady || world.busy || transitioning || !world.canEnter(scene)) return false;
+    begin(); await world.prepareScene(scene);
+    if(world.busy || transitioning || !world.canEnter(scene)) return false;
+    closePanels(); cinema.close(); arcade.close(); activities.close(); reader.close(); dismissRevive();
+    const spot=scenes[scene].spots.find(s=>s.id===id);
+    const arrival=mode==="trap" ? scenes.challenge.hazards[0] : spot?.approach;
+    world.switchScene(scene,arrival); world.canvas.focus({preventScroll:true});
+    if(mode==="open" && spot) world.onInteract(spot.id);
+    revealMapIfOffscreen(); return true;
+  },toast);
   for (const id of GAME_IDS)
     if (!Object.values(scenes).some((s) => s.spots.some((p) => p.id === id)))
       throw new Error(`Missing activity: ${id}`);

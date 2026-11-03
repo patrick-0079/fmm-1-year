@@ -1,0 +1,34 @@
+/* No follower overlay: the OS owns the pointer, its exact hot spot, and all clicks. */
+@media (any-hover: hover) and (any-pointer: fine) and (forced-colors: none) {
+  :root {
+    --fufu-arrow:
+      url("./assets/fufu-cursor-arrow.svg?no-inline") 2 2,
+      url("./assets/fufu-cursor-arrow.png?no-inline") 2 2, auto;
+    --fufu-play:
+      url("./assets/fufu-cursor-play.svg?no-inline") 2 2,
+      url("./assets/fufu-cursor-play.png?no-inline") 2 2, pointer;
+    cursor: var(--fufu-arrow);
+  }
+  #app,
+  #app #world {
+    cursor: var(--fufu-arrow);
+  }
+  #app :is(a[href], button:not(:disabled), summary, [role="button"]),
+  #app #world[data-pointable],
+  #app .arcade-active #world,
+  #app .inspecting:not(.bass-playing) #world {
+    cursor: var(--fufu-play);
+  }
+  #app :is(button:disabled, [aria-disabled="true"]) {
+    cursor: default;
+  }
+  #app
+    :is(
+      .reader-body,
+      .game-letter-reader article,
+      .bed-note p,
+      .inline-help dd
+    ) {
+    cursor: text;
+  }
+}

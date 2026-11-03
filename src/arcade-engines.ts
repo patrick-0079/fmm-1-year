@@ -353,7 +353,7 @@ export class HopGame implements Engine {
         id: i,
         x: this.platforms[i - 1].x + 67 + random() * 37,
         y: 116 + random() * 18,
-        w: 43 + random() * 9,
+          w: 55 + random() * 9,
       });
   }
   start() {
@@ -377,19 +377,22 @@ export class HopGame implements Engine {
     if (this.status !== "playing") return;
     if (this.charging) this.charge = Math.min(1.2, this.charge + dt);
     if (this.grounded) return;
-    const before = this.y;
+    const before = this.y, previousX=this.x;
     this.x += this.vx * dt;
     this.vy += 440 * dt;
     this.y += this.vy * dt;
     if (this.vy > 0) {
       const p = this.platforms.find(
-        (p) =>
-          p.id > this.platformId &&
-          Math.abs(this.x - p.x) < p.w / 2 - 3 &&
-          before <= p.y - 5 &&
-          this.y >= p.y - 5,
+        (p) => {
+          const top=p.y-5;
+          if(p.id<=this.platformId || before>top || this.y<top || this.y===before) return false;
+          // Test the feet at the moment they cross the icing, not the centre at the end of the frame.
+          const contact=previousX+(this.x-previousX)*(top-before)/(this.y-before);
+          return Math.abs(contact-p.x)<=p.w/2+7;
+        },
       );
       if (p) {
+          this.x=Math.max(p.x-p.w/2+2,Math.min(p.x+p.w/2-2,this.x));
         this.y = p.y - 5;
         this.platformId = p.id;
         if (this.platformId + 6 >= this.platforms.length)
@@ -399,7 +402,7 @@ export class HopGame implements Engine {
               id: last.id + 1,
               x: last.x + 70 + this.random() * 28,
               y: 116 + this.random() * 18,
-              w: 48,
+                w: 58,
             });
           }
         this.grounded = true;

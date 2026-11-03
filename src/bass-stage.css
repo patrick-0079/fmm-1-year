@@ -1,0 +1,356 @@
+/* The score lives on the music stand inside the room, beside the actual player. */
+.scene-wrap.bass-playing {
+  display: grid;
+  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1fr);
+  align-items: stretch;
+  aspect-ratio: auto;
+  background: #e6cdac;
+}
+.bass-playing #world {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  object-fit: cover;
+}
+.bass-playing
+  :is(.scene-top, .time-pill, .checkpoint-pill, .map-tool, .nearby-prompt) {
+  display: none;
+}
+.bass-playing::before {
+  content: "♫　窗边练习室";
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  padding: 5px 11px;
+  border: 1px solid #e0c39d;
+  border-radius: 3px 8px 3px 8px;
+  color: #684a43;
+  background: #fff5e4ee;
+  font-size: 12px;
+  pointer-events: none;
+}
+.bass-hud {
+  box-sizing: border-box;
+  min-width: 0;
+  position: relative;
+  padding: 15px clamp(10px, 1.55vw, 22px) 13px;
+  border-left: 3px solid #a07b65;
+  box-shadow: inset 3px 0 #fff4dc;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 24px, #b87c5a0a 24px 25px),
+    #ffeed7;
+  color: #503b46;
+  text-align: left;
+  line-height: 1.4;
+}
+.bass-hud[hidden] {
+  display: none;
+}
+.bass-hud:focus {
+  outline: none;
+}
+.bass-head,
+.bass-score-heading,
+.bass-bars,
+.bass-actions {
+  display: flex;
+  align-items: center;
+}
+.bass-head {
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+.bass-kicker {
+  margin: 0 0 2px;
+  color: #8a5260;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+}
+.bass-head h3 {
+  margin: 0;
+  font-size: clamp(19px, 1.6vw, 25px);
+  letter-spacing: 0.045em;
+  color: #58384a;
+}
+.bass-seal {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  align-content: center;
+  border: 3px double #a66573;
+  border-radius: 50%;
+  color: #8f5163;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1;
+  transform: rotate(6deg);
+}
+.bass-seal span {
+  font-size: 10px;
+  margin-top: 2px;
+  font-weight: 600;
+}
+.bass-paper {
+  background: #fffaf0;
+  border: 1px solid #dbc1a1;
+  border-radius: 4px;
+  padding: 7px 10px;
+  box-shadow: 1px 2px #d2b39366;
+}
+.bass-score-heading {
+  justify-content: space-between;
+  color: #79585b;
+  font-size: 12px;
+  gap: 7px;
+}
+.bass-count {
+  font-variant-numeric: tabular-nums;
+}
+.bass-phrase {
+  padding: 0;
+  margin: 6px 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 5px;
+  list-style: none;
+}
+.bass-phrase li {
+  display: grid;
+  text-align: center;
+  padding: 3px 0 2px;
+  border: 1px solid #e1cead;
+  border-radius: 3px;
+  background: #f8efdd;
+  color: #775d60;
+}
+.bass-phrase li strong {
+  font-size: 17px;
+  line-height: 1.3;
+}
+.bass-phrase li span {
+  font-size: 11px;
+  line-height: 1.35;
+}
+.bass-phrase li.current {
+  background: #fce2df;
+  border-color: #ad6272;
+  color: #793d53;
+  box-shadow: inset 0 -2px #b7737b;
+}
+.bass-phrase li.past {
+  background: #edf1de;
+  border-color: #c7d2ad;
+  color: #536650;
+}
+.bass-bars {
+  gap: 3px;
+  margin: 0;
+}
+.bass-bars i {
+  width: 12px;
+  height: 3px;
+  background: #e6d8c2;
+}
+.bass-bars i.ink {
+  background: #a86c81;
+}
+.bass-bars span {
+  margin-left: auto;
+  color: #775c5d;
+  font-size: 11px;
+}
+.bass-fretboard {
+  display: grid;
+  margin: 10px 0 6px;
+  padding: 4px 5px;
+  border: 2px solid #654454;
+  border-radius: 8px 14px 14px 8px;
+  background: repeating-linear-gradient(
+    1deg,
+    #704e56 0 2px,
+    #77545b 3px 7px,
+    #7b5760 8px 10px
+  );
+  box-shadow:
+    inset 0 2px #bf9284,
+    0 2px #d6b79c;
+}
+.bass-string {
+  appearance: none;
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  border-radius: 3px;
+  padding: 0 5px;
+  gap: 5px;
+  color: #fef1e0;
+  background: transparent;
+  text-align: left;
+  touch-action: manipulation;
+}
+.bass-string kbd {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 23px;
+  height: 23px;
+  line-height: 1;
+  border: 1px solid #be9b93;
+  border-radius: 4px;
+  background: #503d4b;
+  font-size: 12px;
+}
+.bass-string b {
+  width: 12px;
+  font-size: 13px;
+}
+.bass-wire {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  min-height: 32px;
+  background: repeating-linear-gradient(
+    to right,
+    transparent 0 calc(25% - 2px),
+    #dbc7b254 calc(25% - 2px) 25%
+  );
+}
+.bass-wire::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: var(--gauge, 2px);
+  background: linear-gradient(#fff4c9, #c0a582);
+  border-radius: 2px;
+  box-shadow: 0 2px #4f3540;
+}
+.bass-string:nth-child(1) {
+  --gauge: 4px;
+}
+.bass-string:nth-child(2) {
+  --gauge: 3px;
+}
+.bass-string:nth-child(4) {
+  --gauge: 1.5px;
+}
+.bass-cue {
+  flex: none;
+  width: 42px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+.bass-string.expected {
+  background: #f6e4b8;
+  color: #553444;
+  box-shadow: inset 3px 0 #ba6874;
+}
+.bass-string.expected .bass-wire::after {
+  background: #9d6658;
+  box-shadow: 0 1px #fff2d5;
+}
+.bass-string.expected kbd {
+  background: #94576b;
+  color: #fff7eb;
+  border-color: #874c62;
+}
+.bass-string:focus-visible,
+.bass-actions button:focus-visible {
+  outline: 2px solid #46919a;
+  outline-offset: 1px;
+  z-index: 1;
+}
+.bass-string.ringing .bass-wire::after {
+  animation: bass-vibrate 0.26s ease-out;
+}
+@keyframes bass-vibrate {
+  20%,
+  60% {
+    transform: translateY(-2px);
+  }
+  40%,
+  80% {
+    transform: translateY(2px);
+  }
+}
+.bass-feedback {
+  color: #804758;
+  margin: 8px 0 1px;
+  min-height: 1.45em;
+  font-size: 14px;
+  font-weight: 700;
+}
+.bass-guide {
+  color: #70595e;
+  font-size: 12px;
+  margin: 1px 0 7px;
+}
+.bass-actions {
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.bass-actions button {
+  background: #fffaf0;
+  color: #674b57;
+  border: 1px solid #bc9f8c;
+  border-radius: 5px;
+  min-height: 32px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 650;
+}
+.bass-actions button:hover {
+  background: #f6e2cf;
+}
+.bass-actions .bass-listen {
+  background: #e1eddf;
+  border-color: #a2b8a2;
+  color: #395d51;
+}
+.bass-actions .bass-leave {
+  margin-left: auto;
+}
+.bass-actions kbd {
+  font-size: 10px;
+  font-weight: 400;
+}
+.bass-hud[data-mode="complete"] .bass-seal {
+  color: #427661;
+  border-color: #61917a;
+}
+@media (max-width: 720px) {
+  .scene-wrap.bass-playing {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bass-playing #world {
+    height: clamp(118px, 22svh, 165px);
+    object-position: 50% 50%;
+  }
+  .bass-hud {
+    border-left: 0;
+    border-top: 3px solid #a07b65;
+    padding: 10px 13px 12px;
+    box-shadow: inset 0 2px #fff4dc;
+  }
+  .bass-string {
+    min-height: 44px;
+  }
+  .bass-actions button {
+    min-height: 40px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bass-string.ringing .bass-wire::after {
+    animation: none;
+  }
+}

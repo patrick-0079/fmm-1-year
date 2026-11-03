@@ -7,8 +7,8 @@ let music: GainNode | undefined;
 let effects: GainNode | undefined;
 let enabled = true,
   bgm = true,
-  volume = 0.45,
-  ducked = false;
+  volume = 0.45;
+const quietFor = new Set<"cinema" | "bass">();
 let scene: SceneId = "room",
   nextNote = 0,
   step = 0;
@@ -42,7 +42,7 @@ function levels() {
   if (!context || !master || !music || !effects) return;
   master.gain.setTargetAtTime(volume, context.currentTime, 0.06);
   music.gain.setTargetAtTime(
-    bgm && !document.hidden ? (ducked ? 0.04 : 0.28) : 0,
+    bgm && !document.hidden ? (quietFor.size ? 0.04 : 0.28) : 0,
     context.currentTime,
     0.15,
   );
@@ -97,16 +97,16 @@ export function setVolume(value: number) {
 export function setMusicScene(value: SceneId) {
   scene = value;
 }
-export function duckMusic(value: boolean) {
-  ducked = value;
+export function duckMusic(value: boolean, source: "cinema" | "bass" = "cinema") {
+  if (value) quietFor.add(source); else quietFor.delete(source);
   levels();
 }
-export function pluckBass(note: number) {
+export function pluckBass(note: number, hold = .86) {
   if (!enabled || !context || !effects || document.hidden) return;
   const t=context.currentTime;
-  tone(note,t,.86,.32,effects,"triangle");
-  tone(note+12,t,.53,.16,effects,"sine");
-  tone(note+19,t,.18,.065,effects,"sine");
+  tone(note,t,hold,.36,effects,"triangle");
+  tone(note+12,t,Math.min(hold,.55),.19,effects,"sine");
+  tone(note+19,t,Math.min(hold,.18),.07,effects,"sine");
 }
 export function sfx(name: string) {
   if (!enabled || !context || !effects || document.hidden) return;

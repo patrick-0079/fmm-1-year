@@ -7,12 +7,15 @@ export class FlowerTrail {
   private art = new Image();
   private time = 0;
   private reduce = matchMedia("(prefers-reduced-motion: reduce)");
+  private preview = false;
+  get previewOpen() { return this.preview; }
+  setPreviewOpen(on:boolean) { this.preview=on; this.refresh(); }
   constructor(private world: World, private found: () => string[], private save: () => void, private toast: (text: string) => void) {
     this.art.src = flowerAtlas;
-    world.canEnter = scene => scene !== "meadow" || meadowOpen(found());
+    world.canEnter = scene => scene !== "meadow" || this.preview || meadowOpen(found());
     const available = world.available, layers = world.getDepthLayers, tick = world.onTick;
     world.available = spot => {
-      if (spot.id === meadowGate.id) return meadowOpen(found());
+      if (spot.id === meadowGate.id) return this.preview || meadowOpen(found());
       return available(spot) && !(rainbowIds.includes(spot.id) && found().includes(spot.id));
     };
     world.getDepthLayers = () => [...layers(), ...this.layers()];
@@ -20,11 +23,11 @@ export class FlowerTrail {
     this.refresh();
   }
   refresh() {
-    const found = this.found(), unlocked = meadowOpen(found);
+    const found = this.found(), unlocked = meadowOpen(found) || this.preview;
     const count = document.querySelector<HTMLElement>(".prism-count");
     if (count) count.textContent = found.length + " / 7";
     const hint = document.querySelector<HTMLElement>(".prism-hint");
-    if (hint) hint.textContent = unlocked ? "七色已齐。周年庭院西边、气球摊南侧出现了一道花门。" : "留意草丛里偶尔闪一下的七色小花。每一种只能采一次。";
+    if (hint) hint.textContent = this.preview && !meadowOpen(found) ? "花门正在临时开放，你的真实花谱没有改变。" : unlocked ? "七色已齐。周年庭院西边、气球摊南侧出现了一道花门。" : "留意草丛里偶尔闪一下的七色小花。每一种只能采一次。";
     const list = document.querySelector<HTMLElement>(".prism-list");
     if (list) {
       list.replaceChildren(...rainbowFlowers.map(f => {
@@ -72,7 +75,7 @@ export class FlowerTrail {
         c.restore();
       }});
     });
-    if (this.world.scene === "garden" && meadowOpen(found)) {
+    if (this.world.scene === "garden" && (this.preview || meadowOpen(found))) {
       layers.push({y:meadowGate.y+1,draw:c=>this.stamp(c,7,meadowGate.x,meadowGate.y,70)});
     }
     return layers;

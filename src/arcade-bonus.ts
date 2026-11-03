@@ -346,6 +346,12 @@ export interface Treasure {
   value: number;
   kind: number;
 }
+// Angle is measured from the downward vertical. The jaws and collected ore
+// share the same tip that checks for treasure, even at the ends of a swing.
+export function minerHook(angle:number,length:number) {
+  const dx=Math.sin(angle), dy=Math.cos(angle);
+  return {x:120+dx*length,y:22+dy*length,tipX:120+dx*(length+5),tipY:22+dy*(length+5),rotation:-angle};
+}
 export class MinerGame extends BonusGame {
   goal = 160;
   angle = 0;
@@ -383,13 +389,10 @@ export class MinerGame extends BonusGame {
       return;
     }
     this.length += dt * (this.phase === "out" ? 105 : -100);
-    const p = {
-      x: 120 + Math.sin(this.angle) * this.length,
-      y: 22 + Math.cos(this.angle) * this.length,
-    };
+    const p=minerHook(this.angle,this.length);
     if (this.phase === "out") {
       const found = this.treasures.find(
-        (t) => Math.hypot(t.x - p.x, t.y - p.y) < t.r + 4,
+        (t) => Math.hypot(t.x - p.tipX, t.y - p.tipY) < t.r + 3,
       );
       if (found) {
         this.held = found;
@@ -423,16 +426,18 @@ export class MinerGame extends BonusGame {
       c.fillStyle = "#dfb18b"; c.fillRect(x, 23, 15, 1);
     }
     for (const t of this.treasures) this.drawOre(c, t.x, t.y, t.r, t.kind, art);
-    const x = Math.round(120 + Math.sin(this.angle) * this.length);
-    const y = Math.round(22 + Math.cos(this.angle) * this.length);
+    const {x,y,tipX,tipY,rotation}=minerHook(this.angle,this.length);
     c.strokeStyle = "#624c67"; c.lineWidth = 2.6;
     c.beginPath(); c.moveTo(120, 22); c.lineTo(x, y); c.stroke();
     c.strokeStyle = "#e9c791"; c.lineWidth = 1;
     c.beginPath(); c.moveTo(120, 22); c.lineTo(x, y); c.stroke();
-    c.strokeStyle = "#ffe1ac"; c.lineWidth = 2;
-    c.beginPath(); c.moveTo(x - 4, y + 1); c.lineTo(x - 3, y + 4); c.lineTo(x, y + 6);
-    c.lineTo(x + 3, y + 4); c.lineTo(x + 4, y + 1); c.stroke();
-    if (this.held) this.drawOre(c, x, y + 5, this.held.r, this.held.kind, art);
+    if (this.held) this.drawOre(c,tipX,tipY,this.held.r,this.held.kind,art);
+    c.save(); c.translate(x,y); c.rotate(rotation); c.lineJoin="round";
+    const gap=this.held?2:4;
+    c.beginPath(); c.moveTo(0,-2); c.lineTo(0,1);
+    for(const side of [-1,1]) { c.moveTo(0,0); c.lineTo(side*5,3); c.lineTo(side*gap,8); c.lineTo(side*(gap-1.5),7); }
+    c.strokeStyle="#654b59"; c.lineWidth=3.5; c.stroke();
+    c.strokeStyle="#ffe1ac"; c.lineWidth=1.7; c.stroke(); c.restore();
     if (!illustrated(c, art, "winder", 110, 0, 20, 26)) {
       panel(c, 109, 14, 22, 11, "#ae797e", "#684e67");
       motif(c, "bunny", 120, 12, 17);

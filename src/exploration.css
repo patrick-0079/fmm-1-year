@@ -1,4 +1,6 @@
 .adventure-layout > .inventory-panel:not([hidden]) {
+  position:fixed; z-index:35; top:clamp(10px,11vh,85px); right:max(12px,calc((100vw - 1510px)/2));
+  width:clamp(292px,27vw,370px); display:block;
   box-sizing: border-box;
   min-width: 0;
   max-height: min(690px, 82svh);
@@ -8,7 +10,11 @@
   border-radius: 9px;
   box-shadow: inset 0 0 0 3px #f7e8d0;
 }
-.adventure-layout > .inventory-panel:not([hidden]) + .journal { display: none; }
+.inventory-panel > header { position:sticky; top:-17px; z-index:1; background:#fff8e6; }
+.window-tools .bag-toggle { width:auto; min-width:44px; gap:4px; padding-inline:7px; }
+.bag-toggle span { font-size:12px; }
+.game-window { overflow-anchor:none; }
+html:has(.arcade-active,.bass-playing) { overflow-anchor:none; }
 .adventure-layout > .inventory-panel .inventory-grid { grid-template-columns: minmax(0, 1fr); }
 .inventory-panel .equipment-summary { gap: 3px 9px; }
 .inventory-panel > header > div { min-width: 0; }
@@ -47,11 +53,6 @@
 .star-whisper strong, .star-whisper span, .star-whisper small { display: block; }
 .star-whisper strong { font-weight: 650; color: #ffe7b1; }
 .star-whisper small { color: #e0eadc; font-size: 11px; }
-@media (min-width: 801px) {
-  .adventure-layout:has(> .inventory-panel:not([hidden])) { grid-template-columns: minmax(0, 1fr) clamp(268px, 25vw, 360px); }
-}
 @media (max-width: 800px) {
-  .adventure-layout:has(> .inventory-panel:not([hidden])) { gap: 6px; }
-  .adventure-layout > .inventory-panel:not([hidden]) { max-height: 44svh; }
-  .adventure-layout:has(> .inventory-panel:not([hidden])) .game-window > :is(.journey-legend, .game-bottom, .garden-pocket, .flower-book, .scene-nav) { display: none; }
+  .adventure-layout > .inventory-panel:not([hidden]) { top:auto; bottom:max(8px,env(safe-area-inset-bottom)); right:8px; left:8px; width:auto; max-height:45svh; box-shadow:0 -3px 18px #5b435a40; }
 }

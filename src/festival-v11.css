@@ -295,9 +295,6 @@
 .arcade-hud .game-primary, .arcade-hud .arcade-result-actions .map-action:first-child {
   background: var(--ticket-ink); color: #fff7e7; border-color: var(--ticket-ink);
 }
-.wardrobe-debug { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 13px; padding: 9px 0; color: #6c5c68; font-size: 13px; }
-.wardrobe-debug button { padding: 7px 12px; border: 1px solid #968791; color: #685563; background: #fff6e9; border-radius: 3px; }
-.wardrobe-debug button[aria-checked="true"] { color: #355c4b; background: #e1edd8; border-color: #91a78d; }
 @media (max-width: 800px) {
   .arcade-ticket { padding: 4px 6px; }
   .arcade-ticket img { width: 45px; height: 31px; }

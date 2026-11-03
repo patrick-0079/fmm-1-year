@@ -1,0 +1,41 @@
+// Native browser cursors: an original 32px silhouette, shared tip at (2, 2).
+// Both formats are shipped so engines without SVG cursor support keep the motif.
+import { writeFile } from "node:fs/promises";
+import sharp from "sharp";
+
+for (const [name, active] of [
+  ["arrow", false],
+  ["play", true],
+]) {
+  const ink = "#604455",
+    rose = "#ed99b0";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+    <g stroke="${ink}" stroke-width="1.25" stroke-linejoin="round" stroke-linecap="round">
+      <!-- A little portrait rides behind the tip: curled forelock, pink heart clip, mismatched eyes. -->
+      <path fill="#f1a0b7" d="M11 18q-1-6 4-9 3-2 6-1-2-3 1-4 3-1 4 2-2-1-3 1 5 0 7 6l-1 4 2 4-3-1 1 5-3-1q-5 5-12 2l-5-1 2-3-3-1z"/>
+      <path fill="#ffdfd4" d="M13 17q1-6 8-6 6 1 6 7 0 6-7 7-7 0-7-8z"/>
+      <path fill="${rose}" d="M12 18q-1-9 8-10 6 0 8 6-2 0-4-2l1 4q-4-1-5-5-1 4-4 5l.5-3z"/>
+    </g>
+    <path fill="#d77892" d="M25 10q-2-3-3-1-1 2 3 4 4-3 2-4-1-1-2 1z"/>
+    <path fill="#fff2bc" d="M24 14h4v1h-4z"/>
+    <path fill="#61a59c" d="M16 18h2v3h-2z"/>
+    ${active ? '<path fill="#96536a" d="m22 19 2-1 2 1v1l-2-1-2 1z"/>' : '<path fill="#c36e87" d="M23 18h2v3h-2z"/>'}
+    <path fill="#f3a3ac" d="M14 21h2v1h-2zm11-1h2v1h-2z"/>
+    <path fill="#a86676" d="M20 22h2v1h-2z"/>
+    <!-- A sharply outlined nib remains visible on both dark maps and cream text. -->
+    ${
+      active
+        ? `<path fill="#fff4ce" stroke="${ink}" stroke-width="1.5" stroke-linejoin="round" d="M2 2l12 5-3 2 5 8-3 2-5-8-2 4z"/>
+      <path fill="#d67592" stroke="${ink}" stroke-width="1" d="M12 16q-3-4-5-1-2 3 5 7 7-5 4-7-2-1-4 1z"/>
+      <path fill="#fff0ec" d="M8 16h2v1H8z"/>`
+        : `<path fill="#fff7e7" stroke="${ink}" stroke-width="1.5" stroke-linejoin="round" d="M2 2l13 9-5 1 4 7-3 2-4-7-3 4z"/>
+      <path fill="#ea92ad" d="m4 5 7 5-4 .5-2 3z"/>`
+    }
+  </svg>`;
+  const base = new URL("../src/assets/fufu-cursor-" + name, import.meta.url);
+  await writeFile(new URL(base.href + ".svg"), svg);
+  await writeFile(
+    new URL(base.href + ".png"),
+    await sharp(Buffer.from(svg)).png().toBuffer(),
+  );
+}

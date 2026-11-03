@@ -76,6 +76,15 @@ test("hop charging and landing can reach eight platforms without mid-air double 
   assert.equal(g.score, 8);
   assert.equal(g.status, "won");
 });
+test("the rabbit catches a platform with its feet even if a long frame moves its centre past the edge",()=>{
+  const jump=(offset:number,velocity:number)=>{
+    const g=new HopGame(()=>.5);g.start();
+    g.platforms=[{id:0,x:15,y:130,w:48},{id:1,x:120,y:100,w:56}];
+    g.x=148+offset;g.y=94.5;g.vx=velocity;g.vy=60;g.grounded=false;g.update(.05);return g;
+  };
+  assert.equal(jump(5,95).platformId,1,"a planted toe catches the edge at contact");
+  assert.equal(jump(10,95).grounded,false,"the empty gap still drops the rabbit");
+});
 test("flight has achievable gates and correctly fails on collision", () => {
   const g = new FlightGame(() => 0.5);
   g.start();
