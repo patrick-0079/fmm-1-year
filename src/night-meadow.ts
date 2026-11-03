@@ -4,6 +4,7 @@ import { campfire, meadowExit, starJar, tentRoof } from "./meadow-map";
 import { sfx } from "./sound";
 import { drawWildSprite } from "./wild-art";
 import type { DepthLayer, World } from "./world";
+import { drawMoonCircle } from "./moon-circle";
 
 type Credit = typeof producers[number];
 const flock = [
@@ -40,7 +41,14 @@ export class NightMeadow {
     this.caption.setAttribute("role", "status");
     this.caption.setAttribute("aria-atomic", "true");
     world.canvas.after(this.caption);
-    const available = world.available, tick = world.onTick, layers = world.getDepthLayers, effects = world.onEffects;
+    const available = world.available, tick = world.onTick, layers = world.getDepthLayers, effects = world.onEffects, ground = world.onEnvironment;
+    world.onEnvironment = (c,t) => {
+      ground(c,t);
+      if (world.scene === "meadow") {
+        const near = Math.max(0,1 - Math.hypot(world.player.x-meadowExit.x,world.player.y-meadowExit.y)/60);
+        drawMoonCircle(c,meadowExit.x,meadowExit.y,this.reduced.matches ? 0 : this.time,near);
+      }
+    };
     world.available = spot => available(spot) && !(world.scene === "meadow" && this.found().includes(spot.id));
     world.onTick = (dt, t) => {
       tick(dt, t);
@@ -125,14 +133,6 @@ export class NightMeadow {
     const layers: DepthLayer[] = [
       {y: 168, draw: c => this.world.drawMapFragment(c, tentRoof)},
       {y: starJar.y, draw: c => drawWildSprite(c, atlas, 3, starJar.x, starJar.y, 17)},
-      {y: meadowExit.y, draw: c => {
-        c.save();
-        c.font = '11px "Microsoft YaHei", sans-serif';
-        c.textAlign = "center";
-        c.shadowColor = "#233c46"; c.shadowBlur = 3;
-        c.fillStyle = "#ece8c6"; c.fillText("‹  回庭院", meadowExit.x, meadowExit.y - 4);
-        c.restore();
-      }},
     ];
     for (const sheep of flock) {
       const phase = (t + sheep.phase) % 24;

@@ -18,7 +18,8 @@ export function pickRainbow(found: string[], scene: SceneId, id: string) {
   return flower;
 }
 export function rainbowSpot(flower: typeof rainbowFlowers[number]): Hotspot {
-  return { ...flower, title: "采下" + flower.name, markerOffset: 37, radius: 37 };
+  // The blossom is its own marker; keep the generous reach for touch and keyboard.
+  return { ...flower, title: "采下" + flower.name, markerOffset: 8, radius: 37, selfMarked: true };
 }
 export const meadowGate: Hotspot = {
   id:"prism-arch", title:"穿过七色花门", portal:"meadow", portalExit:"meadow-exit",

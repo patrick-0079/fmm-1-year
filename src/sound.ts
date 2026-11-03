@@ -101,6 +101,13 @@ export function duckMusic(value: boolean) {
   ducked = value;
   levels();
 }
+export function pluckBass(note: number) {
+  if (!enabled || !context || !effects || document.hidden) return;
+  const t=context.currentTime;
+  tone(note,t,.86,.32,effects,"triangle");
+  tone(note+12,t,.53,.16,effects,"sine");
+  tone(note+19,t,.18,.065,effects,"sine");
+}
 export function sfx(name: string) {
   if (!enabled || !context || !effects || document.hidden) return;
   if (name === "starlight") {

@@ -34,7 +34,8 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 原创音乐《把晚安留给你》 | `src/lullaby.ts` 保存乐谱、各地图速度与配器。`src/sound.ts` 负责解锁音频、音量、放映时的音量变化和后台暂停 |
 | 小游戏规则与面板 | `src/arcade-engines.ts`、`src/arcade-bonus.ts`、`src/arcade.ts`；新增种类也要补 `town-data.ts` 与说明 |
 | 蛋糕、礼物、气球、烟花 | `src/activities.ts`；切割判定在 `src/cake-party.ts`，精细气球/礼盒裁切在 `src/party-art.ts` |
-| 地图与物理通道 | `src/maps.ts`、`src/town-map.ts`；小镇两条通路的四座门、落脚点、门柱在 `src/gate-layout.ts`，绘制在 `src/connections.ts` |
+| 地图与物理通道 | `src/gate-layout.ts` 共用南门、北桥 / 石阶的路牌、碰撞和单向过线判定；`src/maps.ts` 的庭院边界沿两条实际石径。路线参考图及重建方式见 [v18 素材说明](ARTWORK-v18.md) |
+| 月芽传送阵与白色贝斯 | `src/moon-circle.ts` 在草地层绘制阵纹，中心进入判定在 `src/meadow-map.ts`。琴的位置、琴架占地在 `src/room-props.ts`；琴声与音符分别由 `src/sound.ts`、`src/room-bass.ts` 处理 |
 | 小镇可走道路、遮挡与装饰 | `src/town-surfaces.ts`、`src/town-scenery.ts` |
 | 溪水和树木 | `src/landscape.ts`、`src/landscape-renderer.ts`；溪水绘制与碰撞共享形状 |
 | 昼夜和采集 | `src/day.ts`、`src/nature.ts`；现实 600 秒一天，现实离线时间也计入时钟 |

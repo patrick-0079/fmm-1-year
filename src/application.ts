@@ -16,6 +16,8 @@ import type { GameId } from "./arcade-engines";
 import { Nature } from "./nature";
 import { FlowerTrail } from "./flower-trail";
 import { NightMeadow } from "./night-meadow";
+import { RoomBass } from "./room-bass";
+import { bassStand } from "./room-props";
 import { JOURNEY_KEY, readJourney, type Journey } from "./journey";
 import { openCollection } from "./media";
 import {
@@ -206,6 +208,7 @@ export function mountGame(tasks: Task[]) {
   new Companion(world);
   const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);
   const meadow = new NightMeadow(world, () => progress.creditStars, save);
+  const bass = new RoomBass(world,toast);
   const cinema = new GardenCinema(world, toast);
   const bedNote = new BedNote(world);
   const previousTick = world.onTick;
@@ -242,10 +245,10 @@ export function mountGame(tasks: Task[]) {
     world.clearInput();
     sfx("portal");
     void Promise.all([new Promise<void>(done => setTimeout(done,180)),world.prepareScene(scene)]).then(() => {
-      const arrival = scenes[scene].spots.find(
-        (s) => s.id === entrance,
-      )?.approach;
-      world.switchScene(scene, arrival);
+      const opposite = scenes[scene].spots.find(s => s.id === entrance);
+      const arrival = opposite?.approach;
+      const dx = opposite ? opposite.approach.x-opposite.x : 0, dy = opposite ? opposite.approach.y-opposite.y : 0;
+      world.switchScene(scene, arrival, Math.abs(dx)>Math.abs(dy) ? (dx>0 ? 2 : 1) : (dy<0 ? 3 : 0));
       world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
     }).catch(() => {
       toast("花径还没准备好，请稍后再穿一次花门。");
@@ -338,6 +341,7 @@ export function mountGame(tasks: Task[]) {
     dismissRevive();
     document.querySelector<HTMLElement>(".nearby-prompt")!.hidden = true;
     if (flowerTrail.interact(id) || meadow.interact(id)) return;
+    if (id===bassStand.spot.id) { bass.play(); return; }
     if (id === "bed") {
       activities.close();
       world.lieDown();

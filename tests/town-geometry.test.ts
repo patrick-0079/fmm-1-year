@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { canStand, canTravelBetween, movePlayer } from "../src/core.ts";
 import { scenes } from "../src/maps.ts";
 import { townCanopies, festivalProps } from "../src/town-scenery.ts";
-import { townGates, gatePosts } from "../src/gate-layout.ts";
+import { townGates, gatePosts, crossedTownGate } from "../src/gate-layout.ts";
 import { ARCADES } from "../src/town-data.ts";
 
 const square = (left: number, right: number) => [
@@ -20,6 +20,25 @@ test("gate pillars block both sides without filling the walk-through opening", (
     assert.ok(stands(g), `${g.id}: the opening must be clear`);
     assert.ok(canTravelBetween(g.approach, g, s), `${g.id}: the landing must lead to the threshold`);
     for (const post of gatePosts(g)) assert.ok(!stands({x: post.x + post.w/2, y: post.y + post.h/2}));
+  }
+});
+
+test("the painted lanes lead through their real openings and crossings only fire when leaving", () => {
+  const garden=scenes.garden;
+  for (const lane of [
+    [[447,427],[470,451],[521,474],[555,500],[573,527],[573,555],[569,575]],
+    [[684,144],[732,123],[751,108],[761,85],[775,69],[795,57],[816,56],[839,56]],
+  ]) for (let i=1;i<lane.length;i++) {
+    const [x,y]=lane[i-1], [ex,ey]=lane[i];
+    assert.ok(canTravelBetween({x,y},{x:ex,y:ey},garden), `painted lane blocked: ${x},${y} → ${ex},${ey}`);
+  }
+  for (const g of townGates) {
+    const dx=g.kind==="bridge" ? 2 : 0, dy=g.kind==="wicket" ? 2 : g.kind==="stairs" ? -2 : 0;
+    const before={x:g.x-dx,y:g.y-dy}, after={x:g.x+dx,y:g.y+dy};
+    assert.equal(crossedTownGate(g.scene,before,after)?.id,g.id);
+    assert.equal(crossedTownGate(g.scene,after,before),undefined);
+    assert.equal(crossedTownGate(g.scene,g.approach,g.approach),undefined);
+    assert.equal(crossedTownGate(g.scene,{x:before.x+35,y:before.y+35},{x:after.x+35,y:after.y+35}),undefined);
   }
 });
 

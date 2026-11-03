@@ -6,6 +6,7 @@ import { gardenGuests } from "./garden-guests.ts";
 import { townGates, gatePosts, gateSpot } from "./gate-layout.ts";
 import { rainbowFlowers, rainbowSpot, meadowGate, meadowGatePosts } from "./rainbow-flowers.ts";
 import { meadowScene } from "./meadow-map.ts";
+import { bassStand } from "./room-props.ts";
 export type SceneId = "room" | "garden" | "challenge" | "town" | "meadow";
 export interface Hotspot {
   id: string;
@@ -20,6 +21,8 @@ export interface Hotspot {
   markerOffset?: number;
   /** The illustrated object is itself the click target. */
   selfMarked?: boolean;
+  /** Parts of a wide or offset illustrated entrance that can be clicked directly. */
+  hitAreas?: {x:number;y:number;w:number;h:number}[];
 }
 export interface Scene extends Geometry {
   title: string;
@@ -45,6 +48,7 @@ export const scenes: Record<SceneId, Scene> = {
     bounds: { x: 15, y: 89, w: 570, h: 292 },
     spawn: { x: 300, y: 310 },
     walls: [
+      bassStand.footprint,
       { label: "电视柜", x: 46, y: 77, w: 112, h: 36 },
       polygon("花瓶", [
         [168, 80],
@@ -128,6 +132,7 @@ export const scenes: Record<SceneId, Scene> = {
     ],
     hazards: [],
     spots: [
+      bassStand.spot,
       {
         id: "bed",
         title: "在床上躺一会",
@@ -205,19 +210,15 @@ export const scenes: Record<SceneId, Scene> = {
     title: "周年花园",
     width: 900,
     height: 600,
-    bounds: { x: 30, y: 65, w: 840, h: 520 },
+    bounds: { x: 30, y: 35, w: 840, h: 550 },
     spawn: { x: 450, y: 175 },
     floor: [
       [150, 95],
       [345, 80],
       [550, 80],
-      [770, 100],
-      // Open the bank leading to the painted north bridge, keeping the stream
-      // beyond the bridge approach outside the walking polygon.
-      [803, 83],
-      [837, 76],
-      [855, 92],
-      [807, 124],
+      // The northeast lane follows the bank, then turns east onto the wooden deck.
+      [709, 89], [730, 102], [741, 95], [751, 78], [769, 58], [795, 43],
+      [858, 42], [858, 65], [802, 71], [790, 96], [775, 123],
       [790, 155],
       [825, 180],
       [805, 240],
@@ -225,6 +226,8 @@ export const scenes: Record<SceneId, Scene> = {
       [790, 420],
       [775, 500],
       [720, 534],
+      // Keep the two fence ends on grass and open only the gate-sized gap.
+      [603, 541], [591, 550], [586, 582], [551, 582], [555, 550], [546, 543],
       [520, 550],
       [484, 560],
       [478, 582],

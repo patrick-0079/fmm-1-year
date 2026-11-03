@@ -3,6 +3,8 @@ import { SAVE_KEY, readProgress } from "../src/core";
 import { rainbowFlowers, meadowGate } from "../src/rainbow-flowers";
 import { producers } from "../src/content";
 import { JOURNEY_KEY, readJourney } from "../src/journey";
+import { townGates, gateSignFoot } from "../src/gate-layout";
+import { bassStand } from "../src/room-props";
 
 // Same application as the homepage; all its saves are private to this QA tab.
 const space="fufu-only-exploration-fixture/";
@@ -24,7 +26,9 @@ const expect=(ok:unknown,label:string)=>{if(!ok) throw new Error(label);};
 const log=(label:string)=> {const li=document.createElement("li");li.textContent=label;q("#evidence").append(li);};
 const state=()=>readProgress(localStorage.getItem(SAVE_KEY));
 const landing=()=>readJourney(localStorage.getItem(JOURNEY_KEY),state().rainbowFlowers);
-const wait=async(check:()=>boolean,ms=8000)=>{
+// A background preview can draw only once a second. The game deliberately caps
+// movement per frame, so judge arrival by state, with time for those slow frames.
+const wait=async(check:()=>boolean,ms=30000)=>{
   const until=performance.now()+ms;
   while (!check()) {if(performance.now()>until) throw new Error("等待游戏状态超时"); await new Promise(r=>setTimeout(r,24));}
 };
@@ -161,6 +165,65 @@ async function run(check:()=>Promise<void>) {
   finally {q<HTMLButtonElement>("#verify").disabled=false;}
 }
 q("#verify").addEventListener("click",()=>void run(checkAll));
+q("#check-lanes").addEventListener("click",()=>void run(async()=>{
+  if(!q(".intro-screen").classList.contains("dismissed")) await start();
+  q(".reset-button").click(); q(".reset-confirm").click(); // This fixture owns an isolated save.
+  const photos=q("#lane-photos");
+  photos.innerHTML="<h2>芙芙的小世界 · 场景实拍</h2><div class=\"tiles\"></div>";
+  const capture=async(title:string,cx:number,cy:number,w:number)=>{
+    await new Promise<void>(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r())));
+    const pos=world.project({x:cx,y:cy}), zoom=world.project({x:cx+1,y:cy}).x-pos.x;
+    const ratio=world.canvas.width/600, h=w*108/176;
+    const sx=Math.max(0,Math.min(600-w*zoom,pos.x-w*zoom/2)), sy=Math.max(0,Math.min(400-h*zoom,pos.y-h*zoom/2));
+    const el=document.createElement("figure"),canvas=document.createElement("canvas"),cap=document.createElement("figcaption");
+    canvas.width=352; canvas.height=216;
+    canvas.getContext("2d")!.drawImage(world.canvas,sx*ratio,sy*ratio,w*zoom*ratio,h*zoom*ratio,0,0,352,216);
+    cap.textContent=title; el.append(canvas,cap); photos.querySelector(".tiles")!.append(el);
+  };
+  const clickAt=(x:number,y:number)=>{
+    const p=world.project({x,y}), b=world.canvas.getBoundingClientRect();
+    world.canvas.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,button:0,clientX:b.left+p.x*b.width/600,clientY:b.top+p.y*b.height/400}));
+  };
+  world.switchScene("room",bassStand.spot.approach);
+  clickAt(bassStand.x,bassStand.y-29);
+  await wait(()=>q(".toast").textContent==="白色贝斯 · E 弦");
+  for (const note of ["A","D","G"]) { world.interact(); expect(q(".toast").textContent==="白色贝斯 · "+note+" 弦","琴弦未按顺序拨响"); }
+  await capture("晚安小屋 · 窗边的白色贝斯",403,92,146);
+  log("点琴身和键盘互动都能拨弦，四根弦依 E、A、D、G 循环");
+  const flower=rainbowFlowers[0];
+  world.switchScene("garden",flower.approach);
+  await capture("周年庭院 · 茶桌旁的七色小花",flower.x+6,flower.y-13,115);
+  clickAt(flower.x,flower.y-8); await wait(()=>state().rainbowFlowers.includes(flower.id));
+  const [south,bridge,townSouth,stairs]=townGates;
+  world.switchScene("garden",south.approach);
+  await capture("花园南门 · 从石径走进小镇",south.x-29,south.y-29,191);
+  const reached=async(g: typeof townGates[number])=>{
+    try { await wait(()=>world.scene===g.scene && !world.paused); } catch {
+      throw new Error("未抵达 "+g.id+"；当前 "+world.scene+" "+world.player.x+","+world.player.y+"；"+q(".toast").textContent);
+    }
+    expect(Math.hypot(world.player.x-g.approach.x,world.player.y-g.approach.y)<1,"入口两端没有配对到相应落脚点："+g.id);
+  };
+  const walkUntil=async(direction:string, arrived:()=>Promise<void>)=>{
+    key(direction); try { await arrived(); } finally { key(direction,false); }
+  };
+  await walkUntil("ArrowDown",()=>reached(townSouth));
+  await capture("小镇南街 · 池塘边的回程门",townSouth.x,townSouth.y-22,180);
+  world.interact(); await reached(south);
+  world.switchScene("garden",bridge.approach);
+  await capture("东北木桥 · 沿溪去北街",bridge.x-34,bridge.y+12,180);
+  const sign=gateSignFoot(bridge);
+  clickAt(sign.x,sign.y-20); await reached(stairs);
+  await walkUntil("ArrowUp",()=>reached(bridge));
+  log("南门步行进入、互动返回；北桥路牌可点，从镇北石阶步行可原路返回");
+  for(const f of rainbowFlowers) if(!state().rainbowFlowers.includes(f.id)) {
+    world.switchScene(f.scene,f.approach); world.interact();
+  }
+  world.switchScene("garden",meadowGate.approach); world.interact(); await insideMeadow();
+  await capture("夜间花海 · 月芽传送阵",83,224,146);
+  await walkUntil("ArrowLeft",()=>wait(()=>world.scene==="garden" && !world.paused));
+  expect(Math.hypot(world.player.x-meadowGate.approach.x,world.player.y-meadowGate.approach.y)<1,"踏入阵心没有回到七色花门");
+  log("月芽传送阵不会在落地时触发；走入阵心才返回庭院七色花门");
+}));
 q("#camp-preview").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").hidden && world.paused) await start();
   for (const flower of rainbowFlowers) {

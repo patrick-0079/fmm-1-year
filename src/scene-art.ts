@@ -1,8 +1,9 @@
 import stallsUrl from "./assets/anniversary-stalls-v12.webp";
 import keepsakesUrl from "./assets/garden-keepsakes-v12.webp";
 import skiesUrl from "./assets/window-skies-v12.webp";
-import gateUrl from "./assets/town-gate-v13.webp";
-export { stallsUrl, keepsakesUrl, skiesUrl, gateUrl };
+import gateUrl from "./assets/country-wicket-v18.webp";
+import bassUrl from "./assets/white-bass-v18.webp";
+export { stallsUrl, keepsakesUrl, skiesUrl };
 
 const load = (src: string) => {
   const image = new Image();
@@ -13,11 +14,11 @@ const load = (src: string) => {
   image.src = src;
   return { image, ready };
 };
-const stalls = load(stallsUrl), keepsakes = load(keepsakesUrl), skies = load(skiesUrl), gate = load(gateUrl);
-export const sceneArtReady = Promise.all([stalls.ready, keepsakes.ready, skies.ready, gate.ready]);
+const stalls = load(stallsUrl), keepsakes = load(keepsakesUrl), skies = load(skiesUrl), gate = load(gateUrl), bass = load(bassUrl);
+export const sceneArtReady = Promise.all([stalls.ready, keepsakes.ready, skies.ready, gate.ready, bass.ready]);
 // The world load screen surfaces failures; keep rejected image promises handled before it subscribes.
 void sceneArtReady.catch(() => {});
-export const sceneArt = { stalls: stalls.image, keepsakes: keepsakes.image, skies: skies.image, gate: gate.image };
+export const sceneArt = { stalls: stalls.image, keepsakes: keepsakes.image, skies: skies.image, gate: gate.image, bass: bass.image };
 export const stallFrames = [
   { x: 7, y: 190, w: 486, h: 667 },
   { x: 523, y: 190, w: 488, h: 668 },

@@ -1,5 +1,5 @@
 import type { SceneId } from "./maps";
-import { townGates } from "./gate-layout";
+import { townGates, southStreetLamp } from "./gate-layout";
 export interface Light {
   x: number;
   y: number;
@@ -82,6 +82,8 @@ export const sceneLights: Record<SceneId, Light[]> = {
       warm(1284, 845, 85),
     ]),
 };
-for (const g of townGates)
-  for (const side of [-1, 1])
-    sceneLights[g.scene].push(warm(g.x + side * g.width * 0.18, g.y - g.width * 0.62, 40));
+for (const g of townGates) {
+  if (g.kind==="wicket")
+    sceneLights[g.scene].push(g.scene==="town" ? warm(southStreetLamp.x,southStreetLamp.lightY,40) : warm(g.x-g.width*.305,g.y-g.width*.17,32));
+  if (g.kind==="bridge") sceneLights.garden.push(warm(795,39,35),warm(869,49,32));
+}

@@ -4,9 +4,21 @@ import { canStand, canTravelBetween, findPath, readProgress } from "../src/core.
 import { bloomingGarden, scenes } from "../src/maps.ts";
 import { rainbowFlowers, rainbowIds, meadowOpen, meadowGate, meadowGatePosts, pickRainbow } from "../src/rainbow-flowers.ts";
 import { producers } from "../src/content.ts";
-import { campfire } from "../src/meadow-map.ts";
+import { campfire, enteredMoonCircle, meadowExit } from "../src/meadow-map.ts";
 import { clickedInteraction } from "../src/interaction.ts";
 
+test("small flowers remain clickable at their petals and the moon circle only triggers on entry", () => {
+  for (const f of rainbowFlowers) {
+    const spots=scenes[f.scene].spots;
+    assert.equal(clickedInteraction({x:f.x,y:f.y-9},spots,s=>s.y-(s.markerOffset??12))?.id,f.id);
+    assert.ok(spots.find(s=>s.id===f.id)?.selfMarked);
+  }
+  const arrival=scenes.meadow.spots.find(s=>s.id==="meadow-exit")!.approach;
+  assert.equal(enteredMoonCircle(arrival,arrival),false);
+  assert.equal(enteredMoonCircle(arrival,meadowExit),true);
+  assert.equal(enteredMoonCircle(meadowExit,arrival),false);
+  assert.ok(canTravelBetween(arrival,meadowExit,scenes.meadow));
+});
 test("only seven different flowers from their own maps open the meadow", () => {
   const bag: string[] = [];
   for (const flower of rainbowFlowers) {

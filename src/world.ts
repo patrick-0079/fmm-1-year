@@ -1,5 +1,5 @@
 import roomUrl from "./assets/room-interactive.webp";
-import gardenUrl from "./assets/garden-colorful.webp";
+import gardenUrl from "./assets/garden-lanes-v18.webp";
 import challengeUrl from "./assets/courage-garden.webp";
 import spriteUrl from "./assets/nemu-sprites.webp";
 import restUrl from "./assets/fufu-rest-poses.webp";
@@ -17,7 +17,9 @@ import { drawAvatar } from "./avatar";
 import type { Facing } from "./equipment";
 import { clickedInteraction } from "./interaction";
 import { reservedShortcut, readingTarget } from "./input";
-import { drawConnections, connectionLayers } from "./connections";
+import { connectionLayers } from "./connections";
+import { crossedTownGate } from "./gate-layout";
+import { enteredMoonCircle } from "./meadow-map";
 import {
   advancePath,
   canStand,
@@ -435,7 +437,7 @@ export class World {
     this.path = [];
     this.targetEvent = null;
   }
-  switchScene(scene: SceneId, arrival?: Point) {
+  switchScene(scene: SceneId, arrival?: Point, facing: Facing = 0) {
     if (this.busy || !this.canEnter(scene)) return;
     this.clearInput();
     this.restState = null;
@@ -449,7 +451,7 @@ export class World {
         ? arrival
         : s.spawn),
     };
-    this.facing = 0;
+    this.facing = facing;
     this.nearbyId = "";
     this.updateCamera();
     this.onNearby(null);
@@ -565,6 +567,11 @@ export class World {
     if (this.walking)
       this.facing =
         Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 2 : 1) : dy > 0 ? 0 : 3;
+    if (this.walking && !this.targetEvent) {
+      const crossing = this.scene === "meadow" && enteredMoonCircle(before,this.player)
+        ? "meadow-exit" : crossedTownGate(this.scene,before,this.player)?.id;
+      if (crossing) { this.clearInput(); this.onInteract(crossing); return; }
+    }
     const trap =
       this.immunity <= 0
         ? touchingHazard(this.player, this.config.hazards)
@@ -656,7 +663,6 @@ export class World {
     const view = this.visibleArea;
     this.paintMap(c, view.x, view.y, Math.min(view.w, width - view.x), Math.min(view.h, height - view.y));
     this.onEnvironment(c, this.time);
-    drawConnections(c, this.scene);
     if (this.scene === "room") {
       c.fillStyle = "#8171b0";
       c.fillRect(274, 368, 52, 11);

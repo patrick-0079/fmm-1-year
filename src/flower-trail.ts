@@ -24,7 +24,7 @@ export class FlowerTrail {
     const count = document.querySelector<HTMLElement>(".prism-count");
     if (count) count.textContent = found.length + " / 7";
     const hint = document.querySelector<HTMLElement>(".prism-hint");
-    if (hint) hint.textContent = unlocked ? "七色已齐。周年庭院西边、气球摊南侧出现了一道花门。" : "沿着线索寻找带彩虹光边的花。每一种只能采一次。";
+    if (hint) hint.textContent = unlocked ? "七色已齐。周年庭院西边、气球摊南侧出现了一道花门。" : "留意草丛里偶尔闪一下的七色小花。每一种只能采一次。";
     const list = document.querySelector<HTMLElement>(".prism-list");
     if (list) {
       list.replaceChildren(...rainbowFlowers.map(f => {
@@ -59,10 +59,17 @@ export class FlowerTrail {
     rainbowFlowers.forEach((flower,i) => {
       if (flower.scene !== this.world.scene || found.includes(flower.id)) return;
       layers.push({y:flower.y, draw:c=>{
-        this.stamp(c,i,flower.x,flower.y+2,26);
-        const sparkle=this.reduce.matches ? 0 : Math.sin(this.time*2+i)*2;
-        c.fillStyle="#fff2bc"; c.fillRect(flower.x+10, flower.y-18+sparkle,3,1);
-        c.fillRect(flower.x+11,flower.y-19+sparkle,1,3);
+        const size = [15,14,16,14,15,16,14][i];
+        c.save();
+        c.fillStyle = "#364d422e";
+        c.beginPath(); c.ellipse(flower.x,flower.y,4.5,1.6,0,0,Math.PI*2); c.fill();
+        c.globalAlpha=.91; this.stamp(c,i,flower.x,flower.y+1,size);
+        const near = Math.hypot(this.world.player.x-flower.x,this.world.player.y-flower.y) < 44;
+        const flicker = this.reduce.matches ? 0 : Math.max(0, Math.sin(this.time*1.6+i*2.4)) ** 5;
+        c.globalAlpha = (near ? .52 : .18) + flicker*.39;
+        c.fillStyle="#fff5d3";
+        c.fillRect(flower.x+4,flower.y-size+2,3,1); c.fillRect(flower.x+5,flower.y-size+1,1,3);
+        c.restore();
       }});
     });
     if (this.world.scene === "garden" && meadowOpen(found)) {

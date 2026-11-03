@@ -5,6 +5,10 @@ const points = (pairs: number[][]) => pairs.map(([x, y]) => ({x, y}));
 export const campfire = { x: 232, y: 156 };
 export const starJar = { x: 198, y: 194 };
 export const meadowExit = { x: 58, y: 238 };
+export function enteredMoonCircle(before:{x:number;y:number},after:{x:number;y:number}) {
+  const distance=(p:{x:number;y:number})=>((p.x-meadowExit.x)/12)**2+((p.y-meadowExit.y)/6.5)**2;
+  return distance(before)>1 && distance(after)<=1;
+}
 export const tentRoof = points([[86,147],[89,141],[117,94],[119,89],[153,87],[154,77],[158,78],
   [161,82],[164,76],[168,78],[164,86],[192,128],[206,140],[205,149],[196,148],[190,155],
   [126,174],[122,178],[120,171],[88,152]]);
@@ -24,8 +28,8 @@ export const meadowScene: Scene = {
   ],
   hazards: [],
   spots: [
-    {id: "meadow-exit", title: "回到庭院", ...meadowExit, portal: "garden", portalExit: "prism-arch",
-      approach: {x: 87, y: 239}, radius: 39, selfMarked: true},
+    {id: "meadow-exit", title: "月芽传送阵 · 回庭院", ...meadowExit, portal: "garden", portalExit: "prism-arch",
+      approach: {x: 87, y: 239}, radius: 39, markerOffset: 0, selfMarked: true},
     {id: "meadow-camp", title: "在营火边坐坐", ...campfire,
       approach: {x: 247, y: 184}, radius: 40, selfMarked: true},
     {id: "meadow-jar", title: "看看星光瓶", ...starJar,

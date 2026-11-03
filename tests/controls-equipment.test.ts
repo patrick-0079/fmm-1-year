@@ -5,6 +5,7 @@ import { ITEMS, type ItemId } from "../src/items.ts";
 import { scenes } from "../src/maps.ts";
 import { canStand, canTravelBetween } from "../src/core.ts";
 import { clickedInteraction } from "../src/interaction.ts";
+import { townGates, gateSignFoot } from "../src/gate-layout.ts";
 import { wishAtBurst, wishOpacity } from "../src/celebration.ts";
 
 test("all wearable slots have bounded directional attachments and disappear while sleeping", () => {
@@ -103,11 +104,13 @@ test("mouse interaction hits both a raised marker and the actual NPC, rather tha
     undefined,
   );
   const gate = scenes.garden.spots.find((s) => s.id === "town-gate")!;
+  const sign = gateSignFoot(townGates[0]);
   assert.equal(
-    clickedInteraction({ x: gate.x, y: gate.y - 48 }, [gate], marker)?.id,
+    clickedInteraction({ x: sign.x, y: sign.y-16 }, [gate], marker)?.id,
     gate.id,
-    "the gate's sign is clickable between its high marker and its foot",
+    "the low sign attached to the post is clickable",
   );
+  assert.equal(clickedInteraction({x:gate.x,y:gate.y-48},[gate],marker), undefined, "empty sky above the gate stays walkable");
 });
 test("firework wishes cycle through anniversary messages and fade in and out", () => {
   assert.match(wishAtBurst(0), /一周年/);
