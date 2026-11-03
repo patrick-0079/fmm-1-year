@@ -299,6 +299,11 @@ q("#check-sound").addEventListener("click",()=>void run(async()=>{
   if(saved.sound) q(".sound-toggle").click();
   world.switchScene("room",bassStand.spot.approach); world.interact();
   if(!state().bassSound || state().volume===0) q(".bass-voice").click();
+  const lower=q<HTMLButtonElement>(".volume-down");
+  for(let step=0;step<11 && !lower.disabled;step++) lower.click();
+  expect(!q(".bass-muted-tip").hidden && q(".bass-muted-tip").textContent?.includes("总音量为零"),"琴谱没有解释总音量为零");
+  q(".bass-voice").click();
+  expect(q(".bass-muted-tip").hidden && state().volume===.45,"一键恢复总音量失败");
   const measure=async(audio:HTMLAudioElement,trigger:()=>void,label:string)=>{
     let meter=meters.get(audio);
     if(!meter) {
@@ -320,7 +325,7 @@ q("#check-sound").addEventListener("click",()=>void run(async()=>{
   const demo=q<HTMLAudioElement>("[data-bass-demo]");
   await measure(demo,()=>q(".bass-listen").click(),"完整周年示范");
   await wait(()=>demo.currentTime>1.6 && q(".bass-phrase .current strong").textContent!=="窗");
-  q(".bass-voice").click(); expect(demo.muted,"示范没有响应琴声静音");
+  q(".bass-voice").click(); expect(demo.muted && !q(".bass-muted-tip").hidden,"示范没有响应琴声静音");
   q(".bass-voice").click(); expect(!demo.muted,"示范没有恢复声音");
   q(".bass-leave").click(); expect(demo.paused,"离开琴谱后仍然播放");
   log("背景音乐和游戏音效关闭时仍可弹琴，示范随音轨走谱；静音、恢复和离开均正常");

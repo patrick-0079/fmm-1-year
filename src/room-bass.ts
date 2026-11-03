@@ -47,6 +47,7 @@ export class RoomBass {
       </div>
       <p class="bass-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
       <p class="bass-guide">点琴弦，或按 <b>1–4</b> 跟弹。慢慢来，不用抢拍。</p>
+      <p class="bass-muted-tip" role="status" hidden></p>
       <div class="bass-actions"><button type="button" class="bass-listen">▷ 听示范</button><button type="button" class="bass-voice"></button><button type="button" class="bass-again">从头弹</button><button type="button" class="bass-leave">收起琴谱 <kbd>Esc</kbd></button></div>`;
     this.voice = new BassAudio(
       this.panel,
@@ -219,6 +220,11 @@ export class RoomBass {
     this.voice.setMix(mix);
     const button = this.panel.querySelector<HTMLButtonElement>(".bass-voice")!;
     const audible = mix.enabled && mix.volume > 0;
+    const hint = this.panel.querySelector<HTMLElement>(".bass-muted-tip")!;
+    hint.hidden = audible;
+    hint.textContent = audible ? "" : mix.volume === 0
+      ? "总音量为零，点「恢复总音量」就能听见琴声。"
+      : "琴声已关闭。点「开启琴声」后，可以再拨一次。";
     button.textContent =
       mix.volume === 0 ? "恢复总音量" : audible ? "琴声已开" : "开启琴声";
     button.setAttribute("aria-pressed", String(audible));

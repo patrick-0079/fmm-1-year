@@ -299,6 +299,13 @@
   flex-wrap: wrap;
   gap: 5px;
 }
+.bass-muted-tip {
+  border-left: 3px solid #bc7884;
+  padding-left: 7px;
+  margin: 4px 0 8px;
+  color: #793f54;
+  font-size: 13px;
+}
 .bass-actions button {
   background: #fffaf0;
   color: #674b57;
