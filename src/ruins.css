@@ -36,7 +36,14 @@
 }
 .ruin-notebook summary::-webkit-details-marker { display:none; }
 .ruin-notebook summary::before { content: "▸"; color: #8a714f; }
-.ruin-notebook[open] summary::before { content: "▾"; }
+.ruin-notebook[open] > summary::before, .ruin-solutions[open] > summary::before { content: "▾"; }
+.ruin-solutions { border-top: 1px dashed #c7beaa; }
+.ruin-solutions p { padding: 0 16px; max-width: 72ch; font-size: 14px; line-height: 1.7; }
+.ruin-solutions b { display: block; color: #486555; }
+.mine-rules { margin: 4px 0 10px; font-size: 13px; line-height: 1.6; }
+.mine-rules summary { cursor: pointer; color: #365b52; }
+.mine-rules ul, .help-grid dd ul { padding-inline-start: 1.3em; margin: 6px 0; }
+.mine-rules li + li, .help-grid dd li + li { margin-top: 4px; }
 .ruin-book-count { margin-left: auto; color: #54665d; font-size: 12px; font-variant-numeric:tabular-nums; }
 .ruin-book-pages { padding: 0 16px 14px; }
 .ruin-objective { margin: 2px 0 11px; padding-left: 9px; border-left: 3px solid #ac9360; font-size: 14px; line-height: 1.65; }

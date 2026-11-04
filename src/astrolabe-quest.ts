@@ -55,7 +55,12 @@ export class AstrolabeQuest {
     }
   }
   clearFlash() { clearTimeout(this.flashTimer); this.flash.hidden=true; }
-  reset() { this.clearFlash(); this.book.open=false; this.refresh(false); }
+  reset() {
+    this.clearFlash();
+    this.book.open=false;
+    this.book.querySelectorAll("details").forEach(page => { page.open=false; });
+    this.refresh(false);
+  }
   private objective(s:AstrolabeState) {
     if(s.found.length<3) return "南阶的笔记：三枚盘环散落在西、北、东三间石室，留意脚边的微光。";
     if(!s.installed) return "三枚盘环都在这里了。去中央祭坛西侧，把它们装进月相星盘。";

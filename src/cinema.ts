@@ -54,8 +54,8 @@ export class GardenCinema {
       if (pressed) this.toggle();
       return true;
     };
-    world.onPointer = (type, p) => {
-      if (!this.active) return pointer(type, p);
+    world.onPointer = (type, p, pointerType) => {
+      if (!this.active) return pointer(type, p, pointerType);
       if (type === "down") this.toggle();
       return true;
     };

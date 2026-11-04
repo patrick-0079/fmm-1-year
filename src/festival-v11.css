@@ -193,9 +193,10 @@
   .arcade-controls[data-game="mines"] {
     display: none;
   }
-  .arcade-hud[data-game="mines"] .arcade-extra-actions .map-action:last-child {
-    display: none;
-  }
+}
+.arcade-extra-actions .mine-touch-toggle { display: none; }
+@media (any-pointer: coarse) {
+  .arcade-extra-actions .mine-touch-toggle { display: inline-block; }
 }
 @media (max-width: 540px) {
   .scene-wrap .arcade-hud {

@@ -120,7 +120,8 @@ export class World {
   onRespawn: (event: RespawnEvent) => void = () => {};
   onDraw: (context: CanvasRenderingContext2D, time: number) => void = () => {};
   onTick: (dt: number, time: number) => void = () => {};
-  onPointer: (type: string, point: Point) => boolean = () => false;
+  onPointer: (type: string, point: Point, pointerType: string) => boolean = () => false;
+  onSecondaryPointer: (point: Point) => boolean = () => false;
   onStep: () => void = () => {};
   onEnvironment: (context: CanvasRenderingContext2D, time: number) => void =
     () => {};
@@ -231,7 +232,7 @@ export class World {
       const point = this.pointerPoint(e);
       if (e.button === 2) {
         e.preventDefault();
-        if (this.busy) return;
+        if (this.busy || this.onSecondaryPointer(point)) return;
         this.secondaryPressed = true;
         canvas.setPointerCapture(e.pointerId);
         if (this.restState && !this.paused) {
@@ -245,7 +246,7 @@ export class World {
         return;
       }
       if (e.button !== 0) return;
-      if (this.onPointer("down", point)) {
+      if (this.onPointer("down", point, e.pointerType)) {
         canvas.setPointerCapture(e.pointerId);
         return;
       }
@@ -277,14 +278,14 @@ export class World {
         if (type === "pointermove" && e.pointerType !== "touch" && !e.buttons)
           canvas.toggleAttribute("data-pointable",!this.paused && !this.suspended && !this.busy && !!this.spotAt(this.pointerPoint(e)));
         if (this.secondaryPressed || e.button === 2) {
-          if (type !== "pointermove") {
+          if (type !== "pointermove" && this.secondaryPressed) {
             this.secondaryPressed = false;
             this.onAction(false);
           }
           return;
         }
         if (!this.suspended)
-          this.onPointer(type.replace("pointer", ""), this.pointerPoint(e));
+          this.onPointer(type.replace("pointer", ""), this.pointerPoint(e), e.pointerType);
       });
   }
   private spotAt(point: Point) {

@@ -168,6 +168,8 @@ test("mines begins with a safe neighbourhood, respects flags and continues with 
   for (let i = 0; i < 30; i++) if (!game.mines.has(i)) game.reveal(i);
   assert.equal(game.score, 26);
   assert.equal(game.status, "won");
+  assert.equal(game.pointer(50, 26, true), false);
+  assert.equal(game.status, "won");
   game.continuePlay();
   assert.equal(game.status, "playing");
   assert.equal(game.round, 2);
@@ -175,6 +177,29 @@ test("mines begins with a safe neighbourhood, respects flags and continues with 
   game.hint();
   assert.equal(game.hints, 2);
   assert.ok(game.score > 26 && game.achieved);
+});
+
+test("mines marks the pointed tile independently of the first reveal and touch mode", () => {
+  const game = new MinesGame(() => 0.5);
+  // Column 4, row 3, different from the initial keyboard cursor.
+  const x = 134, y = 82, tile = 15;
+  assert.equal(game.pointer(2, 2, true), false);
+  assert.equal(game.status, "ready");
+  game.pointer(x, y, true);
+  assert.deepEqual([...game.flags], [tile]);
+  assert.equal(game.cursor, tile);
+  assert.equal(game.mines.size + game.revealed.size, 0);
+  game.flagMode = true;
+  game.pointer(x, y, false);
+  assert.equal(game.score, 0);
+  assert.ok(game.flags.has(tile));
+  game.pointer(x, y); // Touch in flag mode removes the flag.
+  assert.equal(game.flags.size, 0);
+  game.pointer(x, y, false); // A mouse left-click still reveals.
+  assert.ok(game.revealed.has(tile));
+  assert.equal(game.count(tile), 0);
+  game.pointer(x, y, true);
+  assert.equal(game.flags.size, 0);
 });
 
 test("the rotated jaws point along the rope and recover treasure at the visible tip on either side",()=>{

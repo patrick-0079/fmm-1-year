@@ -1,7 +1,8 @@
 import type { World } from "./world";
 import type { Activities } from "./activities";
 import type { Inventory } from "./inventory";
-import { ARCADES } from "./town-data";
+import { ARCADES, mineRules } from "./town-data";
+import type { Point } from "./core";
 import { ITEMS } from "./items";
 import {
   createEngine,
@@ -33,6 +34,7 @@ export class Arcade {
     const effects = world.onEffects,
       tick = world.onTick,
       pointer = world.onPointer,
+      secondary = world.onSecondaryPointer,
       action = world.onAction;
     const cancel = world.onInputCancel;
     world.onInputCancel = () => {
@@ -56,13 +58,19 @@ export class Arcade {
       tick(dt, t);
       this.tick(dt);
     };
-    world.onPointer = (type, p) => {
-      if (!this.active) return pointer(type, p);
+    world.onSecondaryPointer = (p) => this.pressMines(p, true) || secondary(p);
+    world.onPointer = (type, p, pointerType) => {
+      if (!this.active) return pointer(type, p, pointerType);
       if (world.suspended || this.paused) return true;
+      if (this.engine instanceof MinesGame) {
+        const touch = pointerType === "touch" || pointerType === "pen";
+        if (type === "down") this.pressMines(p, touch && this.engine.flagMode);
+        return true;
+      }
       if (type === "down" && this.engine?.pointer) {
         if (this.engine.status === "ready") this.start();
-        const g = this.boardAnchor;
-        this.engine.pointer(p.x - (g.x - 120), p.y - (g.y - 159));
+        const { x, y } = this.boardPoint(p);
+        this.engine.pointer(x, y);
         this.render();
         return true;
       }
@@ -81,10 +89,13 @@ export class Arcade {
       s: "down",
       " ": "primary",
       enter: "primary",
-      f: "drop",
     };
+    const actionFor = (key: string) => key === "f" && this.id === "blocks" ? "drop" : keyAction[key];
     window.addEventListener("keydown", (e) => {
-      if (!this.active || world.suspended || reservedShortcut(e) || readingTarget(e.target)) return;
+      if (!this.active || world.suspended || reservedShortcut(e)) return;
+      // A focused rule summary keeps native navigation, including Space to expand.
+      const rules = e.target instanceof Element && e.target.closest(".mine-rules");
+      if (readingTarget(e.target) && !(rules && ["p", "escape"].includes(e.key.toLowerCase()))) return;
       if (e.key.toLowerCase() === "p" && !e.repeat) {
         e.preventDefault();
         this.setPaused(!this.paused);
@@ -94,7 +105,16 @@ export class Arcade {
         this.close();
         return;
       }
-      const action = keyAction[e.key.toLowerCase()];
+      if (e.target === world.canvas && this.engine instanceof MinesGame &&
+          (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10"))) {
+        e.preventDefault();
+        if (!e.repeat && !this.paused) {
+          if (this.engine.status === "ready") this.start();
+          this.engine.input("drop", true);
+        }
+        return;
+      }
+      const action = actionFor(e.key.toLowerCase());
       if (!action) return;
       if (
         (e.target as Element).closest("button") &&
@@ -106,7 +126,7 @@ export class Arcade {
       this.action(action, true);
     });
     window.addEventListener("keyup", (e) => {
-      const action = keyAction[e.key.toLowerCase()];
+      const action = actionFor(e.key.toLowerCase());
       if (this.active && action) this.action(action, false);
     });
   }
@@ -117,6 +137,22 @@ export class Arcade {
     // Keep the board and its pointer targets inside the camera at edge chambers.
     const g=ARCADES[this.id], map=this.world.config;
     return {x:Math.max(167,Math.min(map.width-167,g.x)), y:Math.max(194,Math.min(map.height-29,g.y))};
+  }
+  private boardPoint(p: Point) {
+    const g = this.boardAnchor;
+    return { x: p.x - g.x + 120, y: p.y - g.y + 159 };
+  }
+  private pressMines(p: Point, mark: boolean) {
+    if (!(this.engine instanceof MinesGame)) return false;
+    if (!this.world.suspended && !this.paused) {
+      const { x, y } = this.boardPoint(p);
+      const ready = this.engine.status === "ready";
+      if (this.engine.pointer(x, y, mark)) {
+        if (ready) sfx("interact");
+        this.render();
+      }
+    }
+    return true;
   }
   open(id: GameId) {
     this.close();
@@ -242,7 +278,9 @@ export class Arcade {
         <div class="arcade-heading"><div><small>${booth.stamp}</small><h3 class="arcade-title"></h3></div>
           <div class="arcade-score"><strong></strong><span></span></div></div>
         <div class="arcade-reward-track"><progress aria-label="纪念奖励进度"></progress><span></span></div>
-        <p class="arcade-status" role="status" aria-live="polite"></p><div class="arcade-result-actions"></div>
+        <p class="arcade-status" role="status" aria-live="polite"></p>
+        ${this.id === "mines" ? '<details class="mine-rules"><summary>扫雷规则与操作</summary><ul>'+mineRules.map(rule=>'<li>'+rule+'</li>').join("")+'</ul></details>' : ''}
+        <div class="arcade-result-actions"></div>
         <div class="arcade-controls">
           <button data-game-action="left" aria-label="游戏向左">←</button><button data-game-action="up" aria-label="游戏向上或旋转">↑</button>
           <button data-game-action="right" aria-label="游戏向右">→</button><button data-game-action="down" aria-label="游戏向下或加速">↓</button>
@@ -342,14 +380,13 @@ export class Arcade {
       extraButton("重新洗牌", () => e.shuffle());
     }
     if (e.status === "playing" && !this.paused && e instanceof MinesGame) {
-      extraButton(
-        e.flagMode ? "标旗模式：开（点格子标旗）" : "标旗模式：关",
-        () => {
-          e.flagMode = !e.flagMode;
-        },
-      ).setAttribute("aria-pressed", String(e.flagMode));
+      const touchMode = extraButton(e.flagMode ? "触屏插旗 · 开" : "触屏插旗 · 关", () => {
+        e.flagMode = !e.flagMode;
+      });
+      touchMode.classList.add("mine-touch-toggle");
+      touchMode.setAttribute("aria-pressed", String(e.flagMode));
       extraButton(`安全提示 · 剩余 ${e.hints}`, () => e.hint(), e.hints === 0);
-      extraButton("标记所选格 F", () => e.input("drop", true));
+      extraButton("标记所选格", () => e.input("drop", true));
     }
     const actions = this.hud.querySelector(".arcade-result-actions")!;
     actions.replaceChildren();

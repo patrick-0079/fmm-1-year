@@ -2,6 +2,7 @@ import { World } from "../src/world";
 import { Activities } from "../src/activities";
 import { Inventory } from "../src/inventory";
 import { Arcade } from "../src/arcade";
+import type { MinesGame } from "../src/arcade-bonus";
 import { whenWardrobeReady } from "../src/item-art";
 import type { Engine, BlocksGame } from "../src/arcade-engines";
 import { Companion } from "../src/garden-life";
@@ -118,6 +119,46 @@ await check("阅读区域保留空格和方向键滚动", () => {
   const reader = document.querySelector(".reader-body")!;
   for (const value of [" ", "ArrowDown", "ArrowUp"])
     assert(!key(value, {}, reader).defaultPrevented, `${value} 被世界移动截获`);
+});
+
+await check("扫雷右键只标记指针下的砖，触屏插旗与鼠标翻开相互独立", () => {
+  const previousScene = world.scene, previousAction = world.onAction;
+  let primaryReleases = 0;
+  try {
+    world.scene = "ruins";
+    arcade.open("mines");
+    const game = engine() as MinesGame;
+    const point = {x:464, y:117}; // Centre of column 4, row 3 on the focused board.
+    const pos = world.project(point), rect = canvas.getBoundingClientRect();
+    const mouse = {button:2, pointerType:"mouse", bubbles:true, cancelable:true,
+      clientX:rect.left+rect.width*pos.x/600, clientY:rect.top+rect.height*pos.y/400};
+    world.onAction = pressed => {
+      if (!pressed) primaryReleases++;
+      return previousAction(pressed);
+    };
+    const rightClick = () => {
+      canvas.dispatchEvent(new PointerEvent("pointerdown", mouse));
+      canvas.dispatchEvent(new PointerEvent("pointerup", mouse));
+    };
+    rightClick();
+    assert(game.flags.has(15) && game.mines.size === 0 && game.score === 0, "右键翻开了砖或标记了旧光标");
+    key("f");
+    assert(game.flags.has(15) && primaryReleases === 0, "F 或右键松开触发了别的操作");
+    game.flagMode = true;
+    world.onPointer("down",point,"mouse");
+    assert(game.flags.has(15) && game.score === 0, "鼠标左键改变了旗子");
+    key("p"); rightClick();
+    assert(game.flags.has(15) && status().includes("暂停"), "暂停时右键恢复游戏或改动了棋盘");
+    key("p");
+    world.onPointer("down",point,"touch");
+    assert(!game.flags.has(15) && game.score === 0, "触屏插旗模式没有拔旗");
+    world.onPointer("down",point,"mouse");
+    assert(game.revealed.has(15) && game.count(15) === 0, "第一次左键翻砖没有保护邻格");
+  } finally {
+    world.onAction = previousAction;
+    arcade.close();
+    world.scene = previousScene;
+  }
 });
 
 await check("吹蜡烛按钮也保留输入法组合键", () => {

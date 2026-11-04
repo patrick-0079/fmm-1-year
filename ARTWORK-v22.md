@@ -12,6 +12,8 @@
 
 运行 `node scripts/build-ruins-art.mjs` 重新导出全景、透明道具以及三张 480 × 320 的试炼背景。`src/ruins-map.ts` 以原画像素标记石地和南门拱顶，再映射到 900 × 600 的游戏地图。替换原画时，应从南阶实走到三座石台，检查墙根、水岸和拱顶遮挡。
 
+黄金矿工的游玩画面在矿室底图上叠一层灰蓝色，再绘制可抓取的矿物、绳钩和绞盘。调整背景明暗时可编辑 `src/arcade-bonus.ts` 的 `MinerGame.draw`。试炼旁的石刻拓本缩略图和遗迹地图使用原画颜色。
+
 ## 星盘支线
 
 两张透明原画 `src/assets/astrolabe-relics.png` 和 `src/assets/astrolabe-mechanisms.png` 使用内置图像生成工具制作。前者按行放置藤纹内环、星纹中环、黄铜外环与月牙抱星的胸针。后者按行放置空盘座、南阶手记、水平铜镜和星纹砖。

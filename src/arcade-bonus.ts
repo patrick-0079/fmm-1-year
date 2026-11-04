@@ -303,14 +303,15 @@ export class MinesGame extends BonusGame {
     }
     if (a === "primary") this.reveal(this.cursor);
   }
-  pointer(x: number, y: number) {
+  pointer(x: number, y: number, mark = this.flagMode) {
     const col = Math.floor((x - 36) / 28),
       row = Math.floor((y - 12) / 28);
-    if (col >= 0 && col < 6 && row >= 0 && row < 5) {
-      this.cursor = row * 6 + col;
-      if (this.flagMode) this.input("drop", true);
-      else this.reveal(this.cursor);
-    }
+    if (col < 0 || col >= this.cols || row < 0 || row >= this.rows) return false;
+    if (this.status === "ready") this.start();
+    if (this.status !== "playing") return false;
+    this.cursor = row * this.cols + col;
+    this.input(mark ? "drop" : "primary", true);
+    return true;
   }
   draw(c: CanvasRenderingContext2D, art?: Backdrop) {
     scenery(c, art, "#464861");
@@ -416,7 +417,10 @@ export class MinerGame extends BonusGame {
     }
   }
   draw(c: CanvasRenderingContext2D, art?: Backdrop) {
-    scenery(c, art, "#94778c");
+    scenery(c, art, "#535e62");
+    // Keep the chamber visible in the distance while the playable ore stays bright.
+    c.fillStyle = "rgba(66, 76, 82, 0.62)";
+    c.fillRect(0, 0, 240, 160);
     // A bronze pulley sits over the opening in the amber chamber.
     for (const x of [105, 132]) {
       c.fillStyle = "#785560"; c.fillRect(x, 24, 4, 17);
