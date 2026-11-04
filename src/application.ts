@@ -258,6 +258,7 @@ export function mountGame(tasks: Task[]) {
     dismissRevive();
     transitioning = true;
     const overlay = document.querySelector(".scene-transition")!;
+    overlay.textContent = "正在前往"+scenes[scene].title+"…";
     overlay.classList.add("active");
     world.paused = true;
     world.clearInput();
@@ -459,8 +460,8 @@ export function mountGame(tasks: Task[]) {
           if (journey === resume) world.switchScene(resume.scene, resume);
         } catch {
           if (journey === resume) {
-            world.switchScene("garden");
-              toast("上次的地图暂未载入，先回庭院歇一会儿。");
+              world.switchScene("room");
+              toast("上次的地图暂未载入，先回小屋歇一会儿。");
           }
         }
       }

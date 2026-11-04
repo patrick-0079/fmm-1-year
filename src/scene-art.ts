@@ -3,22 +3,29 @@ import keepsakesUrl from "./assets/garden-keepsakes-v12.webp";
 import skiesUrl from "./assets/window-skies-v12.webp";
 import gateUrl from "./assets/country-wicket-v18.webp";
 import bassUrl from "./assets/white-bass-v18.webp";
+import type { SceneId } from "./maps";
 export { stallsUrl, keepsakesUrl, skiesUrl };
 
-const load = (src: string) => {
-  const image = new Image();
-  const ready = new Promise<HTMLImageElement>((resolve, reject) => {
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("周年场景素材加载失败，请刷新重试。"));
-  });
-  image.src = src;
-  return { image, ready };
+export const sceneArt = {stalls:new Image(), keepsakes:new Image(), skies:new Image(), gate:new Image(), bass:new Image()};
+type Prop = keyof typeof sceneArt;
+const urls: Record<Prop,string> = {stalls:stallsUrl, keepsakes:keepsakesUrl, skies:skiesUrl, gate:gateUrl, bass:bassUrl};
+const propsByScene: Record<SceneId,Prop[]> = {
+  room:["skies","bass"], garden:["keepsakes","gate"], challenge:["keepsakes"],
+  town:["stalls","gate"], meadow:[], ruins:[],
 };
-const stalls = load(stallsUrl), keepsakes = load(keepsakesUrl), skies = load(skiesUrl), gate = load(gateUrl), bass = load(bassUrl);
-export const sceneArtReady = Promise.all([stalls.ready, keepsakes.ready, skies.ready, gate.ready, bass.ready]);
-// The world load screen surfaces failures; keep rejected image promises handled before it subscribes.
-void sceneArtReady.catch(() => {});
-export const sceneArt = { stalls: stalls.image, keepsakes: keepsakes.image, skies: skies.image, gate: gate.image, bass: bass.image };
+const requests = new Map<Prop,Promise<void>>();
+export function prepareSceneArt(scene: SceneId) {
+  return Promise.all(propsByScene[scene].map(key => {
+    const pending=requests.get(key);
+    if (pending) return pending;
+    const image=sceneArt[key];
+    image.fetchPriority="high";
+    image.src=urls[key];
+    const ready=image.decode().catch(error=>{ requests.delete(key); throw error; });
+    requests.set(key,ready);
+    return ready;
+  }));
+}
 export const stallFrames = [
   { x: 7, y: 190, w: 486, h: 667 },
   { x: 523, y: 190, w: 488, h: 668 },

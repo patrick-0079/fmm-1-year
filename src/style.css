@@ -355,6 +355,10 @@ a .icon {
 .scene-transition {
   position: absolute;
   inset: 0;
+  display: grid;
+  place-items: center;
+  color: #65596b;
+  font-size: 15px;
   background: #efede8;
   opacity: 0;
   transition: opacity 0.2s;

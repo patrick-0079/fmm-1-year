@@ -11,7 +11,7 @@ import ruinsUrl from "./assets/echo-ruins.webp";
 import wellUrl from "./assets/echo-well.webp";
 import { crossedEchoGate } from "./ruins-map";
 import { meadowAtlasUrl, orchardAtlasUrl } from "./wild-art";
-import { sceneArtReady } from "./scene-art";
+import { prepareSceneArt } from "./scene-art";
 import trapsUrl from "./assets/garden-traps.webp";
 import { rewardsUrl } from "./item-art";
 import { emptyInventory, type Equipped } from "./items";
@@ -46,6 +46,11 @@ const art = {
   town: townUrl,
   meadow: meadowUrl,
   ruins: ruinsUrl,
+};
+const sceneTextures: Record<SceneId, string[]> = {
+  room: [roomUrl, spriteUrl, restUrl, wreathUrl, rewardsUrl],
+  garden: [gardenUrl, orchardAtlasUrl], challenge: [challengeUrl, orchardAtlasUrl, trapsUrl],
+  town: [townUrl], meadow: [meadowUrl, meadowAtlasUrl], ruins: [ruinsUrl, wellUrl],
 };
 export interface DepthLayer {
   y: number;
@@ -320,17 +325,19 @@ export class World {
       .catch(() => {}).finally(() => { this.townDetailPending = false; });
   }
   prepareScene(scene: SceneId): Promise<void> {
-    if ((scene !== "meadow" && scene !== "ruins") || this.images.has(art[scene])) return Promise.resolve();
     if (!this.canEnter(scene)) return Promise.reject(new Error("尚未集齐七色花"));
+    if (this.images.has(art[scene])) return Promise.resolve();
     const pending = this.mapRequests.get(scene);
     if (pending) return pending;
-    const urls = scene === "ruins" ? [ruinsUrl, wellUrl] : [meadowUrl, meadowAtlasUrl];
-    const request = Promise.all(urls.map(async url => {
+    const textures = sceneTextures[scene].filter(url=>!this.images.has(url)).map(async url => {
         const image = new Image();
+        image.fetchPriority = "high";
         image.decoding = "async"; image.src = url;
         await image.decode();
         return [url, image] as const;
-      })).then(images => { for (const [url, image] of images) this.images.set(url,image); })
+      });
+    const request = Promise.all([Promise.all(textures), prepareSceneArt(scene)])
+        .then(([images]) => { for (const [url, image] of images) this.images.set(url,image); })
         .finally(() => { this.mapRequests.delete(scene); });
     this.mapRequests.set(scene, request);
     return request;
@@ -404,33 +411,7 @@ export class World {
     this.onRestChange(null);
   }
   async load() {
-    await Promise.all([
-      sceneArtReady,
-      ...[
-        orchardAtlasUrl,
-        roomUrl,
-        gardenUrl,
-        challengeUrl,
-        spriteUrl,
-        restUrl,
-        wreathUrl,
-        townUrl,
-        trapsUrl,
-        rewardsUrl,
-      ].map(
-        (url) =>
-          new Promise<void>((resolve, reject) => {
-            const image = new Image();
-            image.onload = () => {
-              this.images.set(url, image);
-              resolve();
-            };
-            image.onerror = () =>
-              reject(new Error("场景图片加载失败，请刷新重试。"));
-            image.src = url;
-          }),
-      ),
-    ]);
+    await this.prepareScene("room");
     this.frameId = requestAnimationFrame(this.frame);
   }
   clearInput() {
@@ -450,6 +431,7 @@ export class World {
   }
   switchScene(scene: SceneId, arrival?: Point, facing: Facing = 0) {
     if (this.busy || !this.canEnter(scene)) return;
+    if (!this.images.has(art[scene])) void this.prepareScene(scene).catch(()=>this.onToast("地图图片未能载入，请再试一次。"));
     this.clearInput();
     this.restState = null;
     this.onRestChange(null);

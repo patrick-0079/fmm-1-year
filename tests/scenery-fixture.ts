@@ -3,14 +3,14 @@ import dewUrl from "../src/assets/morning-dew-flower.webp";
 import { drawRoomWindow } from "../src/window-sky";
 import { drawArcadeStall } from "../src/arcade-stall";
 import { arcadesIn } from "../src/town-data";
-import { sceneArtReady, drawKeepsake } from "../src/scene-art";
+import { prepareSceneArt, drawKeepsake } from "../src/scene-art";
 const load = (src: string) =>
   new Promise<HTMLImageElement>((resolve) => {
     const image = new Image();
     image.onload = () => resolve(image);
     image.src = src;
   });
-const [room, dew] = await Promise.all([load(roomUrl), load(dewUrl), sceneArtReady]);
+const [room, dew] = await Promise.all([load(roomUrl), load(dewUrl), prepareSceneArt("room"), prepareSceneArt("garden"), prepareSceneArt("town")]);
 for (const phase of ["dawn", "day", "dusk", "night"] as const) {
   const section = document.createElement("section");
   section.innerHTML = `<h2>${phase}</h2><canvas width="600" height="240" style="width:480px;height:192px;max-width:100%"></canvas>`;
