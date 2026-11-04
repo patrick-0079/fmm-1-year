@@ -228,3 +228,40 @@
     left: 8px;
   }
 }
+.fox-bubble {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  padding: 3px 9px;
+  border: 1px solid #aa8190;
+  border-radius: 10px 10px 10px 3px;
+  background: #fff9eef5;
+  color: #6d4657;
+  font: 600 clamp(12px,1.5vw,15px)/1.5 "Microsoft YaHei","PingFang SC",sans-serif;
+  white-space: nowrap;
+}
+.scene-wrap[data-light-scene="garden"] .activity-hud[data-mode="dialogue"] .activity-status { white-space: pre-line; }
+@media (max-width:540px) {
+  .scene-wrap[data-light-scene="garden"] .activity-hud[data-mode="dialogue"] {
+    position:absolute;
+    inset:auto 4px 4px;
+    margin:0;
+    min-height:0;
+    max-height:52%;
+    padding:5px 7px;
+    display:flex;
+    flex-direction:column;
+    overflow:auto;
+    overscroll-behavior:contain;
+  }
+  .scene-wrap[data-light-scene="garden"] .activity-hud[data-mode="dialogue"] .activity-heading {
+    display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center;
+    flex:1 1 auto; min-height:0; overflow:auto; gap:2px 5px;
+  }
+  .scene-wrap[data-light-scene="garden"] .dialogue-portrait { width:23px; height:26px; left:7px; top:4px; }
+  .scene-wrap[data-light-scene="garden"] .dialogue-name { padding-left:28px; }
+  .scene-wrap[data-light-scene="garden"] .activity-status { grid-column:1/-1; line-height:1.45; }
+  .scene-wrap[data-light-scene="garden"] .activity-actions { flex:none; margin-top:3px; gap:3px; }
+  .scene-wrap[data-light-scene="garden"] .activity-actions .map-action { padding:4px 7px; min-height:32px; }
+}

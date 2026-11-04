@@ -9,7 +9,7 @@ import { Inventory } from "./inventory";
 import { Arcade } from "./arcade";
 import { Town, TOWN_TALKED_KEY } from "./town";
 import { GardenCinema } from "./cinema";
-import { GardenLife, Companion } from "./garden-life";
+import { GardenLife } from "./garden-life";
 import { ARCADES } from "./town-data";
 import { reservedShortcut } from "./input";
 import type { GameId } from "./arcade-engines";
@@ -20,7 +20,8 @@ import { NightMeadow } from "./night-meadow";
 import { EchoRuins } from "./echo-ruins";
 import { AstrolabeQuest } from "./astrolabe-quest";
 import { RoomBass } from "./room-bass";
-import { bassStand } from "./room-props";
+import { bassStand, foxNook } from "./room-props";
+import { RoomFox } from "./room-fox";
 import { mountDebugPanel } from "./debug-panel";
 import { meadowOpen } from "./rainbow-flowers";
 import { JOURNEY_KEY, readJourney, type Journey } from "./journey";
@@ -216,8 +217,7 @@ export function mountGame(tasks: Task[]) {
     return score;
   });
   const town = new Town(world, activities, inventory, id => visit(ARCADES[id].scene, "arcade-"+id));
-  const gardenLife = new GardenLife(world, activities, inventory);
-  new Companion(world);
+  const gardenLife = new GardenLife(world, activities, inventory, () => progress, save);
   const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);
   const meadow = new NightMeadow(world, () => progress.creditStars, save);
   const starQuest = new AstrolabeQuest(world, activities, inventory, () => progress.astrolabe,
@@ -232,10 +232,12 @@ export function mountGame(tasks: Task[]) {
   });
   const cinema = new GardenCinema(world, toast);
   const bedNote = new BedNote(world);
+  const fox = new RoomFox(world, () => progress.roomFox, save);
   const previousTick = world.onTick;
   world.onTick = (dt, t) => {
     previousTick(dt, t);
     bedNote.refresh(progress.bedNoteUnlocked);
+    fox.tick(bedNote.isOpen, started && !transitioning && !resetInProgress);
     if (t - lastPositionCheck > 2) {
       lastPositionCheck = t;
       saveLocation();
@@ -260,19 +262,31 @@ export function mountGame(tasks: Task[]) {
     reader.close();
     dismissRevive();
     transitioning = true;
+    const from = world.scene;
+    const leavingHome = from === "room" && scene !== from;
+    if (leavingHome) world.standUp();
     const overlay = document.querySelector(".scene-transition")!;
     overlay.textContent = "正在前往"+scenes[scene].title+"…";
-    overlay.classList.add("active");
     world.paused = true;
     world.clearInput();
-    sfx("portal");
-    void Promise.all([new Promise<void>(done => setTimeout(done,180)),world.prepareScene(scene)]).then(() => {
+    const fade = async () => {
+      if (leavingHome) await fox.farewell();
+      if (!transitioning || world.scene !== from) return;
+      overlay.classList.add("active");
+      sfx("portal");
+      await new Promise<void>(done => setTimeout(done,180));
+    };
+    void Promise.allSettled([fade(),world.prepareScene(scene)]).then((results) => {
+      if (results.some(result => result.status === "rejected")) throw Error("Map crossing failed");
       const opposite = scenes[scene].spots.find(s => s.id === entrance);
       const arrival = opposite?.approach;
       const dx = opposite ? opposite.approach.x-opposite.x : 0, dy = opposite ? opposite.approach.y-opposite.y : 0;
       world.switchScene(scene, arrival, Math.abs(dx)>Math.abs(dy) ? (dx>0 ? 2 : 1) : (dy<0 ? 3 : 0));
+      if (leavingHome && world.scene === scene) fox.departed(true);
+      else if (scene === "room" && from !== scene && world.scene === scene) fox.arrive(false);
       revealMapIfOffscreen();
     }).catch(() => {
+      if (leavingHome) fox.clear();
       toast("地图暂未载入，稍后可以再试一次。");
     }).finally(() => {
       overlay.classList.remove("active");
@@ -319,6 +333,7 @@ export function mountGame(tasks: Task[]) {
     }
     const entry = !first && encouragements.length ? encouragements[encouragementIndex++ % encouragements.length] : undefined;
     bedNote.open(entry?.message);
+    fox.arrive(true);
     world.canvas.focus({ preventScroll: true });
     world.canvas.setAttribute(
       "aria-description",
@@ -365,6 +380,7 @@ export function mountGame(tasks: Task[]) {
     dismissRevive();
     document.querySelector<HTMLElement>(".nearby-prompt")!.hidden = true;
     if (flowerTrail.interact(id) || meadow.interact(id) || ruins.interact(id) || starQuest.interact(id)) return;
+    if (id === foxNook.id) { activities.close(); fox.pet(); return; }
     if (id.startsWith("arcade-")) {
       const game = id.slice(7) as GameId;
       if (ARCADES[game]?.scene === world.scene) {
@@ -443,6 +459,10 @@ export function mountGame(tasks: Task[]) {
     saveLocation();
     document.querySelector(".intro-screen")!.classList.add("dismissed");
     world.paused = false;
+    if (world.scene === "room" && progress.roomFox.waitingForNote) {
+      world.lieDown();
+      bedNote.open();
+    }
     audio();
     try {
       unlockAudio();
@@ -658,6 +678,7 @@ export function mountGame(tasks: Task[]) {
     reader.close();
     dismissRevive();
     meadow.leave();
+    fox.clear();
     if (freshStart) {
       inventory.setFitting(false);
       // Nature.reset has already started a fresh day; keep that new clock across reloads.
@@ -691,6 +712,7 @@ export function mountGame(tasks: Task[]) {
     closePanels(); cinema.close(); arcade.close(); activities.close(); reader.close(); dismissRevive();
     const spot=scenes[scene].spots.find(s=>s.id===id);
     const arrival=mode==="trap" ? scenes.challenge.hazards[0] : spot?.approach;
+    if (world.scene === "room" && scene !== "room") fox.departed(false);
     world.switchScene(scene,arrival); world.canvas.focus({preventScroll:true});
     if(mode==="open" && spot) world.onInteract(spot.id);
     revealMapIfOffscreen(); return true;

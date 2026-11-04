@@ -6,3 +6,9 @@ export const bassStand = {
     radius:35,markerOffset:51,selfMarked:true,
     hitAreas:[{x:391,y:56,w:25,h:63}]},
 };
+
+export const foxNook = {
+  id:"room-fox", title:"摸摸小狐狸", x:406, y:239, approach:{x:378,y:244},
+  radius:32, selfMarked:true, markerOffset:18, hitAreas:[{x:389,y:211,w:34,h:30}],
+};
+export const foxDoor = {x:325,y:349};

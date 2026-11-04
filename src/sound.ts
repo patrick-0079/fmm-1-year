@@ -1,5 +1,6 @@
 // Original, locally synthesized music and effects. No downloads or audio service.
 import type { SceneId } from "./maps";
+import type { FoxCall } from "./fox-memory";
 import { createLullaby, eighthLength, lullabyPulses } from "./lullaby";
 let context: AudioContext | undefined;
 let master: GainNode | undefined;
@@ -105,6 +106,31 @@ const echoNotes: Record<string, number[]> = {
   "echo-leaf": [64], "echo-bell": [67], "echo-star": [71],
   "echo-broadcast": [64,67,71,74,71,67,64],
 };
+// A small voiced glide with a rounded vowel, on the same effects bus as footsteps.
+const foxPhrases: Record<FoxCall, number[][]> = {
+  welcome: [[0,.20,490,740,570],[.19,.26,560,655,405]],
+  farewell: [[0,.28,450,535,335],[.40,.16,410,475,365],[.56,.23,425,495,305]],
+  content: [[0,.30,420,560,435],[.30,.25,445,590,365]],
+  cross: [[0,.16,590,810,490],[.22,.18,565,735,455]],
+};
+export function foxCry(call: FoxCall) {
+  if (!context || !effects || !enabled || !volume || document.hidden || context.state !== "running") return;
+  for (const [delay, duration, start, peak, end] of foxPhrases[call]) {
+    const at = context.currentTime + delay, voice = context.createOscillator();
+    const throat = context.createBiquadFilter(), envelope = context.createGain();
+    voice.type = "triangle";
+    voice.frequency.setValueAtTime(start, at);
+    voice.frequency.exponentialRampToValueAtTime(peak, at + duration * .36);
+    voice.frequency.exponentialRampToValueAtTime(end, at + duration);
+    throat.type = "lowpass"; throat.frequency.value = 1450; throat.Q.value = .8;
+    envelope.gain.setValueAtTime(.0001, at);
+    envelope.gain.exponentialRampToValueAtTime(.13, at + .035);
+    envelope.gain.exponentialRampToValueAtTime(.0001, at + duration);
+    voice.connect(throat); throat.connect(envelope); envelope.connect(effects);
+    voice.start(at); voice.stop(at + duration + .01);
+    voice.onended = () => { voice.disconnect(); throat.disconnect(); envelope.disconnect(); };
+  }
+}
 export function sfx(name: string) {
   if (!enabled || !context || !effects || document.hidden) return;
   if (Object.hasOwn(echoNotes, name)) {

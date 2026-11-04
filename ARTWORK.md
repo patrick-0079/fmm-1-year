@@ -1,5 +1,21 @@
 # 像素美术记录
 
+## 小屋狐狸与晴糖的野餐动作
+
+两张透明原画均用内置 imagegen 生成。狐狸参考 `ref/1.png` 和现有 `src/assets/nemu-sprites.webp`。晴糖参考原来镇民图集第一排第四格的人物，谈话头像继续使用原图。原画为 `src/assets/fufu-room-fox.png` 与 `src/assets/qingtang-picnic.png`，同名 WebP 是游戏使用的图集。`node scripts/build-home-garden-art.mjs` 按格裁切透明边缘，保留姿势间比例，将脚底对齐到同一条基线。
+
+狐狸生成提示词：
+
+```text
+Production transparent pixel-art sprite atlas for the Fufu anniversary RPG. Use the two reference images for the character identity and pixel palette. Create an original TINY FOUR-LEGGED ANIMAL FOX with fluffy pink fur, a cream chest and large cream tail tip, rolled pink cowlick, tiny pink heart clip by the viewer-right ear, when facing us her viewer-left eye is green and viewer-right eye rosy pink. Cozy hand-pixelled top-down 3/4 game sprite matching reference two, crisp plum outline, readable at 24 logical pixels tall. Exactly SIX isolated poses of the SAME fox arranged in 3 equal columns by 2 equal rows, each centered in its own cell with large EMPTY transparent margins; all whole bodies, consistent head size and feet baseline. Top row left to right: (1) seated front-facing with alert OPEN eyes and tall triangular ears, tail curled around paws; (2) same happy front-facing with head lifted, tail raised toward side, open eyes, a little friendly greeting; (3) contented eyes CLOSED and head leaning/nuzzling toward a hand (do not draw a hand). Bottom row: (4) sulking 3/4 pose head turned away, ears flattened, tail hugging chest, eyes narrowed; (5) side view running LEFT in a stretched four-legged stride, raised tail; (6) side view running LEFT in a gathered stride, paws tucked forward. NOT a human girl, not a humanoid, no clothing. Alpha-transparent backdrop, no cast shadows, no captions, lettering, grids, particles or props. All sprites separate, no touching. Pixel highlights and visible tufts, a single plush tail per fox.
+```
+
+晴糖生成提示词：
+
+```text
+Transparent four-cell 2×2 sprite sheet for the existing top-down Fufu anniversary RPG. Reference: use ONLY the FOURTH person in the TOP ROW of the reference sheet, the girl with long lilac hair in a high ponytail, pale flower clip, lavender short overalls and ivory blouse, purple eyes. She is Qing Tang. Match her exact chibi proportions, outfit, face and detailed pixel ink style. Four equal cells, fully isolated silhouettes with wide transparent margins. Top left: this same girl standing with her chin dropped, bashful, hands close to her heart. Top right: same girl turned and leaning to viewer's left reaching down with both hands toward an unseen basket outside this cell, empty hands. Bottom left: same girl looking up, modest happy smile with a catchlight in her eyes, both palms cupped and extended together at chest height toward the viewer, EMPTY hands ready to hold a small cake plate that the game adds. Bottom right: just a small oval wicker picnic basket with arch handle, a cream-and-lilac gingham napkin peeking over the edge; no person, no food. All characters whole body including shoes with shared size baseline, exactly one drawing per cell. No background, text, ground shadows or dividers. Render on real alpha transparency. Crisp pixel-art shape and gentle warm outlines readable at 42 logical pixels tall.
+```
+
 工具：内置 `image_gen`；素材已保存到项目内，不依赖生成服务运行。
 
 ## 当前采用的多彩版本

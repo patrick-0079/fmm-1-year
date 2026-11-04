@@ -7,7 +7,7 @@ import { townGates, gatePosts, gateSpot } from "./gate-layout.ts";
 import { rainbowFlowers, rainbowSpot, meadowGate, meadowGatePosts } from "./rainbow-flowers.ts";
 import { meadowScene } from "./meadow-map.ts";
 import { ruinsScene } from "./ruins-map.ts";
-import { bassStand } from "./room-props.ts";
+import { bassStand, foxNook } from "./room-props.ts";
 export type SceneId = "room" | "garden" | "challenge" | "town" | "meadow" | "ruins";
 export interface Hotspot {
   id: string;
@@ -135,6 +135,7 @@ export const scenes: Record<SceneId, Scene> = {
     hazards: [],
     spots: [
       bassStand.spot,
+      foxNook,
       {
         id: "bed",
         title: "在床上躺一会",
@@ -477,7 +478,7 @@ for (const guest of gardenGuests) {
     title: `${guest.name} · ${guest.role}`,
     x: guest.x,
     y: guest.y,
-    approach: { x: guest.x, y: guest.y + 26 },
+    approach: guest.approach,
     radius: 50,
     markerOffset: 54,
     color: "#cfa970",

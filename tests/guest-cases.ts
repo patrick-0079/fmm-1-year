@@ -1,0 +1,50 @@
+import type { World } from "../src/world";
+import { SAVE_KEY, readProgress } from "../src/core";
+import { INVENTORY_KEY, readInventory } from "../src/items";
+
+export function verifyGuests(world:World) {
+  const buttons=()=>[...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")];
+  const assert=(ok:unknown,message:string)=>{if(!ok)throw Error(message);};
+  const line=(text:string)=>assert(document.querySelector(".activity-status")!.textContent===text,"对白有误："+text);
+  const options=(...titles:string[])=>assert(JSON.stringify(buttons().map(b=>b.textContent))===JSON.stringify(titles),"选项有误："+titles.join(" / "));
+  const choose=(title:string)=>{const b=buttons().find(b=>b.textContent===title);assert(b,"缺少选项："+title);b!.click();};
+  const close=()=>document.querySelector<HTMLButtonElement>(".activity-close")!.click();
+  const bag=()=>readInventory(localStorage.getItem(INVENTORY_KEY));
+  const talk=(id:string)=>{
+    const s=world.config.spots.find(s=>s.id==="garden-guest-"+id)!;
+    world.switchScene("garden",s.approach);world.interact();
+  };
+  world.switchScene("garden");
+  const pet="轻轻抚摸奶油猫", invite="带上奶油猫", decline="不带上奶油猫";
+  const care="那好吧，我会帮你照顾好它，下次再来找它玩吧。";
+  talk("balloon-friend");line("快看呀，那里有只可爱的奶油猫！它的肚皮看起来软乎乎的。你想摸摸它吗？");
+  options(pet);choose(pet);line("它看起来很喜欢你！听说奶油猫可以为你带来好运，你要带它一起旅行吗？");
+  options(invite,decline);choose(decline);line(care);assert(!bag().owned.includes("petCat"),"拒绝也领取了猫");close();
+  talk("balloon-friend");choose(pet);choose(invite);line("（获得奶油猫桃桃）");
+  choose("继续");line("（它很喜欢你，开心地围着你蹭蹭）");close();
+  assert(bag().equipped.pet==="petCat" && world.equipment.pet==="petCat","桃桃没有真正同行");
+  talk("balloon-friend");line("桃桃认出你啦！你想再摸摸它吗？");options(pet);choose(pet);
+  line("桃桃看起来玩得很开心。要继续一起走，还是让它在我这里歇一会儿？");
+  choose("继续一起走");line("去吧，桃桃已经跟好啦。");close();
+  talk("balloon-friend");choose(pet);choose("让桃桃休息");line(care);close();
+  talk("balloon-friend");choose(pet);line("它还记得你呢。今天也要带它一起散步吗？");
+  choose(invite);line("（它很喜欢你，开心地围着你蹭蹭）");close();
+  assert(bag().owned.filter(id=>id==="petCat").length===1,"重复领取桃桃");
+  const intro="呼，可算是弄完啦～希望芙芙会喜欢。诶？！你就是芙眠眠吗？";
+  talk("decorator");line(intro);close();
+  assert(!readProgress(localStorage.getItem(SAVE_KEY)).decoratorMet,"收起即完成了初见");
+  talk("decorator");options("对，我就是哦","我不是～");choose("对，我就是哦");
+  line("哇，见到本人啦！希望你会喜欢这里，这些是我费了好大劲才布置好的。芙妮宝说要为你准备一个盛大的庆典！");close();
+  talk("decorator");line("你又来啦！这是棉棉，它也想看看我挂好的彩旗。");
+  choose("再聊聊庆典");line(intro);choose("我不是～");line("那你见到她记得告诉她，芙妮宝准备的庆典已经可以开始啦！");close();
+  talk("decorator");choose("先让棉棉陪你");line("好呀，那我们在这里等你。逛累了就回来坐坐吧。");close();
+  talk("decorator");choose("邀请棉棉同行");line("那就拜托你啦。棉棉，跟好芙芙哦！\n（获得垂耳兔棉棉）");close();
+  assert(bag().equipped.pet==="petBunny" && bag().owned.includes("petCat"),"棉棉覆盖了桃桃的收藏");
+  talk("decorator");options("让棉棉歇一会儿","再聊聊庆典");choose("让棉棉歇一会儿");line("回来啦，棉棉。就在我旁边歇一会儿吧。");close();
+  talk("picnic-friend");line("你…你好，芙芙大人…");options("没关系，不用紧张");choose("没关系，不用紧张");
+  line("谢…谢谢你。（从一旁的篮子中拿出一个蛋糕）请务必…收下这个。吃甜食会让心情变好！");
+  const share="如果可以的话，请和我们一起享用这个蛋糕";options(share);choose(share);
+  line("真…真的吗？（眼睛闪过不易察觉的欣喜）我…一定会去的…谢谢你！");options();close();
+  talk("picnic-friend");line("你…你好，芙芙大人…");close();
+  assert(!world.suspended && !world.paused,"收起后不能移动");
+}

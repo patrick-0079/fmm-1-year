@@ -1,13 +1,12 @@
 export const gardenGuests = [
   {
     id: "decorator",
-    name: "莓莓",
+    name: "霉霉",
     role: "庆典布置员",
     x: 300,
     y: 410,
+    approach: {x:328,y:416},
     sprite: 5,
-    gift: "petBunny" as const,
-    line: "彩旗、蛋糕和小花都准备好啦！棉棉也想陪你一起逛逛。祝芙芙直播一周年快乐，每一天都被温柔包围。",
   },
   {
     id: "balloon-friend",
@@ -15,9 +14,8 @@ export const gardenGuests = [
     role: "气球客",
     x: 265,
     y: 310,
+    approach: {x:304,y:318},
     sprite: 9,
-    gift: "petCat" as const,
-    line: "我带来一只软乎乎的奶油猫。点开背包让桃桃同行，慢慢走，也是一种很好的庆祝方式。",
   },
   {
     id: "picnic-friend",
@@ -25,8 +23,9 @@ export const gardenGuests = [
     role: "野餐帮手",
     x: 620,
     y: 385,
+    approach: {x:652,y:391},
     sprite: 3,
-    gift: null,
-    line: "想把这一年的喜欢，分成六块甜甜的蛋糕。回小屋可以沿虚线切开，再和芙芙一起尝一口。",
   },
-];
+] as const;
+export type GardenGuest = typeof gardenGuests[number];
+export const peachSpot = {x:gardenGuests[1].x+33,y:gardenGuests[1].y-5};

@@ -5,7 +5,6 @@ import { Arcade } from "../src/arcade";
 import type { MinesGame } from "../src/arcade-bonus";
 import { whenWardrobeReady } from "../src/item-art";
 import type { Engine, BlocksGame } from "../src/arcade-engines";
-import { Companion } from "../src/garden-life";
 import { ARCADES } from "../src/town-data";
 import type { GameId } from "../src/arcade-engines";
 import { ITEMS, INVENTORY_KEY, type ItemId } from "../src/items";
@@ -21,8 +20,8 @@ const inventory = new Inventory(world, () => {}, {
 const activities = new Activities(world, { complete() {}, toast() {} });
 inventory.onEquip = () => activities.finishEquipmentChoice();
 const arcade = new Arcade(world, activities, inventory);
-new Companion(world);
-const guests = new GardenLife(world, activities, inventory);
+const gardenMemory = {decoratorMet:false,rabbitIntroduced:false};
+const guests = new GardenLife(world, activities, inventory, () => gardenMemory, () => {});
 world.scene = "town";
 const engine = () => (arcade as unknown as { engine: Engine }).engine;
 const status = () => document.querySelector(".arcade-status")?.textContent ?? "";
@@ -81,6 +80,24 @@ await check("打开背包暂停小游戏与方向键；Esc 只收起背包，之
   assert(arcade.active && !world.suspended, "Esc 关闭了底下的游戏或没有恢复");
   for (let i = 0; i < 80; i++) world.onTick(0.1, i / 10);
   assert(engine().status === "lost", "收起背包后原局没有继续运行");
+});
+
+await check("试穿的猫仍需正式领取，邀请会保存真实伙伴位，拒绝不会覆盖原有兔子", () => {
+  inventory.reset(); inventory.setFitting(true);
+  inventory.setCompanion("petBunny",true);
+  inventory.toggle("petCat");
+  assert(world.equipment.pet==="petCat" && !inventory.has("petCat"),"试穿不应颁发桃桃");
+  world.switchScene("garden");
+  const select=(title:string)=>Array.from(document.querySelectorAll<HTMLButtonElement>(".activity-actions button")).find(b=>b.textContent===title)!.click();
+  const talk=()=>guests.interact("garden-guest-balloon-friend");
+  talk();select("轻轻抚摸奶油猫");select("不带上奶油猫");activities.close();
+  assert(inventory.followingPet==="petBunny" && !inventory.has("petCat"),"拒绝覆盖了真实搭配");
+  talk();select("轻轻抚摸奶油猫");select("带上奶油猫");
+  const stored=JSON.parse(saves.get(INVENTORY_KEY)!);
+  assert(stored.equipped.pet==="petCat" && stored.owned.includes("petBunny"),"邀请没有进入真实存档");
+  inventory.setFitting(false);
+  assert(world.equipment.pet==="petCat","关闭试穿后没有继续同行");
+  activities.close();inventory.reset();
 });
 
 await check("整理背包与查看说明的暂停互不覆盖", () => {
@@ -256,12 +273,14 @@ await check("全部纪念品经背包按钮逐一穿脱后，下一帧可用方�
   } finally { world.stop(); }
 });
 
-await check("气球客邀请／送别桃桃后不再截获下一次互动，打开衣橱换装也会结束旧对话", () => {
+await check("气球客邀请／送别桃桃后可读完回应并收起，衣橱换装也会结束旧对话", () => {
   world.switchScene("garden"); world.paused = false;
   const id = "garden-guest-balloon-friend";
   for (const worn of [true, false]) {
     guests.interact(id);
-    document.querySelector<HTMLButtonElement>(".activity-actions button")!.click();
+    const choose=(title:string)=>Array.from(document.querySelectorAll<HTMLButtonElement>(".activity-actions button")).find(b=>b.textContent===title)!.click();
+    choose("轻轻抚摸奶油猫"); choose(worn ? "带上奶油猫" : "让桃桃休息");
+    document.querySelector<HTMLButtonElement>(".activity-close")!.click();
     assert(!activities.active && !world.suspended, "伙伴选择后旧对话仍截获右键和 E");
     assert((world.equipment.pet === "petCat") === worn, "伙伴选择未生效");
     assert(!world.onAction(true), "地图交互仍被旧菜单截获");

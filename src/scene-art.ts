@@ -5,14 +5,16 @@ import gateUrl from "./assets/country-wicket-v18.webp";
 import bassUrl from "./assets/white-bass-v18.webp";
 import relicsUrl from "./assets/astrolabe-relics.webp";
 import astrolabePropsUrl from "./assets/astrolabe-mechanisms.webp";
+import foxUrl from "./assets/fufu-room-fox.webp";
+import picnicUrl from "./assets/qingtang-picnic.webp";
 import type { SceneId } from "./maps";
 export { stallsUrl, keepsakesUrl, skiesUrl, relicsUrl };
 
-export const sceneArt = {stalls:new Image(), keepsakes:new Image(), skies:new Image(), gate:new Image(), bass:new Image(), relics:new Image(), astrolabeProps:new Image()};
+export const sceneArt = {stalls:new Image(), keepsakes:new Image(), skies:new Image(), gate:new Image(), bass:new Image(), relics:new Image(), astrolabeProps:new Image(), fox:new Image(), picnic:new Image()};
 type Prop = keyof typeof sceneArt;
-const urls: Record<Prop,string> = {stalls:stallsUrl, keepsakes:keepsakesUrl, skies:skiesUrl, gate:gateUrl, bass:bassUrl, relics:relicsUrl, astrolabeProps:astrolabePropsUrl};
+const urls: Record<Prop,string> = {stalls:stallsUrl, keepsakes:keepsakesUrl, skies:skiesUrl, gate:gateUrl, bass:bassUrl, relics:relicsUrl, astrolabeProps:astrolabePropsUrl, fox:foxUrl, picnic:picnicUrl};
 const propsByScene: Record<SceneId,Prop[]> = {
-  room:["skies","bass"], garden:["keepsakes","gate"], challenge:["keepsakes"],
+  room:["skies","bass","fox"], garden:["keepsakes","gate","picnic"], challenge:["keepsakes"],
   town:["stalls","gate"], meadow:[], ruins:["relics","astrolabeProps"],
 };
 const requests = new Map<Prop,Promise<void>>();

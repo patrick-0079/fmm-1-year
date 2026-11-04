@@ -32,6 +32,7 @@ export class Activities {
   private cakeImage = new Image();
   private cakeSliceImage = new Image();
   private mode = "";
+  private dialogueEnd?: () => void;
   private hud: HTMLElement;
   private status: HTMLElement;
   private controls: HTMLElement;
@@ -156,6 +157,9 @@ export class Activities {
     if (!this.world.restState && ["dialogue", "nature", "note"].includes(this.mode)) this.close();
   }
   close() {
+    const returnFocus = this.mode==="dialogue" && this.hud.contains(document.activeElement);
+    this.dialogueEnd?.();
+    this.dialogueEnd = undefined;
     this.world.actorHidden = false;
     if (this.cakeStage === 4) this.cakeStage = 2;
     this.mode = "";
@@ -170,6 +174,7 @@ export class Activities {
     if (!this.world.restState) this.world.setFocus(null);
     this.world.paused = false;
     this.world.clearInput();
+    if (returnFocus && !this.world.suspended) this.world.canvas.focus({preventScroll:true});
   }
   reset() {
     this.close();
@@ -428,8 +433,11 @@ export class Activities {
     text: string,
     options: { title: string; run: () => void }[],
     paint: (c: CanvasRenderingContext2D) => void,
+    onClose?: () => void,
   ) {
+    const keepFocus = this.hud.contains(document.activeElement);
     this.begin("dialogue", text);
+    this.dialogueEnd = onClose;
     this.speaker.textContent = speaker;
     this.speaker.hidden = false;
     this.portrait.hidden = false;
@@ -438,6 +446,9 @@ export class Activities {
     c.imageSmoothingEnabled = false;
     paint(c);
     for (const option of options) this.action(option.title, option.run);
+    this.hud.scrollTop = 0;
+    if (keepFocus) (this.controls.querySelector<HTMLButtonElement>("button") ??
+      this.hud.querySelector<HTMLButtonElement>(".activity-close"))?.focus({preventScroll:true});
   }
   private pointer(type: string, point: Point) {
     if (this.mode === "cake") {

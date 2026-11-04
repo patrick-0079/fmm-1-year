@@ -65,6 +65,17 @@ export class Inventory {
     // Collection events still check the real save while the fitting room is open.
     return this.earned.owned.includes(id);
   }
+  get followingPet() { return this.earned.equipped.pet; }
+  setCompanion(id: "petCat" | "petBunny", follow: boolean) {
+    const first = follow && grantItem(this.earned,id);
+    for (const outfit of [this.earned, this.fittingRoom]) {
+      if (outfit && (follow || outfit.equipped.pet === id)) outfit.equipped.pet = follow ? id : null;
+    }
+    this.save();
+    this.sync();
+    this.render();
+    return first;
+  }
   private startFitting() {
     this.fittingRoom = { owned: Object.keys(ITEMS) as ItemId[], equipped: { ...this.earned.equipped } };
   }

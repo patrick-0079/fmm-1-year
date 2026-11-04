@@ -130,14 +130,14 @@ export const ITEMS: Record<
     name: "棉棉 · 垂耳兔",
     slot: "pet",
     description: "会跟着你散步的小兔，休息时也会乖乖停下。",
-    source: "向庭院布置员领取陪伴礼物",
+    source: "再找周年花园布置员霉霉聊聊",
     icon: 9,
   },
   petCat: {
     name: "桃桃 · 奶油猫",
     slot: "pet",
     description: "带来呼噜声和一点小小的好运。",
-    source: "和庭院气球客聊聊",
+    source: "在周年花园和星星一起摸摸奶油猫",
     icon: 10,
   },
   rabbitSatchel: {

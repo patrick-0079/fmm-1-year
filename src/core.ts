@@ -1,6 +1,7 @@
 import { rainbowIds } from "./rainbow-flowers.ts";
 import { readEchoMemory, type EchoMemory } from "./echoes.ts";
 import { readAstrolabe, type AstrolabeState } from "./astrolabe.ts";
+import { readFoxMemory, type FoxMemory } from "./fox-memory.ts";
 import { producers } from "./content.ts";
 import { ARCADES } from "./town-data.ts";
 import type { GameId } from "./arcade-engines.ts";
@@ -47,6 +48,9 @@ export interface Progress {
   volume: number;
   bedNoteUnlocked: boolean;
   bassSongPlayed: boolean;
+  roomFox: FoxMemory;
+  decoratorMet: boolean;
+  rabbitIntroduced: boolean;
   echoes: EchoMemory;
   astrolabe: AstrolabeState;
   rainbowFlowers: string[];
@@ -83,6 +87,9 @@ export function readProgress(raw: string | null): Progress {
     volume: 0.45,
     bedNoteUnlocked: false,
     bassSongPlayed: false,
+    roomFox: readFoxMemory(),
+    decoratorMet: false,
+    rabbitIntroduced: false,
     echoes: readEchoMemory(),
     astrolabe: readAstrolabe(),
     rainbowFlowers: [],
@@ -112,6 +119,9 @@ export function readProgress(raw: string | null): Progress {
       bassSound: p.bassSound !== false,
       bedNoteUnlocked: p.bedNoteUnlocked === true,
       bassSongPlayed: p.bassSongPlayed === true,
+      roomFox: readFoxMemory(p.roomFox),
+      decoratorMet: p.decoratorMet === true,
+      rabbitIntroduced: p.decoratorMet === true && p.rabbitIntroduced === true,
       echoes: readEchoMemory(p.echoes),
       astrolabe: readAstrolabe(p.astrolabe),
       rainbowFlowers: valid(Array.isArray(p.rainbowFlowers)
