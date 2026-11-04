@@ -100,7 +100,6 @@ test("town planted islands, the reported workshop roof and celebration furniture
     [680, 600],
     [550, 880],
     [1360, 625],
-    [794, 474],
   ])
     assert.equal(
       canStand({ x, y }, s.walls, s.bounds, s.floor, s.surfaces),
@@ -114,6 +113,7 @@ test("town planted islands, the reported workshop roof and celebration furniture
     [740, 550],
     [866, 811],
     [1330, 540],
+    [794, 474],
   ])
     assert.equal(
       canStand({ x, y }, s.walls, s.bounds, s.floor, s.surfaces),
@@ -136,6 +136,7 @@ test("tree occlusion silhouettes are separate from the roots, and anniversary pr
   }
   assert.deepEqual(
     new Set(festivalProps.map((p) => p.kind)),
-    new Set(["cake", "balloons", "garland"]),
+    new Set(["balloons", "garland"]),
   );
+  assert.ok(canTravelBetween({x: 756, y: 474}, {x: 828, y: 474}, scenes.town), "the former cake stand must be clear across the plaza");
 });

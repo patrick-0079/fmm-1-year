@@ -23,7 +23,6 @@ import {
 } from "../src/items.ts";
 import { scenes } from "../src/maps.ts";
 import { canStand, findPath } from "../src/core.ts";
-import { gardenCritters } from "../src/garden-guests.ts";
 
 test("a full snake board begins another lap without an undefined candy", () => {
   const game = new SnakeGame();
@@ -42,12 +41,6 @@ test("a full snake board begins another lap without an undefined candy", () => {
   assert.deepEqual(game.food, { x: 13, y: 7 });
   game.step();
   assert.equal(game.status, "playing");
-});
-
-test("garden animal home positions are on clear ground", () => {
-  const s = scenes.garden;
-  for (const p of gardenCritters)
-    assert.ok(canStand(p, s.walls, s.bounds, s.floor, s.surfaces));
 });
 
 test("snake and blocks resume the same run after the first reward milestone", () => {

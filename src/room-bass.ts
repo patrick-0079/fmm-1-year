@@ -137,10 +137,11 @@ export class RoomBass {
     if (this.active) return;
     const world = this.world;
     world.clearInput();
-    world.setFocus({ x: 387, y: 100 }, 2.2);
+    world.canvas.removeAttribute("data-pointable");
     world.paused = true;
     world.canvas.parentElement!.classList.add("bass-playing");
     this.panel.hidden = false;
+    this.panel.scrollTop = 0;
     this.voice.prepare();
     this.refreshSound();
     duckMusic(true, "bass");
@@ -155,7 +156,6 @@ export class RoomBass {
     this.age = 2;
     this.panel.hidden = true;
     this.world.canvas.parentElement!.classList.remove("bass-playing");
-    this.world.setFocus(null);
     this.world.paused = false;
     this.world.clearInput();
     duckMusic(false, "bass");

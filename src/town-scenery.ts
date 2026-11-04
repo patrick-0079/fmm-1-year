@@ -170,7 +170,6 @@ export const townCanopies = [
 ];
 
 export const festivalProps = [
-  { kind: "cake", x: 794, y: 468 },
   { kind: "balloons", x: 628, y: 415 },
   { kind: "balloons", x: 897, y: 490 },
   { kind: "balloons", x: 1204, y: 449 },
@@ -247,28 +246,12 @@ export function drawFestivalProp(
   c: CanvasRenderingContext2D,
   p: (typeof festivalProps)[number],
   time: number,
-  cake?: HTMLImageElement,
   balloonArt?: BalloonArt,
 ) {
   const { x, y } = p;
   c.save();
   c.translate(x, y);
-  if (p.kind === "cake") {
-    c.fillStyle = "#927358";
-    c.fillRect(-20, -2, 40, 16);
-    c.fillStyle = "#bd976b";
-    c.fillRect(-24, -5, 48, 9);
-    c.fillStyle = "#f7e5c4";
-    c.fillRect(-22, -7, 44, 5);
-    if (cake?.complete && cake.naturalWidth)
-      c.drawImage(cake, -25, -53, 50, 47);
-    c.fillStyle = "#775876";
-    c.fillRect(-18, 5, 36, 10);
-    c.fillStyle = "#fff0c7";
-    c.font = '6px "Microsoft YaHei", "PingFang SC", sans-serif';
-    c.textAlign = "center";
-    c.fillText("FUFU · 1 YEAR", 0, 12);
-  } else if (p.kind === "balloons") {
+  if (p.kind === "balloons") {
     const sway = Math.sin(time * 1.5 + x) * 1.2;
     balloon(c, -10 + sway, -36, "#db9cc3", balloonArt);
     balloon(c, 10 + sway, -41, "#a7cedd", balloonArt);

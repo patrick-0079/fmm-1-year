@@ -232,10 +232,21 @@ q("#check-bass").addEventListener("click",()=>void run(async()=>{
   q(".reset-button").click(); q(".reset-confirm").click();
   world.switchScene("room",bassStand.spot.approach);
   const pos=world.project({x:bassStand.x,y:bassStand.y-28}), rect=world.canvas.getBoundingClientRect();
+  const sceneRect=world.canvas.parentElement!.getBoundingClientRect();
+  const sameRoomFrame=()=>{
+    const canvas=world.canvas.getBoundingClientRect(), scene=world.canvas.parentElement!.getBoundingClientRect();
+    const note=world.project({x:bassStand.x,y:bassStand.y-28});
+    expect(Math.abs(canvas.width-rect.width)<1 && Math.abs(canvas.height-rect.height)<1 &&
+      Math.abs(scene.width-sceneRect.width)<1 && Math.abs(scene.height-sceneRect.height)<1 &&
+      Math.abs(canvas.width-canvas.height*1.5)<1 && note.x===pos.x && note.y===pos.y,"演奏改变了画面比例、尺寸或小屋镜头");
+  };
   const pointer={bubbles:true,pointerType:"mouse",clientX:rect.left+pos.x*rect.width/600,clientY:rect.top+pos.y*rect.height/400};
   world.canvas.dispatchEvent(new PointerEvent("pointermove",pointer));
   expect(world.canvas.hasAttribute("data-pointable"),"琴身没有显示互动指针");
   world.canvas.dispatchEvent(new PointerEvent("pointerdown",{...pointer,button:0})); await wait(()=>!q(".bass-hud").hidden);
+  sameRoomFrame();
+  const score=q(".bass-hud").getBoundingClientRect();
+  expect(score.left>=rect.left && score.right<=rect.right+1 && score.top>=rect.top && score.bottom<=rect.bottom+1,"琴谱超出小屋画面");
   q<HTMLButtonElement>('[data-string="3"]').click(); expect(q(".bass-count").textContent==="已弹 0 / 16","弹错不该推进");
   q(".bass-listen").click(); expect(q(".bass-hud").dataset.mode==="demo","示范没有开始");
   q(".bag-toggle").click(); expect(!q(".inventory-panel").hidden && world.suspended && q(".bass-hud").dataset.mode==="practice","背包未暂停示范");
@@ -246,6 +257,7 @@ q("#check-bass").addEventListener("click",()=>void run(async()=>{
   for(const n of bassScore) {const k=String(n.string+1); key(k);key(k,false);}
   expect(q(".bass-count").textContent==="已弹 16 / 16","纯键盘未能完成");
   key("Escape");key("Escape",false); expect(q(".bass-hud").hidden && !world.paused,"收谱后仍然锁住地图");
+  sameRoomFrame();
   log("点琴身、错弦、示范、打开背包再返回、全鼠标与全键盘各弹完 16 音、赠曲本机记录均正常");
   const dbg=(cmd:string)=>q<HTMLButtonElement>('[data-debug="'+cmd+'"]');
   q(".debug-trigger").click(); dbg("wardrobe").click(); expect(dbg("wardrobe").getAttribute("aria-pressed")==="false","试穿开关没有切换");
@@ -268,9 +280,12 @@ q("#check-bass").addEventListener("click",()=>void run(async()=>{
   world.interact();world.onAction(true);world.onAction(false);
   await new Promise(r=>setTimeout(r,450));
   expect(Math.abs(scrollY-sy)<3,"打开或开始小游戏后页面被滚动："+sy+" → "+scrollY);
-  const sy2=scrollY;q(".bag-toggle").click();const b=q(".inventory-panel").getBoundingClientRect();
-  expect(!q(".inventory-panel").hidden && b.top>=0 && b.bottom<=innerHeight+1 && Math.abs(scrollY-sy2)<3,"背包没有在当前视口打开");
+  const sy2=scrollY;q(".bag-toggle").click();const b=q(".inventory-panel").getBoundingClientRect(), map=board.getBoundingClientRect();
+  const journal=q(".journal").getBoundingClientRect();
+  expect(!q(".inventory-panel").hidden && b.top>=map.bottom-1 && Math.abs(b.width-map.width)<1 &&
+    (b.right<=journal.left+1 || b.bottom<=journal.top+1) && q(".bag-close").getBoundingClientRect().bottom<=innerHeight+1,"背包没有在地图下方独立展开");
   key("Escape"); expect(!q(".arcade-hud").hidden && !world.suspended,"背包关闭后小游戏未恢复");
+  expect(Math.abs(scrollY-sy2)<3,"收起背包后没有回到打开前的视口");
   key("Escape");
   log("调试试穿、花门预览与真实存档相互独立；小镇四时段、跳台开局不滚动、小游戏内打开背包均通过");
 }));

@@ -78,15 +78,6 @@ export const townScene: Scene = {
         w: 14,
         h: 10,
       })),
-    ...festivalProps
-      .filter((p) => p.kind === "cake")
-      .map((p) => ({
-        label: "一周年庆典蛋糕台",
-        x: p.x - 23,
-        y: p.y - 4,
-        w: 46,
-        h: 19,
-      })),
     {
       label: "书屋池塘",
       points: [

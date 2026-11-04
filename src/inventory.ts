@@ -27,6 +27,7 @@ export class Inventory {
   private wreath = new Image();
   private rewards = new Image();
   private filter: EquipSlot | "all" = "all";
+  private returnScrollY: number | null = null;
   constructor(
     private world: World,
     private toast: (text: string) => void,
@@ -73,16 +74,24 @@ export class Inventory {
     this.sync(); this.render();
   }
   open() {
+    if (!this.root.hidden) return;
     this.root.hidden = false;
     this.trigger.setAttribute("aria-label","收起纪念背包，快捷键 B");
     this.trigger.setAttribute("aria-expanded", "true");
-    // Exploration is live beside the wardrobe. An ongoing activity keeps
-    // its own turn or timer on hold until the player returns to it.
+    // Keep free exploration live while pausing time-sensitive activities.
     const scene = this.world.canvas.parentElement!;
-    this.world.suspend("inventory", scene.matches(".inspecting, .arcade-active, .cinema-active, .reading-letter"));
+    this.world.suspend("inventory", scene.matches(".inspecting, .bass-playing, .arcade-active, .cinema-active, .reading-letter"));
     this.render();
-    this.root.scrollTop=0;
     this.root.querySelector<HTMLButtonElement>(".bag-close")!.focus({ preventScroll: true });
+    // Reveal the first row only when it is off screen. Leave some of the map
+    // in view and return to the player's original viewport when they close it.
+    const top = this.root.getBoundingClientRect().top;
+    const firstRow = this.root.querySelector(".inventory-item")!.getBoundingClientRect();
+    const offset = top < 0 ? top : Math.max(0, Math.min(top, firstRow.bottom + 8 - innerHeight));
+    if (Math.abs(offset) > 1) {
+      this.returnScrollY = window.scrollY;
+      window.scrollBy({ top: offset, behavior: "instant" });
+    }
   }
   grant(id: ItemId) {
     if (!grantItem(this.earned, id)) return false;
@@ -137,6 +146,8 @@ export class Inventory {
   }
   close(restoreFocus = true) {
     const wasOpen = !this.root.hidden;
+    const returnScrollY = this.returnScrollY;
+    this.returnScrollY = null;
     this.root.hidden = true;
     this.trigger.setAttribute("aria-expanded", "false");
     this.trigger.setAttribute("aria-label","打开纪念背包，快捷键 B");
@@ -149,6 +160,7 @@ export class Inventory {
       return;
     }
     this.world.canvas.focus({ preventScroll: true });
+    if (returnScrollY !== null) window.scrollTo({ top: returnScrollY, behavior: "instant" });
   }
   private render() {
     const worn = (slot: EquipSlot) =>
@@ -166,7 +178,7 @@ export class Inventory {
       })
       .join(
         "",
-      )}</div><p class="bag-footnote">背包展开时可继续走动、点地图。佩戴或脱下后自动收起，B / Esc 也可收起。</p>`;
+      )}</div><p class="bag-footnote">背包在地图下方展开。探索时仍可走动；选好饰品后自动收起，也可按 B / Esc 返回。</p>`;
     this.root
       .querySelector(".bag-close")!
       .addEventListener("click", () => this.close());

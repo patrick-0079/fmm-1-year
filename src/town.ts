@@ -6,7 +6,6 @@ import { ARCADES, TOWN_NPCS, TOWN_FRAMES } from "./town-data";
 import { drawArcadeStall } from "./arcade-stall";
 import type { GameId } from "./arcade-engines";
 import npcUrl from "./assets/town-npcs.webp";
-import cakeUrl from "./assets/anniversary-cake.webp";
 import { drawPartyProp } from "./party-art";
 import {
   townCanopies,
@@ -17,7 +16,6 @@ import {
 export const TOWN_TALKED_KEY = "fufu-town-talked-v1";
 export class Town {
   private sprites = new Image();
-  private cake = new Image();
   private visited = new Set<string>();
   private time = 0;
   constructor(
@@ -27,7 +25,6 @@ export class Town {
     private arcade: Arcade,
   ) {
     this.sprites.src = npcUrl;
-    this.cake.src = cakeUrl;
     try {
       const list = JSON.parse(
         localStorage.getItem(TOWN_TALKED_KEY) || "[]",
@@ -160,9 +157,9 @@ export class Town {
         },
       })),
       ...festivalProps.map((p) => ({
-        y: p.y + (p.kind === "cake" ? 15 : 3),
+        y: p.y + 3,
         draw: (c: CanvasRenderingContext2D) =>
-          drawFestivalProp(c, p, this.time, this.cake, (x, y, color) =>
+          drawFestivalProp(c, p, this.time, (x, y, color) =>
             drawPartyProp(
               c,
               color === "#edca8b"

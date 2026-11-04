@@ -1,42 +1,28 @@
-/* The score lives on the music stand inside the room, beside the actual player. */
+/* The score sits inside the existing scene; the canvas keeps its exploration size. */
 .scene-wrap.bass-playing {
-  display: grid;
-  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1fr);
-  align-items: stretch;
-  aspect-ratio: auto;
-  background: #e6cdac;
-}
-.bass-playing #world {
-  width: 100%;
-  height: 100%;
-  min-width: 0;
-  object-fit: cover;
+  container-type: inline-size;
 }
 .bass-playing
   :is(.scene-top, .time-pill, .checkpoint-pill, .map-tool, .nearby-prompt) {
   display: none;
 }
-.bass-playing::before {
-  content: "♫　窗边练习室";
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 1;
-  padding: 5px 11px;
-  border: 1px solid #e0c39d;
-  border-radius: 3px 8px 3px 8px;
-  color: #684a43;
-  background: #fff5e4ee;
-  font-size: 12px;
-  pointer-events: none;
-}
 .bass-hud {
+  position: absolute;
+  inset: auto 2% 2%;
+  z-index: 3;
   box-sizing: border-box;
-  min-width: 0;
-  position: relative;
-  padding: 15px clamp(10px, 1.55vw, 22px) 13px;
-  border-left: 3px solid #a07b65;
-  box-shadow: inset 3px 0 #fff4dc;
+  max-height: 96%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  grid-template-areas: "heading strings" "score strings" "feedback strings" "guide actions";
+  align-items: center;
+  gap: 4px 16px;
+  padding: 12px 16px;
+  border: 2px solid #a07b65;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 3px #fff4dc, 0 3px 8px #503b4640;
   background:
     repeating-linear-gradient(0deg, transparent 0 24px, #b87c5a0a 24px 25px),
     #ffeed7;
@@ -50,6 +36,13 @@
 .bass-hud:focus {
   outline: none;
 }
+.bass-head { grid-area: heading; }
+.bass-paper { grid-area: score; }
+.bass-fretboard { grid-area: strings; }
+.bass-feedback { grid-area: feedback; }
+.bass-guide { grid-area: guide; }
+.bass-actions { grid-area: actions; }
+.bass-muted-tip { grid-column: 1 / -1; }
 .bass-head,
 .bass-score-heading,
 .bass-bars,
@@ -335,26 +328,46 @@
   color: #427661;
   border-color: #61917a;
 }
-@media (max-width: 720px) {
-  .scene-wrap.bass-playing {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .bass-playing #world {
-    height: clamp(118px, 22svh, 165px);
-    object-position: 50% 50%;
-  }
+@container (max-width: 620px) {
   .bass-hud {
-    border-left: 0;
-    border-top: 3px solid #a07b65;
-    padding: 10px 13px 12px;
-    box-shadow: inset 0 2px #fff4dc;
+    inset: auto 4px 4px;
+    max-height: calc(100% - 8px);
+    padding: 6px 8px;
+    grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+    grid-template-areas: "heading score" "feedback score" "strings strings" "actions actions";
+    gap: 3px 8px;
   }
+  .bass-head, .bass-feedback, .bass-fretboard, .bass-muted-tip { margin: 0; }
+  .bass-head h3 { font-size: clamp(15px, 4cqw, 20px); }
+  .bass-seal, .bass-guide { display: none; }
+  .bass-kicker { font-size: 9px; }
+  .bass-paper { padding: 3px 5px; }
+  .bass-score-heading { font-size: 10px; }
+  .bass-phrase { gap: 3px; margin: 3px 0; }
+  .bass-phrase li { padding: 0; }
+  .bass-phrase li strong { font-size: 14px; }
+  .bass-bars i { width: 8px; }
+  .bass-fretboard { grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 2px; }
   .bass-string {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: center;
+    align-content: center;
+    gap: 0 3px;
     min-height: 44px;
   }
-  .bass-actions button {
-    min-height: 40px;
-  }
+  .bass-string kbd { width: 18px; height: 18px; }
+  .bass-wire, .bass-cue { grid-column: 1 / -1; width: 100%; }
+  .bass-wire { min-height: 6px; }
+  .bass-cue { min-height: 13px; }
+  .bass-feedback { font-size: 12px; }
+  .bass-actions { gap: 4px; }
+  .bass-actions button { flex: 1 1 auto; min-height: 32px; padding: 3px 5px; }
+  .bass-actions kbd { display: none; }
+}
+@container (max-width: 420px) {
+  .bass-kicker, .bass-phrase li span, .bass-bars { display: none; }
+  .bass-phrase { margin-bottom: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bass-string.ringing .bass-wire::after {

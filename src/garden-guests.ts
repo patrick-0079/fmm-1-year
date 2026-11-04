@@ -30,10 +30,3 @@ export const gardenGuests = [
     line: "想把这一年的喜欢，分成六块甜甜的蛋糕。回小屋可以沿虚线切开，再和芙芙一起尝一口。",
   },
 ];
-export const gardenCritters = [
-  { x: 335, y: 306, id: "petBunny" as const, phase: 0 },
-  { x: 505, y: 350, id: "petCat" as const, phase: 2 },
-  { x: 304, y: 455, id: "petBunny" as const, phase: 4 },
-  { x: 684, y: 380, id: "petCat" as const, phase: 1 },
-  { x: 480, y: 464, id: "petBunny" as const, phase: 3 },
-];

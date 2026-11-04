@@ -1,10 +1,9 @@
 import type { World } from "./world";
 import type { Activities } from "./activities";
 import type { Inventory } from "./inventory";
-import { gardenGuests, gardenCritters } from "./garden-guests";
+import { gardenGuests } from "./garden-guests";
 import { TOWN_FRAMES } from "./town-data";
 import npcUrl from "./assets/town-npcs.webp";
-import { canStand } from "./core";
 import { drawItem } from "./item-art";
 import { CompanionMotion } from "./companion-motion";
 
@@ -83,57 +82,26 @@ export class GardenLife {
     return true;
   }
   private layers() {
-    const c = this.world.config;
-    return [
-      ...gardenGuests.map((n) => ({
-        y: n.y,
-        draw: (g: CanvasRenderingContext2D) => {
-          if (!this.npcs.complete || !this.npcs.naturalWidth) return;
-          const f = TOWN_FRAMES[n.sprite],
-            s = 43 / 337,
-            bob = matchMedia("(prefers-reduced-motion: reduce)").matches
-              ? 0
-              : Math.sin(this.time * 0.8 + n.x) * 0.4;
-          g.fillStyle = "#5e63462b";
-          g.beginPath();
-          g.ellipse(n.x, n.y, 8, 3, 0, 0, Math.PI * 2);
-          g.fill();
-          g.drawImage(
-            this.npcs,
-            f.x,
-            f.y,
-            f.w,
-            f.h,
-            n.x - (f.w * s) / 2,
-            n.y - f.h * s + bob,
-            f.w * s,
-            f.h * s,
-          );
-        },
-      })),
-      ...gardenCritters.map((n) => {
-        const moving =
-          !this.world.paused &&
-          !matchMedia("(prefers-reduced-motion: reduce)").matches;
-        const candidate = {
-          x: n.x + (moving ? Math.sin(this.time * 0.32 + n.phase) * 8 : 0),
-          y: n.y + (moving ? Math.cos(this.time * 0.26 + n.phase) * 5 : 0),
-        };
-        const p = canStand(candidate, c.walls, c.bounds, c.floor, c.surfaces)
-          ? candidate
-          : n;
-        return {
-          y: p.y,
-          draw: (g: CanvasRenderingContext2D) => {
-            g.fillStyle = "#6b74552b";
-            g.beginPath();
-            g.ellipse(p.x, p.y, 7, 2.5, 0, 0, Math.PI * 2);
-            g.fill();
-            drawItem(g, n.id, p.x - 9, p.y - 17, 18, 18);
-          },
-        };
-      }),
-    ];
+    return gardenGuests.map((n) => ({
+      y: n.y,
+      draw: (g: CanvasRenderingContext2D) => {
+        if (!this.npcs.complete || !this.npcs.naturalWidth) return;
+        const f = TOWN_FRAMES[n.sprite],
+          s = 43 / 337,
+          bob = matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? 0
+            : Math.sin(this.time * 0.8 + n.x) * 0.4;
+        g.fillStyle = "#5e63462b";
+        g.beginPath();
+        g.ellipse(n.x, n.y, 8, 3, 0, 0, Math.PI * 2);
+        g.fill();
+        g.drawImage(
+          this.npcs,
+          f.x, f.y, f.w, f.h,
+          n.x - (f.w * s) / 2, n.y - f.h * s + bob, f.w * s, f.h * s,
+        );
+      },
+    }));
   }
 }
 
