@@ -16,6 +16,11 @@ import { echoes, trialEcho } from "./echoes";
 import { motif, panel, type Backdrop } from "./arcade-pixels";
 import { LinkGame, MinesGame } from "./arcade-bonus";
 import { reservedShortcut, readingTarget } from "./input";
+
+// Centre the 240 × 160 playfield in the logical 600 × 400 viewport, independently of the map camera.
+const boardScale = 1.8;
+const boardOrigin = { x: (600 - 240 * boardScale) / 2, y: (400 - 160 * boardScale) / 2 };
+
 export class Arcade {
   private engine: Engine | null = null;
   private id: GameId = "snake";
@@ -31,7 +36,7 @@ export class Arcade {
     private inventory: Inventory,
     private personalBest: (id: GameId, score: number) => number = () => 0,
   ) {
-    const effects = world.onEffects,
+    const overlay = world.onOverlay,
       tick = world.onTick,
       pointer = world.onPointer,
       secondary = world.onSecondaryPointer,
@@ -50,8 +55,8 @@ export class Arcade {
       this.action("primary", pressed);
       return true;
     };
-    world.onEffects = (c) => {
-      effects(c);
+    world.onOverlay = (c) => {
+      overlay(c);
       this.draw(c);
     };
     world.onTick = (dt, t) => {
@@ -133,14 +138,9 @@ export class Arcade {
   get active() {
     return this.engine !== null;
   }
-  private get boardAnchor() {
-    // Keep the board and its pointer targets inside the camera at edge chambers.
-    const g=ARCADES[this.id], map=this.world.config;
-    return {x:Math.max(167,Math.min(map.width-167,g.x)), y:Math.max(194,Math.min(map.height-29,g.y))};
-  }
   private boardPoint(p: Point) {
-    const g = this.boardAnchor;
-    return { x: p.x - g.x + 120, y: p.y - g.y + 159 };
+    const screen = this.world.project(p);
+    return { x: (screen.x - boardOrigin.x) / boardScale, y: (screen.y - boardOrigin.y) / boardScale };
   }
   private pressMines(p: Point, mark: boolean) {
     if (!(this.engine instanceof MinesGame)) return false;
@@ -166,9 +166,7 @@ export class Arcade {
     this.paused = false;
     this.previousStatus = "";
     this.previousScore = -1;
-    const g = this.boardAnchor;
     this.world.clearInput();
-    this.world.setFocus({ x: g.x, y: g.y - 82 }, 1.8);
     this.world.canvas.parentElement!.classList.add("arcade-active");
     this.world.paused = true;
     this.hud.hidden = false;
@@ -180,7 +178,6 @@ export class Arcade {
     this.world.canvas.parentElement!.classList.remove("arcade-active");
     this.hud.hidden = true;
     this.hud.replaceChildren();
-    this.world.setFocus(null);
     this.world.paused = false;
     this.world.clearInput();
   }
@@ -270,22 +267,23 @@ export class Arcade {
       const ruinId = Object.hasOwn(trialEcho,this.id) ? this.id as keyof typeof trialEcho : undefined;
       this.hud.dataset.setting = ruinId ? "ruins" : "town";
       this.hud.innerHTML = `
-        <div class="arcade-ticket">
-          <img src="${ruinId ? chamberPrints[ruinId] : postcard}" alt="" width="84" height="56">
-          <div><small>${ruinId ? "ECHO ARCHIVE · 1ST" : "FUFU ON AIR · 1ST"}</small><b>${ruinId ? "回声遗迹 · 石刻拓本" : "芙芙直播一周年"}</b><span>${ruinId ? booth.stamp : "游园券 № "+booth.number+" / 07"}</span></div>
-        </div>
-        ${ruinId ? '<p class="echo-inscription">'+echoes[trialEcho[ruinId]].inscription+'</p>' : ''}
+        <div class="arcade-play">
         <div class="arcade-heading"><div><small>${booth.stamp}</small><h3 class="arcade-title"></h3></div>
           <div class="arcade-score"><strong></strong><span></span></div></div>
-        <div class="arcade-reward-track"><progress aria-label="纪念奖励进度"></progress><span></span></div>
-        <p class="arcade-status" role="status" aria-live="polite"></p>
-        ${this.id === "mines" ? '<details class="mine-rules"><summary>扫雷规则与操作</summary><ul>'+mineRules.map(rule=>'<li>'+rule+'</li>').join("")+'</ul></details>' : ''}
         <div class="arcade-result-actions"></div>
         <div class="arcade-controls">
           <button data-game-action="left" aria-label="游戏向左">←</button><button data-game-action="up" aria-label="游戏向上或旋转">↑</button>
           <button data-game-action="right" aria-label="游戏向右">→</button><button data-game-action="down" aria-label="游戏向下或加速">↓</button>
           <button class="game-primary" data-game-action="primary"></button></div>
-        <div class="arcade-extra-actions"></div><button class="arcade-close">${ruinId ? "返回遗迹" : "离开摊位"} ×</button>`;
+        <div class="arcade-extra-actions"></div><button class="arcade-close">${ruinId ? "返回遗迹" : "离开摊位"} ×</button>
+        </div><div class="arcade-guide">
+          <div class="arcade-ticket"><img src="${ruinId ? chamberPrints[ruinId] : postcard}" alt="" width="84" height="56">
+            <div><small>${ruinId ? "ECHO ARCHIVE · 1ST" : "FUFU ON AIR · 1ST"}</small><b>${ruinId ? "回声遗迹 · 石刻拓本" : "芙芙直播一周年"}</b><span>${ruinId ? booth.stamp : "游园券 № "+booth.number+" / 07"}</span></div></div>
+          <p class="arcade-status" role="status" aria-live="polite"></p>
+          ${this.id === "mines" ? '<details class="mine-rules"><summary>扫雷规则与操作</summary><ul>'+mineRules.map(rule=>'<li>'+rule+'</li>').join("")+'</ul></details>' : ''}
+          ${ruinId ? '<p class="echo-inscription">'+echoes[trialEcho[ruinId]].inscription+'</p>' : ''}
+          <div class="arcade-reward-track"><progress aria-label="纪念奖励进度"></progress><span></span></div>
+        </div>`;
       this.hud
         .querySelector(".arcade-close")!
         .addEventListener("click", () => this.close());
@@ -408,9 +406,11 @@ export class Arcade {
   }
   private draw(c: CanvasRenderingContext2D) {
     if (!this.engine || this.world.scene !== ARCADES[this.id].scene) return;
-    const game = this.boardAnchor, booth = booths[this.id], ruins = this.world.scene === "ruins";
+    const booth = booths[this.id], ruins = this.world.scene === "ruins";
     c.save();
-    c.translate(game.x - 132, game.y - 166);
+    c.translate(boardOrigin.x, boardOrigin.y);
+    c.scale(boardScale, boardScale);
+    c.translate(-12, -7);
     panel(c, -6, -17, 276, 194, ruins ? "#556c6d" : "#ab777e", ruins ? "#283c47" : "#644f65", "#dfc59c");
     panel(c, -3, -14, 270, 189, ruins ? "#b4c2aa" : "#f4deae", ruins ? "#536766" : "#956775", "#fff2ca");
     panel(c, 8, 3, 248, 168, ruins ? "#41555e" : "#786179", ruins ? "#627773" : "#966d73", "#e4bb8d");

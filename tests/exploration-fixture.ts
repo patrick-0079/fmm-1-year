@@ -9,6 +9,7 @@ import { bassScore } from "../src/bass-score";
 import { townEchoGate, ruinsExit, echoAltar, echoPool } from "../src/ruins-map";
 import { southNotebook, ringSpots, moonPlate, mirrorSpots } from "../src/ruins-map";
 import { INVENTORY_KEY, readInventory } from "../src/items";
+import { ARCADES } from "../src/town-data";
 
 // Same application as the homepage; all its saves are private to this QA tab.
 const space="fufu-only-exploration-fixture/";
@@ -170,6 +171,48 @@ async function run(check:()=>Promise<void>) {
   finally {q<HTMLButtonElement>("#verify").disabled=false;}
 }
 q("#verify").addEventListener("click",()=>void run(checkAll));
+q("#check-arcade-frame").addEventListener("click",()=>void run(async()=>{
+  if (!q(".intro-screen").classList.contains("dismissed")) await start();
+  const hud=q(".arcade-hud"), scene=q(".scene-wrap");
+  const nextFrame=()=>new Promise<void>(done=>requestAnimationFrame(()=>requestAnimationFrame(()=>done())));
+  for (const [id, game] of Object.entries(ARCADES)) {
+    await world.prepareScene(game.scene);
+    const spot=scenes[game.scene].spots.find(s=>s.id==="arcade-"+id)!;
+    world.switchScene(game.scene,spot.approach);
+    scene.scrollIntoView({block:"center",behavior:"instant"});
+    await nextFrame();
+    const frame=()=>{
+      const a=world.canvas.getBoundingClientRect(), b=scene.getBoundingClientRect();
+      const p=world.project(spot.approach), near=world.project({x:spot.approach.x+24,y:spot.approach.y+24});
+      return [a.x,a.y,a.width,a.height,b.x,b.y,b.width,b.height,p.x,p.y,near.x,near.y,scrollY];
+    };
+    const initial=frame();
+    expect(Math.abs(initial[2]-initial[3]*1.5)<1,"探索画布不是 3:2");
+    const same=async(label:string)=>{
+      await nextFrame();
+      const current=frame();
+      expect(current.every((n,i)=>Math.abs(n-initial[i])<1),game.title+" · "+label+"改变了画幅、镜头或页面位置");
+    };
+    world.onInteract(spot.id);
+    expect(!hud.hidden && hud.dataset.game===id,"未能进入"+game.title);
+    await same("入场");
+    expect(hud.getBoundingClientRect().top>=scene.getBoundingClientRect().bottom-1,"操作栏挡住了棋盘");
+    q<HTMLButtonElement>(".arcade-result-actions button").click();
+    await same("开始");
+    key("p"); expect(q(".arcade-status").textContent?.includes("暂停"),"未能暂停"); await same("暂停");
+    key("p"); await same("恢复");
+    if (id==="mines") {
+      q<HTMLElement>(".mine-rules summary").click(); await same("展开规则");
+      q<HTMLElement>(".mine-rules summary").click();
+      q(".bag-toggle").click();
+      expect(world.suspended && hud.closest("[inert]") && scene.closest("[inert]"),"背包未同时暂停地图和操作栏");
+      key("Escape"); await same("收起背包");
+    }
+    q(".arcade-close").click(); expect(hud.hidden,"退出后操作栏仍然显示");
+    await same("退出");
+  }
+  log("小镇与遗迹七款游戏的入场、开始、暂停、恢复、退出均保持地图尺寸、3:2 画幅、像素缩放和视口位置");
+}));
 q("#check-astrolabe").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();
   q(".reset-button").click(); q(".reset-confirm").click();

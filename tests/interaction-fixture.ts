@@ -128,8 +128,9 @@ await check("扫雷右键只标记指针下的砖，触屏插旗与鼠标翻开�
     world.scene = "ruins";
     arcade.open("mines");
     const game = engine() as MinesGame;
-    const point = {x:464, y:117}; // Centre of column 4, row 3 on the focused board.
-    const pos = world.project(point), rect = canvas.getBoundingClientRect();
+    const pos = {x:325, y:204}; // Centre of column 4, row 3 on the viewport board.
+    const origin = world.project({x:0, y:0}), zoom = world.project({x:1, y:0}).x - origin.x;
+    const point = {x:(pos.x-origin.x)/zoom, y:(pos.y-origin.y)/zoom}, rect = canvas.getBoundingClientRect();
     const mouse = {button:2, pointerType:"mouse", bubbles:true, cancelable:true,
       clientX:rect.left+rect.width*pos.x/600, clientY:rect.top+rect.height*pos.y/400};
     world.onAction = pressed => {

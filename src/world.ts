@@ -59,6 +59,7 @@ export interface DepthLayer {
 
 export class World {
   canvas: HTMLCanvasElement;
+  private inputRegion: HTMLElement;
   private ctx: CanvasRenderingContext2D;
   scene: SceneId = "room";
   player: Point = { ...scenes.room.spawn };
@@ -107,7 +108,7 @@ export class World {
     if (active === this.suspensions.has(reason)) return;
     if (active) this.suspensions.add(reason);
     else this.suspensions.delete(reason);
-    this.canvas.parentElement!.inert = this.suspended;
+    this.inputRegion.inert = this.suspended;
     this.clearInput();
   }
   onInputCancel: () => void = () => {};
@@ -127,6 +128,7 @@ export class World {
     () => {};
   onLighting: (context: CanvasRenderingContext2D) => void = () => {};
   onEffects: (context: CanvasRenderingContext2D) => void = () => {};
+  onOverlay: (context: CanvasRenderingContext2D) => void = () => {};
   getDepthLayers: () => DepthLayer[] = () => [];
   available: (spot: Hotspot) => boolean = () => true;
   canEnter: (scene: SceneId) => boolean = scene => scene !== "meadow";
@@ -149,6 +151,7 @@ export class World {
   }
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
+    this.inputRegion = canvas.closest<HTMLElement>(".game-stage") ?? canvas.parentElement!;
     this.ctx = canvas.getContext("2d")!;
     canvas.width = 600;
     canvas.height = 400;
@@ -263,7 +266,7 @@ export class World {
     });
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     canvas.addEventListener("pointerleave",()=>canvas.removeAttribute("data-pointable"));
-    const scene = canvas.parentElement!;
+    const scene = this.inputRegion;
     scene.addEventListener("contextmenu", (e) => e.preventDefault());
     scene.addEventListener("pointerdown", (e) => {
       if (e.button !== 2 || e.defaultPrevented || e.target === canvas) return;
@@ -737,6 +740,7 @@ export class World {
     this.onEffects(c);
     if (this.debug) this.drawDebug();
     c.restore();
+    this.onOverlay(c);
   }
   private drawHazards() {
     const c = this.ctx,
