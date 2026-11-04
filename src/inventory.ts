@@ -14,6 +14,7 @@ import {
 import { drawItem, wreathUrl, rewardsUrl, whenWardrobeReady } from "./item-art";
 import { reservedShortcut } from "./input";
 import { sfx } from "./sound";
+import { prepareProp } from "./scene-art";
 function browserStorage(): Storage | null {
   try { return window.localStorage; } catch { return null; }
 }
@@ -82,6 +83,7 @@ export class Inventory {
     const scene = this.world.canvas.parentElement!;
     this.world.suspend("inventory", scene.matches(".inspecting, .bass-playing, .arcade-active, .cinema-active, .reading-letter"));
     this.render();
+    void prepareProp("relics").then(() => this.drawIcons()).catch(() => {});
     this.root.querySelector<HTMLButtonElement>(".bag-close")!.focus({ preventScroll: true });
     // Reveal the first row only when it is off screen. Leave some of the map
     // in view and return to the player's original viewport when they close it.
@@ -93,12 +95,14 @@ export class Inventory {
       window.scrollBy({ top: offset, behavior: "instant" });
     }
   }
-  grant(id: ItemId) {
+  grant(id: ItemId, announce = true) {
     if (!grantItem(this.earned, id)) return false;
     this.save();
     this.render();
-    sfx("match");
-    this.toast(`获得纪念品：${ITEMS[id].name} · 按 B 打开背包`);
+    if (announce) {
+      sfx("match");
+      this.toast(`获得纪念品：${ITEMS[id].name} · 按 B 打开背包`);
+    }
     return true;
   }
   toggle(id: ItemId) {

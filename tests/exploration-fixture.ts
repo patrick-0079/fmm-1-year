@@ -7,6 +7,8 @@ import { townGates, gateSignFoot } from "../src/gate-layout";
 import { bassStand } from "../src/room-props";
 import { bassScore } from "../src/bass-score";
 import { townEchoGate, ruinsExit, echoAltar, echoPool } from "../src/ruins-map";
+import { southNotebook, ringSpots, moonPlate, mirrorSpots } from "../src/ruins-map";
+import { INVENTORY_KEY, readInventory } from "../src/items";
 
 // Same application as the homepage; all its saves are private to this QA tab.
 const space="fufu-only-exploration-fixture/";
@@ -168,6 +170,40 @@ async function run(check:()=>Promise<void>) {
   finally {q<HTMLButtonElement>("#verify").disabled=false;}
 }
 q("#verify").addEventListener("click",()=>void run(checkAll));
+q("#check-astrolabe").addEventListener("click",()=>void run(async()=>{
+  if (!q(".intro-screen").classList.contains("dismissed")) await start();
+  q(".reset-button").click(); q(".reset-confirm").click();
+  await world.prepareScene("ruins");world.switchScene("ruins",southNotebook.approach);
+  world.interact();
+  expect(q(".activity-status").textContent?.includes("西廊"),"南阶手记没有方位线索");
+  q(".activity-close").click();
+  for(const spot of [ringSpots[1],ringSpots[0],ringSpots[2]]) {
+    world.visit(spot.id); await wait(()=>!world.available(spot));
+    expect(q(".ruin-book-count").textContent?.startsWith(String(state().astrolabe.found.length)),"拓印数没有更新");
+  }
+  expect(q(".ruin-seals").querySelectorAll('[data-earned="true"]').length===2,"寻物的两枚印章不正确");
+  log("南阶指路，三处环按北、西、东顺序实际寻路拾取，地图与拓印同步");
+  const action=(prefix:string)=>{
+    const b=[...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")].find(el=>el.textContent?.startsWith(prefix));
+    expect(b,"机关缺少操作："+prefix);b!.click();
+  };
+  world.visit(moonPlate.id);await wait(()=>q(".activity-actions").textContent?.includes("装入三枚")===true);
+  action("装入"); action("转内环"); expect(state().astrolabe.turns[0]===2,"转环没有立即存下");
+  q(".activity-close").click();world.interact();
+  for(const [name,n] of [["内",2],["中",2],["外",1]] as const) for(let i=0;i<n;i++) action("转"+name);
+  expect(q('[data-seal="plate"]').dataset.earned==="true","星盘印章没有解锁");action("沿光纹");
+  await wait(()=>q(".activity-actions").textContent?.includes("转上镜")===true);
+  action("转下镜");action("转下镜");action("转上镜");
+  expect(q('[data-seal="light"]').dataset.earned==="false","光路错误也提前发奖");
+  action("转下镜");
+  const bag=readInventory(localStorage.getItem(INVENTORY_KEY));
+  expect(q('[data-seal="light"]').dataset.earned==="true" && bag.owned.includes("echoBrooch") && !bag.equipped.body,"胸针没有进真实背包或被自动佩戴");
+  expect(!state().echoes.listened && q('[data-seal="radio"]').dataset.earned==="false","星盘支线误解锁旧电波");
+  q(".activity-close").click(); world.visit(mirrorSpots[1].id);
+  await wait(()=>!q(".activity-hud").hidden && q(".activity-status").textContent?.includes("已收进你的背包")===true);
+  expect(readInventory(localStorage.getItem(INVENTORY_KEY)).owned.filter(id=>id==="echoBrooch").length===1,"重复互动发出第二枚胸针");
+  log("错向可修正，已调好的光路解锁胸针一次，旧电波与小游戏仍是独立进度");
+}));
 q("#check-ruins").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();
   q(".reset-button").click(); q(".reset-confirm").click();
@@ -189,12 +225,15 @@ q("#check-ruins").addEventListener("click",()=>void run(async()=>{
     key("Escape"); key("Escape",false);
   }
   expect(state().echoes.found.length===3 && state().echoes.played===0,"三间石室没有分别记录");
+  expect(state().astrolabe.found.length===0,"进入试炼不应自动取得星盘环");
   log("三间石室均能沿石地走到，原地启动与退出游戏，未通关也能抄录三条线索");
   world.visit(echoAltar.id); await wait(()=>q(".activity-actions").textContent?.includes("轻敲")===true);
   action("轻敲「叶」"); action("轻敲「星」"); expect(state().echoes.played===1,"错音丢失已奏的音");
   action("轻敲「铃」"); action("轻敲「星」");
   expect(world.available(echoPool) && state().echoes.played===3,"正确旋律没有唤醒听月泉");
   action("去水边看看"); await wait(()=>state().echoes.listened);
+  expect(q('[data-seal="radio"]').dataset.earned==="true" && q(".ruin-seals").querySelectorAll('[data-earned="true"]').length===1,
+    "首次听到旧电波应只获得收听员印章");
   expect(q(".activity-status").textContent?.includes("365"),"彩蛋内容未显示");
   action("再听一遍"); action("把晚安收好");
   log("祭坛保留错音前的进度，三音唤醒水中电台，周年彩蛋可重听");

@@ -7,6 +7,7 @@ import wreath from "../src/assets/flower-wreath.webp";
 import rewards from "../src/assets/reward-icons.webp";
 import wardrobe from "../src/assets/wardrobe-v11.webp";
 import { drawItem } from "../src/item-art";
+import { prepareSceneArt } from "../src/scene-art";
 import shoes from "../src/assets/fufu-footwear-v14.webp";
 import garments from "../src/assets/fufu-garments-v15.webp";
 import type { Equipped } from "../src/items";
@@ -20,6 +21,7 @@ const [a, b, c, d] = await Promise.all(
   [sprite, rest, wreath, rewards, wardrobe, shoes, garments].map(load),
 );
 const images = { sprite: a, rest: b, wreath: c, rewards: d };
+await prepareSceneArt("ruins");
 const cloth = document.querySelector<HTMLCanvasElement>("#garments")!.getContext("2d")!;
 cloth.fillStyle="#e4e7d5"; cloth.fillRect(0,0,1176,440); cloth.imageSmoothingEnabled=false;
 const outfits: Equipped[] = [{},{clothes:"roseDress"},{clothes:"mintCape"},{clothes:"mintCape",backpack:"rabbitSatchel",head:"headphones",shoes:"starShoes"}];
@@ -51,7 +53,9 @@ const poses: [string, AvatarPose, Facing][] = [
   ["睡觉 · 无饰品", "lying", 0],
 ];
 const catalog = document.querySelector<HTMLCanvasElement>("#catalog")!.getContext("2d")!;
-catalog.fillStyle="#e6e9d9"; catalog.fillRect(0,0,1152,630); catalog.imageSmoothingEnabled=false;
+const catalogRows=Math.ceil(Object.keys(ITEMS).length/2);
+catalog.canvas.height=catalogRows*90;
+catalog.fillStyle="#e6e9d9"; catalog.fillRect(0,0,catalog.canvas.width,catalog.canvas.height); catalog.imageSmoothingEnabled=false;
 for (const [id, item] of Object.entries(ITEMS))
   for (const [label, pose, facing] of poses) {
     const card = document.createElement("article"),
@@ -71,7 +75,7 @@ for (const [id, item] of Object.entries(ITEMS))
     if (item.slot === "pet" && pose !== "lying")
       drawItem(ctx, id as ItemId, 16, -18, 20, 19);
     const index=Object.keys(ITEMS).indexOf(id), column=poses.findIndex(p=>p[0]===label);
-    const x=Math.floor(index/7)*576, y=(index%7)*90;
+    const x=Math.floor(index/catalogRows)*576, y=(index%catalogRows)*90;
     if (!column) {
       catalog.fillStyle="#685663"; catalog.font="12px sans-serif"; catalog.fillText(item.name,x+6,y+13);
     }

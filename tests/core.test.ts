@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { canStand, isCakeCut, movePlayer, readProgress } from "../src/core.ts";
+import { readAstrolabe } from "../src/astrolabe.ts";
 
 test("corrupt or unexpected saved data cannot break a new visit", () => {
   for (const value of [null, "{", "null", "42", "[]", '"oops"']) {
@@ -14,6 +15,7 @@ test("corrupt or unexpected saved data cannot break a new visit", () => {
       bedNoteUnlocked: false,
       bassSongPlayed: false,
       echoes: {found: [], played: 0, listened: false},
+      astrolabe: readAstrolabe(),
       rainbowFlowers: [],
       creditStars: [],
       arcadeBests: {},
@@ -37,6 +39,7 @@ test("corrupt or unexpected saved data cannot break a new visit", () => {
       bedNoteUnlocked: false,
       bassSongPlayed: false,
       echoes: {found: [], played: 0, listened: false},
+      astrolabe: readAstrolabe(),
       rainbowFlowers: [],
       creditStars: [],
       arcadeBests: {},

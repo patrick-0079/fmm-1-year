@@ -1,5 +1,6 @@
 import type { ItemId } from "./items";
 import { fitItem, type EquipmentPart } from "./equipment";
+import { drawRelic } from "./relic-icons";
 import wreathUrl from "./assets/flower-wreath.webp";
 import rewardsUrl from "./assets/reward-icons.webp";
 import wardrobeUrl from "./assets/wardrobe-v11.webp";
@@ -67,6 +68,10 @@ export function drawItem(
   rewards?: HTMLImageElement,
 ) {
   const extra = wardrobeIndex[id];
+  if (id === "echoBrooch") {
+    drawRelic(c,"brooch",x,y,w,h);
+    return;
+  }
   if (extra !== undefined) {
     if (wardrobe.complete && wardrobe.naturalWidth) {
       const [sx, sy, sw, sh] = wardrobeFrames[extra];

@@ -5,6 +5,7 @@ export type ItemId =
   | "moonBag"
   | "starWings"
   | "anniversaryPin"
+  | "echoBrooch"
   | "roseDress"
   | "mintCape"
   | "ribbonShoes"
@@ -89,6 +90,13 @@ export const ITEMS: Record<
     description: "把一周年的温柔，穿成小小的庆典裙。",
     source: "晚安心愿连连看连接 8 对",
     icon: 4,
+  },
+  echoBrooch: {
+    name: "晚安回声胸针",
+    slot: "body",
+    description: "一弯铜月抱着粉色的小星。今晚的光，是你为芙芙点亮的。",
+    source: "回声遗迹 · 点亮星盘，再把月光引到星纹砖",
+    icon: -3,
   },
   mintCape: {
     name: "晨露薄荷披肩",

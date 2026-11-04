@@ -3,28 +3,31 @@ import keepsakesUrl from "./assets/garden-keepsakes-v12.webp";
 import skiesUrl from "./assets/window-skies-v12.webp";
 import gateUrl from "./assets/country-wicket-v18.webp";
 import bassUrl from "./assets/white-bass-v18.webp";
+import relicsUrl from "./assets/astrolabe-relics.webp";
+import astrolabePropsUrl from "./assets/astrolabe-mechanisms.webp";
 import type { SceneId } from "./maps";
-export { stallsUrl, keepsakesUrl, skiesUrl };
+export { stallsUrl, keepsakesUrl, skiesUrl, relicsUrl };
 
-export const sceneArt = {stalls:new Image(), keepsakes:new Image(), skies:new Image(), gate:new Image(), bass:new Image()};
+export const sceneArt = {stalls:new Image(), keepsakes:new Image(), skies:new Image(), gate:new Image(), bass:new Image(), relics:new Image(), astrolabeProps:new Image()};
 type Prop = keyof typeof sceneArt;
-const urls: Record<Prop,string> = {stalls:stallsUrl, keepsakes:keepsakesUrl, skies:skiesUrl, gate:gateUrl, bass:bassUrl};
+const urls: Record<Prop,string> = {stalls:stallsUrl, keepsakes:keepsakesUrl, skies:skiesUrl, gate:gateUrl, bass:bassUrl, relics:relicsUrl, astrolabeProps:astrolabePropsUrl};
 const propsByScene: Record<SceneId,Prop[]> = {
   room:["skies","bass"], garden:["keepsakes","gate"], challenge:["keepsakes"],
-  town:["stalls","gate"], meadow:[], ruins:[],
+  town:["stalls","gate"], meadow:[], ruins:["relics","astrolabeProps"],
 };
 const requests = new Map<Prop,Promise<void>>();
+export function prepareProp(key: Prop) {
+  const pending=requests.get(key);
+  if (pending) return pending;
+  const image=sceneArt[key];
+  image.fetchPriority="high";
+  image.src=urls[key];
+  const ready=image.decode().catch(error=>{ requests.delete(key); throw error; });
+  requests.set(key,ready);
+  return ready;
+}
 export function prepareSceneArt(scene: SceneId) {
-  return Promise.all(propsByScene[scene].map(key => {
-    const pending=requests.get(key);
-    if (pending) return pending;
-    const image=sceneArt[key];
-    image.fetchPriority="high";
-    image.src=urls[key];
-    const ready=image.decode().catch(error=>{ requests.delete(key); throw error; });
-    requests.set(key,ready);
-    return ready;
-  }));
+  return Promise.all(propsByScene[scene].map(prepareProp));
 }
 export const stallFrames = [
   { x: 7, y: 190, w: 486, h: 667 },

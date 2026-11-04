@@ -187,7 +187,7 @@ const equipFromBag = (id: ItemId) => {
   assert(!world.suspended && !canvas.parentElement!.inert, `${id} 未解除场景暂停`);
   assert(document.activeElement === canvas, `${id} 焦点未返回游戏`);
 };
-await check("14 件纪念品经背包按钮逐一穿脱后，下一帧可用方向键行走", async () => {
+await check("全部纪念品经背包按钮逐一穿脱后，下一帧可用方向键行走", async () => {
   await world.load();
   try {
     world.switchScene("room"); world.paused = false;

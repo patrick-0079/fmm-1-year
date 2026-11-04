@@ -419,8 +419,8 @@ export class Activities {
       this.controls.append(anchor);
     }
   }
-  menu(text: string, options: { title: string; run: () => void }[]) {
-    this.begin("nature", text);
+  menu(text: string, options: { title: string; run: () => void }[], point?: Point, zoom = 1) {
+    this.begin("nature", text, point, zoom);
     for (const option of options) this.action(option.title, option.run);
   }
   dialogue(

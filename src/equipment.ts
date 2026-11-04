@@ -47,7 +47,7 @@ export function equipmentParts(
   }
   if (equipped.shoes === "ribbonShoes" || equipped.shoes === "starShoes")
     add(equipped.shoes, "front", -16, -10 - shift, 32, 10, "footwear");
-  if (body === "anniversaryPin" && facing !== 3)
+  if ((body === "anniversaryPin" || body === "echoBrooch") && facing !== 3)
     add(body, "front", facing === 1 ? -7.3 : facing === 2 ? 3.6 : -3.6, -16.7, 4.2, 4.5);
   if (head === "wreath")
     add(head, "front", facing === 1 ? -12.5 : facing === 2 ? -10.5 : -13.5, -38.5, facing === 1 || facing === 2 ? 23 : 27, 8.5);

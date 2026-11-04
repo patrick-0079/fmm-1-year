@@ -18,6 +18,7 @@ import { INVENTORY_KEY } from "./items";
 import { FlowerTrail } from "./flower-trail";
 import { NightMeadow } from "./night-meadow";
 import { EchoRuins } from "./echo-ruins";
+import { AstrolabeQuest } from "./astrolabe-quest";
 import { RoomBass } from "./room-bass";
 import { bassStand } from "./room-props";
 import { mountDebugPanel } from "./debug-panel";
@@ -219,7 +220,9 @@ export function mountGame(tasks: Task[]) {
   new Companion(world);
   const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);
   const meadow = new NightMeadow(world, () => progress.creditStars, save);
-  const ruins = new EchoRuins(world, activities, () => progress.echoes, save);
+  const starQuest = new AstrolabeQuest(world, activities, inventory, () => progress.astrolabe,
+    () => progress.echoes.listened, save);
+  const ruins = new EchoRuins(world, activities, () => progress.echoes, () => { save(); starQuest.refresh(); });
   const bass = new RoomBass(world, () => progress.bassSongPlayed, () => {
     if (!progress.bassSongPlayed) { progress.bassSongPlayed = true; save(); }
   }, () => ({ enabled:progress.bassSound, volume:progress.volume }), () => {
@@ -332,7 +335,7 @@ export function mountGame(tasks: Task[]) {
     bass.close(false);
     saveLocation();
     if (scene !== "meadow") meadow.leave();
-    if (scene !== "ruins") ruins.clearEffect();
+    if (scene !== "ruins") { ruins.clearEffect(); starQuest.clearFlash(); }
     nature.refreshClock();
     document.querySelector("#location-name")!.textContent =
       `${({room:"ROOM 01",garden:"GARDEN 02",challenge:"GARDEN 03",town:"TOWN 04",meadow:"SECRET 05",ruins:"RUINS 06"})[scene]} · ${scenes[scene].title}`;
@@ -361,7 +364,7 @@ export function mountGame(tasks: Task[]) {
     reader.close();
     dismissRevive();
     document.querySelector<HTMLElement>(".nearby-prompt")!.hidden = true;
-    if (flowerTrail.interact(id) || meadow.interact(id) || ruins.interact(id)) return;
+    if (flowerTrail.interact(id) || meadow.interact(id) || ruins.interact(id) || starQuest.interact(id)) return;
     if (id.startsWith("arcade-")) {
       const game = id.slice(7) as GameId;
       if (ARCADES[game]?.scene === world.scene) {
@@ -648,6 +651,7 @@ export function mountGame(tasks: Task[]) {
     activities.reset();
     nature.reset();
     inventory.reset();
+    starQuest.reset();
     flowerTrail.setPreviewOpen(false);
     town.reset();
     arcade.close();
