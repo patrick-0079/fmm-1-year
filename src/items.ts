@@ -52,7 +52,7 @@ export const ITEMS: Record<
     name: "一周年星糖发夹",
     slot: "head",
     description: "一颗草莓星糖，纪念第一年的甜甜晚安。",
-    source: "星糖贪吃蛇收集 6 颗糖",
+    source: "回声遗迹 · 苔纹贪吃蛇点亮 6 枚叶芽",
     icon: 0,
   },
   headphones: {
@@ -94,7 +94,7 @@ export const ITEMS: Record<
     name: "晨露薄荷披肩",
     slot: "clothes",
     description: "轻盈的晨露与奶油色领结。",
-    source: "花田扫雷翻开 26 格安全花田",
+    source: "回声遗迹 · 星纹石阵扫雷翻开 26 块安全石砖",
     icon: 5,
   },
   ribbonShoes: {
@@ -108,7 +108,7 @@ export const ITEMS: Record<
     name: "星月旅行鞋",
     slot: "shoes",
     description: "踏着星光，继续下一段旅程。",
-    source: "星光黄金矿工收集 160 心愿金",
+    source: "回声遗迹 · 琥珀深井黄金矿工收集 160 矿光",
     icon: 7,
   },
   berryBag: {

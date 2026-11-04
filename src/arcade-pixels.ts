@@ -1,6 +1,7 @@
 // Ink, shadow, body, light, paper, and a small accent. Each silhouette is
 // recognizable without color (especially the eight matching-game tokens).
 const sprites = {
+  bell: [".....xx....","....xppx...","...xppipx..","...xppipx..","..xbppippx.",".xpppppppx.",".xxxxxxxxx.","....xax....",".....x....."],
   star: ["....xx.....","....xpx....","...xppx....","xxxbppbxxxx",".xbppppbbx.","..xbpppbx..","..xbbaabx..","..xpbxbbx..",".xbxx..xbx.","..x.....x.."],
   moon: [".....xxx...","...xxppx...","..xippx....",".xippbx....","xipppbx....","xppppbbx...","xbppppbbxxx","xbpppppppbx",".xbbppbbbx.","..xxbbbxx..","....xxx...."],
   berry: ["...x..x....","...xaaaax..","..xaaaxxx..",".xxbbpbbxx.","xpbibpbbpbx","xppppbippbx","xbibppppbbx",".xbppbibbx.","..xbbppbbx.","...xbbbbx..",".....xx...."],
@@ -19,6 +20,7 @@ const sprites = {
 export type PixelMotif = keyof typeof sprites;
 const outlines = "#624859";
 const colors: Record<PixelMotif, readonly string[]> = {
+  bell: [outlines,"#a27858","#dbad6c","#fff1b3","#c5885f"],
   star: [outlines,"#d99a50","#f8cf73","#fff2b6","#eea26b"],
   moon: ["#705c84","#cc9654","#f4ce83","#fff0ba","#a494c3"],
   berry: ["#764653","#b95675","#ee8f9d","#ffe1ba","#769c62"],

@@ -6,8 +6,9 @@ import { gardenGuests } from "./garden-guests.ts";
 import { townGates, gatePosts, gateSpot } from "./gate-layout.ts";
 import { rainbowFlowers, rainbowSpot, meadowGate, meadowGatePosts } from "./rainbow-flowers.ts";
 import { meadowScene } from "./meadow-map.ts";
+import { ruinsScene } from "./ruins-map.ts";
 import { bassStand } from "./room-props.ts";
-export type SceneId = "room" | "garden" | "challenge" | "town" | "meadow";
+export type SceneId = "room" | "garden" | "challenge" | "town" | "meadow" | "ruins";
 export interface Hotspot {
   id: string;
   title: string;
@@ -40,6 +41,7 @@ const polygon = (label: string, coordinates: number[][]) => ({
 // Logical pixels. Follow visible object bases, not their overhead decorations.
 export const scenes: Record<SceneId, Scene> = {
   town: townScene,
+  ruins: ruinsScene,
   meadow: meadowScene,
   room: {
     title: "晚安小屋",

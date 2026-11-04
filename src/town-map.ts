@@ -1,5 +1,6 @@
 import type { Scene } from "./maps.ts";
-import { ARCADES, TOWN_NPCS } from "./town-data.ts";
+import { arcadesIn, TOWN_NPCS } from "./town-data.ts";
+import { townEchoGate } from "./ruins-map.ts";
 import { fenceSegments } from "./fences.ts";
 import { townSurfaces } from "./town-surfaces.ts";
 import { townCanopies, festivalProps } from "./town-scenery.ts";
@@ -31,6 +32,7 @@ export const townScene: Scene = {
     [70, 340],
   ].map(([x, y]) => ({ x, y })),
   walls: [
+    ...[-24, 17].map(dx => ({label:"遗迹石拱门柱",x:townEchoGate.x+dx,y:townEchoGate.y-5,w:7,h:12})),
     ...townGates.filter((g) => g.scene === "town").flatMap(gatePosts),
     { label: "月兔台前的红邮筒", x: 535, y: 614, w: 19, h: 12 },
     { label: "月兔台前的花盆", x: 550, y: 604, w: 20, h: 12 },
@@ -168,6 +170,7 @@ export const townScene: Scene = {
   ],
   hazards: [],
   spots: [
+    townEchoGate,
     ...TOWN_NPCS.map((n) => ({
       id: "npc-" + n.id,
       title: n.name + " · " + n.role,
@@ -178,7 +181,7 @@ export const townScene: Scene = {
       markerOffset: 53,
       color: "#ceab63",
     })),
-    ...Object.entries(ARCADES).map(([id, g]) => ({
+    ...arcadesIn("town").map(([id, g]) => ({
       id: "arcade-" + id,
       title: g.title,
       x: g.x,
@@ -199,7 +202,7 @@ for (const npc of TOWN_NPCS)
     w: 10,
     h: 9,
   });
-for (const game of Object.values(ARCADES))
+for (const [,game] of arcadesIn("town"))
   townScene.walls.push({
     label: game.title + "摊位",
     x: game.x - 24,

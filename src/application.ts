@@ -17,6 +17,7 @@ import { Nature, NATURE_KEY } from "./nature";
 import { INVENTORY_KEY } from "./items";
 import { FlowerTrail } from "./flower-trail";
 import { NightMeadow } from "./night-meadow";
+import { EchoRuins } from "./echo-ruins";
 import { RoomBass } from "./room-bass";
 import { bassStand } from "./room-props";
 import { mountDebugPanel } from "./debug-panel";
@@ -213,11 +214,12 @@ export function mountGame(tasks: Task[]) {
     save();
     return score;
   });
-  const town = new Town(world, activities, inventory, arcade);
+  const town = new Town(world, activities, inventory, id => visit(ARCADES[id].scene, "arcade-"+id));
   const gardenLife = new GardenLife(world, activities, inventory);
   new Companion(world);
   const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);
   const meadow = new NightMeadow(world, () => progress.creditStars, save);
+  const ruins = new EchoRuins(world, activities, () => progress.echoes, save);
   const bass = new RoomBass(world, () => progress.bassSongPlayed, () => {
     if (!progress.bassSongPlayed) { progress.bassSongPlayed = true; save(); }
   }, () => ({ enabled:progress.bassSound, volume:progress.volume }), () => {
@@ -267,7 +269,7 @@ export function mountGame(tasks: Task[]) {
       world.switchScene(scene, arrival, Math.abs(dx)>Math.abs(dy) ? (dx>0 ? 2 : 1) : (dy<0 ? 3 : 0));
       revealMapIfOffscreen();
     }).catch(() => {
-      toast("花径还没准备好，请稍后再穿一次花门。");
+      toast("地图暂未载入，稍后可以再试一次。");
     }).finally(() => {
       overlay.classList.remove("active");
       world.paused = false;
@@ -329,11 +331,12 @@ export function mountGame(tasks: Task[]) {
     bass.close(false);
     saveLocation();
     if (scene !== "meadow") meadow.leave();
+    if (scene !== "ruins") ruins.clearEffect();
     nature.refreshClock();
     document.querySelector("#location-name")!.textContent =
-      `${({room:"ROOM 01",garden:"GARDEN 02",challenge:"GARDEN 03",town:"TOWN 04",meadow:"SECRET 05"})[scene]} · ${scenes[scene].title}`;
+      `${({room:"ROOM 01",garden:"GARDEN 02",challenge:"GARDEN 03",town:"TOWN 04",meadow:"SECRET 05",ruins:"RUINS 06"})[scene]} · ${scenes[scene].title}`;
     document.querySelector(".map-switch")!.innerHTML =
-      `${scene === "room" || scene === "meadow" ? "周年花园" : scene === "garden" ? "勇气花园" : scene === "challenge" ? "周年小镇" : "晚安小屋"} ${icon("arrow")}`;
+      `${scene === "room" || scene === "meadow" ? "周年花园" : scene === "garden" ? "勇气花园" : scene === "town" ? "回声遗迹" : "周年小镇"} ${icon("arrow")}`;
     document
       .querySelectorAll<HTMLButtonElement>(".scene-nav button[data-scene]")
       .forEach((button) => {
@@ -357,7 +360,15 @@ export function mountGame(tasks: Task[]) {
     reader.close();
     dismissRevive();
     document.querySelector<HTMLElement>(".nearby-prompt")!.hidden = true;
-    if (flowerTrail.interact(id) || meadow.interact(id)) return;
+    if (flowerTrail.interact(id) || meadow.interact(id) || ruins.interact(id)) return;
+    if (id.startsWith("arcade-")) {
+      const game = id.slice(7) as GameId;
+      if (ARCADES[game]?.scene === world.scene) {
+        ruins.discover(game);
+        arcade.open(game);
+      }
+      return;
+    }
     if (id===bassStand.spot.id) { activities.close(); bass.open(); return; }
     if (id === "bed") {
       activities.close();
@@ -449,7 +460,7 @@ export function mountGame(tasks: Task[]) {
         } catch {
           if (journey === resume) {
             world.switchScene("garden");
-            toast("花海暂未载入，先回庭院歇一会儿。");
+              toast("上次的地图暂未载入，先回庭院歇一会儿。");
           }
         }
       }
@@ -505,10 +516,8 @@ export function mountGame(tasks: Task[]) {
         ? "garden"
         : world.scene === "garden"
           ? "challenge"
-          : world.scene === "challenge"
-            ? "town"
-            : "room",
-      world.scene === "meadow" ? "prism-arch" : undefined,
+          : world.scene === "town" ? "ruins" : "town",
+      world.scene === "meadow" ? "prism-arch" : world.scene === "ruins" ? "echo-gate" : undefined,
     );
   });
   document
@@ -538,7 +547,11 @@ export function mountGame(tasks: Task[]) {
     activities.close();
     reader.close();
     dismissRevive();
-    if (world.scene !== scene) world.switchScene(scene);
+    if (world.scene !== scene) {
+      transition(scene);
+      afterCrossing = () => { if (world.scene === scene) visit(scene, id); };
+      return;
+    }
     world.visit(id);
     world.canvas.focus({ preventScroll: true });
     revealMapIfOffscreen();
@@ -554,7 +567,7 @@ export function mountGame(tasks: Task[]) {
   document.querySelectorAll<HTMLButtonElement>("[data-arcade]").forEach((b) =>
     b.addEventListener("click", () => {
       const id = b.dataset.arcade as GameId;
-      if (ARCADES[id]) visit("town", "arcade-" + id);
+      if (ARCADES[id]) visit(ARCADES[id].scene, "arcade-" + id);
     }),
   );
   document

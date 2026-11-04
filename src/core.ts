@@ -1,4 +1,5 @@
 import { rainbowIds } from "./rainbow-flowers.ts";
+import { readEchoMemory, type EchoMemory } from "./echoes.ts";
 import { producers } from "./content.ts";
 import { ARCADES } from "./town-data.ts";
 import type { GameId } from "./arcade-engines.ts";
@@ -45,6 +46,7 @@ export interface Progress {
   volume: number;
   bedNoteUnlocked: boolean;
   bassSongPlayed: boolean;
+  echoes: EchoMemory;
   rainbowFlowers: string[];
   creditStars: string[];
   arcadeBests: Partial<Record<GameId, number>>;
@@ -79,6 +81,7 @@ export function readProgress(raw: string | null): Progress {
     volume: 0.45,
     bedNoteUnlocked: false,
     bassSongPlayed: false,
+    echoes: readEchoMemory(),
     rainbowFlowers: [],
     creditStars: [],
     arcadeBests: {},
@@ -106,6 +109,7 @@ export function readProgress(raw: string | null): Progress {
       bassSound: p.bassSound !== false,
       bedNoteUnlocked: p.bedNoteUnlocked === true,
       bassSongPlayed: p.bassSongPlayed === true,
+      echoes: readEchoMemory(p.echoes),
       rainbowFlowers: valid(Array.isArray(p.rainbowFlowers)
         ? p.rainbowFlowers.map(id => id === "prism-poppy" ? "prism-calendula" : id)
         : [], rainbowIds),

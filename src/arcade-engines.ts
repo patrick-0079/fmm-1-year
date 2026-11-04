@@ -110,30 +110,32 @@ export class SnakeGame implements Engine {
     }
   }
   draw(c: CanvasRenderingContext2D, art?: Backdrop) {
-    scenery(c, art, "#b9d5ab");
-    c.strokeStyle = "#829574"; c.lineWidth = 2;
+    scenery(c, art, "#4e7467");
+    c.strokeStyle = "#b6bf8b"; c.lineWidth = 2;
     c.strokeRect(19, 9, 202, 142);
     for (let y = 0; y < 14; y++) for (let x = 0; x < 20; x++) {
-      c.fillStyle = (x + y) % 2 ? "#fbf2d367" : "#bed2a869";
+      c.fillStyle = (x + y) % 2 ? "#233e3ec9" : "#34564ecc";
       c.fillRect(20 + x * 10, 10 + y * 10, 10, 10);
     }
     const candyX = 25 + this.food.x * 10, candyY = 15 + this.food.y * 10;
-    if (!illustrated(c, art, "sweet", candyX - 6, candyY - 4, 12, 8)) motif(c, "star", candyX, candyY, 10);
+    c.fillStyle="#f1e6a3"; c.fillRect(candyX-4,candyY-4,8,8);
+    motif(c, "sprout", candyX, candyY, 11);
     for (let i = this.body.length - 1; i >= 0; i--) {
       const p = this.body[i], x = 20 + p.x * 10, y = 10 + p.y * 10;
       if (i) {
-        panel(c, x, y, 10, 10, i % 2 ? "#daa0b6" : "#f0b6bb", "#945b79", "#ffe2c4");
-        c.fillStyle = "#fbdac0";
+        panel(c, x, y, 10, 10, i % 2 ? "#85bf9d" : "#61a88f", "#345951", "#b8edc9");
+        c.fillStyle = "#e6da9a";
         c.fillRect(x + 4, y + 4, 2, 2);
       } else {
         c.save();
         c.translate(x + 5, y + 5);
         if (this.direction.x === -1) c.scale(-1, 1);
         else c.rotate(Math.atan2(this.direction.y, this.direction.x));
-        if (!illustrated(c, art, "snakeHead", -6, -6, 13, 12)) {
-          panel(c, -5, -5, 10, 10, "#f0b6bb", "#945b79", "#ffe2c4");
-          c.fillStyle = "#563f55"; c.fillRect(1, -3, 2, 2); c.fillRect(1, 1, 2, 2);
-        }
+        c.fillStyle="#304e49"; c.fillRect(-5,-4,8,8); c.fillRect(-3,-5,6,10); c.fillRect(3,-3,3,6);
+        c.fillStyle="#a9ddab"; c.fillRect(-4,-3,7,6); c.fillRect(3,-2,2,4);
+        c.fillStyle="#ede0a1"; c.fillRect(-4,-5,2,2); c.fillRect(-4,3,2,2); c.fillRect(0,-3,3,2); c.fillRect(0,1,3,2);
+        c.fillStyle="#263b3a"; c.fillRect(2,-3,1,2); c.fillRect(2,1,1,2);
+        c.fillStyle="#e68c80"; c.fillRect(5,0,2,1); c.fillRect(7,-1,1,1); c.fillRect(7,1,1,1);
         c.restore();
       }
     }

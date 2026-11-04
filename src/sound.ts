@@ -101,8 +101,16 @@ export function duckMusic(value: boolean, source: "cinema" | "bass" = "cinema") 
   if (value) quietFor.add(source); else quietFor.delete(source);
   levels();
 }
+const echoNotes: Record<string, number[]> = {
+  "echo-leaf": [64], "echo-bell": [67], "echo-star": [71],
+  "echo-broadcast": [64,67,71,74,71,67,64],
+};
 export function sfx(name: string) {
   if (!enabled || !context || !effects || document.hidden) return;
+  if (Object.hasOwn(echoNotes, name)) {
+    echoNotes[name].forEach((pitch, i) => tone(pitch, context!.currentTime + i * .32, .82, .085, effects!, "sine"));
+    return;
+  }
   if (name === "starlight") {
     tone(76, context.currentTime, .58, .065, effects, "sine");
     tone(83, context.currentTime + .14, .88, .046, effects, "sine");

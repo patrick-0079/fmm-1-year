@@ -4,7 +4,7 @@ import { canStand, canTravelBetween, movePlayer } from "../src/core.ts";
 import { scenes } from "../src/maps.ts";
 import { townCanopies, festivalProps } from "../src/town-scenery.ts";
 import { townGates, gatePosts, crossedTownGate } from "../src/gate-layout.ts";
-import { ARCADES } from "../src/town-data.ts";
+import { arcadesIn } from "../src/town-data.ts";
 
 const square = (left: number, right: number) => [
   { x: left, y: 0 },
@@ -44,7 +44,7 @@ test("the painted lanes lead through their real openings and crossings only fire
 
 test("the whole arcade counter stands on native open ground, away from fences and trees", () => {
   const s = scenes.town;
-  for (const [id, g] of Object.entries(ARCADES)) {
+  for (const [id, g] of arcadesIn("town")) {
     const terrain = s.walls.filter((w) => w.label !== g.title + "摊位");
     for (const dx of [-23, 0, 23])
       assert.ok(canStand({x:g.x+dx, y:g.y+12}, terrain, s.bounds, s.floor, s.surfaces), `${id}: unsupported counter foot ${dx}`);

@@ -21,6 +21,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 文字、图片、录音、视频收藏 | `src/content.ts` 的 `collections`；本地文件放 `public/media/`，页面路径写 `/media/文件名` |
 | 花园大屏视频 | `src/cinema-config.ts`；使用直接可读取的 MP4 地址，推荐 H.264 + AAC，替换后核对 CORS |
 | 每次复活的床边便签 | `src/bed-note.ts`、`src/assets/xiaoye-note.webp`。首遇解锁图钉，之后每次回床也自动展信。附加文案在 `content.ts` 的 `encouragements` |
+| 回声遗迹 | `src/ruins-map.ts` 记录地砖范围和门槛，`src/echoes.ts` 校验拓本与解谜存档，`src/echo-ruins.ts` 负责祭坛、石座、听月泉和电波。地图、拱门和三张棋盘用 `node scripts/build-ruins-art.mjs` 从三张原画重建。 |
 | 七色花与夜间花海 | `src/rainbow-flowers.ts` 和 `src/flower-trail.ts` 维护七种花与入口。`src/meadow-map.ts` 描出草地、帐篷、火圈和水壶。`src/night-meadow.ts` 绘制羊、萤火与落星，管理寄语和星光瓶 |
 | 苹果、可采花丛、勇气花和黄昏纸船 | `src/nature.ts` 按剩余数量和时段绘制，`src/wild-art.ts` 按脚底锚点读取四格图集。运行 `npm run art:night` 重建花海和采集物美术。[v16 素材说明](ARTWORK-v16.md) |
 | 烟花祝福 | `src/celebration.ts` 的 `fireworkWishes`；全部是预设文字 |
@@ -88,7 +89,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 | localStorage 键 | 内容 |
 | --- | --- |
-| `nemu-anniversary-v1` | 探索点、五个心愿、声音偏好、床边便签图钉、七色花与落星 ID、七个小游戏的个人最高分 |
+| `nemu-anniversary-v1` | 探索点、五个心愿、声音偏好、床边便签图钉、七色花与落星 ID、七个小游戏的个人最高分，以及遗迹拓本、旋律进度和彩蛋收听记录 |
 | `fufu-journey-v1` | 上次的地图、脚下位置及保存时间；在休息姿势下记录可安全起身的位置 |
 | `fufu-garden-bag-v1` | 苹果、花朵、星屑、每日采集记录与旧花环数据 |
 | `fufu-world-clock-v1` | 昼夜起始时间和长椅推进时间 |
@@ -130,17 +131,19 @@ R2 CORS 完整示例在 [README](README.md#花园小电视cdn-周年放映)。`C
 
 ## 发布前验收
 
+开发页 `/tests/exploration-fixture.html` 的「验收遗迹通路、三间试炼与晚安彩蛋」从月兔台旁步行穿门，依次进入三间石室，再检查错音重试、听月泉重播和南阶返回。小游戏地图由 `src/town-data.ts` 的 `scene` 指定，移动游戏时保留原 ID，已获得的饰品与最高分就能继续使用。
+
 先执行 `npm run check`。纯逻辑测试覆盖七个小游戏、奖励与读档、防止在陷阱或未解锁花海恢复、地图可达性、睡姿装备、蛋糕手势，以及视频核对版本、离线回退、完整下载、停滞和重试。再用开发服务器检查以下页面：
 
 | 页面 | 用途 |
 | --- | --- |
 | `/tests/interaction-fixture.html` | 真实控制器的暂停、恢复、焦点、快捷键与活动计时回归，不写存档 |
 | `/tests/equipment-fixture.html` | 14 件纪念品的方向、坐姿、睡姿；睡觉不能出现饰品 |
-| `/tests/scenery-fixture.html` | 窗景、晨露花和七种摊位的绘制 |
+| `/tests/scenery-fixture.html` | 窗景、晨露花和四座小镇摊位的绘制 |
 | `/tests/mobile-fixture.html` | 375/320 宽度真实页面，使用当前来源的本机进度 |
 | `/tests/media-fixture.html` | 四种媒体、长文字和缺失素材；专用测试容器不代表生产阅读区布局 |
 
-最后在生产预览中走一遍：四张常规地图和花海的解锁、花门往返、坐/躺/起身、蛋糕切割与食用、礼物切换、小游戏暂停及继续、背包分类穿脱、视频加载/离开/返回/全屏、游戏内与页面信箱切换。手机重点检查按钮不被画面遮挡、地图与面板没有横向溢出。
+最后在生产预览中走一遍：五张常规地图和花海的解锁、花门往返、坐/躺/起身、蛋糕切割与食用、礼物切换、小游戏暂停及继续、背包分类穿脱、视频加载/离开/返回/全屏、游戏内与页面信箱切换。手机重点检查按钮不被画面遮挡、地图与面板没有横向溢出。
 
 ## 2026-11-02 检查修复记录
 

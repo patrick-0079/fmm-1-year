@@ -315,6 +315,7 @@ export class Nature {
   private tick(dt: number) {
     const clock = this.clock;
     const meadow = this.world.scene === "meadow";
+    const ruins = this.world.scene === "ruins";
     const target: Record<string, number[]> = {
       dawn: [242, 184, 171, 0.11],
       day: [255, 234, 167, 0.03],
@@ -326,7 +327,7 @@ export class Nature {
     for (let i = 0; i < 4; i++)
       this.tint[i] += (target[clock.phase][i] - this.tint[i]) * amount;
     if (this.oldPhase !== clock.phase) {
-      if (this.oldPhase && !meadow)
+      if (this.oldPhase && !meadow && !ruins)
         this.toast(`${phaseNames[clock.phase]}到了 · ${this.world.scene==="town"?"小镇换了光景":"花园里的风景悄悄变了"}`);
       this.oldPhase = clock.phase;
     }
@@ -335,10 +336,10 @@ export class Nature {
     const time = document.querySelector(".time-pill")!;
     this.world.canvas.parentElement!.dataset.lightScene=this.world.scene;
     (time as HTMLElement).dataset.phase=clock.phase;
-    time.textContent = meadow ? "☾ 花海 · 静夜" : `${{ dawn: "☀", day: "☀", dusk: "◒", night: "☾" }[clock.phase]} ${clock.label} · ${phaseNames[clock.phase]}`;
+    time.textContent = ruins ? "♫ 遗迹 · 长明灯" : meadow ? "☾ 花海 · 静夜" : `${{ dawn: "☀", day: "☀", dusk: "◒", night: "☾" }[clock.phase]} ${clock.label} · ${phaseNames[clock.phase]}`;
     time.setAttribute(
       "title",
-      meadow ? "花海长夜，庭院的时钟仍在走动" : `第 ${clock.day} 天 · 现实十分钟为一天；花园长椅可休息到下一时段`,
+      ruins ? "地底的石灯昼夜长明" : meadow ? "花海长夜，庭院的时钟仍在走动" : `第 ${clock.day} 天 · 现实十分钟为一天；花园长椅可休息到下一时段`,
     );
     document.querySelector(".bag-count")!.textContent =
       `苹果 ${this.state.apple} · 花朵 ${this.state.flower} · 星屑 ${this.state.star}`;
@@ -352,7 +353,7 @@ export class Nature {
       wearing ? "摘下花环，快捷键 H" : "戴上花环，快捷键 H",
     );
     crown.setAttribute("aria-pressed", String(wearing));
-    document.querySelector(".day-hint")!.textContent = meadow ? "草间有落星，营火旁有一只收着星光的玻璃瓶。" :
+    document.querySelector(".day-hint")!.textContent = ruins ? "石廊里的三块铭文，记着一段遗忘的晚安。" : meadow ? "草间有落星，营火旁有一只收着星光的玻璃瓶。" :
       `第 ${clock.day} 天 · 十分钟一昼夜 · ${clock.phase === "dawn" ? "晨露花醒来了" : clock.phase === "dusk" ? "溪边漂来一只纸船" : clock.phase === "night" ? "萤火心愿悄悄出现" : "找长椅休息，等一场黄昏和星夜"}`;
   }
   refreshClock() {
@@ -364,7 +365,7 @@ export class Nature {
       drawRoomWindow(c, this.clock.phase, this.windowImage);
       return;
     }
-    if (this.world.scene === "town" || this.world.scene === "meadow") return;
+    if (this.world.scene !== "garden" && this.world.scene !== "challenge") return;
     drawCreek(c, creeks[this.world.scene], t);
     const atlas = this.world.orchardSprites;
     if (this.world.scene === "challenge") {
@@ -451,7 +452,7 @@ export class Nature {
     ];
   }
   private lighting(c: CanvasRenderingContext2D) {
-    if (this.world.scene === "meadow") return;
+    if (this.world.scene === "meadow" || this.world.scene === "ruins") return;
     if (this.world.scene === "town") {
       drawTownLight(c,this.clock.hours,performance.now()/1000,this.reduce.matches); return;
     }

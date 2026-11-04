@@ -5,6 +5,7 @@ export const ARCADES: Record<
   {
     title: string;
     short: string;
+    scene: "town" | "ruins";
     x: number;
     y: number;
     reward: ItemId;
@@ -12,14 +13,16 @@ export const ARCADES: Record<
   }
 > = {
   snake: {
-    title: "星糖贪吃蛇",
-    short: "星糖摊",
-    x: 500,
-    y: 331,
+    title: "苔纹贪吃蛇",
+    short: "蛇纹苔庭",
+    scene: "ruins",
+    x: 126,
+    y: 326,
     reward: "candyClip",
-    instructions: "方向键 / WASD 吃星糖，收集 6 颗。别碰墙，也别咬到自己。",
+    instructions: "用方向键 / WASD 或画面上的方向按钮引导玉蛇，点亮 6 枚叶芽。留意石壁和自己的蛇尾。",
   },
   blocks: {
+    scene: "town",
     title: "晚安方块",
     short: "方块屋",
     x: 1057,
@@ -28,6 +31,7 @@ export const ARCADES: Record<
     instructions: "左右移动，上键旋转，下键加速，空格落下。累计消除 4 行。",
   },
   hop: {
+    scene: "town",
     title: "月兔跳一跳",
     short: "月兔台",
     x: 448,
@@ -37,6 +41,7 @@ export const ARCADES: Record<
       "按住空格或蓄力键，松开跳跃；短按近跳，长按远跳。到达 8 个新平台。",
   },
   flight: {
+    scene: "town",
     title: "芙芙晚安飞行",
     short: "晚安飞行站",
     x: 710,
@@ -45,6 +50,7 @@ export const ARCADES: Record<
     instructions: "点击画面或按空格轻拍翅膀，穿过 8 道星门。",
   },
   link: {
+    scene: "town",
     title: "晚安心愿连连看",
     short: "心愿连连屋",
     x: 570,
@@ -54,24 +60,30 @@ export const ARCADES: Record<
       "连接相同心愿图案，连线最多拐两次。没有倒计时，可用提示与洗牌；8 对即可领奖。",
   },
   mines: {
-    title: "晨露花田扫雷",
-    short: "晨露花田",
-    x: 1148,
-    y: 521,
+    title: "星纹石阵扫雷",
+    short: "北廊星图室",
+    scene: "ruins",
+    x: 450,
+    y: 143,
     reward: "mintCape",
     instructions:
-      "6×5 小花田里只有 4 处小挫折，第一下和周围都安全。翻开安全格，F 标旗，有 3 次安全提示。",
+      "6×5 块石砖中藏着 4 道裂隙。数字是相邻裂隙的数量，首块和周围都安全。F 插旗，有 3 次探星提示。",
   },
   miner: {
-    title: "星光黄金矿工",
-    short: "星光矿工",
-    x: 518,
-    y: 562,
+    title: "琥珀深井黄金矿工",
+    short: "琥珀矿井",
+    scene: "ruins",
+    x: 792,
+    y: 326,
     reward: "starShoes",
     instructions:
-      "等钩子指向星矿或礼盒，按空格放钩。没有倒计时，落空不扣分，160 心愿金即可领奖。",
+      "古绞盘在琥珀井里摇摆。对准晶矿或铜铃按空格或点放钩，收集 160 矿光即可领奖。不限时，落空不扣分。",
   },
 };
+export function arcadesIn(scene: "town" | "ruins") {
+  return (Object.entries(ARCADES) as [GameId, (typeof ARCADES)[GameId]][])
+    .filter(([, game]) => game.scene === scene);
+}
 export interface TownNpc {
   id: string;
   name: string;
@@ -105,7 +117,7 @@ export const TOWN_NPCS: TownNpc[] = [
     sprite: 1,
     lines: [
       "今天的招牌是「一整年的晚安」草莓蛋糕。第一块当然留给芙芙。",
-      "往下走到小广场，还能去星糖摊玩贪吃蛇，带回一枚星糖发夹。",
+      "月兔台旁边那道石拱门通往回声遗迹。西廊住着一条玉蛇，找到六枚叶芽就送你星糖发夹。",
     ],
   },
   {
@@ -159,12 +171,12 @@ export const TOWN_NPCS: TownNpc[] = [
   {
     id: "snake-keeper",
     name: "青团",
-    role: "星糖摊主",
+    role: "遗迹引路人",
     x: 541,
     y: 369,
     sprite: 6,
     game: "snake",
-    lines: ["想把星糖串成一条甜甜的晚安吗？来挑战星糖贪吃蛇吧。"],
+    lines: ["回声遗迹的门开了，就在月兔台的东边。要不要我带你去西廊看看那条玉蛇？"],
   },
   {
     id: "blocks-keeper",
@@ -206,7 +218,7 @@ export const TOWN_NPCS: TownNpc[] = [
     gift: "anniversaryPin",
     lines: [
       "欢迎来到芙芙的一周年小镇！这枚纪念胸针，是我们准备的见面礼。",
-      "小镇有十五位居民和七个游乐摊位。领奖之后也能继续玩，达到双倍目标还有额外的兔兔斜挎包。沿着石板路慢慢逛吧。",
+      "小镇有四个游乐摊。月兔台旁的石拱门通往回声遗迹，里面还有三间试炼石室。领奖后也可以继续玩。",
     ],
   },
   {

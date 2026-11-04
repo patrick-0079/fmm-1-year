@@ -7,6 +7,9 @@ import wreathUrl from "./assets/flower-wreath.webp";
 import townUrl from "./assets/anniversary-town-v13.webp";
 import townDetailUrl from "./assets/anniversary-town-hd-v13.webp";
 import meadowUrl from "./assets/night-meadow-v16.webp";
+import ruinsUrl from "./assets/echo-ruins.webp";
+import wellUrl from "./assets/echo-well.webp";
+import { crossedEchoGate } from "./ruins-map";
 import { meadowAtlasUrl, orchardAtlasUrl } from "./wild-art";
 import { sceneArtReady } from "./scene-art";
 import trapsUrl from "./assets/garden-traps.webp";
@@ -42,6 +45,7 @@ const art = {
   challenge: challengeUrl,
   town: townUrl,
   meadow: meadowUrl,
+  ruins: ruinsUrl,
 };
 export interface DepthLayer {
   y: number;
@@ -59,7 +63,7 @@ export class World {
   private images = new Map<string, HTMLImageElement>();
   private townDetail: HTMLImageElement | null = null;
   private townDetailPending = false;
-  private meadowRequest?: Promise<void>;
+  private mapRequests = new Map<SceneId, Promise<void>>();
   private keys = new Set<string>();
   private touch: Point = { x: 0, y: 0 };
   private path: Point[] = [];
@@ -316,20 +320,23 @@ export class World {
       .catch(() => {}).finally(() => { this.townDetailPending = false; });
   }
   prepareScene(scene: SceneId): Promise<void> {
-    if (scene !== "meadow" || this.images.has(meadowUrl)) return Promise.resolve();
+    if ((scene !== "meadow" && scene !== "ruins") || this.images.has(art[scene])) return Promise.resolve();
     if (!this.canEnter(scene)) return Promise.reject(new Error("尚未集齐七色花"));
-    if (!this.meadowRequest) {
-      this.meadowRequest = Promise.all([meadowUrl, meadowAtlasUrl].map(async url => {
+    const pending = this.mapRequests.get(scene);
+    if (pending) return pending;
+    const urls = scene === "ruins" ? [ruinsUrl, wellUrl] : [meadowUrl, meadowAtlasUrl];
+    const request = Promise.all(urls.map(async url => {
         const image = new Image();
         image.decoding = "async"; image.src = url;
         await image.decode();
         return [url, image] as const;
       })).then(images => { for (const [url, image] of images) this.images.set(url,image); })
-        .finally(() => { this.meadowRequest = undefined; });
-    }
-    return this.meadowRequest;
+        .finally(() => { this.mapRequests.delete(scene); });
+    this.mapRequests.set(scene, request);
+    return request;
   }
   get meadowSprites() { return this.images.get(meadowAtlasUrl); }
+  get echoWell() { return this.images.get(wellUrl); }
   get orchardSprites() { return this.images.get(orchardAtlasUrl); }
   private paintMap(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
     const background = (this.scene === "town" && this.townDetail) || this.images.get(art[this.scene]);
@@ -573,7 +580,7 @@ export class World {
         Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 2 : 1) : dy > 0 ? 0 : 3;
     if (this.walking && !this.targetEvent) {
       const crossing = this.scene === "meadow" && enteredMoonCircle(before,this.player)
-        ? "meadow-exit" : crossedTownGate(this.scene,before,this.player)?.id;
+        ? "meadow-exit" : crossedEchoGate(this.scene,before,this.player) ?? crossedTownGate(this.scene,before,this.player)?.id;
       if (crossing) { this.clearInput(); this.onInteract(crossing); return; }
     }
     const trap =

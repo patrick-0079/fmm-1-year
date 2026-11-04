@@ -6,6 +6,7 @@ import { JOURNEY_KEY, readJourney } from "../src/journey";
 import { townGates, gateSignFoot } from "../src/gate-layout";
 import { bassStand } from "../src/room-props";
 import { bassScore } from "../src/bass-score";
+import { townEchoGate, ruinsExit, echoAltar, echoPool } from "../src/ruins-map";
 
 // Same application as the homepage; all its saves are private to this QA tab.
 const space="fufu-only-exploration-fixture/";
@@ -110,11 +111,12 @@ async function checkAll() {
     q(".note-close").click(); q(".stand-up").click();
   }
   log("两次实际撞到不同陷阱均回到床上并自动展开小叶子图文便签");
-  world.switchScene("town",scenes.town.spots.find(s=>s.id==="arcade-mines")!.approach);
+  await world.prepareScene("ruins");
+  world.switchScene("ruins",scenes.ruins.spots.find(s=>s.id==="arcade-mines")!.approach);
   world.onInteract("arcade-mines");
   world.onAction(true); world.onAction(false); world.onAction(true); world.onAction(false);
   await wait(()=>(state().arcadeBests.mines ?? 0)>0);
-  expect(q(".arcade-score span").textContent?.includes("最高 "+state().arcadeBests.mines),"翻开花田未记录实得的最高分");
+  expect(q(".arcade-score span").textContent?.includes("最高 "+state().arcadeBests.mines),"翻开星纹石砖未记录实得的最高分");
   key("Escape"); key("Escape",false);
   checkHarvest();
   for(const [i,flower] of rainbowFlowers.entries()) {
@@ -166,6 +168,40 @@ async function run(check:()=>Promise<void>) {
   finally {q<HTMLButtonElement>("#verify").disabled=false;}
 }
 q("#verify").addEventListener("click",()=>void run(checkAll));
+q("#check-ruins").addEventListener("click",()=>void run(async()=>{
+  if (!q(".intro-screen").classList.contains("dismissed")) await start();
+  q(".reset-button").click(); q(".reset-confirm").click();
+  world.switchScene("town",townEchoGate.approach);
+  key("ArrowUp"); await wait(()=>world.scene==="ruins" && !world.paused); key("ArrowUp",false);
+  expect(!world.available(echoPool) && q("#location-name").textContent?.includes("回声遗迹"),"回声遗迹入口或秘密初始状态有误");
+  log("步行穿过月兔台旁的石拱门，安全落在遗迹南阶");
+  const action=(title:string)=>{
+    const button=[...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")].find(b=>b.textContent===title);
+    expect(button,"缺少祭坛操作："+title);button!.click();
+  };
+  world.visit(echoAltar.id); await wait(()=>q(".activity-status").textContent?.includes("石刻 0/3")===true);
+  expect(!q(".activity-actions").textContent?.includes("轻敲"),"空拓本提前开放解谜"); action("继续探索");
+  for(const id of ["snake","mines","miner"]) {
+    world.visit("arcade-"+id); await wait(()=>!q(".arcade-hud").hidden);
+    expect(q(".arcade-hud").dataset.setting==="ruins" && !!q(".echo-inscription").textContent,"石室试炼没有对应拓本");
+    q<HTMLButtonElement>(".arcade-result-actions button").click();
+    expect(q(".arcade-controls").hidden===false,"遗迹试炼不能开始");
+    key("Escape"); key("Escape",false);
+  }
+  expect(state().echoes.found.length===3 && state().echoes.played===0,"三间石室没有分别记录");
+  log("三间石室均能沿石地走到，原地启动与退出游戏，未通关也能抄录三条线索");
+  world.visit(echoAltar.id); await wait(()=>q(".activity-actions").textContent?.includes("轻敲")===true);
+  action("轻敲「叶」"); action("轻敲「星」"); expect(state().echoes.played===1,"错音丢失已奏的音");
+  action("轻敲「铃」"); action("轻敲「星」");
+  expect(world.available(echoPool) && state().echoes.played===3,"正确旋律没有唤醒听月泉");
+  action("去水边看看"); await wait(()=>state().echoes.listened);
+  expect(q(".activity-status").textContent?.includes("365"),"彩蛋内容未显示");
+  action("再听一遍"); action("把晚安收好");
+  log("祭坛保留错音前的进度，三音唤醒水中电台，周年彩蛋可重听");
+  world.visit(ruinsExit.id); await wait(()=>world.scene==="town" && !world.paused);
+  expect(Math.hypot(world.player.x-townEchoGate.approach.x,world.player.y-townEchoGate.approach.y)<2,"没有回到镇上的石门");
+  log("南阶可原路返回，读档保留拓本、正确音符和彩蛋");
+}));
 q("#check-lanes").addEventListener("click",()=>void run(async()=>{
   if(!q(".intro-screen").classList.contains("dismissed")) await start();
   q(".reset-button").click(); q(".reset-confirm").click(); // This fixture owns an isolated save.
@@ -391,7 +427,8 @@ if (sessionStorage.getItem(space+"reload")) {
     await wait(()=>world.scene==="room" && !q(".bed-note").hidden);
     log("已解锁便签的旧存档再次触发陷阱，也会自动展信");
     q(".note-close").click(); q(".stand-up").click();
-    world.switchScene("town",scenes.town.spots.find(s=>s.id==="arcade-mines")!.approach);
+    await world.prepareScene("ruins");
+    world.switchScene("ruins",scenes.ruins.spots.find(s=>s.id==="arcade-mines")!.approach);
     world.onInteract("arcade-mines");
     expect((state().arcadeBests.mines ?? 0)>0 && q(".arcade-score strong").textContent==="0" &&
       q(".arcade-score span").textContent?.includes("最高 "+state().arcadeBests.mines),"新一局没有保留之前实际打出的最高分");

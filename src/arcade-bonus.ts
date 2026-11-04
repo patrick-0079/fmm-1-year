@@ -313,13 +313,14 @@ export class MinesGame extends BonusGame {
     }
   }
   draw(c: CanvasRenderingContext2D, art?: Backdrop) {
-    scenery(c, art, "#c3caaa");
+    scenery(c, art, "#464861");
     for (let i = 0; i < 30; i++) {
       const x = 38 + (i % 6) * 28, y = 14 + Math.floor(i / 6) * 28;
       const open = this.revealed.has(i);
-      panel(c, x, y, 24, 24, open ? "#eee4c8" : "#c4d49f", open ? "#a79679" : "#788965", open ? "#f8edd5" : "#e5efc5");
+      panel(c, x, y, 24, 24, open ? "#ece2cf" : "#555a78", open ? "#a99d88" : "#34394c", open ? "#ffefd5" : "#a7a5c3");
       if (this.status === "lost" && this.mines.has(i)) {
-        motif(c, "thorns", x + 12, y + 12, 17);
+        c.strokeStyle="#733f53"; c.lineWidth=2; c.beginPath();
+        c.moveTo(x+6,y+3); c.lineTo(x+13,y+10); c.lineTo(x+9,y+14); c.lineTo(x+17,y+21); c.stroke();
       } else if (open) {
         const n = this.count(i);
         if (n) {
@@ -329,10 +330,10 @@ export class MinesGame extends BonusGame {
       } else if (this.flags.has(i)) {
         motif(c, "flag", x + 12, y + 12, 18);
       } else {
-        motif(c, "sprout", x + 12, y + 12, 13);
+        motif(c, "star", x+12, y+12, 11);
       }
       if (i === this.cursor) {
-        c.strokeStyle = "#714f69"; c.lineWidth = 1.5;
+        c.strokeStyle = "#ffe1a5"; c.lineWidth = 1.5;
         c.strokeRect(x - 1.5, y - 1.5, 27, 27);
       }
     }
@@ -416,7 +417,7 @@ export class MinerGame extends BonusGame {
   }
   draw(c: CanvasRenderingContext2D, art?: Backdrop) {
     scenery(c, art, "#94778c");
-    // Stand the winch above a real opening in the little timber work platform.
+    // A bronze pulley sits over the opening in the amber chamber.
     for (const x of [105, 132]) {
       c.fillStyle = "#785560"; c.fillRect(x, 24, 4, 17);
       c.fillStyle = "#c59473"; c.fillRect(x + 1, 25, 1, 15);
@@ -438,14 +439,14 @@ export class MinerGame extends BonusGame {
     for(const side of [-1,1]) { c.moveTo(0,0); c.lineTo(side*5,3); c.lineTo(side*gap,8); c.lineTo(side*(gap-1.5),7); }
     c.strokeStyle="#654b59"; c.lineWidth=3.5; c.stroke();
     c.strokeStyle="#ffe1ac"; c.lineWidth=1.7; c.stroke(); c.restore();
-    if (!illustrated(c, art, "winder", 110, 0, 20, 26)) {
-      panel(c, 109, 14, 22, 11, "#ae797e", "#684e67");
-      motif(c, "bunny", 120, 12, 17);
-    }
+    panel(c,108,14,24,12,"#936b55","#483e48","#eac48c");
+    c.beginPath(); c.arc(120,14,8,0,Math.PI*2); c.fillStyle="#dcb173"; c.fill();
+    c.strokeStyle="#53444a"; c.lineWidth=2; c.stroke();
+    c.beginPath(); c.moveTo(114,14); c.lineTo(126,14); c.moveTo(120,8); c.lineTo(120,20); c.stroke();
   }
   private drawOre(c: CanvasRenderingContext2D, x: number, y: number, r: number, kind: number, art?: Backdrop) {
     if (kind === 0 && illustrated(c, art, "gold", x-r, y-r, r*2, r*2)) return;
-    const token = (["star", "gem", "gift"] as const)[kind];
+    const token = (["star", "gem", "bell"] as const)[kind];
     motif(c, token, x, y, Math.round(r * 2), Math.round(r * 2));
   }
 }

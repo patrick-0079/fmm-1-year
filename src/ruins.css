@@ -1,0 +1,27 @@
+/* Stonework, parchment and copper share the palette of the three vaulted chambers. */
+.scene-wrap.arcade-active:has(.arcade-hud[data-setting="ruins"]) {
+  background: repeating-linear-gradient(135deg,#2b4142 0 9px,#304849 9px 11px,#2b4142 11px 20px);
+}
+.scene-wrap .arcade-hud[data-setting="ruins"] {
+  color: #384c49; border-color: #849780;
+  background: linear-gradient(142deg, #f1ecd8, #e2e9d8);
+  box-shadow: inset 0 0 0 3px #f9f3de, 0 3px 10px #29414333;
+}
+.arcade-hud[data-setting="ruins"] .arcade-ticket {
+  background: #294747; color: #fff0c9; border-color: #8caa98;
+}
+.arcade-hud[data-setting="ruins"] .arcade-ticket img { object-fit: cover; border-color: #c0b38c; }
+.arcade-hud[data-setting="ruins"] .arcade-ticket :is(small,b,span) { color: #f1e5c1; }
+.arcade-hud[data-setting="ruins"] .arcade-title { color: #3a5855; }
+.arcade-hud[data-setting="ruins"] progress { accent-color: #548879; }
+.echo-inscription {
+  padding: 7px 9px; margin: 6px 0; color: #384e4b;
+  border-left: 3px solid #b49a62; background: #faf3dc; font-size: 13px; line-height: 1.55;
+}
+.scene-wrap[data-light-scene="ruins"] .activity-hud {
+  max-height: calc(100% - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-color: #677c71;
+  background: #f6efdc;
+}

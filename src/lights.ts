@@ -14,6 +14,7 @@ const warm = (x: number, y: number, radius = 48): Light => ({
 });
 export const sceneLights: Record<SceneId, Light[]> = {
   meadow: [], // Moonlight is painted into the map; the campfire has its own glow.
+  ruins: [], // The chambers are lit by their own crystals.
   room: [
     warm(558, 76, 70),
     warm(45, 158, 72),

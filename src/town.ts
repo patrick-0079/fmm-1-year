@@ -1,8 +1,7 @@
 import type { World, DepthLayer } from "./world";
 import type { Inventory } from "./inventory";
 import type { Activities } from "./activities";
-import type { Arcade } from "./arcade";
-import { ARCADES, TOWN_NPCS, TOWN_FRAMES } from "./town-data";
+import { ARCADES, arcadesIn, TOWN_NPCS, TOWN_FRAMES } from "./town-data";
 import { drawArcadeStall } from "./arcade-stall";
 import type { GameId } from "./arcade-engines";
 import npcUrl from "./assets/town-npcs.webp";
@@ -22,7 +21,7 @@ export class Town {
     private world: World,
     private activities: Activities,
     private inventory: Inventory,
-    private arcade: Arcade,
+    private visitGame: (id: GameId) => void,
   ) {
     this.sprites.src = npcUrl;
     try {
@@ -53,14 +52,6 @@ export class Town {
     this.updateJournal();
   }
   interact(id: string) {
-    if (id.startsWith("arcade-")) {
-      const key = id.slice(7) as GameId;
-      if (ARCADES[key]) {
-        this.activities.close();
-        this.arcade.open(key);
-        return true;
-      }
-    }
     if (!id.startsWith("npc-")) return false;
     const npc = TOWN_NPCS.find((n) => n.id === id.slice(4));
     if (!npc) return false;
@@ -90,7 +81,7 @@ export class Town {
                   title: "去玩「" + ARCADES[npc.game].title + "」",
                   run: () => {
                     this.activities.close();
-                    this.world.visit("arcade-" + npc.game);
+                    this.visitGame(npc.game!);
                   },
                 },
               ]
@@ -174,10 +165,10 @@ export class Town {
             ),
           ),
       })),
-      ...Object.entries(ARCADES).map(([id, g]) => ({
+      ...arcadesIn("town").map(([id, g]) => ({
         y: g.y + 15,
         draw: (c: CanvasRenderingContext2D) =>
-          drawArcadeStall(c, g, id as GameId),
+          drawArcadeStall(c, g, id),
       })),
       ...TOWN_NPCS.map((n) => ({
         y: n.y,

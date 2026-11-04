@@ -13,6 +13,7 @@ const maps = {
   challenge: "勇气花园",
   town: "周年小镇",
   meadow: "夜间花海",
+  ruins: "回声遗迹",
 } as const;
 const button = (cmd: string, label: string) =>
   `<button type="button" data-debug="${cmd}">${label}</button>`;
@@ -48,7 +49,7 @@ export function mountDebugPanel(
         .map(([id, name]) => button("map:" + id, name))
         .join("")}</div></details>
       <details class="debug-flowers"><summary>七色花与花海</summary><div>${button("flower-door", "临时开放花门")}</div><p>点花名到达花旁，是否采下由你决定。</p><div>${rainbowFlowers.map((f, i) => button("flower:" + i, f.name)).join("")}</div></details>
-      <details><summary>小镇游乐摊</summary><div>${Object.entries(ARCADES)
+      <details><summary>小镇与遗迹小游戏</summary><div>${Object.entries(ARCADES)
         .map(([id, g]) => button("game:" + id, g.title))
         .join("")}</div></details>
       <details><summary>庆典互动与复活</summary><div>${[
@@ -60,6 +61,7 @@ export function mountDebugPanel(
         ["garden:danmaku", "花园放映"],
         ["room:letters", "晚安信箱"],
         ["room:bed", "小屋的床"],
+        ["ruins:echo-altar", "回声祭坛"],
       ]
         .map(([id, name]) => button("event:" + id, name))
         .join("")}${button("trap", "体验陷阱与复活")}</div></details>
@@ -196,7 +198,7 @@ export function mountDebugPanel(
       const f = rainbowFlowers[Number(key)];
       void travel(f.scene, f.id, "near");
     } else if (type === "map") void travel(key as SceneId);
-    else if (type === "game") void travel("town", "arcade-" + key, "open");
+    else if (type === "game" && Object.hasOwn(ARCADES,key)) void travel(ARCADES[key as keyof typeof ARCADES].scene, "arcade-" + key, "open");
     else if (type === "event") void travel(key as SceneId, id, "open");
     else if (type === "trap") void travel("challenge", undefined, "trap");
     refresh();

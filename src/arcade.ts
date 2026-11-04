@@ -10,7 +10,8 @@ import {
   type GameAction,
 } from "./arcade-engines";
 import { sfx } from "./sound";
-import { arcadeBackdrop, booths, postcard } from "./arcade-art";
+import { arcadeBackdrop, booths, chamberPrints, postcard } from "./arcade-art";
+import { echoes, trialEcho } from "./echoes";
 import { motif, panel, type Backdrop } from "./arcade-pixels";
 import { LinkGame, MinesGame } from "./arcade-bonus";
 import { reservedShortcut, readingTarget } from "./input";
@@ -60,7 +61,7 @@ export class Arcade {
       if (world.suspended || this.paused) return true;
       if (type === "down" && this.engine?.pointer) {
         if (this.engine.status === "ready") this.start();
-        const g = ARCADES[this.id];
+        const g = this.boardAnchor;
         this.engine.pointer(p.x - (g.x - 120), p.y - (g.y - 159));
         this.render();
         return true;
@@ -112,6 +113,11 @@ export class Arcade {
   get active() {
     return this.engine !== null;
   }
+  private get boardAnchor() {
+    // Keep the board and its pointer targets inside the camera at edge chambers.
+    const g=ARCADES[this.id], map=this.world.config;
+    return {x:Math.max(167,Math.min(map.width-167,g.x)), y:Math.max(194,Math.min(map.height-29,g.y))};
+  }
   open(id: GameId) {
     this.close();
     this.activities.close();
@@ -124,7 +130,7 @@ export class Arcade {
     this.paused = false;
     this.previousStatus = "";
     this.previousScore = -1;
-    const g = ARCADES[id];
+    const g = this.boardAnchor;
     this.world.clearInput();
     this.world.setFocus({ x: g.x, y: g.y - 82 }, 1.8);
     this.world.canvas.parentElement!.classList.add("arcade-active");
@@ -225,11 +231,14 @@ export class Arcade {
     // Rebuild only the status/action row; directional controls keep pointer capture.
     if (!this.hud.querySelector(".arcade-controls")) {
       const booth = booths[this.id];
+      const ruinId = Object.hasOwn(trialEcho,this.id) ? this.id as keyof typeof trialEcho : undefined;
+      this.hud.dataset.setting = ruinId ? "ruins" : "town";
       this.hud.innerHTML = `
         <div class="arcade-ticket">
-          <img src="${postcard}" alt="" width="84" height="56">
-          <div><small>FUFU ON AIR · 1ST</small><b>芙芙直播一周年</b><span>游园券 № ${booth.number} / 07</span></div>
+          <img src="${ruinId ? chamberPrints[ruinId] : postcard}" alt="" width="84" height="56">
+          <div><small>${ruinId ? "ECHO ARCHIVE · 1ST" : "FUFU ON AIR · 1ST"}</small><b>${ruinId ? "回声遗迹 · 石刻拓本" : "芙芙直播一周年"}</b><span>${ruinId ? booth.stamp : "游园券 № "+booth.number+" / 07"}</span></div>
         </div>
+        ${ruinId ? '<p class="echo-inscription">'+echoes[trialEcho[ruinId]].inscription+'</p>' : ''}
         <div class="arcade-heading"><div><small>${booth.stamp}</small><h3 class="arcade-title"></h3></div>
           <div class="arcade-score"><strong></strong><span></span></div></div>
         <div class="arcade-reward-track"><progress aria-label="纪念奖励进度"></progress><span></span></div>
@@ -238,7 +247,7 @@ export class Arcade {
           <button data-game-action="left" aria-label="游戏向左">←</button><button data-game-action="up" aria-label="游戏向上或旋转">↑</button>
           <button data-game-action="right" aria-label="游戏向右">→</button><button data-game-action="down" aria-label="游戏向下或加速">↓</button>
           <button class="game-primary" data-game-action="primary"></button></div>
-        <div class="arcade-extra-actions"></div><button class="arcade-close">离开摊位 ×</button>`;
+        <div class="arcade-extra-actions"></div><button class="arcade-close">${ruinId ? "返回遗迹" : "离开摊位"} ×</button>`;
       this.hud
         .querySelector(".arcade-close")!
         .addEventListener("click", () => this.close());
@@ -361,13 +370,13 @@ export class Arcade {
     }
   }
   private draw(c: CanvasRenderingContext2D) {
-    if (!this.engine || this.world.scene !== "town") return;
-    const game = ARCADES[this.id], booth = booths[this.id];
+    if (!this.engine || this.world.scene !== ARCADES[this.id].scene) return;
+    const game = this.boardAnchor, booth = booths[this.id], ruins = this.world.scene === "ruins";
     c.save();
     c.translate(game.x - 132, game.y - 166);
-    panel(c, -6, -17, 276, 194, "#ab777e", "#644f65", "#f7d6a6");
-    panel(c, -3, -14, 270, 189, "#f4deae", "#956775", "#fff2ca");
-    panel(c, 8, 3, 248, 168, "#786179", "#966d73", "#e4bb8d");
+    panel(c, -6, -17, 276, 194, ruins ? "#556c6d" : "#ab777e", ruins ? "#283c47" : "#644f65", "#dfc59c");
+    panel(c, -3, -14, 270, 189, ruins ? "#b4c2aa" : "#f4deae", ruins ? "#536766" : "#956775", "#fff2ca");
+    panel(c, 8, 3, 248, 168, ruins ? "#41555e" : "#786179", ruins ? "#627773" : "#966d73", "#e4bb8d");
     for (const x of [1, 260]) for (const y of [-8, 164]) {
       c.fillStyle = "#9e7876"; c.fillRect(x, y, 3, 3);
       c.fillStyle = "#fff0bf"; c.fillRect(x, y, 2, 1);
@@ -375,7 +384,7 @@ export class Arcade {
     motif(c, booth.motif, 31, -5, 11);
     c.fillStyle = "#704e61"; c.textAlign = "center";
     c.font = 'bold 7px "Microsoft YaHei","PingFang SC",sans-serif';
-    c.fillText("芙芙直播一周年  ·  " + booth.stamp, 132, -3);
+    c.fillText((ruins ? "回声遗迹  ·  " : "芙芙直播一周年  ·  ") + booth.stamp, 132, -3);
     c.textAlign = "right"; c.font = 'bold 6px sans-serif'; c.fillText("№ " + booth.number, 248, -4);
     c.translate(12, 7);
     c.beginPath(); c.rect(0, 0, 240, 160); c.clip();
