@@ -11,6 +11,7 @@ import { southNotebook, ringSpots, moonPlate, mirrorSpots } from "../src/ruins-m
 import { INVENTORY_KEY, readInventory } from "../src/items";
 import { ARCADES } from "../src/town-data";
 import { verifyGuests } from "./guest-cases";
+import { verifyFieldTrip } from "./field-trip-cases";
 import { foxNook } from "../src/room-props";
 
 // Same application as the homepage; all its saves are private to this QA tab.
@@ -173,6 +174,11 @@ async function run(check:()=>Promise<void>) {
   finally {q<HTMLButtonElement>("#verify").disabled=false;}
 }
 q("#verify").addEventListener("click",()=>void run(checkAll));
+q("#check-field-trip").addEventListener("click",()=>void run(async()=>{
+  if (!q(".intro-screen").classList.contains("dismissed")) await start();
+  q(".reset-button").click(); q(".reset-confirm").click();
+  await verifyFieldTrip(world,log);
+}));
 q("#check-guests").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();
   q(".reset-button").click(); q(".reset-confirm").click();
@@ -302,7 +308,7 @@ q("#check-ruins").addEventListener("click",()=>void run(async()=>{
   world.switchScene("town",townEchoGate.approach);
   key("ArrowUp"); await wait(()=>world.scene==="ruins" && !world.paused); key("ArrowUp",false);
   expect(!world.available(echoPool) && q("#location-name").textContent?.includes("回声遗迹"),"回声遗迹入口或秘密初始状态有误");
-  log("步行穿过月兔台旁的石拱门，安全落在遗迹南阶");
+  log("步行穿过东北旧矿场的山洞，安全落在遗迹南阶");
   const action=(title:string)=>{
     const button=[...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")].find(b=>b.textContent===title);
     expect(button,"缺少祭坛操作："+title);button!.click();
@@ -330,7 +336,7 @@ q("#check-ruins").addEventListener("click",()=>void run(async()=>{
   action("再听一遍"); action("把晚安收好");
   log("祭坛保留错音前的进度，三音唤醒水中电台，周年彩蛋可重听");
   world.visit(ruinsExit.id); await wait(()=>world.scene==="town" && !world.paused);
-  expect(Math.hypot(world.player.x-townEchoGate.approach.x,world.player.y-townEchoGate.approach.y)<2,"没有回到镇上的石门");
+  expect(Math.hypot(world.player.x-townEchoGate.approach.x,world.player.y-townEchoGate.approach.y)<2,"没有回到旧矿场洞口");
   log("南阶可原路返回，读档保留拓本、正确音符和彩蛋");
 }));
 q("#check-lanes").addEventListener("click",()=>void run(async()=>{

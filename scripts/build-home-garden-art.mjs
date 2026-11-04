@@ -2,11 +2,11 @@ import sharp from "sharp";
 import { fileURLToPath } from "node:url";
 const asset = name => fileURLToPath(new URL("../src/assets/"+name,import.meta.url));
 const cell = 144;
-for (const [name,cols] of [["fufu-room-fox",3],["qingtang-picnic",2]]) {
+for (const [name,cols,rows] of [["fufu-room-fox",3,2],["qingtang-picnic",2,2],["peach-walk",4,3]]) {
   const original=asset(name+".png"), {width,height}=await sharp(original).metadata();
   const frames=[];
-  for(let i=0;i<cols*2;i++) {
-    const w=width/cols, h=height/2;
+  for(let i=0;i<cols*rows;i++) {
+    const w=width/cols, h=height/rows;
     const raw=await sharp(original).extract({left:(i%cols)*w,top:Math.floor(i/cols)*h,width:w,height:h}).ensureAlpha().raw().toBuffer();
     let left=w,right=0,top=h,bottom=0;
     for(let y=0;y<h;y++) for(let x=0;x<w;x++) {
@@ -26,6 +26,6 @@ for (const [name,cols] of [["fufu-room-fox",3],["qingtang-picnic",2]]) {
     tiles.push({input:await sharp(f.image).resize(w,h).png().toBuffer(),
       left:(i%cols)*cell+Math.round((cell-w)/2), top:Math.floor(i/cols)*cell+cell-h-1});
   }
-  await sharp({create:{width:cols*cell,height:2*cell,channels:4,background:{r:0,g:0,b:0,alpha:0}}})
+  await sharp({create:{width:cols*cell,height:rows*cell,channels:4,background:{r:0,g:0,b:0,alpha:0}}})
     .composite(tiles).webp({quality:94,alphaQuality:100}).toFile(asset(name+".webp"));
 }

@@ -5,10 +5,11 @@ import { rings, lightBoard, mirrorCells, targetCell, type RingId } from "./astro
 
 // Trace the native 1536 × 1024 stone floor, then project it onto the logical map.
 const paving = (pairs: number[][]) => pairs.map(([x,y])=>({x:x*900/1536,y:y*600/1024}));
+export const townQuarry = {x:1160,y:0,width:376,height:244};
 export const townEchoGate = {
-  id: "echo-gate", title: "石拱门 · 回声遗迹", x: 518, y: 562,
-  approach: {x: 518, y: 592}, radius: 46, selfMarked: true, markerOffset: 43,
-  hitAreas: [{x: 484, y: 503, w: 68, h: 80}], portal: "ruins", portalExit: "ruins-exit",
+  id: "echo-gate", title: "废弃山洞 · 回声遗迹", x: 1428, y: 82,
+  approach: {x:1424,y:108}, radius: 40, selfMarked: true, markerOffset: 24,
+  hitAreas: [{x:1394,y:28,w:70,h:61},{x:1411,y:86,w:32,h:18}], portal: "ruins", portalExit: "ruins-exit",
 } satisfies Hotspot;
 export const ruinsExit = {
   id: "ruins-exit", title: "南阶 · 返回周年小镇", x: 450, y: 542,

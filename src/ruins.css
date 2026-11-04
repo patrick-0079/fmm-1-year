@@ -1,4 +1,7 @@
 /* Stonework, parchment and copper share the palette of the three vaulted chambers. */
+.scene-wrap[data-quarry-view] .scene-top { justify-content:flex-start; }
+.scene-wrap[data-quarry-view] .time-pill { top:auto; right:auto; bottom:8px; left:8px; }
+.scene-wrap[data-quarry-view] .crown-toggle { top:auto; bottom:8px; right:8px; }
 .game-stage > .arcade-hud[data-setting="ruins"] {
   color: #384c49; border-color: #849780;
   background: linear-gradient(142deg, #f1ecd8, #e2e9d8);

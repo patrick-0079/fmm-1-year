@@ -33,6 +33,7 @@ export class Activities {
   private cakeSliceImage = new Image();
   private mode = "";
   private dialogueEnd?: () => void;
+  private dialogueAt?: { scene: World["scene"]; point: Point };
   private hud: HTMLElement;
   private status: HTMLElement;
   private controls: HTMLElement;
@@ -156,25 +157,37 @@ export class Activities {
     // character can walk. Finish the choice so the next input is a map action.
     if (!this.world.restState && ["dialogue", "nature", "note"].includes(this.mode)) this.close();
   }
-  close() {
+  private hidePanel() {
     const returnFocus = this.mode==="dialogue" && this.hud.contains(document.activeElement);
     this.dialogueEnd?.();
     this.dialogueEnd = undefined;
+    this.dialogueAt = undefined;
+    this.mode = "";
+    this.hud.hidden = true;
+    this.controls.replaceChildren();
+    if (returnFocus && !this.world.suspended) this.world.canvas.focus({preventScroll:true});
+  }
+  private dismissIfOutOfReach() {
+    const at = this.dialogueAt;
+    if (!at || (at.scene===this.world.scene &&
+      Math.hypot(this.world.player.x-at.point.x, this.world.player.y-at.point.y)<=72)) return false;
+    // Leaving a speaker must not clear a held key, touch direction or click-to-walk route.
+    this.hidePanel();
+    return true;
+  }
+  close() {
+    this.hidePanel();
     this.world.actorHidden = false;
     if (this.cakeStage === 4) this.cakeStage = 2;
-    this.mode = "";
     this.blowing = false;
     this.cutStart = null;
     this.cutStroke = [];
     this.flipWait = 0;
     this.flipped = [];
     this.giftFlips = this.giftFlips.map(() => 0);
-    this.hud.hidden = true;
-    this.controls.replaceChildren();
     if (!this.world.restState) this.world.setFocus(null);
     this.world.paused = false;
     this.world.clearInput();
-    if (returnFocus && !this.world.suspended) this.world.canvas.focus({preventScroll:true});
   }
   reset() {
     this.close();
@@ -433,10 +446,12 @@ export class Activities {
     text: string,
     options: { title: string; run: () => void }[],
     paint: (c: CanvasRenderingContext2D) => void,
+    at: Point,
     onClose?: () => void,
   ) {
     const keepFocus = this.hud.contains(document.activeElement);
     this.begin("dialogue", text);
+    const encounter = this.dialogueAt = {scene:this.world.scene, point:at};
     this.dialogueEnd = onClose;
     this.speaker.textContent = speaker;
     this.speaker.hidden = false;
@@ -445,7 +460,9 @@ export class Activities {
     c.clearRect(0, 0, 48, 56);
     c.imageSmoothingEnabled = false;
     paint(c);
-    for (const option of options) this.action(option.title, option.run);
+    for (const option of options) this.action(option.title, () => {
+      if (this.dialogueAt === encounter && !this.dismissIfOutOfReach()) option.run();
+    });
     this.hud.scrollTop = 0;
     if (keepFocus) (this.controls.querySelector<HTMLButtonElement>("button") ??
       this.hud.querySelector<HTMLButtonElement>(".activity-close"))?.focus({preventScroll:true});
@@ -511,6 +528,7 @@ export class Activities {
     return false;
   }
   private tick(dt: number, _time: number) {
+    this.dismissIfOutOfReach();
     this.giftFlips = this.giftFlips.map((n) => Math.max(0, n - dt));
     if (this.mode === "cake" && this.cakeStage === 4) {
       this.eatTime += dt;

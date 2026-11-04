@@ -43,6 +43,8 @@ export class Town {
     world.onTick = (dt, t) => {
       tick(dt, t);
       this.time = t;
+      world.canvas.parentElement!.toggleAttribute("data-quarry-view",
+        world.scene==="town" && world.player.x>1150 && world.player.y<260);
     };
     this.updateJournal();
   }
@@ -114,7 +116,7 @@ export class Town {
             f.w * scale,
             47,
           );
-        },
+        }, npc,
       );
     talk();
     return true;

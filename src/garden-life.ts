@@ -7,9 +7,10 @@ import npcUrl from "./assets/town-npcs.webp";
 import cakeUrl from "./assets/cake-slice-v11.webp";
 import { drawCakeSlice } from "./cake-party";
 import { drawItem } from "./item-art";
-import { sceneArt } from "./scene-art";
+import { prepareProp, sceneArt } from "./scene-art";
 import { CompanionMotion } from "./companion-motion";
 import { canTravelBetween, type Point, type Progress } from "./core";
+import { PeachGait } from "./peach-gait";
 
 type Choice = {title: string; run: () => void};
 type Pose = "idle" | "cat-look" | "cat-pet" | "shy" | "offer" | "smile";
@@ -47,7 +48,7 @@ export class GardenLife {
       if (!this.npcs.naturalWidth) return;
       const f=TOWN_FRAMES[npc.sprite], w=46*f.w/f.h;
       c.drawImage(this.npcs,f.x,f.y,f.w,f.h,(48-w)/2,5,w,46);
-    },()=>{ this.pose="idle"; this.companion.catPetted=false; });
+    },npc,()=>{ this.pose="idle"; this.companion.catPetted=false; });
     this.pose=pose;
     this.age=0;
     this.companion.catPetted=pose==="cat-pet";
@@ -159,8 +160,16 @@ function picnicSprite(c:CanvasRenderingContext2D, index:number, x:number,y:numbe
 function shadow(c:CanvasRenderingContext2D,x:number,y:number,r:number) {
   c.fillStyle="#5e63462b"; c.beginPath(); c.ellipse(x,y,r,2.6,0,0,Math.PI*2); c.fill();
 }
-function drawPet(c:CanvasRenderingContext2D,id:"petCat"|"petBunny",x:number,y:number,pet:boolean,tilt=0,mirror=false) {
+function drawPet(c:CanvasRenderingContext2D,id:"petCat"|"petBunny",x:number,y:number,pet:boolean,tilt=0,mirror=false,gait?:PeachGait) {
   shadow(c,x,y,7);
+  if (gait && !pet && sceneArt.peachWalk.naturalWidth) {
+    const sheet=sceneArt.peachWalk, cell=sheet.width/4;
+    const row=gait.facing==="front"?1:gait.facing==="back"?2:0;
+    const col=reduced() && gait.walking ? Math.floor(gait.frame/2)*2 : gait.frame;
+    c.save(); c.translate(x,y); if(gait.facing==="right")c.scale(-1,1);
+    c.drawImage(sheet,col*cell,row*cell,cell,cell,-15,-30,30,30); c.restore();
+    return;
+  }
   c.save(); c.translate(x,y); if(mirror)c.scale(-1,1);
   c.rotate(tilt); drawItem(c,id,-11,-21,22,21);
   if(pet && id==="petCat") {
@@ -177,6 +186,7 @@ export class Companion {
   private scene = "";
   private id: "petBunny" | "petCat" | null = null;
   private motion = new CompanionMotion();
+  private gait = new PeachGait();
   private time = 0;
   private welcome: {from:Point; age:number} | null = null;
   catPetted = false;
@@ -193,7 +203,10 @@ export class Companion {
     if(id!=="petBunny" && id!=="petCat"){ this.id=null; this.welcome=null; return; }
     if(this.scene!==this.world.scene || this.id!==id) {
       this.scene=this.world.scene; this.id=id; this.motion.reset(this.world.player);
+      this.gait.reset();
+      if(id==="petCat" && !sceneArt.peachWalk.naturalWidth) void prepareProp("peachWalk").catch(()=>{});
     }
+    const before=this.motion.position;
     if (this.welcome && (id!=="petCat" || this.scene!=="garden")) this.welcome=null;
     if (this.welcome) {
       const greeting=this.welcome; greeting.age+=dt;
@@ -205,15 +218,16 @@ export class Companion {
         this.motion.mirrored=p.x>next.x;
       }
       if(t===1)this.welcome=null;
-      return;
+    } else {
+      this.motion.update(this.world.player,this.world.config,dt,
+        !this.world.paused && !this.world.suspended && !this.world.busy && !this.world.restState);
     }
-    this.motion.update(this.world.player,this.world.config,dt,
-      !this.world.paused && !this.world.suspended && !this.world.busy && !this.world.restState);
+    if(id==="petCat")this.gait.move(before,this.motion.position);
   }
   private layers():DepthLayer[] {
     const id=this.id;
     if (!id || id!==this.world.equipment.pet || this.world.restState?.kind==="lying" || this.world.actorHidden) return [];
-    const p=this.motion.position, bob=reduced() || this.world.paused ? 0 : Math.sin(this.time*6)*.4;
-    return [{y:p.y+1,draw:c=>drawPet(c,id,p.x,p.y+bob,this.catPetted,0,this.motion.mirrored)}];
+    const p=this.motion.position, bob=id==="petCat" || reduced() || this.world.paused ? 0 : Math.sin(this.time*6)*.4;
+    return [{y:p.y+1,draw:c=>drawPet(c,id,p.x,p.y+bob,this.catPetted,0,this.motion.mirrored,id==="petCat"?this.gait:undefined)}];
   }
 }

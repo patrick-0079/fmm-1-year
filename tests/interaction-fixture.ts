@@ -87,7 +87,7 @@ await check("试穿的猫仍需正式领取，邀请会保存真实伙伴位，�
   inventory.setCompanion("petBunny",true);
   inventory.toggle("petCat");
   assert(world.equipment.pet==="petCat" && !inventory.has("petCat"),"试穿不应颁发桃桃");
-  world.switchScene("garden");
+  world.switchScene("garden",{x:304,y:318});
   const select=(title:string)=>Array.from(document.querySelectorAll<HTMLButtonElement>(".activity-actions button")).find(b=>b.textContent===title)!.click();
   const talk=()=>guests.interact("garden-guest-balloon-friend");
   talk();select("轻轻抚摸奶油猫");select("不带上奶油猫");activities.close();
@@ -274,7 +274,7 @@ await check("全部纪念品经背包按钮逐一穿脱后，下一帧可用方�
 });
 
 await check("气球客邀请／送别桃桃后可读完回应并收起，衣橱换装也会结束旧对话", () => {
-  world.switchScene("garden"); world.paused = false;
+  world.switchScene("garden",{x:304,y:318}); world.paused = false;
   const id = "garden-guest-balloon-friend";
   for (const worn of [true, false]) {
     guests.interact(id);

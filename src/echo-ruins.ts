@@ -6,7 +6,6 @@ import { sfx } from "./sound";
 import type { Activities } from "./activities";
 import type { World, DepthLayer } from "./world";
 import type { GameId } from "./arcade-engines";
-import gateUrl from "./assets/echo-arch.webp";
 
 const symbols: Record<Echo, PixelMotif> = {leaf:"sprout", bell:"bell", star:"star"};
 const trials = arcadesIn("ruins");
@@ -14,7 +13,6 @@ const options: Echo[] = ["star","leaf","bell"];
 const letter = "旧收音机亮起了第 365 盏灯。「芙芙，这一晚，换我们陪你把晚安说完。」";
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 export class EchoRuins {
-  private gate?: HTMLImageElement;
   private time = 0;
   private broadcastAt = -10;
   constructor(private world: World, private activities: Activities,
@@ -77,13 +75,8 @@ export class EchoRuins {
   }
   private layers(): DepthLayer[] {
     if (this.world.scene === "town") {
-      if (!this.gate) { this.gate = new Image(); this.gate.src = gateUrl; }
       return [{y:townEchoGate.y+1,draw:c=>{
-        if (this.gate?.naturalWidth) {
-          const h=78*this.gate.naturalHeight/this.gate.naturalWidth;
-          c.drawImage(this.gate,townEchoGate.x-39,townEchoGate.y+5-h,78,h);
-        }
-        this.label(c,townEchoGate.x,townEchoGate.y+9,"回声遗迹");
+        this.label(c,townEchoGate.x,townEchoGate.y-57,"旧矿道 · 回声遗迹");
       }}];
     }
     if (this.world.scene !== "ruins") return [];

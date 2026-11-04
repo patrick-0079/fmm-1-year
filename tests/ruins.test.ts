@@ -34,6 +34,14 @@ test("runes accept only a complete set and the correct notes, including after re
 });
 test("walk through each gate outwards only, with both landings safe",()=>{
   const town=townEchoGate, exit=ruinsExit;
+  assert.ok(town.x>1350 && town.y<120);
+  const streets=scenes.town, path=findPath(streets.spawn,town.approach,streets);
+  assert.deepEqual(path?.at(-1),town.approach);
+  for(const p of [town,town.approach,{x:1428,y:77},{x:1355,y:112}])
+    assert.ok(canStand(p,streets.walls,streets.bounds,streets.floor,streets.surfaces));
+  for(const p of [{x:1324,y:89},{x:1399,y:82},{x:1458,y:85},{x:1490,y:110}])
+    assert.equal(canStand(p,streets.walls,streets.bounds,streets.floor,streets.surfaces),false);
+  assert.equal(crossedEchoGate("town",{x:518,y:563},{x:518,y:561}),undefined);
   assert.equal(crossedEchoGate("town",{x:town.x,y:town.y+1},{x:town.x,y:town.y-1}),town.id);
   assert.equal(crossedEchoGate("town",{x:town.x,y:town.y-1},town.approach),undefined);
   assert.equal(crossedEchoGate("ruins",{x:exit.x,y:exit.y-1},{x:exit.x,y:exit.y+1}),exit.id);

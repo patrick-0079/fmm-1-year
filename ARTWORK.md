@@ -1,5 +1,23 @@
 # 像素美术记录
 
+## 东北旧矿场与桃桃步态
+
+内置 imagegen 参考小镇高清原画的东北局部，生成 `src/assets/town-quarry.png`。矿车、木柱和轨道与通行区按这张新原画对齐。游戏加载同名 WebP 的高清局部，石路及溪岸过渡到原镇图。
+
+桃桃以衣橱中已有的奶油猫为参考。原画 `src/assets/peach-walk.png` 有三行四列，分别是侧向、朝前和朝后各四拍。游戏使用同名透明 WebP，以真实移动距离推进动画。
+
+矿场提示词
+
+```text
+Edit the supplied exact crop of the NE corner of a cozy top-down Stardew-like pixel RPG town map into a DISTINCT abandoned mountainside mine clearing at the END of the northeastern street. Landscape composition, SAME camera/framing, scale and native matching high-detail pixel art walls/trees as the reference. Preserve the lower-left diagonal cobbled street in its exact position and all terrain around the bottom-left quarter. The cobblestones lead diagonally in from the left lower edge and transition naturally to weathered earth and worn stone on the approach. Replace the UPPER-RIGHT bridge/road end and landscaped bank with an overgrown rocky outcrop, moss-covered purple-grey stone, a recessed BLACK abandoned cave mouth facing DOWN toward the player. Put the clear walkable cave threshold around 68 percent from the left and 43 percent from the TOP, with a level open forecourt extending south and southwest to join the diagonal street. Cave doorway about 16 percent of the image width, taller than the player, dark with old timber supports, two small warm lanterns. In this dedicated district add broken short rails entering the cave, a disused ore cart on ONE SIDE of the clearing and a few fallen beams/ferns; keep the central approach uninterrupted. Keep the existing stream and waterfall at the lower RIGHT as a natural boundary, preserve the BOTTOM and LEFT boundary of the supplied crop to blend seamlessly with the adjacent original town. Top and right boundaries may be rugged rock face. Compatible mellow daylight. No banners in the mine clearing, no people, no lettering, no UI, no scene frame, no new shop, no front-on landscape postcard. Output a single full-bleed authored terrain patch with the same proportions and orientation as input.
+```
+
+桃桃步态提示词
+
+```text
+Make a transparent production WALK CYCLE atlas for exactly the little cream kitten in this reference. Peach (Taotao), a four-legged fluffy cream and peach tabby kitten, purple eyes, lilac bow with tiny gold bell, flower at ear, cream-tipped curled tail. Same recognizable coat pattern and proportions; this is a tiny NPC in a cozy chibi pixel RPG, 22px tall in the world. Pixel art, gentle plum-brown outlines and small highlights. WIDE 4 COLUMNS x 3 ROWS uniform grid; exactly 12 separated WHOLE cat sprites, one per cell, no borders/text/scenery/shadows, REAL TRANSPARENT ALPHA. Every frame is a standing four-legged kitten on a firm ground line (no sitting portraits), identical body scale; leave generous transparent whitespace between cells. Row 1 LEFT SIDE VIEW walking left: (1) near front paw reaching left, far hind paw pushing back, (2) gathering feet under belly, (3) opposite pair extends, (4) other passing stance. Row 2 FRONT VIEW walking toward viewer with visible alternating left/right forepaws across the four frames. Row 3 BACK VIEW walking away from viewer, tail swaying, four distinct alternating hind-paw positions. For each row all four frames represent visibly different phases of a real quadruped walking gait, planted paws/weight transfer, natural slight tail swish. Side silhouette should be longer than tall, the four short legs visibly separated, head raised, no sliding, no spectral aura. No checkerboard, particles, extra characters, or accessories besides the reference kitten's bow, bell and flowers.
+```
+
 ## 小屋狐狸与晴糖的野餐动作
 
 两张透明原画均用内置 imagegen 生成。狐狸参考 `ref/1.png` 和现有 `src/assets/nemu-sprites.webp`。晴糖参考原来镇民图集第一排第四格的人物，谈话头像继续使用原图。原画为 `src/assets/fufu-room-fox.png` 与 `src/assets/qingtang-picnic.png`，同名 WebP 是游戏使用的图集。`node scripts/build-home-garden-art.mjs` 按格裁切透明边缘，保留姿势间比例，将脚底对齐到同一条基线。

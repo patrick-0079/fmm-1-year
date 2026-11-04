@@ -23,8 +23,6 @@ const lanes: number[][][] = [
     [1168, 190, 29],
     [1214, 186, 34],
     [1288, 134, 31],
-    [1373, 96, 29],
-    [1480, 80, 28],
   ],
   [
     [366, 420, 27],
@@ -194,6 +192,10 @@ const moonRabbitForecourt = poly([
 ]);
 export const townSurfaces: Point[][] = [
   ...lanes.map(ribbon),
+  // Trace the bare ground between the ore cart, the tunnel posts and the waterfall.
+  poly([[1236,138],[1263,109],[1291,96],[1306,92],[1338,96],[1363,98],
+    [1391,91],[1407,89],[1412,69],[1448,69],[1451,89],[1460,96],[1465,102],
+    [1449,116],[1418,127],[1388,135],[1354,142],[1318,148],[1280,159],[1245,156]]),
   moonRabbitForecourt,
   // The heart plaza has one clear entrance on each of its four sides.
   poly([

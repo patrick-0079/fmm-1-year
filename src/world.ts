@@ -9,9 +9,9 @@ import townDetailUrl from "./assets/anniversary-town-hd-v13.webp";
 import meadowUrl from "./assets/night-meadow-v16.webp";
 import ruinsUrl from "./assets/echo-ruins.webp";
 import wellUrl from "./assets/echo-well.webp";
-import { crossedEchoGate } from "./ruins-map";
+import { crossedEchoGate, townQuarry } from "./ruins-map";
 import { meadowAtlasUrl, orchardAtlasUrl } from "./wild-art";
-import { prepareSceneArt } from "./scene-art";
+import { prepareSceneArt, sceneArt } from "./scene-art";
 import trapsUrl from "./assets/garden-traps.webp";
 import { rewardsUrl } from "./item-art";
 import { emptyInventory, type Equipped } from "./items";
@@ -362,6 +362,10 @@ export class World {
       c.imageSmoothingQuality = "high";
     }
     c.drawImage(background, x * sx, y * sy, w * sx, h * sy, x, y, w, h);
+    if (this.scene==="town" && sceneArt.quarry.naturalWidth && x+w>townQuarry.x && y<townQuarry.height) {
+      c.beginPath(); c.rect(x,y,w,h); c.clip();
+      c.drawImage(sceneArt.quarry,townQuarry.x,townQuarry.y,townQuarry.width,townQuarry.height);
+    }
     c.restore();
   }
   drawMapFragment(c: CanvasRenderingContext2D, points: Point[]) {

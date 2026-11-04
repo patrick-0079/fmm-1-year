@@ -81,6 +81,7 @@ export const sceneLights: Record<SceneId, Light[]> = {
       warm(897, 450, 70),
       warm(1204, 409, 70),
       warm(1284, 845, 85),
+      warm(1393,54,43), warm(1464,54,43),
     ]),
 };
 for (const g of townGates) {
