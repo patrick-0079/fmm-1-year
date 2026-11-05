@@ -8,6 +8,7 @@ import { rainbowFlowers, rainbowSpot, meadowGate, meadowGatePosts } from "./rain
 import { meadowScene } from "./meadow-map.ts";
 import { ruinsScene } from "./ruins-map.ts";
 import { bassStand, foxNook } from "./room-props.ts";
+import { elderPlaces } from "./elders-data.ts";
 export type SceneId = "room" | "garden" | "challenge" | "town" | "meadow" | "ruins";
 export interface Hotspot {
   id: string;
@@ -471,6 +472,11 @@ export const scenes: Record<SceneId, Scene> = {
 
 scenes.garden.walls.push(...townGates.filter((g) => g.scene === "garden").flatMap(gatePosts));
 scenes.garden.spots.push(meadowGate);
+for (const scene of ["challenge", "ruins"] as const) {
+  const elder = elderPlaces[scene];
+  scenes[scene].spots.push(elder);
+  scenes[scene].walls.push({ label: elder.title, x: elder.x - 5, y: elder.y - 6, w: 10, h: 9 });
+}
 for (const flower of rainbowFlowers) scenes[flower.scene].spots.push(rainbowSpot(flower));
 for (const guest of gardenGuests) {
   scenes.garden.spots.push({

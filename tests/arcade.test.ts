@@ -13,6 +13,7 @@ import {
   equipItem,
   ITEMS,
 } from "../src/items.ts";
+import { townDialogues } from "../src/town-dialogue.ts";
 import { ARCADES, TOWN_NPCS, TOWN_FRAMES } from "../src/town-data.ts";
 test("snake cannot reverse into its neck, eats valid candy and ends at the reward goal", () => {
   const g = new SnakeGame(() => 0.5);
@@ -138,7 +139,7 @@ test("the anniversary town has fifteen distinct configurable NPCs and complete s
   assert.equal(new Set(TOWN_NPCS.map((n) => n.id)).size, 15);
   assert.equal(TOWN_FRAMES.length, 15);
   for (const npc of TOWN_NPCS) {
-    assert.ok(npc.lines.length > 0);
+    assert.ok(townDialogues[npc.id].start.text);
     const f = TOWN_FRAMES[npc.sprite];
     assert.ok(f.x >= 0 && f.y >= 0 && f.x + f.w <= 1536 && f.y + f.h <= 1024);
   }

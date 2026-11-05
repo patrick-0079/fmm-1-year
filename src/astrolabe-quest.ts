@@ -77,15 +77,17 @@ export class AstrolabeQuest {
     const buttons=document.querySelectorAll<HTMLButtonElement>(".activity-actions button");
     buttons[focusIndex]?.focus({preventScroll:true});
   }
+  openNotebook() {
+    this.exit();
+    this.book.open=true;
+    this.book.querySelector("summary")!.focus({preventScroll:true});
+    this.book.scrollIntoView({block:"nearest",behavior:"instant"});
+  }
   private notebook() {
     const missing=rings.filter(r=>!this.memory().found.includes(r.id));
     const hint=missing.length ? missing.map(r=>r.clue).join("　") : this.objective(this.memory());
     this.menu("南阶的手记 · "+hint,[
-      {title:"翻开地图下方的手记",run:()=>{
-        this.exit();this.book.open=true;
-        this.book.querySelector("summary")!.focus({preventScroll:true});
-        this.book.scrollIntoView({block:"nearest",behavior:"instant"});
-      }},
+      {title:"翻开地图下方的手记",run:()=>this.openNotebook()},
       {title:leave,run:this.exit},
     ]);
   }

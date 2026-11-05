@@ -16,6 +16,7 @@ for (const name of [
   "xiaoye-note",
   "anniversary-town-v2",
   "town-npcs",
+  "elder-residents",
   "reward-icons",
   "garden-traps",
   "party-props-v11",
@@ -66,6 +67,7 @@ for (const name of [
     });
   if (name === "xiaoye-note")
     pipeline.resize({ width: 640, withoutEnlargement: true });
+  if (name === "elder-residents") pipeline.resize({ width: 768 });
   const result = await pipeline.webp(options).toFile(output);
   console.log(`${name}.webp: ${(result.size / 1024).toFixed(0)} KB`);
 }

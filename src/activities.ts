@@ -28,6 +28,7 @@ interface Particle extends Point {
   sparkle: number;
 }
 const colors = ["#f49fbc", "#9ddbe9", "#c1a4ea", "#ffdb80", "#b4e9bc"];
+const narrowDialogue = matchMedia("(max-width: 540px)");
 export class Activities {
   private cakeImage = new Image();
   private cakeSliceImage = new Image();
@@ -79,6 +80,11 @@ export class Activities {
     this.cakeSliceImage.src = cakeSliceUrl;
     this.hud = document.querySelector(".activity-hud")!;
     this.status = this.hud.querySelector(".activity-status")!;
+    new ResizeObserver(() => this.updateReadingFocus()).observe(this.status);
+    this.status.addEventListener("keydown", event => {
+      if (this.status.tabIndex === 0 && ["ArrowUp","ArrowDown","Home","End","PageUp","PageDown"].includes(event.key))
+        event.stopPropagation(); // Scroll the focused letter-sized text area with the browser's native keys.
+    });
     this.controls = this.hud.querySelector(".activity-actions")!;
     this.speaker = document.createElement("strong");
     this.speaker.className = "dialogue-name";
@@ -162,6 +168,8 @@ export class Activities {
     this.dialogueEnd?.();
     this.dialogueEnd = undefined;
     this.dialogueAt = undefined;
+    delete this.hud.dataset.dock;
+    this.status.removeAttribute("tabindex");
     this.mode = "";
     this.hud.hidden = true;
     this.controls.replaceChildren();
@@ -174,6 +182,27 @@ export class Activities {
     // Leaving a speaker must not clear a held key, touch direction or click-to-walk route.
     this.hidePanel();
     return true;
+  }
+  private positionDialogue() {
+    if (!this.dialogueAt || !narrowDialogue.matches) return;
+    // Work in the 600 × 400 logical viewport, independently of phone size or DPR.
+    const speaker = this.world.project(this.dialogueAt.point).y;
+    const player = this.world.project(this.world.player).y;
+    const above = Math.min(speaker, player) - 50;
+    const below = 400 - Math.max(speaker, player) - 7;
+    // Keep the panel on its side near the centre while the camera follows a few steps.
+    const last = this.hud.dataset.dock;
+    const top = above > below + (last === "bottom" ? 20 : last === "top" ? -20 : 0);
+    const dock = top ? "top" : "bottom";
+    if (last !== dock) this.hud.dataset.dock = dock;
+    const height = Math.min(52, Math.floor((top ? above : below) / 4)) + "%";
+    if (this.hud.style.getPropertyValue("--dialogue-room") !== height)
+      this.hud.style.setProperty("--dialogue-room", height);
+  }
+  private updateReadingFocus() {
+    if (this.dialogueAt && narrowDialogue.matches && this.status.scrollHeight > this.status.clientHeight + 1)
+      this.status.tabIndex = 0;
+    else this.status.removeAttribute("tabindex");
   }
   close() {
     this.hidePanel();
@@ -445,25 +474,43 @@ export class Activities {
     speaker: string,
     text: string,
     options: { title: string; run: () => void }[],
-    paint: (c: CanvasRenderingContext2D) => void,
+    paint: ((c: CanvasRenderingContext2D) => void) | null,
     at: Point,
     onClose?: () => void,
+    hint?: string,
   ) {
     const keepFocus = this.hud.contains(document.activeElement);
-    this.begin("dialogue", text);
+    if (this.dialogueAt?.point === at && this.dialogueAt.scene === this.world.scene) {
+      // Timed lines can change while the player is walking away. Replace the
+      // page without cancelling their held direction or click-to-walk route.
+      this.dialogueEnd?.();
+      this.controls.replaceChildren();
+      this.status.textContent = text;
+    } else this.begin("dialogue", text);
+    if (hint) {
+      const note = document.createElement("span");
+      note.className = "dialogue-hint";
+      note.textContent = hint;
+      this.status.append(note);
+    }
     const encounter = this.dialogueAt = {scene:this.world.scene, point:at};
+    this.positionDialogue();
     this.dialogueEnd = onClose;
     this.speaker.textContent = speaker;
     this.speaker.hidden = false;
-    this.portrait.hidden = false;
-    const c = this.portrait.getContext("2d")!;
-    c.clearRect(0, 0, 48, 56);
-    c.imageSmoothingEnabled = false;
-    paint(c);
+    this.portrait.hidden = !paint;
+    if (paint) {
+      const c = this.portrait.getContext("2d")!;
+      c.clearRect(0, 0, 48, 56);
+      c.imageSmoothingEnabled = false;
+      paint(c);
+    }
     for (const option of options) this.action(option.title, () => {
       if (this.dialogueAt === encounter && !this.dismissIfOutOfReach()) option.run();
     });
     this.hud.scrollTop = 0;
+    this.status.scrollTop = 0;
+    this.updateReadingFocus();
     if (keepFocus) (this.controls.querySelector<HTMLButtonElement>("button") ??
       this.hud.querySelector<HTMLButtonElement>(".activity-close"))?.focus({preventScroll:true});
   }
@@ -529,6 +576,7 @@ export class Activities {
   }
   private tick(dt: number, _time: number) {
     this.dismissIfOutOfReach();
+    this.positionDialogue();
     this.giftFlips = this.giftFlips.map((n) => Math.max(0, n - dt));
     if (this.mode === "cake" && this.cakeStage === 4) {
       this.eatTime += dt;

@@ -1,4 +1,5 @@
 import type { ItemId } from "./items";
+import type { TownResidentId } from "./town-dialogue";
 import type { GameId } from "./arcade-engines";
 export const mineRules = [
   "6 × 5 块石砖里藏着 4 道裂隙。翻开全部 26 块安全砖就能过关，插旗多少不影响胜负。翻到裂隙则本局结束。",
@@ -92,15 +93,13 @@ export function arcadesIn(scene: "town" | "ruins") {
     .filter(([, game]) => game.scene === scene);
 }
 export interface TownNpc {
-  id: string;
+  id: TownResidentId;
   name: string;
   role: string;
   x: number;
   y: number;
   sprite: number;
-  lines: string[];
   game?: GameId;
-  gift?: ItemId;
 }
 export const TOWN_NPCS: TownNpc[] = [
   {
@@ -110,10 +109,6 @@ export const TOWN_NPCS: TownNpc[] = [
     x: 450,
     y: 290,
     sprite: 0,
-    lines: [
-      "花店今天把最柔软的颜色都留给芙芙。一周年快乐，愿每一次开播都像花开。",
-      "花环可以从背包里佩戴。往东走过石阶，就是甜甜的蛋糕店。",
-    ],
   },
   {
     id: "baker",
@@ -122,10 +117,6 @@ export const TOWN_NPCS: TownNpc[] = [
     x: 777,
     y: 319,
     sprite: 1,
-    lines: [
-      "今天的招牌是「一整年的晚安」草莓蛋糕。第一块当然留给芙芙。",
-      "沿东北石街走到旧矿场，顺着废轨就能进回声遗迹。西廊住着一条玉蛇，找到六枚叶芽就送你星糖发夹。",
-    ],
   },
   {
     id: "post",
@@ -134,22 +125,14 @@ export const TOWN_NPCS: TownNpc[] = [
     x: 320,
     y: 674,
     sprite: 2,
-    lines: [
-      "有些话不必急着说完。把每一份晚安折好，都会成为这一年的回信。",
-      "小屋里的信箱已经收到了真实来信。这里的镇民是庆典里的游戏角色。",
-    ],
   },
   {
     id: "maker",
-    name: "紫绫",
+    name: "紫凌",
     role: "饰品工匠",
     x: 1191,
     y: 446,
     sprite: 3,
-    lines: [
-      "发夹、耳机、花环……这些小东西，会替你记住今天。",
-      "每个小游戏都有专属纪念奖励。按 B 打开衣橱，头饰、衣服、鞋子、背包和胸针都能单独搭配，还可以邀请小伙伴同行。",
-    ],
   },
   {
     id: "radio-host",
@@ -158,10 +141,6 @@ export const TOWN_NPCS: TownNpc[] = [
     x: 1305,
     y: 842,
     sprite: 4,
-    lines: [
-      "这里是周年晚安电台。今晚也把声音调轻一点，把心事慢慢放下来。",
-      "小镇入夜后，街角的灯会一盏盏暖起来。电台门口也有一盏为你留着。",
-    ],
   },
   {
     id: "books",
@@ -170,10 +149,6 @@ export const TOWN_NPCS: TownNpc[] = [
     x: 867,
     y: 782,
     sprite: 5,
-    lines: [
-      "这一页写初见，下一页写陪伴。第一年的故事，已经装订成很珍贵的一本。",
-      "如果想回看留言与图片，随时可以回晚安小屋。收集的饰品都会跟着你。",
-    ],
   },
   {
     id: "snake-keeper",
@@ -183,7 +158,6 @@ export const TOWN_NPCS: TownNpc[] = [
     y: 369,
     sprite: 6,
     game: "snake",
-    lines: ["东北旧矿场的山洞通往回声遗迹。要不要我带你去西廊看看那条玉蛇？"],
   },
   {
     id: "blocks-keeper",
@@ -193,7 +167,6 @@ export const TOWN_NPCS: TownNpc[] = [
     y: 526,
     sprite: 7,
     game: "blocks",
-    lines: ["把零零碎碎的小事拼在一起，也能成为完整的一年。来消几行晚安方块？"],
   },
   {
     id: "hop-keeper",
@@ -203,7 +176,6 @@ export const TOWN_NPCS: TownNpc[] = [
     y: 612,
     sprite: 8,
     game: "hop",
-    lines: ["小小蓄力，再跳一步。成功抵达八个新平台，就把月兔背包带走。"],
   },
   {
     id: "flight-keeper",
@@ -213,7 +185,6 @@ export const TOWN_NPCS: TownNpc[] = [
     y: 500,
     sprite: 9,
     game: "flight",
-    lines: ["每一次轻轻振翅，都离星星近一点。飞过八道星门，送你星翼发饰。"],
   },
   {
     id: "welcome",
@@ -222,11 +193,6 @@ export const TOWN_NPCS: TownNpc[] = [
     x: 625,
     y: 565,
     sprite: 10,
-    gift: "anniversaryPin",
-    lines: [
-      "欢迎来到芙芙的一周年小镇！这枚纪念胸针，是我们准备的见面礼。",
-      "小镇有四个游乐摊。东北旧矿场的山洞通往回声遗迹，里面还有三间试炼石室。领奖后也可以继续玩。",
-    ],
   },
   {
     id: "photo-visitor",
@@ -235,10 +201,6 @@ export const TOWN_NPCS: TownNpc[] = [
     x: 982,
     y: 489,
     sprite: 11,
-    lines: [
-      "刚才的光正好落在花上。想把芙芙一周年的每个小瞬间，都好好留住。",
-      "广场旁有小路通向溪边。夜里的桥和街灯，也很适合慢慢看。",
-    ],
   },
   {
     id: "walker",
@@ -247,10 +209,6 @@ export const TOWN_NPCS: TownNpc[] = [
     x: 492,
     y: 797,
     sprite: 12,
-    lines: [
-      "我最喜欢这条有转弯的小路，走着走着，总能遇见一点新的快乐。",
-      "愿芙芙下一个周年，也能带着喜欢的事和喜欢的人一起到来。",
-    ],
   },
   {
     id: "bunny",
@@ -259,10 +217,6 @@ export const TOWN_NPCS: TownNpc[] = [
     x: 740,
     y: 535,
     sprite: 13,
-    lines: [
-      "啾。今天也把月亮装进小口袋里，送给努力了一整年的芙芙。",
-      "累了就回小屋躺一会。醒来以后，小镇和大家还在这里。",
-    ],
   },
   {
     id: "cat",
@@ -271,10 +225,6 @@ export const TOWN_NPCS: TownNpc[] = [
     x: 1092,
     y: 156,
     sprite: 14,
-    lines: [
-      "喵，路过的周年祝福已签收！请带上今天的小快乐继续出发。",
-      "巷子里的花、书屋旁的池塘、桥那边的溪水……都是我巡街时喜欢的角落。",
-    ],
   },
 ];
 export const TOWN_FRAMES = [

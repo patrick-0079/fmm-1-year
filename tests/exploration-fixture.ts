@@ -12,6 +12,7 @@ import { INVENTORY_KEY, readInventory } from "../src/items";
 import { ARCADES } from "../src/town-data";
 import { verifyGuests } from "./guest-cases";
 import { verifyFieldTrip } from "./field-trip-cases";
+import { verifyTownResidents } from "./town-dialogue-cases";
 import { foxNook } from "../src/room-props";
 
 // Same application as the homepage; all its saves are private to this QA tab.
@@ -174,6 +175,11 @@ async function run(check:()=>Promise<void>) {
   finally {q<HTMLButtonElement>("#verify").disabled=false;}
 }
 q("#verify").addEventListener("click",()=>void run(checkAll));
+q("#check-residents").addEventListener("click",()=>void run(async()=>{
+  if (!q(".intro-screen").classList.contains("dismissed")) await start();
+  q(".reset-button").click(); q(".reset-confirm").click();
+  await verifyTownResidents(world,log);
+}));
 q("#check-field-trip").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();
   q(".reset-button").click(); q(".reset-confirm").click();

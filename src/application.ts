@@ -18,6 +18,8 @@ import { INVENTORY_KEY } from "./items";
 import { FlowerTrail } from "./flower-trail";
 import { NightMeadow } from "./night-meadow";
 import { EchoRuins } from "./echo-ruins";
+import { Elders } from "./elders";
+import { mailboxLetters, postLetter, POST_LETTER_REVISION, postUnread } from "./resident-story";
 import { AstrolabeQuest } from "./astrolabe-quest";
 import { RoomBass } from "./room-bass";
 import { bassStand, foxNook } from "./room-props";
@@ -63,6 +65,27 @@ export function mountGame(tasks: Task[]) {
     if (rect.bottom<=0 || rect.top>=window.innerHeight) board.scrollIntoView({block:"nearest",behavior:"instant"});
   };
   const reader = new MapReader(world);
+  let selectedLetterId: string | undefined;
+  const mailCount = document.querySelector<HTMLElement>('[data-memory="letters"] small')!;
+  function updateMailCount() {
+    const story = progress.residents;
+    mailCount.textContent = mailboxLetters(story).length + " 封来信" + (postUnread(story) ? " · 1 封未读" : "");
+  }
+  function readCollection(id: string) {
+    if (id !== "letters") { openCollection(reader, id); return; }
+    const story = progress.residents;
+    openCollection(reader, id, {
+      items: mailboxLetters(story), selectedId: selectedLetterId,
+      unreadId: postUnread(story) ? postLetter.id : undefined,
+      onRead: letterId => {
+        selectedLetterId = letterId;
+        if (letterId === postLetter.id && postUnread(story)) {
+          story.postReadRevision = POST_LETTER_REVISION;
+          save();
+        }
+      },
+    });
+  }
   const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
   const saveNow = document.querySelector<HTMLButtonElement>(".save-now")!;
   const saveStatus = document.querySelector<HTMLElement>(".save-status")!;
@@ -102,6 +125,7 @@ export function mountGame(tasks: Task[]) {
     );
   };
   const save = () => {
+    updateMailCount();
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(progress));
     } catch {
@@ -216,13 +240,15 @@ export function mountGame(tasks: Task[]) {
     save();
     return score;
   });
-  const town = new Town(world, activities, inventory, id => visit(ARCADES[id].scene, "arcade-"+id));
+  const town = new Town(world, activities, inventory, id => visit(ARCADES[id].scene, "arcade-"+id),
+    { story: () => progress.residents, save, notify: toast });
   const gardenLife = new GardenLife(world, activities, inventory, () => progress, save);
   const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);
   const meadow = new NightMeadow(world, () => progress.creditStars, save);
   const starQuest = new AstrolabeQuest(world, activities, inventory, () => progress.astrolabe,
     () => progress.echoes.listened, save);
   const ruins = new EchoRuins(world, activities, () => progress.echoes, () => { save(); starQuest.refresh(); });
+  const elders = new Elders(world, activities, () => progress, save, () => starQuest.openNotebook());
   const bass = new RoomBass(world, () => progress.bassSongPlayed, () => {
     if (!progress.bassSongPlayed) { progress.bassSongPlayed = true; save(); }
   }, () => ({ enabled:progress.bassSound, volume:progress.volume }), () => {
@@ -409,7 +435,7 @@ export function mountGame(tasks: Task[]) {
       ]);
       return;
     }
-    if (gardenLife.interact(id)) return;
+    if (gardenLife.interact(id) || elders.interact(id)) return;
     if (town.interact(id)) return;
     if (nature.interact(id)) return;
     if (EVENT_IDS.includes(id) && !progress.visited.includes(id)) {
@@ -449,7 +475,7 @@ export function mountGame(tasks: Task[]) {
     else {
       activities.close();
       reader.inGame = id === "letters";
-      openCollection(reader, id);
+      readCollection(id);
     }
   };
   function begin() {
@@ -615,14 +641,14 @@ export function mountGame(tasks: Task[]) {
           activities.close();
           world.paused = !started;
           reader.inGame = false;
-          openCollection(reader, "letters");
+          readCollection("letters");
         } else visit("room", button.dataset.memory!);
       }),
     );
   reader.onChangeView = () => {
     if (reader.inGame) {
       reader.inGame = false;
-      openCollection(reader, "letters");
+      readCollection("letters");
     } else visit("room", "letters");
   };
   document
@@ -667,6 +693,8 @@ export function mountGame(tasks: Task[]) {
     try { localStorage.removeItem(JOURNEY_KEY); } catch { /* optional storage */ }
     const { sound, bgm, bassSound, volume } = progress;
     progress = { ...readProgress(null), sound, bgm, bassSound, volume };
+    selectedLetterId = undefined;
+    elders.reset();
     cinema.reset();
     activities.reset();
     nature.reset();
@@ -704,6 +732,7 @@ export function mountGame(tasks: Task[]) {
   }
   document.querySelector(".reset-confirm")!.addEventListener("click", () => resetAdventure());
   update();
+  updateMailCount();
   world.onScene("room");
   mountDebugPanel(world,inventory,nature,flowerTrail,async(scene,id,mode)=>{
     if(!worldReady || world.busy || transitioning || !world.canEnter(scene)) return false;

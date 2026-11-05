@@ -74,7 +74,7 @@ export class World {
   private touch: Point = { x: 0, y: 0 };
   private path: Point[] = [];
   private targetEvent: string | null = null;
-  private facing = 0;
+  facing: Facing = 0;
   private walking = false;
   private time = 0;
   private last = 0;
@@ -701,7 +701,7 @@ export class World {
       drawAvatar(
         c,
         this.restState?.kind ?? "standing",
-        this.facing as Facing,
+        this.facing,
         this.walking ? 1 + (Math.floor(this.time * 7) % 2) : 0,
         this.equipment,
         {

@@ -2,6 +2,7 @@ import { rainbowIds } from "./rainbow-flowers.ts";
 import { readEchoMemory, type EchoMemory } from "./echoes.ts";
 import { readAstrolabe, type AstrolabeState } from "./astrolabe.ts";
 import { readFoxMemory, type FoxMemory } from "./fox-memory.ts";
+import { readResidentStory, type ResidentStory } from "./resident-story.ts";
 import { producers } from "./content.ts";
 import { ARCADES } from "./town-data.ts";
 import type { GameId } from "./arcade-engines.ts";
@@ -49,6 +50,7 @@ export interface Progress {
   bedNoteUnlocked: boolean;
   bassSongPlayed: boolean;
   roomFox: FoxMemory;
+  residents: ResidentStory;
   decoratorMet: boolean;
   rabbitIntroduced: boolean;
   echoes: EchoMemory;
@@ -88,6 +90,7 @@ export function readProgress(raw: string | null): Progress {
     bedNoteUnlocked: false,
     bassSongPlayed: false,
     roomFox: readFoxMemory(),
+    residents: readResidentStory(),
     decoratorMet: false,
     rabbitIntroduced: false,
     echoes: readEchoMemory(),
@@ -120,6 +123,7 @@ export function readProgress(raw: string | null): Progress {
       bedNoteUnlocked: p.bedNoteUnlocked === true,
       bassSongPlayed: p.bassSongPlayed === true,
       roomFox: readFoxMemory(p.roomFox),
+      residents: readResidentStory(p.residents),
       decoratorMet: p.decoratorMet === true,
       rabbitIntroduced: p.decoratorMet === true && p.rabbitIntroduced === true,
       echoes: readEchoMemory(p.echoes),

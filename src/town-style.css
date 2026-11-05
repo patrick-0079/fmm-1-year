@@ -61,6 +61,15 @@
   flex: 1;
   min-width: 0;
 }
+.bouquet-icon { width: 44px; height: 44px; object-fit: contain; image-rendering: pixelated; }
+.inventory-item.locked .bouquet-icon { opacity: .5; filter: saturate(.5); }
+.bouquet-detail {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 18px;
+  padding: 14px; background: #fffdf6; border: 1px solid #daccac; border-radius: 6px;
+}
+.bouquet-detail img { width: clamp(68px, 20%, 108px); height: 106px; object-fit: contain; image-rendering: pixelated; }
+.bouquet-detail h4 { margin: 4px 0; color: #614d68; }
+.bouquet-detail p { margin: 6px 0 9px; line-height: 1.6; }
 .inventory-item h4 {
   font-size: 11px;
   margin: 0 0 5px;

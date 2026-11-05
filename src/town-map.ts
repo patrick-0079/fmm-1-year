@@ -180,7 +180,8 @@ export const townScene: Scene = {
       title: n.name + " · " + n.role,
       x: n.x,
       y: n.y,
-      approach: { x: n.x, y: n.y + 26 },
+      // Leave the moon-stage host's conversation spot on his side of the cosmos.
+      approach: { x: n.x, y: n.y + (n.id === "hop-keeper" ? 18 : 26) },
       radius: 56,
       markerOffset: 53,
       color: "#ceab63",

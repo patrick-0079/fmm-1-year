@@ -1,7 +1,10 @@
 import type { World, DepthLayer } from "./world";
 import type { Inventory } from "./inventory";
 import type { Activities } from "./activities";
-import { ARCADES, arcadesIn, TOWN_NPCS, TOWN_FRAMES } from "./town-data";
+import { arcadesIn, TOWN_NPCS, type TownNpc } from "./town-data";
+import { residentOpening, townDialogues, type TownPage } from "./town-dialogue";
+import type { ResidentStory } from "./resident-story";
+import { townResidentLayers, drawResidentPortrait, type TownAct } from "./town-acting";
 import { drawArcadeStall } from "./arcade-stall";
 import type { GameId } from "./arcade-engines";
 import npcUrl from "./assets/town-npcs.webp";
@@ -13,15 +16,23 @@ import {
   drawFestivalProp,
 } from "./town-scenery";
 export const TOWN_TALKED_KEY = "fufu-town-talked-v1";
+interface StoryHooks {
+  story: () => ResidentStory;
+  save: () => void;
+  notify: (text: string) => void;
+}
+
 export class Town {
   private sprites = new Image();
   private visited = new Set<string>();
   private time = 0;
+  private act?: TownAct & { npc: TownNpc; after?: TownPage["after"] };
   constructor(
     private world: World,
     private activities: Activities,
     private inventory: Inventory,
     private visitGame: (id: GameId) => void,
+    private hooks: StoryHooks,
   ) {
     this.sprites.src = npcUrl;
     try {
@@ -43,84 +54,107 @@ export class Town {
     world.onTick = (dt, t) => {
       tick(dt, t);
       this.time = t;
+      this.updateAct(dt);
       world.canvas.parentElement!.toggleAttribute("data-quarry-view",
         world.scene==="town" && world.player.x>1150 && world.player.y<260);
     };
     this.updateJournal();
   }
   reset() {
+    this.act = undefined;
     this.visited.clear();
     this.save();
     this.updateJournal();
   }
   interact(id: string) {
-    if (!id.startsWith("npc-")) return false;
+    if (this.world.scene !== "town" || !id.startsWith("npc-")) return false;
     const npc = TOWN_NPCS.find((n) => n.id === id.slice(4));
     if (!npc) return false;
-    this.visited.add(npc.id);
-    this.save();
-    this.updateJournal();
-    let line = 0;
-    const talk = () =>
-      this.activities.dialogue(
-        `${npc.name} · ${npc.role}`,
-        npc.lines[line % npc.lines.length],
-        [
-          ...(npc.lines.length > 1
-            ? [
-                {
-                  title: "再聊一句",
-                  run: () => {
-                    line++;
-                    talk();
-                  },
-                },
-              ]
-            : []),
-          ...(npc.game
-            ? [
-                {
-                  title: "去玩「" + ARCADES[npc.game].title + "」",
-                  run: () => {
-                    this.activities.close();
-                    this.visitGame(npc.game!);
-                  },
-                },
-              ]
-            : []),
-          ...(npc.gift && !this.inventory.has(npc.gift)
-            ? [
-                {
-                  title: "领取周年纪念胸针",
-                  run: () => {
-                    this.inventory.grant(npc.gift!);
-                    talk();
-                  },
-                },
-              ]
-            : []),
-          { title: "看看纪念背包", run: () => this.inventory.open() },
-        ],
-        (c) => {
-          if (!this.sprites.complete || !this.sprites.naturalWidth) return;
-          const f = TOWN_FRAMES[npc.sprite],
-            scale = 47 / f.h;
-          c.drawImage(
-            this.sprites,
-            f.x,
-            f.y,
-            f.w,
-            f.h,
-            (48 - f.w * scale) / 2,
-            5,
-            f.w * scale,
-            47,
-          );
-        }, npc,
-      );
-    talk();
+    if (!this.visited.has(npc.id)) {
+      this.visited.add(npc.id);
+      this.save();
+      this.updateJournal();
+    }
+    this.showPage(npc, residentOpening(npc.id, this.hooks.story(), this.inventory.hasBouquet()));
     return true;
   }
+
+  private updateAct(dt: number) {
+    const act = this.act;
+    if (!act) return;
+    if (this.world.scene !== "town" || Math.hypot(this.world.player.x - act.npc.x, this.world.player.y - act.npc.y) > 72) {
+      this.act = undefined;
+      return;
+    }
+    act.elapsed += dt;
+    if (act.after && act.elapsed >= act.after.seconds) this.showPage(act.npc, act.after.next);
+    else if (act.pageId === "decline" && act.elapsed >= 0.5) this.act = undefined;
+  }
+
+  private showPage(npc: TownNpc, pageId: string) {
+    const page = townDialogues[npc.id][pageId];
+    const act = { npc, npcId: npc.id, pageId, elapsed: 0, after: page.after };
+    this.activities.dialogue(
+      page.speaker ?? `${npc.name} · ${npc.role}`,
+      page.text,
+      (page.choices ?? []).map(([title, target]) => ({
+        title,
+        run: () => this.answer(npc, target),
+      })),
+      page.speaker ? null : c => drawResidentPortrait(c, npc, this.sprites, pageId),
+      npc,
+      () => { if (this.act === act) this.act = undefined; },
+      page.hint,
+    );
+    this.act = act;
+    if (npc.id === "photo-visitor" && pageId === "move") this.world.facing = this.world.facing === 2 ? 1 : 2;
+    if (npc.id === "baker" && pageId === "eat") this.world.facing = 0;
+    if (page.effect) this.applyEffect(page.effect);
+  }
+
+  private answer(npc: TownNpc, target: string) {
+    if (!target.startsWith("@")) {
+      this.showPage(npc, target);
+      return;
+    }
+    this.activities.close();
+    switch (target) {
+      case "@bag": this.inventory.openWardrobe(); break;
+      case "@bouquet": this.inventory.openBouquet(); break;
+      case "@game": if (npc.game) this.visitGame(npc.game); break;
+      case "@decline": this.act = { npc, npcId: npc.id, pageId: "decline", elapsed: 0 }; break;
+    }
+  }
+
+  private applyEffect(effect: NonNullable<TownPage["effect"]>) {
+    const state = this.hooks.story();
+    switch (effect) {
+      case "deliver":
+        if (state.postDelivered) return;
+        state.postDelivered = true;
+        this.hooks.save();
+        this.hooks.notify("晚安信箱里面好像多了点什么");
+        break;
+      case "pin":
+        this.inventory.grant("anniversaryPin");
+        state.welcomeReceived = true;
+        this.hooks.save();
+        break;
+      case "bouquet":
+        this.inventory.collectBouquet();
+        break;
+      case "reserve":
+        if (state.cake !== "new") return;
+        state.cake = "reserved";
+        this.hooks.save();
+        break;
+      case "taste":
+        state.cake = "eaten";
+        this.hooks.save();
+        break;
+    }
+  }
+
   private save() {
     try {
       localStorage.setItem(
@@ -172,46 +206,9 @@ export class Town {
         draw: (c: CanvasRenderingContext2D) =>
           drawArcadeStall(c, g, id),
       })),
-      ...TOWN_NPCS.map((n) => ({
-        y: n.y,
-        draw: (c: CanvasRenderingContext2D) => {
-          if (!this.sprites.complete || !this.sprites.naturalWidth) return;
-          const f = TOWN_FRAMES[n.sprite],
-            scale = 43 / 337,
-            h = f.h * scale,
-            w = f.w * scale,
-            bob = matchMedia("(prefers-reduced-motion: reduce)").matches
-              ? 0
-              : Math.sin(this.time * 1.7 + n.sprite) * 0.5;
-          c.fillStyle = "#3f51432e";
-          c.beginPath();
-          c.ellipse(n.x, n.y, 9, 3, 0, 0, Math.PI * 2);
-          c.fill();
-          c.drawImage(
-            this.sprites,
-            f.x,
-            f.y,
-            f.w,
-            f.h,
-            n.x - w / 2,
-            n.y - h + bob,
-            w,
-            h,
-          );
-          if (
-            Math.hypot(this.world.player.x - n.x, this.world.player.y - n.y) <
-            100
-          ) {
-            c.font = '8px "Microsoft YaHei", "PingFang SC", sans-serif';
-            c.textAlign = "center";
-            const width = c.measureText(n.name).width + 10;
-            c.fillStyle = "#fff4dce8";
-            c.fillRect(n.x - width / 2, n.y + 5, width, 12);
-            c.fillStyle = this.visited.has(n.id) ? "#8e8969" : "#9b6e84";
-            c.fillText(n.name, n.x, n.y + 14);
-          }
-        },
-      })),
+      ...TOWN_NPCS.flatMap(n => townResidentLayers(
+        n, this.sprites, this.world, this.visited.has(n.id), this.time, this.act,
+      )),
     ];
   }
   private drawSigns(c: CanvasRenderingContext2D) {

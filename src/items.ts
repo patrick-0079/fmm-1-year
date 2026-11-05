@@ -150,11 +150,13 @@ export const ITEMS: Record<
 };
 export interface InventoryState {
   owned: ItemId[];
+  bouquet: boolean;
   equipped: Record<EquipSlot, ItemId | null>;
 }
 export const INVENTORY_KEY = "fufu-souvenirs-v1";
 export const emptyInventory = (): InventoryState => ({
   owned: [],
+  bouquet: false,
   equipped: {
     head: null,
     clothes: null,
@@ -172,6 +174,7 @@ export function readInventory(
   try {
     const p = JSON.parse(raw || "null");
     if (p && typeof p === "object") {
+      state.bouquet = p.bouquet === true;
       if (Array.isArray(p.owned))
         state.owned = [
           ...new Set<ItemId>(

@@ -1,4 +1,4 @@
-import { collections } from "./content";
+import { collections, type Memory } from "./content";
 import { escapeHtml, icon } from "./icons";
 import { duckMusic } from "./sound";
 import { FilmPreloader, downloadLabel } from "./film-preloader";
@@ -8,9 +8,16 @@ export interface CollectionSurface {
   onCleanup(cleanup: () => void): void;
 }
 
-export function openCollection(modal: CollectionSurface, id: string) {
+interface LetterList {
+  items: Memory[];
+  selectedId?: string;
+  unreadId?: string;
+  onRead: (id: string) => void;
+}
+export function openCollection(modal: CollectionSurface, id: string, letters?: LetterList) {
   const collection = collections[id];
   if (!collection) return;
+  const items = letters?.items ?? collection.items;
   const body = modal.open(
     collection.title,
     collection.subtitle,
@@ -18,7 +25,7 @@ export function openCollection(modal: CollectionSurface, id: string) {
   );
   const symbols = { text: "mail", image: "book", audio: "sound", video: "tv" };
   const nouns = { text: "留言", image: "图片", audio: "录音", video: "视频" };
-  if (!collection.items.length) {
+  if (!items.length) {
     body.innerHTML = `<div class="empty-memory"><div class="empty-icon">${icon(symbols[collection.kind])}<span>${icon("heart")}</span></div><span class="empty-tag">COMING SOON</span><h3>这里，留给未来的一份心意</h3><p>${nouns[collection.kind]}正在慢慢集合。<br>先去吹蜡烛、拆礼物，或者到花园放一朵烟花吧。</p><button class="button secondary">继续小冒险 ${icon("arrow")}</button></div>`;
     body
       .querySelector("button")!
@@ -42,10 +49,11 @@ export function openCollection(modal: CollectionSurface, id: string) {
   };
   const select = (index: number) => {
     stop();
-    const item = collection.items[index];
+    const item = items[index];
     list.querySelectorAll("button").forEach((button, i) => {
       button.classList.toggle("selected", i === index);
       button.setAttribute("aria-pressed", String(i === index));
+      if (i === index) button.textContent = item.title;
     });
     detail.innerHTML = `<h3>${escapeHtml(item.title)}</h3>${item.author ? `<p class="memory-author">来自 ${escapeHtml(item.author)}</p>` : ""}<div class="memory-content"></div>`;
     const content = detail.querySelector(".memory-content")!;
@@ -54,6 +62,7 @@ export function openCollection(modal: CollectionSurface, id: string) {
       p.className = "letter-text";
       p.textContent = item.text || "这封信的正文还在路上。";
       content.append(p);
+      letters?.onRead(item.id);
     } else if (!item.src) {
       content.innerHTML =
         '<p class="media-error">这份素材暂未添加，稍后再来看看吧。</p>';
@@ -123,10 +132,11 @@ export function openCollection(modal: CollectionSurface, id: string) {
       }
     }
   };
-  collection.items.forEach((item, i) => {
+  items.forEach((item, i) => {
     const button = document.createElement("button");
     button.className = "collection-item";
-    button.textContent = item.title;
+    button.dataset.memoryId = item.id;
+    button.textContent = item.title + (letters?.unreadId === item.id ? " · 未读" : "");
     button.addEventListener("click", () => select(i));
     list.append(button);
   });
@@ -138,5 +148,5 @@ export function openCollection(modal: CollectionSurface, id: string) {
     stop();
     document.removeEventListener("visibilitychange", visibility);
   });
-  select(0);
+  select(Math.max(0, items.findIndex(item => item.id === letters?.selectedId)));
 }
