@@ -5,8 +5,7 @@ import sprite from "../src/assets/nemu-sprites.webp";
 import rest from "../src/assets/fufu-rest-poses.webp";
 import wreath from "../src/assets/flower-wreath.webp";
 import rewards from "../src/assets/reward-icons.webp";
-import wardrobe from "../src/assets/wardrobe-v11.webp";
-import { drawItem } from "../src/item-art";
+import { drawItem, whenWardrobeReady } from "../src/item-art";
 import { prepareSceneArt } from "../src/scene-art";
 import shoes from "../src/assets/fufu-footwear-v14.webp";
 import garments from "../src/assets/fufu-garments-v15.webp";
@@ -18,10 +17,32 @@ const load = (src: string) =>
     i.src = src;
   });
 const [a, b, c, d] = await Promise.all(
-  [sprite, rest, wreath, rewards, wardrobe, shoes, garments].map(load),
+  [sprite, rest, wreath, rewards, shoes, garments].map(load),
 );
 const images = { sprite: a, rest: b, wreath: c, rewards: d };
-await prepareSceneArt("ruins");
+await Promise.all([prepareSceneArt("ruins"), new Promise<void>(whenWardrobeReady)]);
+
+const bagRows = document.querySelector<HTMLTableSectionElement>("#backpacks tbody")!;
+for (const backpack of ["moonBag", "berryBag", "rabbitSatchel"] as const) {
+  const row = bagRows.insertRow();
+  const name = document.createElement("th");
+  name.scope = "row";
+  name.textContent = ITEMS[backpack].name;
+  row.append(name);
+  for (const facing of [1, 2] as const) {
+    for (let frame = 0; frame < 3; frame++) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 108;
+      canvas.height = 144;
+      const ctx = canvas.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.translate(54, 136);
+      ctx.scale(3, 3);
+      drawAvatar(ctx, "standing", facing, frame, { backpack }, images);
+      row.insertCell().append(canvas);
+    }
+  }
+}
 const cloth = document.querySelector<HTMLCanvasElement>("#garments")!.getContext("2d")!;
 cloth.fillStyle="#e4e7d5"; cloth.fillRect(0,0,1176,440); cloth.imageSmoothingEnabled=false;
 const outfits: Equipped[] = [{},{clothes:"roseDress"},{clothes:"mintCape"},{clothes:"mintCape",backpack:"rabbitSatchel",head:"headphones",shoes:"starShoes"}];

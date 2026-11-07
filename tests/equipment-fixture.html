@@ -36,6 +36,11 @@
       p {
         line-height: 1.8;
       }
+      #backpacks { width: fit-content; max-width: 100%; overflow-x: auto; }
+      #backpacks table { border-collapse: collapse; text-align: center; background: #e4e7d5; }
+      #backpacks th, #backpacks td { padding: 3px 5px; border: 1px solid #cbc9b6; }
+      #backpacks th { font: 600 14px system-ui, sans-serif; white-space: nowrap; background: #f2e9d5; }
+      #backpacks canvas { width: 108px; }
     </style>
   </head>
   <body>
@@ -43,6 +48,16 @@
     <p>
       开发验收页，复用游戏实际绘制代码。睡觉时全部饰品应隐藏；本页不解锁或修改游戏存档，生产构建不包含此页。
     </p>
+    <section id="backpacks">
+      <h2>背包侧身逐帧对照</h2>
+      <table aria-label="三款背包左右侧身的待机与行走姿势">
+        <thead>
+          <tr><th rowspan="2" scope="col">背包</th><th colspan="3" scope="colgroup">向左</th><th colspan="3" scope="colgroup">向右</th></tr>
+          <tr><th scope="col">待机</th><th scope="col">迈步一</th><th scope="col">迈步二</th><th scope="col">待机</th><th scope="col">迈步一</th><th scope="col">迈步二</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
     <section id="outfits"><h2>衣服与叠穿逐帧对照</h2><p>原衣、周年蔷薇裙、晨露薄荷披肩、披肩配兔包与星星耳机。各行依次展示四个朝向的三帧、坐姿与睡姿。</p><canvas id="garments" width="1176" height="440" style="width:min(100%,1176px)"></canvas></section>
     <section><h2>鞋子逐帧对照</h2><p>从左到右依次为正面、向左、向右、背面各三帧，末列为坐姿。从上至下为原鞋、草莓缎带鞋、星月旅行鞋。</p><canvas id="footsteps" width="1092" height="350" style="width:min(100%,1092px)"></canvas></section>
     <details id="all-poses"><summary>十四种配饰总览 · 正面、左右、背面、坐姿、睡姿</summary>

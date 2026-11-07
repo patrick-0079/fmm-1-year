@@ -11,11 +11,18 @@ export interface EquipmentPart {
   style?: "band" | "earpieces" | "straps" | "garment" | "bag" | "footwear";
   mirror?: boolean;
 }
+// Inner top corner of the pouch against the near shoulder, relative to the feet.
+// In profile the trailing hair extends much farther back than the side of the dress.
+const sideBagSeams = {
+  1: [[-1.1,-19.8],[-.7,-19.5],[-.6,-19.7]],
+  2: [[1.9,-19.5],[1.7,-19.1],[1,-19.7]],
+} as const;
 /** Relative to the foot baseline, using separate front/back and side views. */
 export function equipmentParts(
   equipped: Equipped,
   pose: AvatarPose,
   facing: Facing,
+  walkFrame = 0,
 ): EquipmentPart[] {
   if (pose === "lying") return [];
   if (pose === "sitting") facing = 0;
@@ -38,8 +45,11 @@ export function equipmentParts(
     add(equipped.clothes, "front", -16, -44 - shift, 32, 44, "garment");
   if (bag === "moonBag" || bag === "berryBag" || bag === "rabbitSatchel") {
     if (facing === 3) add(bag, "front", -6, -19, 12, 12, "bag");
-    else if (facing === 1) add(bag, "front", 6.7, -15.6, 8.4, 9.6, "bag");
-    else if (facing === 2) add(bag, "front", -15.1, -15.6, 8.4, 9.6, "bag", true);
+    else if (facing === 1 || facing === 2) {
+      const [seamX, top] = sideBagSeams[facing][walkFrame];
+      const width = 8, height = 9.2;
+      add(bag, "front", facing === 1 ? seamX : seamX - width, top, width, height, "bag", facing === 2);
+    }
     else {
       add(bag, "behind", -12, -18.5, 12, 12, "bag");
       add(bag, "front", -16, -44 - shift, 32, 44, "straps");

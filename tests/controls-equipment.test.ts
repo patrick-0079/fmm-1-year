@@ -44,6 +44,22 @@ test("all wearable slots have bounded directional attachments and disappear whil
     [],
   );
 });
+test("each side-view pack meets the blouse at the shoulder across all six profile frames", () => {
+  // Back edge of the lavender sleeve at y = -16.6, measured on the base sprites.
+  // Comparing with the blouse keeps a bag resting on loose hair from passing.
+  const sleeve = {1: [.1, .5, .4], 2: [1, .6, -.2]} as const;
+  for (const facing of [1, 2] as const) {
+    for (const [frame, seam] of sleeve[facing].entries()) {
+      for (const backpack of ["moonBag", "berryBag", "rabbitSatchel"] as const) {
+        const bag = equipmentParts({backpack}, "standing", facing, frame).find(p => p.style === "bag")!;
+        assert.equal(bag.mirror, facing === 2);
+        const overlap = facing === 1 ? seam - bag.x : bag.x + bag.w - seam;
+        assert.ok(overlap >= .5 && overlap <= 2, `${backpack}, facing ${facing}, step ${frame}: shoulder overlap ${overlap}`);
+        assert.ok(bag.y < -18 && bag.y + bag.h > -13 && bag.y + bag.h < -9);
+      }
+    }
+  }
+});
 test("item art keeps its original aspect ratio within both small wearables and inventory icons", () => {
   for (const [w, h] of [
     [239, 76],

@@ -44,18 +44,49 @@ const wornBags = {
   berryBag: [75, 569, 339, 272],
   rabbitSatchel: [1390, 580, 342, 255],
 } as const;
+const bagProfiles = {
+  moonBag: {crop:[80,709,540,470], leather:"#8e7089", stitch:"#ecbfd8"},
+  berryBag: {crop:[94,566,325,277], leather:"#95575d", stitch:"#f3aa9d"},
+  rabbitSatchel: {crop:[1374,572,363,274], leather:"#758662", stitch:"#c7d09c"},
+} as const;
+
 export function drawWornBag(c: CanvasRenderingContext2D, part: EquipmentPart, profile: boolean, rewards: HTMLImageElement) {
   const id = part.id;
   if (id !== "moonBag" && id !== "berryBag" && id !== "rabbitSatchel") return;
   const sheet = id === "moonBag" ? rewards : wardrobe;
   if (!sheet.complete || !sheet.naturalWidth) return;
-  const [x, y, w, h] = wornBags[id], inset = profile ? w * .20 : 0;
   c.translate(part.mirror ? part.x + part.w : part.x, part.y);
   if (part.mirror) c.scale(-1,1);
+  if (profile) {
+    const {crop:[sx, sy, sw, sh], leather, stitch} = bagProfiles[id];
+    // The near strap rounds the shoulder and disappears at the sleeve.
+    c.beginPath();
+    c.moveTo(-1.6,3.6);
+    c.quadraticCurveTo(-2.4,1.6,-1.2,.75);
+    c.quadraticCurveTo(.3,-.35,2.8,2.2);
+    c.lineCap = "round";
+    c.lineWidth = 1.25; c.strokeStyle = leather; c.stroke();
+    c.lineWidth = .58; c.strokeStyle = stitch; c.stroke();
+    // Tuck the inside lower corner behind the widening sleeve.
+    c.beginPath();
+    c.moveTo(.4,2.2);
+    c.quadraticCurveTo(.45,.1,2.4,0);
+    c.quadraticCurveTo(part.w,-.1,part.w,3);
+    c.lineTo(part.w,part.h-2);
+    c.quadraticCurveTo(part.w,part.h,part.w-2,part.h);
+    c.lineTo(2.9,part.h);
+    c.quadraticCurveTo(1.3,6.8,.6,4.5);
+    c.closePath(); c.clip();
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = "high";
+    c.drawImage(sheet,sx,sy,sw,sh,0,0,part.w,part.h);
+    return;
+  }
+  const [x, y, w, h] = wornBags[id];
   // The top handle is behind the hair when worn; turn the visible pouch
   // back under it with rounded shoulders instead of exposing a hard crop.
   c.beginPath(); c.roundRect(0,0,part.w,part.h,[part.w*.32,part.w*.32,part.w*.20,part.w*.20]); c.clip();
-  c.drawImage(sheet, x+inset, y, w-inset, h, 0, 0, part.w, part.h);
+  c.drawImage(sheet, x, y, w, h, 0, 0, part.w, part.h);
 }
 export function drawItem(
   c: CanvasRenderingContext2D,

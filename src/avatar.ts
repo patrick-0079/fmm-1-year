@@ -77,7 +77,7 @@ export function drawAvatar(
   images: AvatarImages,
 ) {
   if (pose === "sitting") facing = 0;
-  const parts = equipmentParts(equipped, pose, facing);
+  const parts = equipmentParts(equipped, pose, facing, walkFrame);
   const frame = pose === "standing" ? facing * 3 + walkFrame : 12;
   for (const p of parts.filter((p) => p.layer === "behind"))
     paintPart(c, p, facing, images, frame);
