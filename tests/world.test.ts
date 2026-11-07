@@ -106,14 +106,14 @@ test("stairs and courtyard no longer collide with the oversized house box", () =
     assert.equal(canStand(p, s.walls, s.bounds, s.floor, s.surfaces), false);
 });
 
-test("courtyard fences block feet while the central crossing stays open", () => {
+test("the courtyard has entrances between the upper flower beds and lower balustrades", () => {
   const s = scenes.garden;
   for (const p of [
-    { x: 334, y: 323 },
-    { x: 337, y: 381 },
-    { x: 564, y: 323 },
-    { x: 560, y: 382 },
-    { x: 558, y: 358 },
+    { x: 356, y: 309 },
+    { x: 330, y: 380 },
+    { x: 530, y: 312 },
+    { x: 548, y: 388 },
+    { x: 499, y: 418 },
   ])
     assert.equal(canStand(p, s.walls, s.bounds, s.floor, s.surfaces), false);
   for (const p of [
@@ -121,6 +121,8 @@ test("courtyard fences block feet while the central crossing stays open", () => 
     { x: 450, y: 390 },
   ])
     assert.equal(canStand(p, s.walls, s.bounds, s.floor, s.surfaces), true);
+  for (const [from,to] of [[{x:305,y:340},{x:450,y:340}],[{x:450,y:340},{x:571,y:340}]])
+    assert.ok(canTravelBetween(from,to,s), "both side entrances must open onto the plaza");
 });
 test("round-table corners and bed-side corridor are clear, furniture bases are solid", () => {
   const s = scenes.room;

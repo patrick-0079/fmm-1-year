@@ -64,20 +64,23 @@ export function drawCreek(
   c.fillRect(b.x + 2, b.y + 6, b.w, b.h);
   c.fillStyle = "#775d56";
   c.fillRect(b.x, b.y, b.w, b.h);
-  for (let y = 2; y < b.h - 1; y += 5) {
-    c.fillStyle = y % 2 ? "#d2b084" : "#bb946e";
-    c.fillRect(b.x + 2, b.y + y, b.w - 4, 4);
+  for (let x = 2; x < b.w - 3; x += 5) {
+    c.fillStyle = x % 2 ? "#d2b084" : "#bb946e";
+    c.fillRect(b.x + x, b.y + 1, 4, b.h - 2);
     c.fillStyle = "#e8c79c";
-    c.fillRect(b.x + 4, b.y + y, b.w - 8, 1);
+    c.fillRect(b.x + x, b.y + 2, 1, b.h - 4);
   }
-  for (const x of [b.x + 3, b.x + b.w - 7]) {
+  for (const y of [b.y, b.y + b.h - 3]) {
     c.fillStyle = "#7c645c";
-    c.fillRect(x, b.y - 4, 5, b.h + 6);
+    c.fillRect(b.x + 3, y - 3, b.w - 6, 5);
     c.fillStyle = "#d0ac83";
-    c.fillRect(x + 1, b.y - 4, 3, b.h + 3);
-    c.fillStyle = "#f0d1a0";
-    c.fillRect(x, b.y - 5, 5, 3);
-    c.fillRect(x, b.y + b.h - 1, 5, 3);
+    c.fillRect(b.x + 4, y - 3, b.w - 8, 2);
+    for (const x of [b.x + 3, b.x + b.w - 7]) {
+      c.fillStyle = "#775d56";
+      c.fillRect(x, y - 5, 4, 8);
+      c.fillStyle = "#f0d1a0";
+      c.fillRect(x, y - 5, 4, 2);
+    }
   }
   c.restore();
 }

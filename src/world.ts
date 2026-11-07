@@ -6,6 +6,7 @@ import restUrl from "./assets/fufu-rest-poses.webp";
 import wreathUrl from "./assets/flower-wreath.webp";
 import townUrl from "./assets/anniversary-town-v13.webp";
 import townDetailUrl from "./assets/anniversary-town-hd-v13.webp";
+import { dockOpening } from "./town-terraces";
 import meadowUrl from "./assets/night-meadow-v16.webp";
 import ruinsUrl from "./assets/echo-ruins.webp";
 import wellUrl from "./assets/echo-well.webp";
@@ -23,11 +24,14 @@ import { reservedShortcut, readingTarget } from "./input";
 import { connectionLayers } from "./connections";
 import { crossedTownGate } from "./gate-layout";
 import { enteredMoonCircle } from "./meadow-map";
+import { surfaceOutline } from "./collision";
+import { trapFootprint, trapSprite } from "./trap-art";
 import {
   advancePath,
   canStand,
   findPath,
   movePlayer,
+  crossedHazard,
   touchingHazard,
   PLAYER_RADIUS,
   type Hazard,
@@ -62,6 +66,7 @@ export class World {
   private inputRegion: HTMLElement;
   private ctx: CanvasRenderingContext2D;
   scene: SceneId = "room";
+  townMap = scenes.town;
   player: Point = { ...scenes.room.spawn };
   private camera: Point = { x: 0, y: 0 };
   private zoom = 1;
@@ -255,9 +260,7 @@ export class World {
       }
       if (this.paused || this.busy) return;
       const spot = this.spotAt(point);
-      const hazard = this.config.hazards.find(
-        (h) => Math.hypot(h.x - point.x, h.y - point.y) < h.radius + 10,
-      );
+      const hazard = touchingHazard(point, this.config.hazards);
       this.goTo(
         spot?.approach ?? hazard ?? point,
         spot?.id ?? null,
@@ -362,6 +365,20 @@ export class World {
       c.imageSmoothingQuality = "high";
     }
     c.drawImage(background, x * sx, y * sy, w * sx, h * sy, x, y, w, h);
+    if (this.scene === "town" && x < 903 && x+w > 889 && y < 927 && y+h > 888) {
+      c.save();
+      c.beginPath();
+      c.rect(x, y, w, h);
+      c.clip();
+      c.beginPath();
+      c.moveTo(dockOpening[0].x, dockOpening[0].y);
+      for (const point of dockOpening.slice(1)) c.lineTo(point.x, point.y);
+      c.closePath();
+      c.clip();
+      // Sample across one plank at its native scale, following the deck's perspective.
+      c.drawImage(background, 871*sx, 885*sy, 14*sx, 39*sy, 889, 888, 14, 39);
+      c.restore();
+    }
     if (this.scene==="town" && sceneArt.quarry.naturalWidth && x+w>townQuarry.x && y<townQuarry.height) {
       c.beginPath(); c.rect(x,y,w,h); c.clip();
       c.drawImage(sceneArt.quarry,townQuarry.x,townQuarry.y,townQuarry.width,townQuarry.height);
@@ -382,6 +399,7 @@ export class World {
     c.restore();
   }
   get config() {
+    if (this.scene === "town") return this.townMap;
     return this.scene === "garden" && this.canEnter("meadow") ? bloomingGarden : scenes[this.scene];
   }
   get visibleArea() {
@@ -575,7 +593,7 @@ export class World {
     }
     const trap =
       this.immunity <= 0
-        ? touchingHazard(this.player, this.config.hazards)
+        ? crossedHazard(before, this.player, this.config.hazards)
         : undefined;
     if (trap) {
       this.clearInput();
@@ -756,32 +774,23 @@ export class World {
       c.beginPath();
       c.ellipse(x, y + 3, r + 2, 7, 0, 0, Math.PI * 2);
       c.fill();
-      const i = { ribbon: 0, stone: 1, mist: 2, wind: 3 }[trap.kind];
-      const frames = [
-        { x: 30, y: 110, w: 775, h: 375 },
-        { x: 830, y: 50, w: 690, h: 440 },
-        { x: 30, y: 520, w: 780, h: 485 },
-        { x: 840, y: 515, w: 680, h: 490 },
-      ];
-      const f = frames[i];
+      const { frame: f, x: left, y: top, w, h } = trapSprite(trap);
       const floating = trap.kind === "mist" || trap.kind === "wind";
       const bob =
         floating && !this.reducedMotion.matches
-          ? Math.sin(this.time * 1.4 + i) * 1.5
+          ? Math.sin(this.time * 1.4 + (trap.kind === "mist" ? 2 : 3)) * 1.5
           : 0;
       if (image) {
-        const width = (r + 7) * 2,
-          height = (width / f.w) * f.h;
         c.drawImage(
           image,
           f.x,
           f.y,
           f.w,
           f.h,
-          x - width / 2,
-          y + 6 - height + bob,
-          width,
-          height,
+          left,
+          top + bob,
+          w,
+          h,
         );
       }
       c.restore();
@@ -805,6 +814,9 @@ export class World {
     const c = this.ctx;
     c.save();
     c.lineWidth = 1;
+    const bounds = this.config.bounds;
+    c.strokeStyle = "#00def2";
+    c.strokeRect(bounds.x, bounds.y, bounds.w, bounds.h);
     if (this.config.floor) {
       c.strokeStyle = "#00def2";
       c.beginPath();
@@ -828,10 +840,22 @@ export class World {
       c.stroke();
     }
     c.strokeStyle = "#56d4e5";
-    for (const surface of this.config.surfaces ?? []) {
+    if (this.config.surfaces) {
       c.beginPath();
-      surface.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
-      c.closePath();
+      for (const { a, b } of surfaceOutline(this.config.surfaces)) {
+        c.moveTo(a.x, a.y);
+        c.lineTo(b.x, b.y);
+      }
+      c.stroke();
+    }
+    c.strokeStyle = "#e18d22";
+    for (const trap of this.config.hazards) {
+      c.beginPath();
+      const footprint = trapFootprint(trap);
+      if (footprint) {
+        footprint.forEach((p, i) => i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y));
+        c.closePath();
+      } else c.arc(trap.x, trap.y, trap.radius, 0, Math.PI * 2);
       c.stroke();
     }
     c.strokeStyle = "#14c687";

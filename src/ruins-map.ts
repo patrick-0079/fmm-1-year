@@ -5,6 +5,9 @@ import { rings, lightBoard, mirrorCells, targetCell, type RingId } from "./astro
 
 // Trace the native 1536 × 1024 stone floor, then project it onto the logical map.
 const paving = (pairs: number[][]) => pairs.map(([x,y])=>({x:x*900/1536,y:y*600/1024}));
+function stoneBase(label: string, at: Point, outline: number[][]) {
+  return { label, points: outline.map(([dx,dy]) => ({ x: at.x + dx, y: at.y + dy })) };
+}
 export const townQuarry = {x:1160,y:0,width:376,height:244};
 export const townEchoGate = {
   id: "echo-gate", title: "废弃山洞 · 回声遗迹", x: 1428, y: 82,
@@ -73,10 +76,11 @@ export const ruinsScene: Scene = {
       [656,963],[657,931],[686,878],[686,770]]),
   ],
   walls: [
-    {label:"听月泉石沿",x:echoPool.x-19,y:echoPool.y-5,w:38,h:8},
-    {label:"月相星盘底座",x:moonPlate.x-18,y:moonPlate.y-6,w:36,h:9},
-    {label:"南阶手记书托",x:southNotebook.x-8,y:southNotebook.y-4,w:16,h:7},
-    ...trials.map(([,g])=>({label:g.short+"石座", x:g.x-14, y:g.y-7, w:28, h:12})),
+    stoneBase("听月泉石沿",echoPool,[[-23,-7],[-17,-11],[-4,-13],[13,-12],[22,-8],[23,-4],[16,1],[2,4],[-15,2],[-22,-2]]),
+    stoneBase("月相星盘底座",moonPlate,[[-21,-5],[-16,-10],[15,-10],[21,-5],[20,0],[12,4],[-12,4],[-20,1]]),
+    stoneBase("南阶手记书托",southNotebook,[[-9,-3],[-7,-6],[7,-6],[10,-2],[8,3],[-7,3]]),
+    ...mirrorSpots.map(spot => stoneBase("铜镜座",spot,[[-7,2],[-5,-2],[0,-3],[5,-2],[7,2],[5,5],[0,7],[-5,5]])),
+    ...trials.map(([,g])=>({label:g.short+"石座", x:g.x-12, y:g.y-5, w:24, h:9})),
   ],
   hazards: [],
   spots: [

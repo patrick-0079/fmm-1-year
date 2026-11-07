@@ -51,6 +51,28 @@ test("the whole arcade counter stands on native open ground, away from fences an
     assert.ok(!canStand({x:g.x, y:g.y+10}, s.walls, s.bounds, s.floor, s.surfaces), `${id}: missing solid counter`);
   }
 });
+
+test("the climb to the old mine stays between the memorial wall and the wooded bluff", () => {
+  const s = scenes.town;
+  for (const lane of [
+    [[936,479],[948,431],[969,403],[978,383],[968,362],[959,335],[951,312],
+      [969,290],[996,269],[1035,239],[1073,216],[1109,192],[1140,174],
+      [1170,157],[1202,142],[1240,121],[1280,107],[1342,114]],
+    [[1206,112],[1203,99],[1205,85],[1205,73],[1204,65],[1201,62],[1194,58],[1182,54]],
+  ]) {
+    for (let i = 1; i < lane.length; i++) {
+      const [x,y] = lane[i - 1], [tx,ty] = lane[i];
+      assert.ok(canTravelBetween({x,y},{x:tx,y:ty},s), `uphill lane blocked at ${x},${y}`);
+    }
+  }
+  for (const [x,y] of [[1041,149],[1213,185],[1222,175],[935,247],[1042,196],[1161,124],[1219,97]]) {
+    assert.equal(canStand({x,y},s.walls,s.bounds,s.floor,s.surfaces),false);
+  }
+  const cat = s.spots.find(spot => spot.id === "npc-cat")!;
+  const street = {...s,walls:s.walls.filter(w => w.label !== "镇民 · 奶糖")};
+  for (const direction of [-1,1])
+    assert.ok(canTravelBetween(cat,{x:cat.x+direction*26,y:cat.y-direction*12},street));
+});
 test("the Moon Rabbit counter and its keeper are accessible across the southeast curb in both directions",()=>{
   const s=scenes.town, street={x:572,y:644}, counter=s.spots.find(p=>p.id==="arcade-hop")!.approach;
   const sidewalk=[street,{x:546,y:638},{x:507,y:630},{x:477,y:623},counter];

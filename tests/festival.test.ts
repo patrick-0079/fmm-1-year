@@ -285,13 +285,14 @@ test("bookshop stairs and pond decking connect while the old cliff shortcut is b
   const scene = scenes.town;
   for (const p of [
     { x: 850, y: 790 },
-    { x: 866, y: 930 },
+    { x: 896, y: 917 },
     { x: 810, y: 950 },
   ])
     assert.ok(
       canStand(p, scene.walls, scene.bounds, scene.floor, scene.surfaces),
     );
   for (const p of [
+    { x: 866, y: 930 }, // Front rail below the left deck, beside the first flower bed.
     { x: 975, y: 885 },
     { x: 995, y: 900 },
     { x: 1345, y: 924 },
@@ -300,6 +301,7 @@ test("bookshop stairs and pond decking connect while the old cliff shortcut is b
       canStand(p, scene.walls, scene.bounds, scene.floor, scene.surfaces),
       false,
     );
-  assert.ok(findPath({ x: 867, y: 808 }, { x: 866, y: 930 }, scene, []));
-  assert.ok(findPath({ x: 866, y: 930 }, { x: 613, y: 960 }, scene, []));
+  const gate = { x: 896, y: 917 }, waterfront = { x: 613, y: 960 };
+  assert.deepEqual(findPath({ x: 867, y: 808 }, gate, scene)?.at(-1), gate);
+  assert.deepEqual(findPath(gate, waterfront, scene)?.at(-1), waterfront);
 });

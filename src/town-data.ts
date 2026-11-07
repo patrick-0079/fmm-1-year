@@ -223,7 +223,7 @@ export const TOWN_NPCS: TownNpc[] = [
     name: "奶糖",
     role: "巡街小猫",
     x: 1092,
-    y: 156,
+    y: 180,
     sprite: 14,
   },
 ];

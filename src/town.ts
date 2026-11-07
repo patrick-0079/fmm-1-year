@@ -4,7 +4,9 @@ import type { Activities } from "./activities";
 import { arcadesIn, TOWN_NPCS, type TownNpc } from "./town-data";
 import { residentOpening, townDialogues, type TownPage } from "./town-dialogue";
 import type { ResidentStory } from "./resident-story";
-import { townResidentLayers, drawResidentPortrait, type TownAct } from "./town-acting";
+import { townResidentLayers, residentPlacement, drawResidentPortrait, type TownAct } from "./town-acting";
+import { TownResidentMap } from "./town-resident-map";
+import { townScene } from "./town-map";
 import { drawArcadeStall } from "./arcade-stall";
 import type { GameId } from "./arcade-engines";
 import npcUrl from "./assets/town-npcs.webp";
@@ -26,6 +28,8 @@ export class Town {
   private sprites = new Image();
   private visited = new Set<string>();
   private time = 0;
+  private residents = new TownResidentMap(townScene);
+  private placement?: ReturnType<typeof residentPlacement>;
   private act?: TownAct & { npc: TownNpc; after?: TownPage["after"] };
   constructor(
     private world: World,
@@ -34,6 +38,7 @@ export class Town {
     private visitGame: (id: GameId) => void,
     private hooks: StoryHooks,
   ) {
+    world.townMap = this.residents.scene;
     this.sprites.src = npcUrl;
     try {
       const list = JSON.parse(
@@ -55,6 +60,9 @@ export class Town {
       tick(dt, t);
       this.time = t;
       this.updateAct(dt);
+      const performer = this.act?.npc;
+      this.placement = performer && residentPlacement(performer, world.player, this.act);
+      this.residents.update(world.scene === "town" ? world.player : undefined, performer?.id, this.placement?.foot);
       world.canvas.parentElement!.toggleAttribute("data-quarry-view",
         world.scene==="town" && world.player.x>1150 && world.player.y<260);
     };
@@ -82,7 +90,8 @@ export class Town {
   private updateAct(dt: number) {
     const act = this.act;
     if (!act) return;
-    if (this.world.scene !== "town" || Math.hypot(this.world.player.x - act.npc.x, this.world.player.y - act.npc.y) > 72) {
+    const anchor = this.residents.anchor(act.npcId);
+    if (this.world.scene !== "town" || Math.hypot(this.world.player.x - anchor.x, this.world.player.y - anchor.y) > 72) {
       this.act = undefined;
       return;
     }
@@ -102,7 +111,7 @@ export class Town {
         run: () => this.answer(npc, target),
       })),
       page.speaker ? null : c => drawResidentPortrait(c, npc, this.sprites, pageId),
-      npc,
+      this.residents.anchor(npc.id),
       () => { if (this.act === act) this.act = undefined; },
       page.hint,
     );
@@ -208,6 +217,7 @@ export class Town {
       })),
       ...TOWN_NPCS.flatMap(n => townResidentLayers(
         n, this.sprites, this.world, this.visited.has(n.id), this.time, this.act,
+        this.act?.npcId === n.id ? this.placement : undefined,
       )),
     ];
   }

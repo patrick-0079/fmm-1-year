@@ -1,5 +1,5 @@
 import type { World } from "./world";
-import { gardenFilm, gardenScreen } from "./cinema-config";
+import { gardenFilm, gardenScreen, televisionSilhouette } from "./cinema-config";
 import { drawGardenScreen } from "./cinema-screen";
 import { CinemaSession, mediaTime, containVideo } from "./cinema-state";
 import { duckMusic } from "./sound";
@@ -22,7 +22,7 @@ export class GardenCinema {
     private world: World,
     private toast: (text: string) => void,
   ) {
-    const effects = world.onEffects,
+    const layers = world.getDepthLayers,
       tick = world.onTick,
       action = world.onAction,
       pointer = world.onPointer;
@@ -36,10 +36,18 @@ export class GardenCinema {
         this.render();
       }
     };
-    world.onEffects = (c) => {
-      effects(c);
-      this.draw(c);
-    };
+    world.getDepthLayers = () => world.scene !== "garden" ? layers() : [
+      ...layers(),
+      { y: 273, draw: (c) => {
+        c.save();
+        const feet = world.player;
+        if (!this.active && feet.x > 635 && feet.x < 792 && feet.y > 169 && feet.y < 273)
+          c.globalAlpha *= 0.64;
+        world.drawMapFragment(c, televisionSilhouette);
+        this.draw(c);
+        c.restore();
+      } },
+    ];
     world.onTick = (dt, t) => {
       tick(dt, t);
       this.time = t;

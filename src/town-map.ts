@@ -1,8 +1,10 @@
 import type { Scene } from "./maps.ts";
 import { arcadesIn, TOWN_NPCS } from "./town-data.ts";
 import { townEchoGate } from "./ruins-map.ts";
+import { postObstacles } from "./post-streets.ts";
 import { fenceSegments } from "./fences.ts";
 import { townSurfaces } from "./town-surfaces.ts";
+import { townTerraceWalls } from "./town-terraces.ts";
 import { townCanopies, festivalProps } from "./town-scenery.ts";
 import { townGates, gatePosts, gateSpot } from "./gate-layout.ts";
 export const townScene: Scene = {
@@ -20,6 +22,8 @@ export const townScene: Scene = {
     [1483, 164],
     [1435, 250],
     [1440, 430],
+    [1485, 492],
+    [1485, 568],
     [1360, 560],
     [1450, 620],
     [1470, 910],
@@ -33,6 +37,7 @@ export const townScene: Scene = {
     [70, 340],
   ].map(([x, y]) => ({ x, y })),
   walls: [
+    ...townTerraceWalls,
     {label:"旧矿车车轮",x:1306,y:83,w:38,h:12},
     {label:"洞口左木柱",x:1393,y:74,w:13,h:17},
     {label:"洞口右木柱",x:1451,y:74,w:13,h:17},
@@ -41,9 +46,10 @@ export const townScene: Scene = {
     { label: "月兔台前的红邮筒", x: 535, y: 614, w: 19, h: 12 },
     { label: "月兔台前的花盆", x: 550, y: 604, w: 20, h: 12 },
     { label: "月兔台东侧路灯", x: 578, y: 583, w: 12, h: 13 },
-    { label: "花店主屋", x: 141, y: 86, w: 284, h: 159 },
-    { label: "花店温室", x: 122, y: 137, w: 110, h: 102 },
-    { label: "烘焙屋", x: 645, y: 73, w: 220, h: 177 },
+    { label: "花店主屋", points: [[128,100],[416,101],[420,218],[399,239],[314,241],
+      [289,238],[277,242],[209,240],[180,233],[128,229]].map(([x,y])=>({x,y})) },
+    { label: "烘焙屋", points: [[639,97],[839,87],[865,163],[850,225],[808,238],
+      [731,241],[697,234],[653,229],[643,218]].map(([x,y])=>({x,y})) },
     {
       label: "星饰工坊",
       points: [
@@ -64,9 +70,15 @@ export const townScene: Scene = {
         [1045, 349],
       ].map(([x, y]) => ({ x, y })),
     },
-    { label: "邮局", x: 125, y: 449, w: 230, h: 170 },
-    { label: "相册书屋", x: 703, y: 583, w: 294, h: 169 },
-    { label: "晚安电台", x: 1245, y: 648, w: 193, h: 170 },
+    ...postObstacles,
+    ...[[935,247],[1042,196],[1161,124],[1219,97],[1276,145]].map(([x,y]) => ({
+      label:"北街路灯底座", points:[[x-6,y-3],[x-3,y-6],[x+4,y-6],
+        [x+7,y-2],[x+6,y+2],[x,y+4],[x-6,y+2]].map(([x,y]) => ({x,y})),
+    })),
+    { label: "相册书屋", points: [[727,582],[986,584],[991,693],[977,730],
+      [929,744],[883,749],[812,741],[791,732],[773,717],[739,709],[725,699]].map(([x,y])=>({x,y})) },
+    { label: "晚安电台", points: [[1260,655],[1438,651],[1438,783],[1395,798],
+      [1352,811],[1302,811],[1262,803],[1244,795],[1242,753]].map(([x,y])=>({x,y})) },
     { label: "周年纪念馆", x: 905, y: 0, w: 253, h: 112 },
     ...townCanopies.map((t) => ({
       label: "小镇树干",
@@ -100,50 +112,15 @@ export const townScene: Scene = {
         [575, 846],
       ].map(([x, y]) => ({ x, y })),
     },
-    ...fenceSegments("花店院子栅栏", [
-      [117, 245],
-      [230, 267],
-      [341, 272],
-      [426, 250],
-    ]),
+    ...festivalProps.filter(p=>p.kind==="garland").flatMap(p=>[-42,42].map(dx=>({
+      label:"周年彩旗木柱", x:p.x+dx-2, y:p.y-3, w:4, h:4,
+    }))),
     ...fenceSegments("邮局院子栅栏", [
-      [75, 601],
-      [190, 645],
-      [278, 646],
+      [65, 599],[69, 615],[85, 628],[105, 638],[125, 646],[155, 650],
     ]),
+    ...fenceSegments("邮局院子前栏", [[176,645],[209,645],[247,643],[265,642]]),
     ...fenceSegments("邮局右侧栅栏", [
-      [343, 620],
-      [351, 650],
-    ]),
-    ...fenceSegments("工坊院子栅栏", [
-      [1017, 351],
-      [1088, 399],
-      [1120, 415],
-    ]),
-    ...fenceSegments("工坊右侧栅栏", [
-      [1202, 416],
-      [1319, 416],
-      [1351, 388],
-    ]),
-    ...fenceSegments("书屋院子栅栏", [
-      [575, 718],
-      [595, 755],
-      [753, 779],
-      [826, 782],
-    ]),
-    ...fenceSegments("书屋右侧栅栏", [
-      [884, 782],
-      [1005, 779],
-      [1024, 745],
-    ]),
-    ...fenceSegments("电台院子栅栏", [
-      [1161, 797],
-      [1169, 835],
-      [1276, 868],
-    ]),
-    ...fenceSegments("电台右侧栅栏", [
-      [1361, 875],
-      [1433, 837],
+      [334,617],[339,634],[346,646],[356,656],
     ]),
     ...fenceSegments("广场左侧花坛", [
       [639, 405],
@@ -151,20 +128,8 @@ export const townScene: Scene = {
       [638, 485],
       [695, 518],
     ]),
-    ...fenceSegments("广场右侧花坛", [
-      [871, 415],
-      [913, 452],
-      [888, 492],
-      [804, 523],
-    ]),
-    ...fenceSegments(
-      "广场后排长椅",
-      [
-        [748, 390],
-        [812, 402],
-      ],
-      9,
-    ),
+    ...fenceSegments("广场东侧花坛上段", [[835,422],[849,429],[872,425],[898,424]]),
+    ...fenceSegments("广场东侧花坛下段", [[874,492],[849,508],[817,520],[799,528]]),
     ...fenceSegments("南侧池塘栅栏", [
       [566, 889],
       [586, 925],
@@ -180,8 +145,8 @@ export const townScene: Scene = {
       title: n.name + " · " + n.role,
       x: n.x,
       y: n.y,
-      // Leave the moon-stage host's conversation spot on his side of the cosmos.
-      approach: { x: n.x, y: n.y + (n.id === "hop-keeper" ? 18 : 26) },
+      // Stand beside the blue mailbox for the photographer and clear of the cosmos for the host.
+      approach: { x: n.x + (n.id === "photo-visitor" ? 17 : 0), y: n.y + (n.id === "hop-keeper" ? 18 : 26) },
       radius: 56,
       markerOffset: 53,
       color: "#ceab63",

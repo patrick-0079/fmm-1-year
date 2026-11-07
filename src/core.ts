@@ -1,3 +1,9 @@
+import {
+  canStand,
+  canTravelBetween,
+  PLAYER_RADIUS,
+  touchingHazard,
+} from "./collision.ts";
 import { rainbowIds } from "./rainbow-flowers.ts";
 import { readEchoMemory, type EchoMemory } from "./echoes.ts";
 import { readAstrolabe, type AstrolabeState } from "./astrolabe.ts";
@@ -6,6 +12,16 @@ import { readResidentStory, type ResidentStory } from "./resident-story.ts";
 import { producers } from "./content.ts";
 import { ARCADES } from "./town-data.ts";
 import type { GameId } from "./arcade-engines.ts";
+
+export {
+  canStand,
+  canTravelBetween,
+  crossedHazard,
+  obstacleContainsFoot,
+  polygonContains,
+  PLAYER_RADIUS,
+  touchingHazard,
+} from "./collision.ts";
 
 export interface Rect {
   x: number;
@@ -60,7 +76,6 @@ export interface Progress {
   arcadeBests: Partial<Record<GameId, number>>;
 }
 export const SAVE_KEY = "nemu-anniversary-v1";
-export const PLAYER_RADIUS = 5;
 export const PLAYER_SPEED = 78;
 export const GAME_IDS = [
   "cake",
@@ -144,122 +159,6 @@ export function readProgress(raw: string | null): Progress {
     return clean;
   }
 }
-export function polygonContains(point: Point, points: Point[]): boolean {
-  let inside = false;
-  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
-    const a = points[i],
-      b = points[j];
-    if (
-      a.y > point.y !== b.y > point.y &&
-      point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y) + a.x
-    )
-      inside = !inside;
-  }
-  return inside;
-}
-function edgeDistance(point: Point, a: Point, b: Point) {
-  const dx = b.x - a.x,
-    dy = b.y - a.y;
-  const t = Math.max(
-    0,
-    Math.min(
-      1,
-      ((point.x - a.x) * dx + (point.y - a.y) * dy) / (dx * dx + dy * dy || 1),
-    ),
-  );
-  return Math.hypot(point.x - a.x - t * dx, point.y - a.y - t * dy);
-}
-function polygonEdgeDistance(point: Point, points: Point[]) {
-  return Math.min(
-    ...points.map((a, i) =>
-      edgeDistance(point, a, points[(i + 1) % points.length]),
-    ),
-  );
-}
-const surfaceBounds = new WeakMap<
-  Point[][],
-  { points: Point[]; bounds: Rect }[]
->();
-function onSurface(point: Point, surfaces: Point[][]) {
-  let index = surfaceBounds.get(surfaces);
-  if (!index) {
-    index = surfaces.map((points) => {
-      const xs = points.map((p) => p.x),
-        ys = points.map((p) => p.y);
-      const x = Math.min(...xs),
-        y = Math.min(...ys);
-      return {
-        points,
-        bounds: { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y },
-      };
-    });
-    surfaceBounds.set(surfaces, index);
-  }
-  return index.some(
-    ({ points, bounds: b }) =>
-      point.x >= b.x &&
-      point.x <= b.x + b.w &&
-      point.y >= b.y &&
-      point.y <= b.y + b.h &&
-      polygonContains(point, points),
-  );
-}
-export function obstacleContainsFoot(point: Point, obstacle: Obstacle) {
-  if ("points" in obstacle)
-    return (
-      polygonContains(point, obstacle.points) ||
-      polygonEdgeDistance(point, obstacle.points) < PLAYER_RADIUS - 1e-6
-    );
-  const x = Math.max(obstacle.x, Math.min(point.x, obstacle.x + obstacle.w));
-  const y = Math.max(obstacle.y, Math.min(point.y, obstacle.y + obstacle.h));
-  return Math.hypot(point.x - x, point.y - y) < PLAYER_RADIUS - 1e-6;
-}
-export function canStand(
-  point: Point,
-  walls: Obstacle[],
-  bounds: Rect,
-  floor?: Point[],
-  surfaces?: Point[][],
-): boolean {
-  if (
-    point.x - PLAYER_RADIUS < bounds.x ||
-    point.x + PLAYER_RADIUS > bounds.x + bounds.w ||
-    point.y - PLAYER_RADIUS < bounds.y ||
-    point.y + PLAYER_RADIUS > bounds.y + bounds.h
-  )
-    return false;
-  if (
-    floor &&
-    (!polygonContains(point, floor) ||
-      polygonEdgeDistance(point, floor) < PLAYER_RADIUS - 1e-6)
-  )
-    return false;
-  if (surfaces) {
-    // Test the complete foot against the union, so joining street polygons do
-    // not create invisible seams, while planted edges still stop movement.
-    for (let i = -1; i < 12; i++) {
-      const a = (i * Math.PI) / 6;
-      const p =
-        i < 0
-          ? point
-          : {
-              x: point.x + Math.cos(a) * PLAYER_RADIUS,
-              y: point.y + Math.sin(a) * PLAYER_RADIUS,
-            };
-      if (!onSurface(p, surfaces)) return false;
-    }
-  }
-  return !walls.some((wall) => obstacleContainsFoot(point, wall));
-}
-export function touchingHazard(
-  point: Point,
-  hazards: Hazard[],
-  padding = PLAYER_RADIUS,
-): Hazard | undefined {
-  return hazards.find(
-    (h) => Math.hypot(point.x - h.x, point.y - h.y) < h.radius + padding,
-  );
-}
 const clampedDelta = (delta: number) => Math.min(Math.max(delta, 0), 0.05);
 export function movePlayer(
   point: Point,
@@ -276,91 +175,70 @@ export function movePlayer(
     steps = Math.max(1, Math.ceil(distance / 2));
   const dx = ((input.x / length) * distance) / steps,
     dy = ((input.y / length) * distance) / steps;
-  const next = { ...point };
+  const geometry = { walls, bounds, floor, surfaces };
+  let next = { ...point };
   for (let i = 0; i < steps; i++) {
-    const horizontal = { x: next.x + dx, y: next.y };
-    if (
-      canStand(horizontal, walls, bounds, floor, surfaces) &&
-      (!surfaces || travelOnSurfaces(next, horizontal, surfaces))
-    )
-      next.x += dx;
-    const vertical = { x: next.x, y: next.y + dy };
-    if (
-      canStand(vertical, walls, bounds, floor, surfaces) &&
-      (!surfaces || travelOnSurfaces(next, vertical, surfaces))
-    )
-      next.y += dy;
+    const target = { x: next.x + dx, y: next.y + dy };
+    if (canTravelBetween(next, target, geometry)) {
+      next = target;
+      continue;
+    }
+    if (!dx || !dy) break;
+    // At a corner, keep a free axis for sliding. In a narrow diagonal
+    // passage the combined motion above may be the only legal one.
+    const horizontal = { x: target.x, y: next.y };
+    if (canTravelBetween(next, horizontal, geometry)) next = horizontal;
+    const vertical = { x: next.x, y: target.y };
+    if (canTravelBetween(next, vertical, geometry)) next = vertical;
   }
   return next;
 }
-export function canTravelBetween(
-  start: Point,
-  end: Point,
-  geometry: Geometry,
-  hazards: Hazard[] = [],
-): boolean {
-  if (geometry.surfaces && !travelOnSurfaces(start, end, geometry.surfaces))
-    return false;
-  const steps = Math.max(
-    1,
-    Math.ceil(Math.hypot(end.x - start.x, end.y - start.y) / 2),
-  );
-  for (let i = 0; i <= steps; i++) {
-    const point = {
-      x: start.x + ((end.x - start.x) * i) / steps,
-      y: start.y + ((end.y - start.y) * i) / steps,
-    };
-    if (
-      !canStand(point, geometry.walls, geometry.bounds, geometry.floor) ||
-      touchingHazard(point, hazards, PLAYER_RADIUS + 2)
-    )
-      return false;
-  }
-  return true;
-}
-/** Validate every interval between polygon crossings, including sub-pixel seams. */
-function travelOnSurfaces(start: Point, end: Point, surfaces: Point[][]) {
-  const dx = end.x - start.x,
-    dy = end.y - start.y;
-  for (let probe = -1; probe < 12; probe++) {
-    const angle = (probe * Math.PI) / 6;
-    const a = {
-      x: start.x + (probe < 0 ? 0 : Math.cos(angle) * PLAYER_RADIUS),
-      y: start.y + (probe < 0 ? 0 : Math.sin(angle) * PLAYER_RADIUS),
-    };
-    const b = { x: a.x + dx, y: a.y + dy };
-    if (!onSurface(a, surfaces) || !onSurface(b, surfaces)) return false;
-    const cuts = [0, 1];
-    for (const { points, bounds: r } of surfaceBounds.get(surfaces)!) {
-      if (
-        Math.max(a.x, b.x) < r.x ||
-        Math.min(a.x, b.x) > r.x + r.w ||
-        Math.max(a.y, b.y) < r.y ||
-        Math.min(a.y, b.y) > r.y + r.h
-      )
-        continue;
-      for (let i = 0; i < points.length; i++) {
-        const p = points[i],
-          q = points[(i + 1) % points.length],
-          ex = q.x - p.x,
-          ey = q.y - p.y;
-        const determinant = dx * ey - dy * ex;
-        if (Math.abs(determinant) < 1e-10) continue;
-        const t = ((p.x - a.x) * ey - (p.y - a.y) * ex) / determinant;
-        const u = ((p.x - a.x) * dy - (p.y - a.y) * dx) / determinant;
-        if (t > 1e-9 && t < 1 - 1e-9 && u >= 0 && u <= 1) cuts.push(t);
+const gridDirections = [
+  [1, 0], [-1, 0], [0, 1], [0, -1],
+  [1, 1], [-1, 1], [1, -1], [-1, -1],
+] as const;
+const localStep = 2, localRadius = 16;
+
+// A ten-pixel foot can fit a lane whose centre misses the eight-pixel lattice.
+// Search just the endpoint's neighbourhood at finer resolution when necessary.
+function connectOffGrid(
+  endpoint: Point,
+  join: (p: Point) => number,
+  valid: (p: Point) => boolean,
+  travel: (a: Point, b: Point) => boolean,
+) {
+  const width = localRadius * 2 + 1;
+  const at = (id: number) => ({
+    x: endpoint.x + (id % width - localRadius) * localStep,
+    y: endpoint.y + (Math.floor(id / width) - localRadius) * localStep,
+  });
+  const root = localRadius * width + localRadius;
+  const previous = new Int16Array(width * width).fill(-2);
+  previous[root] = -1;
+  const queue = [root];
+  for (let i = 0; i < queue.length; i++) {
+    const id = queue[i], point = at(id), anchor = join(point);
+    if (anchor >= 0) {
+      const route: Point[] = [];
+      for (let j = id; j !== -1; j = previous[j]) route.push(at(j));
+      return { anchor, route };
+    }
+    for (const [dx, dy] of gridDirections) {
+      const x = id % width + dx, y = Math.floor(id / width) + dy;
+      if (x < 0 || x >= width || y < 0 || y >= width) continue;
+      const next = y * width + x;
+      if (previous[next] !== -2) continue;
+      const target = at(next);
+      if (!valid(target)) previous[next] = -3;
+      else if (travel(point, target)) {
+        previous[next] = id;
+        queue.push(next);
       }
     }
-    cuts.sort((x, y) => x - y);
-    for (let i = 1; i < cuts.length; i++) {
-      if (cuts[i] - cuts[i - 1] < 1e-9) continue;
-      const t = (cuts[i] + cuts[i - 1]) / 2;
-      if (!onSurface({ x: a.x + dx * t, y: a.y + dy * t }, surfaces))
-        return false;
-    }
   }
-  return true;
+  return null;
 }
+
 /** Routes and their connecting segments use the same foot collision as keyboard movement. */
 export function findPath(
   start: Point,
@@ -393,34 +271,56 @@ export function findPath(
       geometry.floor,
       geometry.surfaces,
     ) && !touchingHazard(point, hazards, PLAYER_RADIUS + 2);
+  const travel = (a: Point, b: Point) => canTravelBetween(a, b, geometry, hazards);
   const goalIsClear = valid(goal);
-  if (goalIsClear && canTravelBetween(start, goal, geometry, hazards))
-    return [{ ...goal }];
-  let anchor = -1,
-    nearest = Infinity;
+  if (goalIsClear && travel(start, goal)) return [{ ...goal }];
+  const directGoal = cols * rows;
+  const link = (endpoint: Point, reachable: (id: number) => boolean, shortcut?: Point) =>
+    connectOffGrid(endpoint, p => {
+      if (shortcut && Math.hypot(p.x - shortcut.x, p.y - shortcut.y) <= step * 2 &&
+          travel(p, shortcut)) return directGoal;
+      const left = Math.floor((p.x - step / 2) / step);
+      const top = Math.floor((p.y - step / 2) / step);
+      for (let y = top; y <= top + 1; y++)
+        for (let x = left; x <= left + 1; x++) {
+          if (x < 0 || x >= cols || y < 0 || y >= rows) continue;
+          const id = y * cols + x;
+          if (reachable(id) && travel(p, center(id))) return id;
+        }
+      return -1;
+    }, valid, travel);
+  const previous = new Int32Array(cols * rows).fill(-2),
+    walkable = new Int8Array(cols * rows),
+    queue: number[] = [];
   const sx = Math.floor(start.x / step),
     sy = Math.floor(start.y / step);
   for (let y = sy - 3; y <= sy + 3; y++)
     for (let x = sx - 3; x <= sx + 3; x++) {
       if (x < 0 || y < 0 || x >= cols || y >= rows) continue;
-      const id = y * cols + x,
-        p = center(id),
-        distance = Math.hypot(p.x - start.x, p.y - start.y);
-      if (
-        distance < nearest &&
-        valid(p) &&
-        canTravelBetween(start, p, geometry, hazards)
-      ) {
-        anchor = id;
-        nearest = distance;
+      const id = y * cols + x;
+      if (travel(start, center(id))) {
+        previous[id] = -1;
+        queue.push(id);
       }
     }
-  if (anchor === -1) return null;
-  const previous = new Int32Array(cols * rows).fill(-2),
-    queue = [anchor];
-  previous[anchor] = -1;
-  let best = anchor,
+  let prefix: Point[] = [];
+  if (!queue.length) {
+    const initial = goalIsClear && link(start, () => true, goal);
+    if (!initial) return null;
+    prefix = initial.route.reverse().slice(1);
+    if (initial.anchor === directGoal) return [...prefix, { ...goal }];
+    previous[initial.anchor] = -1;
+    queue.push(initial.anchor);
+  } else {
+    const fromStart = (id: number) => {
+      const p = center(id);
+      return (p.x - start.x) ** 2 + (p.y - start.y) ** 2;
+    };
+    queue.sort((a,b) => fromStart(a) - fromStart(b));
+  }
+  let best = queue[0],
     bestDistance = Infinity;
+  let suffix: Point[] = [];
   for (let i = 0; i < queue.length; i++) {
     const id = queue[i],
       p = center(id),
@@ -432,41 +332,44 @@ export function findPath(
     if (
       goalIsClear &&
       distance <= step * Math.SQRT2 &&
-      canTravelBetween(p, goal, geometry, hazards)
+      travel(p, goal)
     ) {
       best = id;
       bestDistance = distance;
+      suffix = [{ ...goal }];
       break;
     }
     const x = id % cols,
       y = Math.floor(id / cols);
-    for (const [dx, dy] of [
-      [1, 0],
-      [-1, 0],
-      [0, 1],
-      [0, -1],
-    ]) {
+    for (const [dx, dy] of gridDirections) {
       const nx = x + dx,
         ny = y + dy;
       if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
       const next = ny * cols + nx;
-      if (previous[next] !== -2) continue;
+      if (previous[next] !== -2 || walkable[next] < 0) continue;
       const pNext = center(next);
-      if (valid(pNext) && canTravelBetween(p, pNext, geometry, hazards)) {
+      if (!walkable[next]) walkable[next] = valid(pNext) ? 1 : -1;
+      if (walkable[next] > 0 && travel(p, pNext)) {
         previous[next] = id;
         queue.push(next);
       }
     }
   }
-  if (bestDistance > 36) return null;
+  if (goalIsClear && !suffix.length && bestDistance <= 36 && travel(center(best), goal)) {
+    suffix = [{ ...goal }];
+  }
+  if (goalIsClear && !suffix.length &&
+      bestDistance <= (localRadius * localStep + step) * Math.SQRT2) {
+    const last = link(goal, id => previous[id] !== -2);
+    if (last) {
+      best = last.anchor;
+      suffix = last.route;
+    }
+  }
+  if (!suffix.length && bestDistance > 36) return null;
   const path: Point[] = [];
   for (let id = best; id !== -1; id = previous[id]) path.unshift(center(id));
-  if (
-    valid(goal) &&
-    canTravelBetween(path[path.length - 1], goal, geometry, hazards)
-  )
-    path.push({ ...goal });
-  return path;
+  return [...prefix, ...path, ...suffix];
 }
 /** Spend the movement budget without snapping through blocked grid corners. */
 export function advancePath(

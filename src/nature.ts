@@ -28,6 +28,17 @@ interface NatureSave {
 }
 export const NATURE_KEY = "fufu-garden-bag-v1";
 const CLOCK_KEY = "fufu-world-clock-v1";
+// Each balloon is redrawn from the illustration over walkers standing behind its knot.
+const roomBalloons = [[32,321,18,21],[59,344,18,21],[86,363,18,20]].map(
+  ([x,y,rx,ry]) => Array.from({length:24}, (_, i) => {
+    const angle = i * Math.PI / 12;
+    return {x: x + rx * Math.cos(angle), y: y + ry * Math.sin(angle)};
+  }),
+);
+const gardenSign = [[183,454],[181,450],[181,432],[186,427],[194,426],
+  [190,418],[192,416],[199,426],[205,416],[208,417],[204,426],[213,427],
+  [218,432],[218,451],[213,456],[203,457],[202,474],[209,477],[208,480],
+  [189,480],[189,476],[196,474],[196,457],[186,456]].map(([x,y])=>({x,y}));
 const initial = (): NatureSave => ({
   picked: {},
   apple: 0,
@@ -416,12 +427,22 @@ export class Nature {
     }
   }
   private depthLayers() {
+    if (this.world.scene === "room") return [{
+      y: 377, draw: (c: CanvasRenderingContext2D) => {
+        c.save();
+        const feet = this.world.player;
+        if (feet.x < 110 && feet.y > 295 && feet.y < 377) c.globalAlpha *= 0.68;
+        for (const silhouette of roomBalloons) this.world.drawMapFragment(c, silhouette);
+        c.restore();
+      },
+    }];
     if (this.world.scene !== "garden" && this.world.scene !== "challenge")
       return [];
     const scene = this.world.scene,
       apple = this.world.config.spots.find((s) => s.id === "apple")!,
       bench = this.world.config.spots.find((s) => s.id === "rest")!;
     return [
+      ...(scene === "garden" ? [{ y: 479, draw: (c: CanvasRenderingContext2D) => this.world.drawMapFragment(c, gardenSign) }] : []),
       ...gardenTrees[scene].map((tree) => ({
         y: tree.y + 23 * tree.scale,
         draw: (c: CanvasRenderingContext2D) =>

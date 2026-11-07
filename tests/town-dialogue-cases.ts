@@ -1,6 +1,7 @@
 import type { World } from "../src/world";
 import { scenes } from "../src/maps";
 import { TOWN_NPCS, ARCADES } from "../src/town-data";
+import { canStand } from "../src/core";
 import { INVENTORY_KEY, readInventory } from "../src/items";
 import type { TownResidentId } from "../src/town-dialogue";
 
@@ -88,6 +89,13 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
   talk("books"); choose("我路过看到这间书屋，便来瞧瞧看。"); choose("是什么书呀？"); assert(status().endsWith("安然度过这一年。"), "书屋结尾丢失");
   talk("cat"); choose("尝试着摸摸它"); assert(status().includes("主动蹭蹭你"), "巡街小猫的抚摸回应有误");
   talk("cat"); choose("还是不要打扰它了，可能比较高冷"); assert(status() === "（看了你一会，离开了）", "巡街小猫离开分支有误");
+  const catHome = scenes.town.spots.find(s => s.id === "npc-cat")!;
+  const cat = world.config.spots.find(s => s.id === "npc-cat")!;
+  await wait(() => Math.abs(cat.x - catHome.x) > 22, "奶糖的互动点没有随它走开");
+  const street = world.config;
+  assert(canStand(catHome,street.walls,street.bounds,street.floor,street.surfaces), "奶糖离开后原处仍挡路");
+  assert(!canStand(cat,street.walls,street.bounds,street.floor,street.surfaces), "奶糖的足迹没有随它移动");
+  await wait(() => Math.abs(cat.x - catHome.x) < 0.01, "奶糖没有回到原位");
   log("蓝莓、摄影师、夜弦、墨桃、奶糖完整分支通过；走出绒月身旁后迟到的自我介绍和旧按钮均无效");
 
   talk("snake-keeper"); choose("谢谢你哦，我还想到处逛逛。"); assert(world.scene === "town" && hud.hidden, "谢绝青团后被送进遗迹");

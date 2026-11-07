@@ -407,6 +407,42 @@ export function drawResidentPortrait(c: Brush, npc: TownNpc, sprites: HTMLImageE
     width = (47 * frame.w) / frame.h;
   c.drawImage(sprites, frame.x, frame.y, frame.w, frame.h, (48 - width) / 2, 5, width, 47);
 }
+export function residentPlacement(npc: TownNpc, player: Point, act?: TownAct) {
+  const performance = act?.npcId === npc.id ? act : undefined,
+    page = performance?.pageId ?? "",
+    t = performance?.elapsed ?? 0,
+    still = motion.matches;
+  let foot: Point = npc,
+    cell: number | undefined,
+    reverse = false,
+    lean = 0;
+  if (npc.id === "baker") cell = bakerPose(page);
+  if ((npc.id === "bunny" && page) || (npc.id === "cat" && page === "rub")) {
+    const near = 1 - ease((Math.hypot(player.x - npc.x, player.y - npc.y) - 54) / 16);
+    const approach = still ? 1 : page === "start" || page === "rub" ? ease(t / 0.45) : 1;
+    const release = page === "release" ? 1 - ease((t - 0.65) / 0.7) : 1;
+    foot = alongside(npc, player, near * approach * release, npc.id === "cat" ? 11 : 13);
+    if (release > 0.02) cell = npc.id === "cat" ? 5 : 4;
+    reverse = foot.x > player.x;
+    if (!still && page === "rub") lean = Math.sin(t * 5) * 0.08;
+  } else if (npc.id === "cat" && page === "walk" && t < 4 && performance) {
+    const direction = catDirections.get(performance) ?? (player.x > npc.x ? -1 : 1);
+    catDirections.set(performance, direction);
+    const progress = still
+      ? Number(t > 0.45 && t < 3)
+      : ease((t - 0.45) / 0.95) - ease((t - 2.7) / 1.05);
+    // The memorial street slopes northeast along the retaining wall.
+    foot = { x: npc.x + direction * progress * 26, y: npc.y - direction * progress * 12 };
+    reverse = t >= 2.45 !== direction < 0;
+    cell = 6 + (still ? 0 : Math.floor(progress * 6) % 2);
+  } else if (npc.id === "walker" && page) {
+    const distance = Math.max(1, Math.hypot(player.x - npc.x, player.y - npc.y));
+    const step = (2 * (page === "start" && !still ? ease(t / 0.32) : 1)) / distance;
+    foot = { x: npc.x + step * (player.x - npc.x), y: npc.y + step * (player.y - npc.y) };
+  }
+  return { foot, cell, reverse, lean };
+}
+
 export function townResidentLayers(
   npc: TownNpc,
   sprites: HTMLImageElement,
@@ -414,6 +450,7 @@ export function townResidentLayers(
   visited: boolean,
   time: number,
   act?: TownAct,
+  placement = residentPlacement(npc, world.player, act),
 ): DepthLayer[] {
   const performance = act?.npcId === npc.id ? act : undefined,
     page = performance?.pageId ?? "",
@@ -422,33 +459,8 @@ export function townResidentLayers(
     f = TOWN_FRAMES[npc.sprite];
   const height = (f.h * 43) / 337,
     width = (f.w * 43) / 337;
-  let foot: Point = npc,
-    cell: number | undefined,
-    reverse = false,
-    lean = 0;
-  if (npc.id === "baker") cell = bakerPose(page);
-  if ((npc.id === "bunny" && page) || (npc.id === "cat" && page === "rub")) {
-    const near = 1 - ease((Math.hypot(world.player.x - npc.x, world.player.y - npc.y) - 54) / 16);
-    const approach = still ? 1 : page === "start" || page === "rub" ? ease(t / 0.45) : 1;
-    const release = page === "release" ? 1 - ease((t - 0.65) / 0.7) : 1;
-    foot = alongside(npc, world.player, near * approach * release, npc.id === "cat" ? 11 : 13);
-    if (release > 0.02) cell = npc.id === "cat" ? 5 : 4;
-    reverse = foot.x > world.player.x;
-    if (!still && page === "rub") lean = Math.sin(t * 5) * 0.08;
-  } else if (npc.id === "cat" && page === "walk" && t < 4 && performance) {
-    const direction = catDirections.get(performance) ?? (world.player.x > npc.x ? -1 : 1);
-    catDirections.set(performance, direction);
-    const progress = still
-      ? Number(t > 0.45 && t < 3)
-      : ease((t - 0.45) / 0.95) - ease((t - 2.7) / 1.05);
-    foot = { x: npc.x + direction * progress * 26, y: npc.y + progress * 5 };
-    reverse = t >= 2.45 !== direction < 0;
-    cell = 6 + (still ? 0 : Math.floor(progress * 6) % 2);
-  } else if (npc.id === "walker" && page) {
-    const distance = Math.max(1, Math.hypot(world.player.x - npc.x, world.player.y - npc.y));
-    const step = (2 * (page === "start" && !still ? ease(t / 0.32) : 1)) / distance;
-    foot = { x: npc.x + step * (world.player.x - npc.x), y: npc.y + step * (world.player.y - npc.y) };
-  }
+  const { foot, cell, reverse } = placement;
+  let lean = placement.lean;
   const bob = still ? 0 : Math.sin(time * 1.7 + npc.sprite) * 0.5;
   if (page === "decline" || page === "silent" || page === "blush" || page === "joke")
     lean += still ? 0.04 : Math.sin(Math.min(t, 1) * Math.PI) * 0.085;
