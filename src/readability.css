@@ -15,9 +15,6 @@ select {
 small {
   font-size: 12px !important;
 }
-.inventory-panel header p,
-.inventory-item p,
-.bag-footnote,
 .town-journal p,
 .town-guide button,
 .town-guide button small,
@@ -30,9 +27,6 @@ small {
 .volume-value {
   font-size: 12px;
   line-height: 1.6;
-}
-.inventory-item h4 {
-  font-size: 14px;
 }
 .window-bar > span {
   min-width: 0;

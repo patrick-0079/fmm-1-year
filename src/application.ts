@@ -199,6 +199,7 @@ export function mountGame(tasks: Task[]) {
   const inventory = new Inventory(world, toast);
   const help = document.querySelector<HTMLElement>(".inline-help")!;
   const setHelp = (open: boolean) => {
+    if (open) inventory.close(false);
     help.hidden = !open;
     world.suspend("help", open);
     document.querySelector(".help-button")!.setAttribute("aria-expanded", String(open));

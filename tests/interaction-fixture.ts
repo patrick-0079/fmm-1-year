@@ -26,6 +26,14 @@ world.scene = "town";
 const engine = () => (arcade as unknown as { engine: Engine }).engine;
 const status = () => document.querySelector(".arcade-status")?.textContent ?? "";
 const assert = (condition: unknown, message: string) => { if (!condition) throw new Error(message); };
+const bag = document.querySelector<HTMLElement>(".inventory-panel")!;
+function bagButton(selector: string) {
+  const button = bag.querySelector<HTMLButtonElement>(selector);
+  if (!button || button.disabled) throw new Error("背包里没有可操作的按钮 " + selector);
+  return button;
+}
+const selectItem = (id: ItemId) => bagButton(`[data-select="${id}"]`).click();
+const confirmItem = (id: ItemId) => bagButton(`[data-equip="${id}"]`).click();
 const key = (key: string, init: KeyboardEventInit = {}, target: Element = canvas) => {
   const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init });
   target.dispatchEvent(event);
@@ -53,17 +61,27 @@ async function check(name: string, run: () => void | Promise<void>) {
 await check("默认试穿全部饰品，关闭后恢复真实搭配，试玩时领取的奖励可以存档", () => {
   const switchMode = () => inventory.setFitting(!inventory.fitting);
   inventory.open();
-  assert(document.querySelectorAll("[data-equip]:enabled").length === Object.keys(ITEMS).length, "默认可试穿的数量有误");
-  inventory.toggle("starShoes");
+  assert(bag.querySelectorAll("[data-select]:not(.is-locked)").length === Object.keys(ITEMS).length, "默认可试穿的数量有误");
+  const before = saves.get(INVENTORY_KEY);
+  selectItem("starShoes");
+  assert(!world.equipment.shoes && saves.get(INVENTORY_KEY) === before, "挑选配饰就更改了地图或存档");
+  key("b", {}, bagButton(".bag-close"));
+  key("b", {repeat:true});
+  assert(bag.hidden, "按住 B 重复展开衣橱");
+  key("b");
+  assert(!bag.querySelector("[data-equip]") && !world.equipment.shoes, "收起后残留了未确认的试穿");
+  selectItem("starShoes"); confirmItem("starShoes");
   assert(world.equipment.shoes === "starShoes" && !inventory.has("starShoes"), "试穿篡改了收集进度");
   inventory.grant("anniversaryPin");
-  inventory.open(); switchMode();
-  assert(!world.equipment.shoes && document.querySelectorAll("[data-equip]:enabled").length === 1, "关闭试穿后未还原");
-  inventory.toggle("anniversaryPin");
-  inventory.open(); switchMode(); inventory.toggle("petCat");
+  switchMode();
+  assert(!world.equipment.shoes && bag.querySelectorAll("[data-select]:not(.is-locked)").length === 1, "关闭试穿后未还原");
+  selectItem("starShoes");
+  assert(bag.querySelector("[data-equip=starShoes]:disabled") && bag.textContent?.includes(ITEMS.starShoes.source), "缺少未收集配饰的来源说明");
+  selectItem("anniversaryPin"); confirmItem("anniversaryPin");
+  switchMode(); selectItem("petCat"); confirmItem("petCat");
   const saved = JSON.parse(saves.get(INVENTORY_KEY)!);
   assert(saved.owned.length === 1 && saved.equipped.body === "anniversaryPin" && !saved.equipped.pet, "试穿装备写入了正式存档");
-  inventory.open(); switchMode();
+  switchMode();
   assert(world.equipment.body === "anniversaryPin" && !world.equipment.pet, "原搭配丢失");
   inventory.reset();
 });
@@ -72,7 +90,7 @@ await check("打开背包暂停小游戏与方向键；Esc 只收起背包，之
   arcade.open("snake");
   world.onAction(true);
   inventory.open();
-  assert(document.activeElement?.classList.contains("bag-close"), "焦点未进入背包");
+  assert(bag.contains(document.activeElement) && !bag.closest("[inert]"), "焦点未进入可操作的背包");
   key("ArrowDown");
   for (let i = 0; i < 40; i++) world.onTick(0.1, i / 10);
   assert(engine().status === "playing" && engine().score === 0, "背包期间游戏仍在运行");
@@ -100,14 +118,16 @@ await check("试穿的猫仍需正式领取，邀请会保存真实伙伴位，�
   activities.close();inventory.reset();
 });
 
-await check("整理背包与查看说明的暂停互不覆盖", () => {
+await check("查看说明时背包入口、B 和 NPC 不会在锁定的地图里打开衣橱", () => {
   world.paused = false;
   world.suspend("help", true);
-  inventory.open();
-  inventory.close(false);
-  assert(world.suspended && !world.paused, "背包关闭提前释放了说明的暂停");
+  inventory.collectBouquet();
+  document.querySelector<HTMLButtonElement>(".bag-toggle")!.click();
+  key("b"); inventory.openWardrobe(); inventory.openBouquet();
+  assert(bag.hidden && world.suspended && !world.paused, "说明打开时衣橱抢占了地图或提前解除暂停");
   world.suspend("help", false);
-  assert(!world.suspended && !world.paused, "说明关闭未恢复原来的移动状态");
+  inventory.openBouquet();
+  assert(!world.suspended && !bag.hidden && bag.querySelector(".bouquet-detail"), "说明收起后无法打开真正收集的花束");
 });
 
 await check("礼盒不配对后立刻打开别的互动，旧计时不会改写新按钮", () => {
@@ -239,25 +259,44 @@ const frames = (count: number) => new Promise<void>((resolve) => {
   const next = () => --count > 0 ? requestAnimationFrame(next) : resolve();
   requestAnimationFrame(next);
 });
-const equipFromBag = (id: ItemId) => {
+const equipFromBag = (id: ItemId, close = true) => {
   inventory.open();
-  const button = document.querySelector<HTMLButtonElement>(`[data-equip="${id}"]`)!;
-  button.focus(); button.click();
-  assert(!world.suspended && !canvas.parentElement!.inert, `${id} 未解除场景暂停`);
-  assert(document.activeElement === canvas, `${id} 焦点未返回游戏`);
+  selectItem(id);
+  const wearing = world.equipment[ITEMS[id].slot] === id;
+  const action = bagButton(`[data-equip="${id}"]`);
+  const verb = ITEMS[id].slot === "pet" ? (wearing ? "休息" : "同行") : (wearing ? "脱下" : "佩戴");
+  assert(action.textContent?.trim() === verb, id + " 的操作名称有误");
+  action.focus(); action.click();
+  assert(!bag.hidden && !!bag.querySelector(`[data-select="${id}"].is-worn`) !== wearing, id + " 确认后面板或装备标记有误");
+  if (close) {
+    key("Escape");
+    assert(!world.suspended && document.activeElement === canvas, id + " 收起后焦点未返回游戏");
+  }
 };
-await check("全部纪念品经背包按钮逐一穿脱后，下一帧可用方向键行走", async () => {
+await check("背包保持打开，可连续穿脱全部配饰并用 WASD 移动；收起后能立即点地行走", async () => {
   await world.load();
   try {
     world.switchScene("room"); world.paused = false;
+    inventory.grant("berryBag");
+    inventory.open();
+    const picture = () => bag.querySelector<HTMLCanvasElement>(".bag-avatar")!;
+    bagButton('[data-turn="1"]').click();
+    const bareSide = picture().toDataURL(), side = picture().dataset.facing;
+    const beforePreview = saves.get(INVENTORY_KEY);
+    selectItem("berryBag");
+    assert(picture().dataset.facing === side && picture().toDataURL() !== bareSide, "侧身预览没有绘出挑选的背包");
+    assert(!world.equipment.backpack && beforePreview === saves.get(INVENTORY_KEY), "预览侧身时写入了正式搭配");
+    // A fresh wardrobe visit must draw the previously confirmed outfit.
+    inventory.close(); inventory.open(); bagButton('[data-turn="1"]').click();
+    assert(picture().toDataURL() === bareSide, "关闭再打开后仍然画着未确认的背包");
     for (const id of Object.keys(ITEMS) as ItemId[]) {
       inventory.grant(id);
       for (const equipped of [true, false]) {
         world.player = { x: 300, y: 310 };
-        equipFromBag(id);
+        equipFromBag(id, false);
         assert((world.equipment[ITEMS[id].slot] === id) === equipped, `${id} 穿脱未生效`);
-        key("ArrowRight"); await frames(3);
-        canvas.dispatchEvent(new KeyboardEvent("keyup", { key: "ArrowRight", bubbles: true }));
+        key("d", {}, document.activeElement!); await frames(3);
+        document.activeElement!.dispatchEvent(new KeyboardEvent("keyup", { key: "d", bubbles: true }));
         assert(world.player.x > 300, `${id} 穿脱后方向键不能移动`);
       }
     }

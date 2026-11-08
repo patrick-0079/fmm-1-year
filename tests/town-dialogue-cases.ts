@@ -51,12 +51,12 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
   talk("florist"); choose("继续"); choose("收下洋桔梗");
   talk("florist"); choose("看看那束花");
   const bag = document.querySelector<HTMLElement>(".inventory-panel")!;
-  assert(!bag.hidden && bag.textContent?.includes("真诚不变的爱"), "背包没有显示洋桔梗的赠语");
+  assert(!bag.hidden && bag.dataset.tab==="keepsakes" && bag.querySelector(".bouquet-detail")?.textContent?.includes("真诚不变的爱"), "背包没有显示洋桔梗的赠语");
   bag.querySelector<HTMLButtonElement>(".bag-close")!.click();
   for (const question of ["是什么呀？", "是脑子吗...阿巴阿巴（bushi）"]) {
     talk("maker"); choose("谢谢，但是你为什么要说英文？"); choose(question);
     assert(status().includes("可以打开背包"), "缺少实际换装指引"); choose("打开背包");
-    assert(hud.hidden && !bag.hidden && bag.querySelector("[data-equip]"), "工匠没有打开配饰列表"); bag.querySelector<HTMLButtonElement>(".bag-close")!.click();
+    assert(hud.hidden && !bag.hidden && bag.dataset.tab==="wardrobe" && bag.querySelector("[data-select]"), "工匠没有打开配饰列表"); bag.querySelector<HTMLButtonElement>(".bag-close")!.click();
     assert(!world.suspended && !world.paused, "收起背包后无法行动");
   }
   talk("baker"); choose("是我哦。"); choose("这是给我的吗？"); choose("帮我留一下");

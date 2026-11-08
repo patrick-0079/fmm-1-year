@@ -122,34 +122,6 @@
 .arcade-extra-actions .map-action[aria-pressed="true"] {
   background: #c9d9c1;
 }
-.equipment-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px 16px;
-}
-.equipment-summary span {
-  color: #93717e;
-  font-size: 12px;
-}
-.inventory-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin: 14px 0;
-}
-.inventory-tabs button {
-  border: 1px solid #ddc8bb;
-  border-radius: 20px;
-  padding: 7px 13px;
-  background: #fff9ec;
-  color: #9a7788;
-  font-size: 13px;
-}
-.inventory-tabs button[aria-pressed="true"] {
-  background: #be8ca6;
-  border-color: #b17d97;
-  color: white;
-}
 .activity-hud[data-mode="gifts"] {
   background: linear-gradient(135deg, #fff5df, #f4e5ec);
   border: 1px solid #d7b5a7;

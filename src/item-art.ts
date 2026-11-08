@@ -112,6 +112,53 @@ export function drawItem(
     return;
   }
   if (id === "anniversaryPin") {
+    if (w >= 10 && h >= 10) {
+      c.save();
+      c.translate(x, y);
+      c.scale(w / 48, h / 48);
+      c.lineWidth = 1.2;
+      c.lineJoin = "round";
+      const enamel = (outline: string, fill: string, stroke: string) => {
+        const shape = new Path2D(outline);
+        c.fillStyle = fill;
+        c.strokeStyle = stroke;
+        c.fill(shape);
+        c.stroke(shape);
+      };
+      enamel("M15 23 L24 26 L17 45 L13 39 L7 40 Z", "#b99bc9", "#87677d");
+      enamel("M24 26 L32 23 L40 40 L33 39 L30 45 Z", "#dfa0ae", "#986975");
+      c.strokeStyle = "#ffe3ae";
+      c.stroke(new Path2D("M16 29 L12 37 M29 29 L34 37"));
+      c.save();
+      c.translate(23.7, 19.5);
+      for (let i = 0; i < 12; i++) {
+        c.rotate(Math.PI / 6);
+        c.beginPath();
+        c.ellipse(0, -11.7, 4.1, 4.7, 0, 0, 2 * Math.PI);
+        c.fillStyle = i % 2 ? "#efcc87" : "#f8dc99";
+        c.strokeStyle = "#a67a58";
+        c.fill();
+        c.stroke();
+      }
+      c.restore();
+      c.beginPath();
+      c.arc(23.7, 19.5, 11.5, 0, 2 * Math.PI);
+      c.fillStyle = "#f9eac9";
+      c.fill();
+      c.strokeStyle = "#bd8a65";
+      c.stroke();
+      enamel("M24 9.8 L26.8 15.2 L32.8 16.2 L28.4 20.6 L29.3 26.7 L24 24 L18.7 26.7 L19.5 20.7 L15.2 16.2 L21.2 15.2 Z",
+        "#eab2bb", "#ae7784");
+      enamel("M24 17.7 C20.6 14.5 18.6 18.7 21.1 20.6 L24 23 L26.9 20.6 C29.4 18.5 27.3 14.8 24 17.7 Z",
+        "#d77997", "#bd6c86");
+      c.beginPath();
+      c.arc(22.1, 17.9, .85, 0, Math.PI * 2);
+      c.fillStyle = "#fff3db";
+      c.fill();
+      c.restore();
+      return;
+    }
+    // At the four-pixel size worn on the map, retain the legible gold and pink silhouette.
     c.fillStyle = "#b67b39";
     c.fillRect(x + w * 0.25, y + h * 0.18, w * 0.5, h * 0.65);
     c.fillStyle = "#f6d67c";

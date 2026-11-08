@@ -13,6 +13,11 @@ const footwear = new Image();
 footwear.src = footwearUrl;
 const garments = new Image();
 garments.src = garmentUrl;
+export function whenAvatarLayersReady(refresh: () => void) {
+  for (const sheet of [footwear, garments]) {
+    if (!sheet.complete) sheet.addEventListener("load", refresh, { once: true });
+  }
+}
 export interface AvatarImages {
   sprite: HTMLImageElement;
   rest: HTMLImageElement;

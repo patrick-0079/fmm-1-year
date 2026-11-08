@@ -1,15 +1,5 @@
-.inventory-panel .inventory-grid {
-  max-height: min(340px, 41svh);
-  overflow: auto;
-  padding: 3px;
-}
-.window-tools .bag-toggle { width:auto; min-width:44px; gap:4px; padding-inline:7px; }
-.bag-toggle span { font-size:12px; }
 .game-window { overflow-anchor:none; }
 html:has(.arcade-active,.bass-playing) { overflow-anchor:none; }
-.inventory-panel .equipment-summary { gap: 3px 9px; }
-.inventory-panel > header > div { min-width: 0; }
-.inventory-panel .bag-close { flex: 0 0 auto; white-space: nowrap; align-self: start; }
 .flower-book { padding: 8px 15px; background: #faf6ec; border-top: 1px solid #ded9c5; color: #5d6655; font-size: 13px; }
 .flower-book summary { width: fit-content; cursor: pointer; font-weight: 650; padding: 3px 0; }
 .prism-count { margin-left: 6px; font-variant-numeric: tabular-nums; }

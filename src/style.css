@@ -294,7 +294,7 @@ a .icon {
   background: #bab4bc;
   isolation: isolate;
 }
-.scene-wrap canvas {
+.scene-wrap > #world {
   width: 100%;
   height: 100%;
   display: block;
@@ -2618,7 +2618,7 @@ footer .reset-button {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
-  .scene-wrap canvas {
+  .scene-wrap > #world {
     image-rendering: pixelated;
   }
 }
@@ -3123,7 +3123,7 @@ footer .reset-button {
   .scene-wrap {
     aspect-ratio: auto;
   }
-  .scene-wrap canvas {
+  .scene-wrap > #world {
     height: auto;
     aspect-ratio: 3 / 2;
   }

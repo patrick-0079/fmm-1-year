@@ -13,6 +13,7 @@ import { ARCADES } from "../src/town-data";
 import { verifyGuests } from "./guest-cases";
 import { verifyFieldTrip } from "./field-trip-cases";
 import { verifyTownResidents } from "./town-dialogue-cases";
+import { verifyWardrobe } from "./wardrobe-cases";
 import { foxNook } from "../src/room-props";
 
 // Same application as the homepage; all its saves are private to this QA tab.
@@ -98,14 +99,15 @@ async function checkAll() {
   q(".bag-toggle").click();
   expect(!world.suspended && !world.canvas.parentElement!.inert,"探索打开背包锁住了画布");
   const x=world.player.x;
-  key("ArrowRight",true,q(".bag-close")); await wait(()=>world.player.x>x+4); key("ArrowRight",false);
-  const r=world.canvas.getBoundingClientRect(), startX=world.player.x;
-  world.canvas.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,button:0,clientX:r.x+r.width*369/600,clientY:r.y+r.height*310/400}));
-  await wait(()=>world.player.x>startX+4);
+  key("d",true,q(".bag-close")); await wait(()=>world.player.x>x+4); key("d",false);
+  const beforeSelect={...world.player};
+  q(".bag-item[data-select]").click();
+  await new Promise<void>(done=>requestAnimationFrame(()=>requestAnimationFrame(()=>done())));
+  expect(world.player.x===beforeSelect.x && world.player.y===beforeSelect.y,"点选物品格触发了地图寻路");
   expect(!q(".inventory-panel").hidden,"移动时背包意外关闭");
   world.clearInput(); const y=world.player.y;
   world.setTouch(0,1); await wait(()=>world.player.y>y+3); world.setTouch(0,0);
-  log("背包保持展开时，方向键、鼠标寻路和触屏方向均可移动");
+  log("背包展开时 WASD、触屏方向仍能移动，点击物品格只改变试穿");
   key("Escape");
   expect(q(".inventory-panel").hidden,"Esc 未收起衣橱");
   for(const hazard of scenes.challenge.hazards.slice(0,2)) {
@@ -175,6 +177,10 @@ async function run(check:()=>Promise<void>) {
   finally {q<HTMLButtonElement>("#verify").disabled=false;}
 }
 q("#verify").addEventListener("click",()=>void run(checkAll));
+q("#check-wardrobe").addEventListener("click",()=>void run(async()=>{
+  if (!q(".intro-screen").classList.contains("dismissed")) await start();
+  await verifyWardrobe(world,log);
+}));
 q("#check-residents").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();
   q(".reset-button").click(); q(".reset-confirm").click();
@@ -266,7 +272,8 @@ q("#check-arcade-frame").addEventListener("click",()=>void run(async()=>{
       q<HTMLElement>(".mine-rules summary").click(); await same("展开规则");
       q<HTMLElement>(".mine-rules summary").click();
       q(".bag-toggle").click();
-      expect(world.suspended && hud.closest("[inert]") && scene.closest("[inert]"),"背包未同时暂停地图和操作栏");
+      expect(world.suspended && hud.closest("[inert]") && world.canvas.closest("[inert]") && !q(".bag-close").closest("[inert]"),"小游戏未暂停或背包一起被锁住");
+      await same("整理背包");
       key("Escape"); await same("收起背包");
     }
     q(".arcade-close").click(); expect(hud.hidden,"退出后操作栏仍然显示");
@@ -460,9 +467,8 @@ q("#check-bass").addEventListener("click",()=>void run(async()=>{
   await new Promise(r=>setTimeout(r,450));
   expect(Math.abs(scrollY-sy)<3,"打开或开始小游戏后页面被滚动："+sy+" → "+scrollY);
   const sy2=scrollY;q(".bag-toggle").click();const b=q(".inventory-panel").getBoundingClientRect(), map=board.getBoundingClientRect();
-  const journal=q(".journal").getBoundingClientRect();
-  expect(!q(".inventory-panel").hidden && b.top>=map.bottom-1 && Math.abs(b.width-map.width)<1 &&
-    (b.right<=journal.left+1 || b.bottom<=journal.top+1) && q(".bag-close").getBoundingClientRect().bottom<=innerHeight+1,"背包没有在地图下方独立展开");
+  expect(!q(".inventory-panel").hidden && b.top>=map.top-1 && b.bottom<=map.bottom+1 &&
+    b.left>=map.left-1 && b.right<=map.right+1 && Math.abs(scrollY-sy2)<3,"背包没有完整显示在游戏画面中或打开时页面滚动了");
   key("Escape"); expect(!q(".arcade-hud").hidden && !world.suspended,"背包关闭后小游戏未恢复");
   expect(Math.abs(scrollY-sy2)<3,"收起背包后没有回到打开前的视口");
   key("Escape");

@@ -15,8 +15,17 @@ import { drawItem, wreathUrl, rewardsUrl, whenWardrobeReady } from "./item-art";
 import { reservedShortcut } from "./input";
 import { sfx } from "./sound";
 import { prepareProp } from "./scene-art";
+import type { Facing } from "./equipment";
+import { whenAvatarLayersReady } from "./avatar";
 import bouquetUrl from "./assets/qingya-bouquet.webp";
-type BagFilter = EquipSlot | "all" | "keepsakes";
+type BagTab = "wardrobe" | "equipped" | "keepsakes";
+const catalogue = Object.keys(ITEMS) as ItemId[];
+const turns: Facing[] = [0, 2, 3, 1];
+const facingNames = ["正面", "左侧", "右侧", "背面"];
+const slotArt: Record<EquipSlot, ItemId> = {
+  head: "wreath", clothes: "roseDress", shoes: "ribbonShoes",
+  backpack: "berryBag", body: "anniversaryPin", pet: "petCat",
+};
 function browserStorage(): Storage | null {
   try { return window.localStorage; } catch { return null; }
 }
@@ -29,15 +38,21 @@ export class Inventory {
   private root: HTMLElement = document.querySelector(".inventory-panel")!;
   private wreath = new Image();
   private rewards = new Image();
-  private filter: BagFilter = "all";
+  private tab: BagTab = "wardrobe";
+  private selected: ItemId | null = null;
+  private trying = false;
+  private facing: Facing = 0;
+  private page = 0;
+  private compact = false;
   private bouquetDetail = false;
-  private returnScrollY: number | null = null;
+  private readonly scene: HTMLElement;
   constructor(
     private world: World,
     private toast: (text: string) => void,
     private storage: Pick<Storage, "getItem" | "setItem"> | null = browserStorage(),
     private readonly debugAvailable = import.meta.env.VITE_WARDROBE_DEBUG === "true",
   ) {
+    this.scene = world.canvas.parentElement!;
     let raw = null,
       legacy = null;
     try {
@@ -51,18 +66,24 @@ export class Inventory {
     this.wreath.src = wreathUrl;
     this.rewards.src = rewardsUrl;
     whenWardrobeReady(() => this.drawIcons());
+    whenAvatarLayersReady(() => this.drawPreview());
     this.trigger.setAttribute("aria-expanded", "false");
     this.trigger.addEventListener("click", () => this.togglePanel());
+    this.root.addEventListener("click", (event) => this.handleClick(event));
+    this.root.addEventListener("keydown", (event) => this.handleTabKey(event));
+    new ResizeObserver(() => {
+      if (!this.root.hidden && this.measureLayout()) this.render();
+    }).observe(this.scene);
     window.addEventListener("keydown", (e) => {
+      const hotkey = e.key.toLowerCase() === "b" || (e.key === "Escape" && !this.root.hidden);
+      if (!hotkey) return;
       if (reservedShortcut(e) || document.querySelector(".debug-panel:not([hidden])")) return;
-      if ((e.key.toLowerCase() === "b" || (e.key === "Escape" && !this.root.hidden)) && !e.repeat) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        this.togglePanel();
-      }
+      if (this.root.hidden && (this.world.suspended || this.scene.querySelector(".intro-screen:not(.dismissed)"))) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (!e.repeat) this.togglePanel();
     }, { capture: true });
     this.sync();
-    this.render();
   }
   has(id: ItemId) {
     // Collection events still check the real save while the fitting room is open.
@@ -79,17 +100,17 @@ export class Inventory {
   }
   openBouquet() {
     if (!this.hasBouquet()) return;
-    this.filter = "keepsakes";
-    this.bouquetDetail = true;
     if (this.root.hidden) this.open();
-    else this.render();
+    if (this.root.hidden) return;
+    this.tab = "keepsakes";
+    this.bouquetDetail = true;
+    this.trying = false;
+    this.render();
     this.root.querySelector<HTMLElement>(".bouquet-detail")?.focus({preventScroll:true});
   }
   openWardrobe() {
-    this.filter = "all";
-    this.bouquetDetail = false;
     if (this.root.hidden) this.open();
-    else this.render();
+    else this.changeTab("wardrobe");
   }
   get followingPet() { return this.earned.equipped.pet; }
   setCompanion(id: "petCat" | "petBunny", follow: boolean) {
@@ -103,34 +124,32 @@ export class Inventory {
     return first;
   }
   private startFitting() {
-    this.fittingRoom = { ...this.earned, owned: Object.keys(ITEMS) as ItemId[], equipped: { ...this.earned.equipped } };
+    this.fittingRoom = { ...this.earned, owned: [...catalogue], equipped: { ...this.earned.equipped } };
   }
   get fitting() { return !!this.fittingRoom; }
   setFitting(active:boolean) {
     if (!this.debugAvailable || active===this.fitting) return;
     if (active) this.startFitting(); else this.fittingRoom=null;
+    this.trying = false;
     this.sync(); this.render();
   }
   open() {
-    if (!this.root.hidden) return;
+    if (!this.root.hidden || this.world.suspended) return;
     this.root.hidden = false;
+    this.tab = "wardrobe";
+    this.selected = null;
+    this.trying = false;
+    this.facing = 0;
+    this.page = 0;
+    this.bouquetDetail = false;
+    this.measureLayout();
     this.trigger.setAttribute("aria-label","收起纪念背包，快捷键 B");
     this.trigger.setAttribute("aria-expanded", "true");
     // Keep free exploration live while pausing time-sensitive activities.
-    const scene = this.world.canvas.parentElement!;
-    this.world.suspend("inventory", scene.matches(".inspecting, .bass-playing, .arcade-active, .cinema-active, .reading-letter"));
+    this.world.suspend("inventory", this.scene.matches(".inspecting, .bass-playing, .arcade-active, .cinema-active, .reading-letter"));
     this.render();
-    void prepareProp("relics").then(() => this.drawIcons()).catch(() => {});
+    void Promise.allSettled([this.world.prepareScene("room"), prepareProp("relics")]).then(() => this.drawIcons());
     this.root.querySelector<HTMLButtonElement>(".bag-close")!.focus({ preventScroll: true });
-    // Reveal the first row only when it is off screen. Leave some of the map
-    // in view and return to the player's original viewport when they close it.
-    const top = this.root.getBoundingClientRect().top;
-    const firstRow = (this.root.querySelector(".inventory-item, .bouquet-detail") ?? this.root).getBoundingClientRect();
-    const offset = top < 0 ? top : Math.max(0, Math.min(top, firstRow.bottom + 8 - innerHeight));
-    if (Math.abs(offset) > 1) {
-      this.returnScrollY = window.scrollY;
-      window.scrollBy({ top: offset, behavior: "instant" });
-    }
   }
   grant(id: ItemId, announce = true) {
     if (!grantItem(this.earned, id)) return false;
@@ -148,28 +167,28 @@ export class Inventory {
       return;
     }
     if (!this.fittingRoom) this.save();
+    this.trying = false;
+    if (this.tab === "equipped" && this.state.equipped[ITEMS[id].slot] !== id) this.selected = null;
     this.sync();
     this.render();
     this.onEquip();
     sfx("interact");
-    // A wardrobe action completes the visit. Return to the canvas immediately
-    // instead of leaving the scene inert below an off-screen, focused button.
-    // Quick-equip / NPC actions must never focus controls inside a hidden bag.
-    if (!this.root.hidden) this.close();
-    else if (!this.world.suspended)
-      this.world.canvas.focus({ preventScroll: true });
-    this.toast(`${ITEMS[id].name} · ${this.state.equipped[ITEMS[id].slot] === id ? "已佩戴" : "已脱下"}`);
+    if (this.root.hidden) {
+      if (!this.world.suspended) this.world.canvas.focus({ preventScroll: true });
+      const wearing = this.state.equipped[ITEMS[id].slot] === id;
+      const pet = ITEMS[id].slot === "pet";
+      const status = pet ? (wearing ? "已同行" : "已休息") : (wearing ? "已佩戴" : "已脱下");
+      this.toast(`${ITEMS[id].name} · ${status}`);
+    }
   }
   reset() {
     this.close(false);
-    this.filter = "all";
+    this.tab = "wardrobe";
     this.bouquetDetail = false;
     this.earned = readInventory(null);
     if (this.fittingRoom) this.startFitting();
     this.save();
     this.sync();
-    this.render();
-    this.root.hidden = true;
   }
   private sync() {
     this.world.equipment = { ...this.state.equipped };
@@ -188,96 +207,220 @@ export class Inventory {
   }
   close(restoreFocus = true) {
     const wasOpen = !this.root.hidden;
-    const returnScrollY = this.returnScrollY;
-    this.returnScrollY = null;
     this.root.hidden = true;
+    this.trying = false;
     this.bouquetDetail = false;
     this.trigger.setAttribute("aria-expanded", "false");
-    this.trigger.setAttribute("aria-label","打开纪念背包，快捷键 B");
+    this.trigger.setAttribute("aria-label", "打开纪念背包，快捷键 B");
     this.world.suspend("inventory", false);
     if (!restoreFocus || !wasOpen) return;
     if (this.world.suspended) {
-      const help = document.querySelector<HTMLElement>(".inline-help:not([hidden])");
-      help?.querySelector<HTMLButtonElement>(".help-close")?.focus({ preventScroll: true });
-      help?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      return;
+      document.querySelector<HTMLButtonElement>(".inline-help:not([hidden]) .help-close")?.focus({ preventScroll: true });
+    } else {
+      this.world.canvas.focus({ preventScroll: true });
     }
-    this.world.canvas.focus({ preventScroll: true });
-    if (returnScrollY !== null) window.scrollTo({ top: returnScrollY, behavior: "instant" });
   }
-  private bouquetCard() {
-    if (this.filter !== "all" && this.filter !== "keepsakes") return "";
-    if (this.filter === "keepsakes" && this.bouquetDetail && this.hasBouquet()) {
-      return `<article class="bouquet-detail" tabindex="-1"><img src="${bouquetUrl}" alt="奶白和浅紫的重瓣洋桔梗，花茎系着细缎带"><div><small>青芽的赠礼</small><h4>青芽的洋桔梗</h4><p>象征着芙妮宝真诚不变的爱。</p><button class="map-action" data-keepsakes>返回纪念物</button></div></article>`;
+  private get pageSize() { return this.compact ? 8 : 15; }
+  private measureLayout() {
+    const compact = this.scene.getBoundingClientRect().width <= 560;
+    if (compact === this.compact) return false;
+    this.compact = compact;
+    if (!compact && this.tab === "equipped") this.tab = "wardrobe";
+    this.page = this.selected ? Math.floor(catalogue.indexOf(this.selected) / this.pageSize) : 0;
+    return true;
+  }
+  private changeTab(tab: BagTab) {
+    if (tab !== this.tab) {
+      this.selected = null;
+      this.trying = false;
     }
-    return `<article class="inventory-item ${this.hasBouquet() ? "owned" : "locked"}"><img class="bouquet-icon" src="${bouquetUrl}" alt=""><div><h4>青芽的洋桔梗</h4><p>${this.hasBouquet() ? "花店店主亲手挑的一束花。" : "去周年小镇的花店看看。"}</p></div><button class="map-action" data-bouquet ${this.hasBouquet() ? "" : "disabled"}>${this.hasBouquet() ? "查看" : "未获得"}</button></article>`;
+    this.tab = tab;
+    this.bouquetDetail = false;
+    this.render();
+  }
+  private selectItem(id: ItemId) {
+    this.selected = id;
+    this.trying = this.state.owned.includes(id) && this.state.equipped[ITEMS[id].slot] !== id;
+    if (ITEMS[id].slot === "backpack" && (this.facing === 0 || this.facing === 3)) this.facing = 2;
+    this.page = Math.floor(catalogue.indexOf(id) / this.pageSize);
+    this.render();
+  }
+  private handleClick(event: MouseEvent) {
+    const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("button") : null;
+    if (!button || !this.root.contains(button) || button.disabled) return;
+    event.stopPropagation();
+    const data = button.dataset;
+    if (button.classList.contains("bag-close")) this.close();
+    else if (data.tab) this.changeTab(data.tab as BagTab);
+    else if (data.turn) {
+      this.facing = turns[(turns.indexOf(this.facing) + Number(data.turn) + turns.length) % turns.length];
+      this.render();
+    } else if (data.page) {
+      this.page = Math.min(Math.ceil(catalogue.length / this.pageSize) - 1, Math.max(0, this.page + Number(data.page)));
+      this.selected = null;
+      this.trying = false;
+      this.render();
+    } else if (data.select) {
+      this.selectItem(data.select as ItemId);
+      if (event.detail === 0) {
+        this.root.querySelector<HTMLButtonElement>(".bag-apply:not(:disabled)")?.focus({ preventScroll: true });
+      }
+    } else if (data.equip) {
+      const id = data.equip as ItemId;
+      this.toggle(id);
+      if (event.detail === 0) {
+        const selector = this.tab === "equipped" ? `.bag-equipped-grid [data-slot="${ITEMS[id].slot}"]` : `[data-select="${id}"]`;
+        this.root.querySelector<HTMLButtonElement>(selector)?.focus({ preventScroll: true });
+      }
+    } else if (data.slot) {
+      const slot = data.slot as EquipSlot;
+      const worn = this.state.equipped[slot];
+      const id = worn ?? this.state.owned.find(i => ITEMS[i].slot === slot) ?? slotArt[slot];
+      if (!worn || this.tab !== "equipped") this.tab = "wardrobe";
+      this.selectItem(id);
+      if (this.tab === "wardrobe") {
+        this.root.querySelector<HTMLButtonElement>(`[data-select="${id}"]`)?.focus({preventScroll:true});
+      } else if (event.detail === 0) {
+        this.root.querySelector<HTMLButtonElement>(".bag-apply")?.focus({preventScroll:true});
+      }
+    } else if (data.bouquet !== undefined) this.openBouquet();
+    else if (data.keepsakes !== undefined) {
+      this.changeTab("keepsakes");
+      this.root.querySelector<HTMLButtonElement>("[data-bouquet]")?.focus({preventScroll:true});
+    }
+  }
+  private handleTabKey(event: KeyboardEvent) {
+    if (event.repeat && event.key === "Enter") event.preventDefault();
+    if (event.key !== "Tab" || reservedShortcut(event)) return;
+    const buttons = [...this.root.querySelectorAll<HTMLButtonElement>("button:not(:disabled)")].filter(b => b.getClientRects().length);
+    const edge = event.shiftKey ? buttons[0] : buttons.at(-1);
+    if (document.activeElement !== edge) return;
+    event.preventDefault();
+    (event.shiftKey ? buttons.at(-1) : buttons[0])?.focus({preventScroll:true});
+  }
+  private itemArt(id: ItemId) {
+    return `<canvas class="bag-item-art" data-item="${id}" width="80" height="80" aria-hidden="true"></canvas>`;
+  }
+  private slotButton(slot: EquipSlot, group: string) {
+    const worn = this.state.equipped[slot];
+    const name = worn ? ITEMS[worn].name : "空";
+    const selected = !!worn && this.selected === worn;
+    return `<button type="button" class="bag-slot ${worn ? "is-worn" : "is-empty"} ${selected ? "is-selected" : ""}" data-slot="${slot}" data-focus="${group}-${slot}" aria-pressed="${selected}" aria-label="${slotNames[slot]}，${name}" title="${slotNames[slot]} · ${name}">
+      ${this.itemArt(worn ?? slotArt[slot])}<span class="bag-slot-name">${slotNames[slot]}</span></button>`;
+  }
+  private itemButton(id: ItemId) {
+    const item = ITEMS[id];
+    const worn = this.state.equipped[item.slot] === id;
+    const owned = this.state.owned.includes(id);
+    const selected = id === this.selected;
+    const mark = worn ? '<span class="bag-check" aria-hidden="true">✓</span>' : "";
+    const state = !owned ? "未获得" : worn ? (item.slot === "pet" ? "同行中" : "已佩戴") : "已获得";
+    return `<button type="button" class="bag-item ${worn ? "is-worn" : ""} ${selected ? "is-selected" : ""} ${owned ? "" : "is-locked"}" data-select="${id}" data-focus="item-${id}" aria-pressed="${selected}" aria-label="${item.name}，${state}" title="${item.name} · ${state}">${this.itemArt(id)}<span class="bag-item-name">${item.name}</span>${mark}</button>`;
+  }
+  private collection() {
+    if (this.tab === "equipped") return `<div class="bag-equipped-grid">${EQUIP_SLOTS.map(slot => this.slotButton(slot, "equipped")).join("")}</div>`;
+    if (this.tab === "keepsakes") {
+      if (this.bouquetDetail && this.hasBouquet()) {
+        return `<article class="bouquet-detail" tabindex="-1" aria-label="青芽的洋桔梗"><img src="${bouquetUrl}" alt="奶白和浅紫的重瓣洋桔梗，花茎系着细缎带"><div><h4>青芽的洋桔梗</h4><p>象征着芙妮宝真诚不变的爱。</p><button type="button" data-keepsakes data-focus="keepsakes-back">返回纪念物</button></div></article>`;
+      }
+      return `<div class="bag-keepsakes"><button type="button" class="bag-keepsake ${this.hasBouquet() ? "" : "is-locked"}" data-bouquet data-focus="bouquet" ${this.hasBouquet() ? "" : "disabled"}><img src="${bouquetUrl}" alt=""><span>青芽的洋桔梗</span></button></div>`;
+    }
+    const start = this.page * this.pageSize;
+    const pages = Math.ceil(catalogue.length / this.pageSize);
+    const grid = catalogue.slice(start, start + this.pageSize).map(id => this.itemButton(id));
+    // Keep the last page's cells and the footer in the same positions.
+    for (let i = grid.length; i < this.pageSize; i++) grid.push('<span class="bag-item is-empty" aria-hidden="true"></span>');
+    return `<div class="bag-grid">${grid.join("")}</div>${pages > 1 ? `<div class="bag-pages"><button type="button" data-page="-1" data-focus="prev" aria-label="上一页" ${this.page === 0 ? "disabled" : ""}>‹</button><span>${this.page + 1} / ${pages}</span><button type="button" data-page="1" data-focus="next" aria-label="下一页" ${this.page + 1 === pages ? "disabled" : ""}>›</button></div>` : ""}`;
+  }
+  private footer() {
+    let title = "选择一件配饰";
+    let text = this.fitting ? "调试试穿，搭配仅在本次游玩生效。" : "点选物品试穿，喜欢就佩戴。";
+    let action = "";
+    if (this.tab === "keepsakes") {
+      title = "纪念物";
+      text = this.hasBouquet() ? "青芽亲手为你挑选的花束。" : "去周年小镇的花店看看。";
+    } else if (this.tab === "equipped" && !this.selected) {
+      title = "身上的搭配";
+      text = "点一个部位，查看或更换配饰。";
+      action = '<button type="button" class="bag-apply" data-tab="wardrobe" data-focus="browse">去衣橱</button>';
+    } else if (this.selected) {
+      const id = this.selected;
+      const item = ITEMS[id];
+      const owned = this.state.owned.includes(id);
+      const worn = this.state.equipped[item.slot] === id;
+      const verb = !owned ? "未获得" : item.slot === "pet" ? (worn ? "休息" : "同行") : (worn ? "脱下" : "佩戴");
+      title = item.name;
+      text = owned ? item.description : item.source;
+      action = `<button type="button" class="bag-apply" data-equip="${id}" data-focus="apply" ${owned ? "" : "disabled"}>${verb}</button>`;
+    } else {
+      action = '<button type="button" class="bag-apply" disabled>佩戴</button>';
+    }
+    const art = this.tab !== "keepsakes" && this.selected ? this.itemArt(this.selected) : "";
+    return `${art}<div class="bag-detail" aria-live="polite"><strong>${title}</strong><small>${text}</small></div>${action}`;
   }
   private render() {
-    const worn = (slot: EquipSlot) =>
-      this.state.equipped[slot]
-        ? ITEMS[this.state.equipped[slot]!].name
-        : "暂未佩戴";
-    this.root.innerHTML = `<header><div><small>ONE YEAR · LITTLE TREASURES</small><h3>芙芙的周年衣橱 <span>${this.state.owned.length} / ${Object.keys(ITEMS).length}</span></h3><p class="equipment-summary">${EQUIP_SLOTS.map((slot) => `<span>${slotNames[slot]}：${worn(slot)}</span>`).join("")}</p></div><button class="map-action bag-close">收起 <kbd>B</kbd></button></header><nav class="inventory-tabs" aria-label="背包类别"><button data-category="all" aria-pressed="${this.filter === "all"}">全部</button>${EQUIP_SLOTS.map((slot) => `<button data-category="${slot}" aria-pressed="${this.filter === slot}">${slotNames[slot]}</button>`).join("")}<button data-category="keepsakes" aria-pressed="${this.filter === "keepsakes"}">纪念物</button></nav><div class="inventory-grid">${Object.entries(
-      ITEMS,
-    )
-      .filter(([, item]) => this.filter === "all" || item.slot === this.filter)
-      .map(([id, item]) => {
-        const own = this.state.owned.includes(id as ItemId),
-          worn = this.state.equipped[item.slot] === id;
-        return `<article class="inventory-item ${own ? "owned" : "locked"}"><canvas width="48" height="48" data-item="${id}" role="img" aria-label="${item.name}"></canvas><div><h4>${item.name}${worn ? " <em>佩戴中</em>" : ""}</h4><p>${own ? item.description : item.source}</p></div><button class="map-action" data-equip="${id}" ${own ? "" : "disabled"}>${own ? (worn ? "脱下" : "佩戴") : "未获得"}</button></article>`;
-      })
-      .join(
-        "",
-      )}${this.bouquetCard()}</div><p class="bag-footnote">背包在地图下方展开。探索时仍可走动，按 B / Esc 返回。</p>`;
-    this.root.querySelector("[data-bouquet]")?.addEventListener("click", () => this.openBouquet());
-    this.root.querySelector("[data-keepsakes]")?.addEventListener("click", () => {
-      this.bouquetDetail = false;
-      this.render();
-      this.root.querySelector<HTMLButtonElement>("[data-bouquet]")?.focus({preventScroll:true});
-    });
-    this.root
-      .querySelector(".bag-close")!
-      .addEventListener("click", () => this.close());
-    this.root
-      .querySelectorAll<HTMLButtonElement>("[data-category]")
-      .forEach((b) =>
-        b.addEventListener("click", () => {
-          this.filter = b.dataset.category as BagFilter;
-          this.bouquetDetail = false;
-          this.render();
-          this.root
-            .querySelector<HTMLButtonElement>(
-              `[data-category="${this.filter}"]`,
-            )!
-            .focus({ preventScroll: true });
-        }),
-      );
-    this.root
-      .querySelectorAll<HTMLButtonElement>("[data-equip]")
-      .forEach((b) =>
-        b.addEventListener("click", () =>
-          this.toggle(b.dataset.equip as ItemId),
-        ),
-      );
+    if (this.root.hidden) return;
+    const focused = document.activeElement instanceof HTMLElement && this.root.contains(document.activeElement) ? document.activeElement : null;
+    const focusKey = focused?.dataset.focus;
+    this.root.dataset.tab = this.tab;
+    this.root.dataset.compact = String(this.compact);
+    const tabs: [BagTab, string][] = [["wardrobe", "衣橱"]];
+    if (this.compact) tabs.push(["equipped", "身上"]);
+    tabs.push(["keepsakes", "纪念物"]);
+    const tabButtons = tabs.map(([tab, name]) => `
+      <button type="button" data-tab="${tab}" data-focus="tab-${tab}" aria-pressed="${this.tab === tab}">${name}</button>
+    `).join("");
+    const sideSlots = (slots: readonly EquipSlot[], side: string) => `
+      <div class="bag-slots ${side}">${slots.map(slot => this.slotButton(slot, side)).join("")}</div>`;
+    this.root.innerHTML = `
+      <header class="bag-heading">
+        <h3>芙芙的背包</h3>
+        <button type="button" class="bag-close" data-focus="close" aria-label="收起背包" title="收起背包（B / Esc）">×</button>
+      </header>
+      <nav class="bag-tabs" aria-label="背包分类">${tabButtons}</nav>
+      <div class="bag-dressing">
+        ${sideSlots(EQUIP_SLOTS.slice(0, 3), "left")}
+        <div class="bag-mirror">
+          <canvas class="bag-avatar" width="160" height="144" data-facing="${this.facing}" role="img" aria-label="芙芙的${facingNames[this.facing]}穿搭预览"></canvas>
+          <div class="bag-turns">
+            <button type="button" data-turn="-1" data-focus="turn-left" aria-label="向左转身">‹</button>
+            <span>${facingNames[this.facing]}</span>
+            <button type="button" data-turn="1" data-focus="turn-right" aria-label="向右转身">›</button>
+          </div>
+        </div>
+        ${sideSlots(EQUIP_SLOTS.slice(3), "right")}
+      </div>
+      <div class="bag-collection">${this.collection()}</div>
+      <footer class="bag-footer">${this.footer()}</footer>`;
+    if (focused) {
+      const target = focusKey ? this.root.querySelector<HTMLButtonElement>(`[data-focus="${focusKey}"]:not(:disabled)`) : null;
+      const fallback = focusKey === "prev" || focusKey === "next"
+        ? this.root.querySelector<HTMLButtonElement>(".bag-pages button:not(:disabled)")
+        : this.root.querySelector<HTMLButtonElement>(".bag-tabs [aria-pressed=true]");
+      (target?.getClientRects().length ? target : fallback)?.focus({preventScroll:true});
+    }
     this.drawIcons();
   }
   private drawIcons() {
-    for (const canvas of this.root.querySelectorAll<HTMLCanvasElement>(
-      "canvas[data-item]",
-    )) {
-      const c = canvas.getContext("2d")!;
-      c.clearRect(0, 0, 48, 48);
-      c.imageSmoothingEnabled = false;
-      drawItem(
-        c,
-        canvas.dataset.item as ItemId,
-        3,
-        3,
-        42,
-        42,
-        this.wreath,
-        this.rewards,
-      );
+    if (this.root.hidden) return;
+    for (const canvas of this.root.querySelectorAll<HTMLCanvasElement>("canvas[data-item]")) {
+      const c = canvas.getContext("2d");
+      if (!c) continue;
+      c.clearRect(0, 0, canvas.width, canvas.height);
+      c.imageSmoothingEnabled = true;
+      c.imageSmoothingQuality = "high";
+      drawItem(c, canvas.dataset.item as ItemId, 4, 4, 72, 72, this.wreath, this.rewards);
     }
+    this.drawPreview();
+  }
+  private drawPreview() {
+    if (this.root.hidden) return;
+    const canvas = this.root.querySelector<HTMLCanvasElement>(".bag-avatar");
+    if (!canvas) return;
+    const equipped = {...this.state.equipped};
+    if (this.tab === "wardrobe" && this.trying && this.selected && this.state.owned.includes(this.selected)) {
+      equipped[ITEMS[this.selected].slot] = this.selected;
+    }
+    this.world.drawWardrobePreview(canvas, equipped, this.facing);
   }
 }

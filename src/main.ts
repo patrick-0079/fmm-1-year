@@ -8,6 +8,7 @@ import "./ruins.css";
 import "./exploration.css";
 import "./bass-stage.css";
 import "./debug-panel.css";
+import "./wardrobe.css";
 import "./fufu-cursors.css";
 import { helpMarkup, ruinSolutionMarkup } from "./help";
 import { ARCADES, TOWN_NPCS } from "./town-data";
@@ -73,7 +74,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
       </section>
       <div class="adventure-layout">
         <section class="game-window" aria-label="芙芙的像素小世界">
-          <div class="window-bar"><div class="window-dots"><i></i><i></i><i></i></div><span>fufu’s little world / 周年特别篇</span><div class="window-tools"><button class="icon-button bag-toggle" aria-label="打开纪念背包，快捷键 B" aria-controls="inventory-panel" title="纪念背包 B">${icon("gift")}<span>背包</span></button><button class="music-toggle icon-button" aria-label="关闭背景音乐" title="背景音乐">♫</button><button class="icon-button sound-toggle" aria-label="开启游戏音效" title="游戏音效">${icon("mute")}</button><button class="icon-button help-button" aria-label="查看操作说明" title="操作说明">?</button></div></div>
+          <div class="window-bar"><div class="window-dots"><i></i><i></i><i></i></div><span>fufu’s little world / 周年特别篇</span><div class="window-tools"><button class="music-toggle icon-button" aria-label="关闭背景音乐" title="背景音乐">♫</button><button class="icon-button sound-toggle" aria-label="开启游戏音效" title="游戏音效">${icon("mute")}</button><button class="icon-button help-button" aria-label="查看操作说明" title="操作说明">?</button></div></div>
           <div class="game-stage"><div class="scene-wrap">
             <canvas id="world" tabindex="0" aria-label="像素探索场景。使用 WASD 或方向键移动，E、空格或鼠标右键互动；左键点击地面行走、标记互动。Tab 切换选项，Enter 确认。">浏览器需要支持 Canvas 才能游玩。</canvas>
             <div class="scene-top"><span class="location-pill">${icon("moon")} <span id="location-name">ROOM 01 · 晚安小屋</span></span><button class="map-switch" title="切换到另一个场景">周年花园 ${icon("arrow")}</button></div>
@@ -82,9 +83,10 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
             <div class="ruin-stamp-flash" role="status" aria-live="polite" aria-atomic="true" hidden></div>
             <div class="intro-screen"><div class="intro-stars">✧ <span>✦</span> ✧</div><span class="intro-pill">芙眠眠 · 直播一周年纪念</span><h2>今晚的快乐，<br>等你来发现。</h2><p>一间温暖小屋，两座缤纷花园，<br>还有东北山洞深处的回声遗迹。<br>和藏在街角的，一点点喜欢。</p><button class="button primary enter-button" disabled>正在点亮小世界…</button><small>点击开始会播放轻柔音乐 · 可随时关闭 ♡</small></div>
             <section class="game-letter-reader" aria-label="在游戏中阅读晚安信箱" hidden></section><div class="scene-transition" aria-hidden="true"></div>
+            <button class="bag-toggle" type="button" aria-label="打开纪念背包，快捷键 B" aria-controls="inventory-panel" aria-expanded="false" aria-keyshortcuts="B" title="背包（B）"><span class="bag-trigger-art" aria-hidden="true"></span><kbd aria-hidden="true">B</kbd></button>
+            <section id="inventory-panel" class="inventory-panel" aria-label="芙芙的背包" hidden></section>
           </div>
           <section class="arcade-hud" hidden aria-label="小镇与遗迹小游戏"></section></div>
-          <section id="inventory-panel" class="inventory-panel" aria-label="纪念背包" hidden></section>
           <nav class="scene-nav" aria-label="地图导航"><button data-scene="room">晚安小屋</button><button data-scene="garden">周年花园</button><button data-scene="challenge">勇气花园</button><button data-scene="town">周年小镇</button><button data-scene="meadow" hidden>✿ 花海</button><button data-scene="ruins">回声遗迹</button><div class="volume-tools"><button class="volume-down" aria-label="降低游戏音量">−</button><span class="volume-value">45%</span><button class="volume-up" aria-label="提高游戏音量">＋</button></div></nav>
           <details class="ruin-notebook"><summary><b>遗迹手记</b><span class="ruin-book-count">0 / 3 拓印 · 0 / 5 印章</span></summary><div class="ruin-book-pages"></div>${ruinSolutionMarkup}</details>
           <div class="garden-pocket"><span>${icon("gift")}<span class="bag-count">苹果 0 · 花朵 0 · 星屑 0</span></span><span class="day-hint">十分钟一昼夜 · 找长椅休息，等一场黄昏和星夜</span></div><details class="flower-book" hidden><summary>✿ 七色花谱 <span class="prism-count">0 / 7</span></summary><p class="prism-hint"></p><ol class="prism-list"></ol></details><section class="map-reader" aria-label="地图物件阅读区" hidden></section><section class="inline-help" aria-label="完整游玩说明" hidden></section><div class="game-bottom"><div class="desktop-instructions"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span><span><kbd>E</kbd> / 右键 互动</span><i></i><span>左键走动 / 点标记 · <kbd>B</kbd> 背包 · <kbd>H</kbd> 花环</span></div><span class="exploration-count">${icon("star")} <span id="explored">0</span>/11 个角落</span></div>

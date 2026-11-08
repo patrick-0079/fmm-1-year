@@ -14,7 +14,7 @@ import { crossedEchoGate, townQuarry } from "./ruins-map";
 import { meadowAtlasUrl, orchardAtlasUrl } from "./wild-art";
 import { prepareSceneArt, sceneArt } from "./scene-art";
 import trapsUrl from "./assets/garden-traps.webp";
-import { rewardsUrl } from "./item-art";
+import { drawItem, rewardsUrl } from "./item-art";
 import { emptyInventory, type Equipped } from "./items";
 import { bedRest, benchRest, type RestState } from "./rest";
 import { drawAvatar } from "./avatar";
@@ -113,7 +113,20 @@ export class World {
     if (active === this.suspensions.has(reason)) return;
     if (active) this.suspensions.add(reason);
     else this.suspensions.delete(reason);
-    this.inputRegion.inert = this.suspended;
+    // Help and debug take over the whole stage. A paused activity still needs
+    // the wardrobe and its close button to receive pointer and keyboard input.
+    this.inputRegion.inert = [...this.suspensions].some(source => source !== "inventory");
+    if (reason === "inventory") {
+      const scene = this.canvas.parentElement!;
+      for (const child of Array.from(scene.children)) {
+        if (child instanceof HTMLElement && !child.matches(".bag-toggle, .inventory-panel")) child.inert = active;
+      }
+      if (scene !== this.inputRegion) {
+        for (const child of Array.from(this.inputRegion.children)) {
+          if (child instanceof HTMLElement && child !== scene) child.inert = active;
+        }
+      }
+    }
     this.clearInput();
   }
   onInputCancel: () => void = () => {};
@@ -143,15 +156,37 @@ export class World {
   private secondaryPressed = false;
   onAction: (pressed: boolean) => boolean = () => false;
   actorHidden = false;
-  drawAvatarAt(c: CanvasRenderingContext2D, x: number, y: number, frame = 0) {
-    c.save();
-    c.translate(x, y);
-    drawAvatar(c, "standing", 0, frame, this.equipment, {
+  private get avatarImages() {
+    return {
       sprite: this.images.get(spriteUrl)!,
       rest: this.images.get(restUrl)!,
       wreath: this.images.get(wreathUrl)!,
       rewards: this.images.get(rewardsUrl)!,
-    });
+    };
+  }
+  drawAvatarAt(c: CanvasRenderingContext2D, x: number, y: number, frame = 0) {
+    c.save();
+    c.translate(x, y);
+    drawAvatar(c, "standing", 0, frame, this.equipment, this.avatarImages);
+    c.restore();
+  }
+  drawWardrobePreview(canvas: HTMLCanvasElement, equipped: Equipped, facing: Facing) {
+    const c = canvas.getContext("2d");
+    const images = this.avatarImages;
+    if (!c || !images.sprite) return;
+    const pet = equipped.pet;
+    const scale = Math.min(canvas.height / 50, canvas.width / (pet ? 62 : 40));
+    c.clearRect(0, 0, canvas.width, canvas.height);
+    c.save();
+    c.imageSmoothingEnabled = false;
+    c.translate(Math.round(canvas.width * (pet ? 0.40 : 0.50)), Math.round(canvas.height * 0.93));
+    c.scale(scale, scale);
+    c.fillStyle = "#856a5940";
+    c.beginPath();
+    c.ellipse(0, 0, 11, 2, 0, 0, Math.PI * 2);
+    c.fill();
+    drawAvatar(c, "standing", facing, 0, equipped, images);
+    if (pet) drawItem(c, pet, 13, -16, 18, 17, images.wreath, images.rewards);
     c.restore();
   }
   constructor(canvas: HTMLCanvasElement) {
@@ -177,7 +212,7 @@ export class World {
     window.addEventListener("keydown", (e) => {
       const key = e.key.toLowerCase();
       const bag = e.target instanceof Element && e.target.closest(".inventory-panel");
-      const exploringFromBag = bag && !this.paused && /^(?:arrow(?:up|down|left|right)|[wasde])$/.test(key);
+      const exploringFromBag = bag && !this.paused && /^(?:arrow(?:up|down|left|right)|[wasd])$/.test(key);
       if (
         reservedShortcut(e) ||
         this.suspended ||
@@ -224,7 +259,7 @@ export class World {
     });
     window.addEventListener("keyup", (e) => {
       this.keys.delete(e.key.toLowerCase());
-      if (["e", " "].includes(e.key.toLowerCase()) && this.onAction(false))
+      if (!this.suspended && !readingTarget(e.target) && ["e", " "].includes(e.key.toLowerCase()) && this.onAction(false))
         e.stopImmediatePropagation();
     });
     window.addEventListener("blur", () => {
@@ -722,12 +757,7 @@ export class World {
         this.facing,
         this.walking ? 1 + (Math.floor(this.time * 7) % 2) : 0,
         this.equipment,
-        {
-          sprite: this.images.get(spriteUrl)!,
-          rest: this.images.get(restUrl)!,
-          wreath: this.images.get(wreathUrl)!,
-          rewards: this.images.get(rewardsUrl)!,
-        },
+        this.avatarImages,
       );
       c.restore();
     };
