@@ -4,47 +4,67 @@
 }
 
 .bag-toggle {
+  --bag-tab-size: clamp(28px, 4.3cqw, 37px);
   position: absolute;
   z-index: 4;
   top: calc(100cqw / 3);
-  left: 1.5%;
+  left: 0;
   translate: 0 -50%;
-  display: grid;
-  place-items: center;
-  width: clamp(40px, 6.3cqw, 60px);
-  aspect-ratio: 1;
-  padding: 5px;
-  border: 2px solid #886047;
-  border-radius: 22%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: var(--bag-tab-size);
+  height: var(--bag-tab-size);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  touch-action: manipulation;
+}
+.bag-toggle::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  translate: 0 -50%;
+  width: var(--bag-tab-size);
+  height: var(--bag-tab-size);
+  box-sizing: border-box;
+  border: 1px solid #886047;
+  border-left: 0;
+  border-radius: 0 8px 8px 0;
   background: linear-gradient(150deg, #fff9e7, #f8dbb5);
-  box-shadow: inset 0 0 0 2px #fff6db, inset 0 0 0 3px #dbb286, 0 2px #825c49, 0 4px 8px #4b373c45;
+  box-shadow: inset -1px 0 0 1px #fff6db, 1px 1px 2px #55392d55;
 }
 .bag-trigger-art {
   display: block;
-  width: 100%;
+  position: relative;
+  width: calc(var(--bag-tab-size) - 7px);
+  margin-left: 3px;
   aspect-ratio: 1;
   /* The strawberry picnic bag occupies the first cell in the atlas's lower row. */
   background: url("./assets/wardrobe-v11.webp") 2.56% 92.08% / 438% 240.4% no-repeat;
 }
 .bag-toggle kbd {
   position: absolute;
-  right: -5px;
-  bottom: -3px;
-  min-width: 16px;
-  padding: 0 3px;
+  right: -2px;
+  bottom: -2px;
+  min-width: 12px;
+  padding: 0 2px;
   border: 1px solid #95644e;
   border-radius: 4px;
   color: #6d483c;
   background: #fff6db;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 750;
   line-height: 1.4;
   text-align: center;
 }
 .bag-toggle[aria-expanded="true"] {
   z-index: 16;
+}
+.bag-toggle[aria-expanded="true"]::before {
   background: #ffdeda;
-  box-shadow: inset 0 0 0 2px #fff1db, inset 0 0 0 4px #d89696, 0 2px #825c49;
+  border-color: #b36b76;
 }
 .scene-wrap:has(.intro-screen:not(.dismissed)) > .bag-toggle {
   visibility: hidden;
@@ -105,10 +125,15 @@
   touch-action: manipulation;
   color: inherit;
 }
-.inventory-panel button:focus-visible, .bag-toggle:focus-visible {
+.inventory-panel button:focus-visible {
   z-index: 2;
   outline: 2px solid #47656a;
   outline-offset: 1px;
+}
+.bag-toggle:focus-visible { outline: none; }
+.bag-toggle:focus-visible::before {
+  outline: 2px solid #47656a;
+  outline-offset: -2px;
 }
 .bag-heading { position: absolute; inset: 0 0 auto; height: 0; z-index: 2; }
 .bag-heading::before, .inventory-panel::after {
@@ -447,7 +472,6 @@
   font-size: clamp(11px, 1.5cqw, 14px);
 }
 @container (max-width: 560px) {
-  .bag-toggle { left: 1%; width: clamp(38px, 10cqw, 44px); padding: 4px; }
   .inventory-panel {
     --gap: clamp(3px, .9cqw, 5px);
     left: auto;
@@ -489,12 +513,12 @@
   .bag-heading h3 { top: -1px; translate: -50% -68%; font-size: 15px; }
   .bag-tabs { margin-top: 3px; }
   .bag-detail:has(+ .bag-apply:enabled) small { display: none; }
-  .bag-toggle { width: 34px; }
   .bag-toggle kbd { display: none; }
 }
 @media (hover: hover) {
   .inventory-panel button:not(:disabled):hover, .bag-toggle:hover { filter: brightness(1.055); }
 }
 @media (pointer: coarse) {
+  .bag-toggle { width: 44px; height: 44px; }
   .bag-toggle kbd { display: none; }
 }
