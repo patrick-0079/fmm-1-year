@@ -5,6 +5,8 @@ export interface ResidentStory {
   postReadRevision: number;
   welcomeReceived: boolean;
   cake: "new" | "reserved" | "eaten";
+  // The keeper gives her journal when she welcomes the player to the quest.
+  // Players who heard this invitation before the portable journal already own it.
   guardianInvited: boolean;
 }
 

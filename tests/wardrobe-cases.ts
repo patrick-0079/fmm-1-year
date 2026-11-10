@@ -1,4 +1,4 @@
-import { ITEMS, INVENTORY_KEY } from "../src/items";
+import { EQUIP_SLOTS, ITEMS, INVENTORY_KEY } from "../src/items";
 import type { World } from "../src/world";
 
 /** Run once at desktop width and once at phone width in the isolated exploration fixture. */
@@ -51,6 +51,22 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
     button('[data-page="-1"]').click();
   } else check(visibleSlots().length === 6, "桌面衣橱缺少装备槽");
   check(ids.length===15 && new Set(ids).size===15 && Object.keys(ITEMS).every(id=>ids.includes(id)), "配饰格子有遗漏或者重复");
+  const chooseCategory = (category: string) => {
+    if (compact) button("[data-choose-category]").click();
+    button(`[data-category="${category}"]`).click();
+  };
+  if (compact) button('[data-page="1"]').click();
+  for (const slot of EQUIP_SLOTS) {
+    chooseCategory(slot);
+    const expected = Object.keys(ITEMS).filter(id => ITEMS[id as keyof typeof ITEMS].slot === slot);
+    check(catalogue().join() === expected.join(), "同部位的配饰显示有误：" + slot);
+    check(!panel.querySelector("[data-page]"), "单页分类出现了多余的分页按钮");
+  }
+  chooseCategory("all");
+  check(catalogue()[0] === ids[0], "切回全部没有回到第一页");
+  if (!compact) button('.bag-slot[data-slot="backpack"]').click();
+  else chooseCategory("backpack");
+  check(catalogue().length === 3 && !panel.querySelector('[data-select="wreath"]'), "背包类混入了其他穿戴部位");
   button('[data-select="moonBag"]').click();
   check(["1","2"].includes(avatar().dataset.facing!), "试背时角色没有侧身");
   const facings = new Set<string>();
@@ -68,5 +84,5 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   button(".bag-close").click();
   sameFrame();
   check(panel.hidden && document.activeElement===world.canvas && !world.suspended, "收起后未恢复地图操作");
-  log((compact ? "手机 4×2 两页、身上六槽" : "桌面 5×3 和六个装备槽") + "、左右转身、未确认退出、3:2 画幅和视口均通过");
+  log((compact ? "手机 4×2 两页、身上六槽" : "桌面 5×3 和六个装备槽") + "、六部位筛选、左右转身、未确认退出、3:2 画幅和视口均通过");
 }

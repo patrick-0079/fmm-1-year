@@ -197,6 +197,9 @@ export function mountGame(tasks: Task[]) {
     }
   }
   const inventory = new Inventory(world, toast);
+  inventory.notebookState = () => progress.residents.guardianInvited
+    ? { astrolabe: progress.astrolabe, listened: progress.echoes.listened }
+    : null;
   const help = document.querySelector<HTMLElement>(".inline-help")!;
   const setHelp = (open: boolean) => {
     if (open) inventory.close(false);

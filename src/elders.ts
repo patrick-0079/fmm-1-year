@@ -14,19 +14,43 @@ const frames: Record<ElderPose, [index: number, footX: number, footY: number]> =
   dig: [0, 102, 235], stand: [1, 125, 235], point: [2, 121, 235],
   watch: [3, 123, 239], raiseStaff: [4, 108, 239], bow: [5, 122, 240],
 };
-function drawSprite(c: CanvasRenderingContext2D, pose: ElderPose, x: number, y: number, size: number) {
+function drawSprite(c: CanvasRenderingContext2D, pose: ElderPose, x: number, y: number, size: number, giftingBook = false) {
   const atlas = sceneArt.elders;
   if (!atlas.naturalWidth) return;
   const cell = atlas.naturalWidth / 3;
   const [frame, footX, footY] = frames[pose];
   c.drawImage(atlas, frame % 3 * cell, Math.floor(frame / 3) * cell, cell, cell,
     x - footX / 256 * size, y - footY / 256 * size, size, size);
+  if (giftingBook && pose === "bow") {
+    // Both the portrait and the depth-sorted map sprite hold the same little cloth book.
+    c.save();
+    c.translate(x, y);
+    const scale = size / 256;
+    c.scale(scale, scale);
+    c.translate(-footX, -footY);
+    c.save();
+    c.translate(126, 148);
+    c.rotate(-.15);
+    c.fillStyle = "#524733"; c.fillRect(-31, -2, 56, 65);
+    c.fillStyle = "#d8c599"; c.fillRect(-27, 52, 49, 7);
+    c.fillStyle = "#4d705e"; c.fillRect(-29, -1, 50, 56);
+    c.fillStyle = "#354e42"; c.fillRect(-29, -1, 6, 56);
+    c.strokeStyle = "#c9b17e"; c.lineWidth = 1.5; c.strokeRect(-19, 5, 34, 43);
+    c.fillStyle = "#f5da96"; c.beginPath(); c.arc(-2, 25, 11, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "#4d705e"; c.beginPath(); c.arc(2, 23, 10, 0, Math.PI * 2); c.fill();
+    c.restore();
+    // The original clasped fingertips fold over the top edge of the cover.
+    c.drawImage(atlas, (2 + 113 / 256) * cell, (1 + 143 / 256) * cell,
+      23 / 256 * cell, 14 / 256 * cell, 113, 143, 23, 14);
+    c.restore();
+  }
 }
 
 export class Elders {
   private page: ElderPage | null = null;
   private tending = false;
   private poseAge = 0;
+  private giftingBook = false;
 
   constructor(private world: World, private activities: Activities,
     private progress: () => Pick<Progress, "astrolabe" | "residents">, private save: () => void,
@@ -45,6 +69,7 @@ export class Elders {
     this.page = null;
     this.tending = false;
     this.poseAge = 0;
+    this.giftingBook = false;
   }
 
   interact(id: string) {
@@ -58,18 +83,24 @@ export class Elders {
 
   private say(scene: ElderScene, page: ElderPage) {
     const npc = elderPlaces[scene], line = elderLines[page], choices: Choice[] = [];
+    const residents = this.progress().residents;
+    const givingBook = !residents.guardianInvited && (page === "blessing" || page === "solved");
+    const text = givingBook ? line.text + " 这本《遗迹手记》送给你。路上见过的痕迹，都可以记在里面。" : line.text;
     const reply = line.reply;
     if (reply) choices.push({ title: reply.title, run: () => this.say(scene, reply.next) });
     if (line.showNotebook) choices.push({ title: "翻开遗迹手记", run: this.openNotebook });
-    this.activities.dialogue(npc.title, line.text, choices, c => drawSprite(c, line.pose, 24, 51, 54), npc, () => {
+    this.activities.dialogue(npc.title, text, choices, c => drawSprite(c, line.pose, 24, 51, 54, givingBook), npc, () => {
       this.page = null;
+      this.giftingBook = false;
       if (scene === "challenge") this.tending = true;
     });
     this.page = page;
+    this.giftingBook = givingBook;
     this.poseAge = 0;
-    if (page === "blessing" && !this.progress().residents.guardianInvited) {
-      this.progress().residents.guardianInvited = true;
+    if (givingBook) {
+      residents.guardianInvited = true;
       this.save();
+      this.world.onToast("获得《遗迹手记》 · 已收入背包");
     }
   }
 
@@ -95,7 +126,7 @@ export class Elders {
       if (!reduced.matches && pose === "bow" && this.poseAge < .65) {
         c.rotate(Math.sin(this.poseAge / .65 * Math.PI) * .055);
       }
-      drawSprite(c, pose, 0, 0, 48);
+      drawSprite(c, pose, 0, 0, 48, this.giftingBook);
       c.restore();
     } };
   }

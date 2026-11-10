@@ -75,6 +75,8 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 - `world.paused` 用于活动接管人物移动；小游戏虽然阻止人物移动，仍自行更新游戏规则。
 - `world.suspend(reason, true/false)` 用于说明，以及小游戏中整理背包等临时暂停。普通探索打开衣橱时保持画布、方向键与触屏控制有效。不同原因分别登记，关闭一个面板不能提前解除另一个面板的暂停。
 - 衣橱在 `.scene-wrap` 内绝对定位。`src/wardrobe.css` 和 `Inventory` 按游戏容器宽度 560px 切换布局。地图尺寸与镜头独立于面板。普通探索允许开包移动。小游戏中只暂停底层活动，衣橱按钮仍能操作。
+- 物品分类和「全部」的排序都取自 `EQUIP_SLOTS` 与 `ITEMS[id].slot`。补一件配饰时设好槽位即可参与桌面标签和手机部位选择，分类切换从该部位的第一页开始。
+- 《遗迹手记》使用主存档的 `residents.guardianInvited` 判断归属；接受过旧版邀请的玩家直接拥有。书页从 `astrolabe` 与 `echoes.listened` 实时生成。全饰品试穿只影响穿搭，书页和印章使用真实剧情进度。书中暂停探索，返回纪念物后恢复原来的活动状态。书签、谜底和排版在 `src/ruin-journal.ts`、`src/ruin-journal.css`。
 - 选中物品时，`Inventory` 复制当前装备交给 `World.drawWardrobePreview`。试衣镜和地图共用 `drawAvatar` 的朝向、肩带和遮挡顺序。确认才调用 `Inventory.toggle`，焦点留在衣橱内。收起后释放衣橱的暂停并把焦点还给画布。游戏原有的手动暂停状态继续有效。
 - 暂停和清理输入会调用 `world.onInputCancel`，释放方块加速和跳跃蓄力；取消蓄力不能当成正常松开来自动起跳。
 - 小游戏 P 暂停与临时面板暂停独立。窗口失焦后小游戏保持暂停，等待玩家主动继续；不要用浏览器恢复焦点直接开始飞行或落块。

@@ -34,7 +34,7 @@ export function crossedEchoGate(scene: string, from: Point, to: Point) {
 }
 const trials = arcadesIn("ruins");
 export const southNotebook: Hotspot = {
-  id: "star-notebook", title: "南阶 · 翻阅遗迹手记", x: 475, y: 477,
+  id: "star-notebook", title: "南阶 · 查阅寻环线索", x: 475, y: 477,
   approach: {x:463,y:486}, radius: 25, selfMarked: true,
   hitAreas: [{x:461,y:456,w:30,h:26}],
 };

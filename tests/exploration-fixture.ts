@@ -9,6 +9,7 @@ import { bassScore } from "../src/bass-score";
 import { townEchoGate, ruinsExit, echoAltar, echoPool } from "../src/ruins-map";
 import { southNotebook, ringSpots, moonPlate, mirrorSpots } from "../src/ruins-map";
 import { INVENTORY_KEY, readInventory } from "../src/items";
+import { elderPlaces } from "../src/elders-data";
 import { ARCADES } from "../src/town-data";
 import { verifyGuests } from "./guest-cases";
 import { verifyFieldTrip } from "./field-trip-cases";
@@ -43,6 +44,21 @@ const wait=async(check:()=>boolean,ms=30000)=>{
   while (!check()) {if(performance.now()>until) throw new Error("等待游戏状态超时"); await new Promise(r=>setTimeout(r,24));}
 };
 const key=(name:string,down=true,el:Element=world.canvas)=>el.dispatchEvent(new KeyboardEvent(down?"keydown":"keyup",{key:name,bubbles:true,cancelable:true}));
+function chooseActivity(prefix: string) {
+  const button = [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")].find(el=>el.textContent?.startsWith(prefix));
+  if (!button) throw Error("缺少互动选项："+prefix);
+  button.click();
+}
+function openKeepsakes() {
+  q(".bag-toggle").click();
+  q('.bag-tabs [data-tab="keepsakes"]').click();
+}
+function readJournal(page: number) {
+  openKeepsakes();
+  q("[data-notebook]").click();
+  q(`[data-journal-page="${page}"]`).click();
+  return q(".ruin-journal");
+}
 async function start() {
   await wait(()=>!q<HTMLButtonElement>(".enter-button").disabled);
   q(".enter-button").click();
@@ -288,28 +304,57 @@ q("#check-astrolabe").addEventListener("click",()=>void run(async()=>{
   world.interact();
   expect(q(".activity-status").textContent?.includes("西廊"),"南阶手记没有方位线索");
   q(".activity-close").click();
-  for(const spot of [ringSpots[1],ringSpots[0],ringSpots[2]]) {
-    world.visit(spot.id); await wait(()=>!world.available(spot));
-    expect(q(".ruin-book-count").textContent?.startsWith(String(state().astrolabe.found.length)),"拓印数没有更新");
-  }
-  expect(q(".ruin-seals").querySelectorAll('[data-earned="true"]').length===2,"寻物的两枚印章不正确");
-  log("南阶指路，三处环按北、西、东顺序实际寻路拾取，地图与拓印同步");
-  const action=(prefix:string)=>{
-    const b=[...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")].find(el=>el.textContent?.startsWith(prefix));
-    expect(b,"机关缺少操作："+prefix);b!.click();
+  openKeepsakes();
+  expect(q<HTMLButtonElement>("[data-notebook]").disabled && !state().residents.guardianInvited,"看过南阶线索就提前获得了手记");
+  q(".bag-close").click();
+  const firstRing = ringSpots[1];
+  world.visit(firstRing.id); await wait(()=>!world.available(firstRing));
+  const guardian = elderPlaces.ruins;
+  world.visit(guardian.id); await wait(()=>q(".activity-actions").textContent?.includes("什么尝试") === true);
+  chooseActivity("什么尝试"); q(".activity-close").click();
+  expect(!state().residents.guardianInvited,"中断邀请却领到了手记");
+  world.visit(guardian.id); await wait(()=>q(".activity-actions").textContent?.includes("什么尝试") === true);
+  chooseActivity("什么尝试"); chooseActivity("好，我去试一下");
+  expect(state().residents.guardianInvited,"接受守护者邀请没有存下赠书记录");
+  chooseActivity("翻开遗迹手记");
+  expect(q('.ruin-journal [data-ring="star"]').dataset.found==="true","领书前拾到的星纹环没有补入拓印");
+  const readingAt = { ...world.player };
+  const forwardPage = () => {
+    key("ArrowRight", true, document.activeElement!);
+    key("ArrowRight", false, document.activeElement!);
   };
+  forwardPage(); forwardPage();
+  expect(q(".ruin-journal").querySelectorAll("details").length===2,"缺少可翻看的两条解法");
+  expect(world.player.x===readingAt.x && world.player.y===readingAt.y, "翻页挪动了地图上的人物");
+  q("[data-keepsakes]").click();
+  expect(!q<HTMLButtonElement>("[data-notebook]").disabled && !document.querySelector(".ruin-journal"),"合书没有返回可操作的纪念物页");
+  q(".bag-close").click();
+  for(const spot of [ringSpots[0],ringSpots[2]]) {
+    world.visit(spot.id); await wait(()=>!world.available(spot));
+    const book = readJournal(0);
+    expect(book.querySelectorAll('[data-ring][data-found="true"]').length===state().astrolabe.found.length,"拓印数没有更新");
+    q(".bag-close").click();
+  }
+  expect(readJournal(1).querySelectorAll('[data-seal][data-earned="true"]').length===2,"寻物的两枚印章不正确");
+  q(".bag-close").click();
+  log("南阶指路、守护者赠书与中途退出正常，先拾的星纹环也出现在背包的拓印页");
+  const action=chooseActivity;
   world.visit(moonPlate.id);await wait(()=>q(".activity-actions").textContent?.includes("装入三枚")===true);
   action("装入"); action("转内环"); expect(state().astrolabe.turns[0]===2,"转环没有立即存下");
   q(".activity-close").click();world.interact();
   for(const [name,n] of [["内",2],["中",2],["外",1]] as const) for(let i=0;i<n;i++) action("转"+name);
-  expect(q('[data-seal="plate"]').dataset.earned==="true","星盘印章没有解锁");action("沿光纹");
+  readJournal(1);
+  expect(q('[data-seal="plate"]').dataset.earned==="true","星盘印章没有解锁");
+  q(".bag-close").click();action("沿光纹");
   await wait(()=>q(".activity-actions").textContent?.includes("转上镜")===true);
   action("转下镜");action("转下镜");action("转上镜");
-  expect(q('[data-seal="light"]').dataset.earned==="false","光路错误也提前发奖");
+  readJournal(1);expect(q('[data-seal="light"]').dataset.earned==="false","光路错误也提前发奖");q(".bag-close").click();
   action("转下镜");
   const bag=readInventory(localStorage.getItem(INVENTORY_KEY));
+  readJournal(1);
   expect(q('[data-seal="light"]').dataset.earned==="true" && bag.owned.includes("echoBrooch") && !bag.equipped.body,"胸针没有进真实背包或被自动佩戴");
   expect(!state().echoes.listened && q('[data-seal="radio"]').dataset.earned==="false","星盘支线误解锁旧电波");
+  q(".bag-close").click();
   q(".activity-close").click(); world.visit(mirrorSpots[1].id);
   await wait(()=>!q(".activity-hud").hidden && q(".activity-status").textContent?.includes("已收进你的背包")===true);
   expect(readInventory(localStorage.getItem(INVENTORY_KEY)).owned.filter(id=>id==="echoBrooch").length===1,"重复互动发出第二枚胸针");
@@ -343,14 +388,18 @@ q("#check-ruins").addEventListener("click",()=>void run(async()=>{
   action("轻敲「铃」"); action("轻敲「星」");
   expect(world.available(echoPool) && state().echoes.played===3,"正确旋律没有唤醒听月泉");
   action("去水边看看"); await wait(()=>state().echoes.listened);
-  expect(q('[data-seal="radio"]').dataset.earned==="true" && q(".ruin-seals").querySelectorAll('[data-earned="true"]').length===1,
-    "首次听到旧电波应只获得收听员印章");
   expect(q(".activity-status").textContent?.includes("365"),"彩蛋内容未显示");
   action("再听一遍"); action("把晚安收好");
+  world.visit(elderPlaces.ruins.id); await wait(()=>q(".activity-actions").textContent?.includes("什么尝试")===true);
+  chooseActivity("什么尝试"); chooseActivity("好，我去试一下"); q(".activity-close").click();
   log("祭坛保留错音前的进度，三音唤醒水中电台，周年彩蛋可重听");
   world.visit(ruinsExit.id); await wait(()=>world.scene==="town" && !world.paused);
   expect(Math.hypot(world.player.x-townEchoGate.approach.x,world.player.y-townEchoGate.approach.y)<2,"没有回到旧矿场洞口");
-  log("南阶可原路返回，读档保留拓本、正确音符和彩蛋");
+  const townBook = readJournal(1);
+  expect(q('[data-seal="radio"]').dataset.earned==="true" && townBook.querySelectorAll('[data-seal][data-earned="true"]').length===1,
+    "回到小镇后没有在书中看到此前获得的收听员印章");
+  q(".bag-close").click();
+  log("南阶可原路返回，取得手记后在小镇也可翻看此前的收听员印章");
 }));
 q("#check-lanes").addEventListener("click",()=>void run(async()=>{
   if(!q(".intro-screen").classList.contains("dismissed")) await start();

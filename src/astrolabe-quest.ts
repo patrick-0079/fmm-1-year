@@ -1,8 +1,8 @@
 import { rings, directions, seals, earnedSeals, collectRing, installRings, turnRing, tiltMirror,
-  plateAligned, starLit, traceMoonlight, type SealId, type AstrolabeState } from "./astrolabe";
+  plateAligned, starLit, traceMoonlight, astrolabeHint, type SealId, type AstrolabeState } from "./astrolabe";
 import { southNotebook, moonPlate, lightBrick, mirrorSpots, ringSpotId } from "./ruins-map";
 import { drawGroundRing, drawMoonPlate, drawLightBoard, drawSouthNotebook } from "./astrolabe-drawing";
-import { relicsUrl } from "./scene-art";
+import { elderPlaces } from "./elders-data";
 import { sfx } from "./sound";
 import type { World, DepthLayer } from "./world";
 import type { Activities } from "./activities";
@@ -13,14 +13,12 @@ type Choice = {title:string; run:()=>void};
 const leave = "继续探索";
 
 export class AstrolabeQuest {
-  private book = document.querySelector<HTMLDetailsElement>(".ruin-notebook")!;
   private flash = document.querySelector<HTMLElement>(".ruin-stamp-flash")!;
   private known = new Set<SealId>();
   private flashTimer?: ReturnType<typeof setTimeout>;
   private reduced = matchMedia("(prefers-reduced-motion: reduce)");
   constructor(private world:World, private activities:Activities, private inventory:Inventory,
     private memory:()=>AstrolabeState, private listened:()=>boolean, private save:()=>void) {
-    this.book.style.setProperty("--relic-sheet",'url("'+relicsUrl+'")');
     const available=world.available, depth=world.getDepthLayers;
     world.available=spot=>{
       if (!available(spot)) return false;
@@ -37,36 +35,18 @@ export class AstrolabeQuest {
     this.known=new Set(earned);
     // Reconcile both local records, including a reload between the puzzle save and the grant.
     if (starLit(state) && !this.inventory.has("echoBrooch")) this.inventory.grant("echoBrooch",false);
-    this.book.querySelector(".ruin-book-count")!.textContent=state.found.length+" / 3 拓印 · "+earned.length+" / 5 印章";
-    this.book.querySelector(".ruin-book-pages")!.innerHTML=`
-      <p class="ruin-objective">${this.objective(state)}</p>
-      <ul class="ruin-rubbings">${rings.map(r=>{
-        const found=state.found.includes(r.id);
-        return '<li data-found="'+found+'"><i class="ruin-relic relic-'+r.id+'" aria-hidden="true"></i><div><b>'+r.name+'</b><small>'+(found?"✓ 已拓印":r.clue)+'</small></div></li>';
-      }).join("")}</ul>
-      <h4>盖在旅途上的印章</h4><ul class="ruin-seals">${seals.map(s=>
-        '<li data-seal="'+s.id+'" data-earned="'+earned.includes(s.id)+'"><i aria-hidden="true">'+s.mark+'</i><div><b>'+s.name+'</b><small>'+(earned.includes(s.id)?"已盖章 · ":"待发现 · ")+s.hint+'</small></div></li>').join("")}</ul>`;
     if (announce && fresh.length && this.world.scene==="ruins") {
       const stamp=seals.find(s=>s.id===fresh[fresh.length-1])!;
       clearTimeout(this.flashTimer);
       this.flash.hidden=false;
-      this.flash.innerHTML='<i aria-hidden="true">'+stamp.mark+'</i><span><small>遗迹手记 · 新印章</small><strong>'+stamp.name+'</strong></span>';
+      this.flash.innerHTML='<i aria-hidden="true">'+stamp.mark+'</i><span><small>回声遗迹 · 新印章</small><strong>'+stamp.name+'</strong></span>';
       this.flashTimer=setTimeout(()=>{ this.flash.hidden=true; },2600);
     }
   }
   clearFlash() { clearTimeout(this.flashTimer); this.flash.hidden=true; }
   reset() {
     this.clearFlash();
-    this.book.open=false;
-    this.book.querySelectorAll("details").forEach(page => { page.open=false; });
     this.refresh(false);
-  }
-  private objective(s:AstrolabeState) {
-    if(s.found.length<3) return "南阶的笔记：三枚盘环散落在西、北、东三间石室，留意脚边的微光。";
-    if(!s.installed) return "三枚盘环都在这里了。去中央祭坛西侧，把它们装进月相星盘。";
-    if(!plateAligned(s)) return "盘沿的刻字：让月光从盘心流向北面的月牙。";
-    if(!starLit(s)) return "沿地上的光纹往东走。转动两面铜镜，把光送到左下角的星纹砖。";
-    return "星纹砖亮着，芙芙收到了你的月光。晚安回声胸针已收入背包。";
   }
   private commit() { this.save(); this.refresh(); }
   private exit = () => {
@@ -78,16 +58,17 @@ export class AstrolabeQuest {
     buttons[focusIndex]?.focus({preventScroll:true});
   }
   openNotebook() {
+    if (!this.inventory.hasNotebook()) return;
     this.exit();
-    this.book.open=true;
-    this.book.querySelector("summary")!.focus({preventScroll:true});
-    this.book.scrollIntoView({block:"nearest",behavior:"instant"});
+    this.inventory.openNotebook();
   }
   private notebook() {
     const missing=rings.filter(r=>!this.memory().found.includes(r.id));
-    const hint=missing.length ? missing.map(r=>r.clue).join("　") : this.objective(this.memory());
-    this.menu("南阶的手记 · "+hint,[
-      {title:"翻开地图下方的手记",run:()=>this.openNotebook()},
+    const hint=missing.length ? missing.map(r=>r.clue).join("　") : astrolabeHint(this.memory());
+    const hasBook = this.inventory.hasNotebook();
+    this.menu("南阶的寻环线索 · "+hint+(hasBook ? "" : "　南阶上方的守护者珍藏着一本《遗迹手记》。"),[
+      hasBook ? {title:"翻开随身的遗迹手记",run:()=>this.openNotebook()} :
+        {title:"去见守护者",run:()=>{this.exit();this.world.visit(elderPlaces.ruins.id);}},
       {title:leave,run:this.exit},
     ]);
   }

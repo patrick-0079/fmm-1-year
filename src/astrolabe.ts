@@ -77,6 +77,13 @@ export function traceMoonlight(mirrors: AstrolabeState["mirrors"]) {
   }
 }
 export const starLit = (s: AstrolabeState) => plateAligned(s) && traceMoonlight(s.mirrors).reachesStar;
+export function astrolabeHint(state: AstrolabeState) {
+  if (state.found.length < rings.length) return "三枚盘环散落在西、北、东三间石室，留意脚边的微光。";
+  if (!state.installed) return "三枚盘环都在这里了。去中央祭坛西侧，把它们装进月相星盘。";
+  if (!plateAligned(state)) return "盘沿的刻字：让月光从盘心流向北面的月牙。";
+  if (!starLit(state)) return "沿地上的光纹往东走。转动两面铜镜，把光送到左下角的星纹砖。";
+  return "星纹砖亮着，芙芙收到了你的月光。晚安回声胸针已收入背包。";
+}
 export function tiltMirror(s: AstrolabeState, i: 0 | 1) {
   if (!plateAligned(s) || starLit(s)) return false;
   s.mirrors[i] = s.mirrors[i] === "/" ? "\\" : "/";

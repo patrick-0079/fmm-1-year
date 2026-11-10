@@ -40,8 +40,8 @@ export const elderLines: Record<ElderPage, ElderLine> = {
     reply: { title: "好，我去试一下", next: "blessing" },
   },
   blessing: { text: "太好了，祝你好运。", pose: "bow", showNotebook: true },
-  notebook: { text: "南阶的手记里，记着前人看见过的痕迹。走累了，就翻开看看吧。", pose: "raiseStaff", showNotebook: true },
-  solved: { text: "年轻人，我看见那块星纹砖亮了。原来这束月光，等的是你呀。", pose: "bow" },
+  notebook: { text: "我给你的手记里，记着前人看见过的痕迹。走累了，就翻开看看吧。", pose: "raiseStaff", showNotebook: true },
+  solved: { text: "年轻人，我看见那块星纹砖亮了。原来这束月光，等的是你呀。", pose: "bow", showNotebook: true },
 };
 
 export function guardianGreeting(astrolabe: AstrolabeState, invited: boolean): ElderPage {

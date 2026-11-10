@@ -1,0 +1,160 @@
+/* Cloth cover, copper corners and a sewn-in moon. The moon also marks the title page. */
+.ruin-book-cover {
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex: 0 1 auto;
+  width: clamp(28px, 6cqw, 62px);
+  max-height: 65%;
+  aspect-ratio: 4 / 5;
+  border: 2px solid #705f48;
+  border-radius: 3px 6px 5px 3px;
+  background: repeating-linear-gradient(4deg, transparent 0 2px, #b7c9b11a 2px 3px),
+    linear-gradient(90deg, #365549 8%, #809181 10%, #3e6053 16%, #547767 73%, #426254);
+  box-shadow: inset -2px -2px #d5bd8e, 1px 2px #856c50;
+}
+.ruin-book-cover::before {
+  content: "";
+  position: absolute;
+  inset: 10% 10% 13% 21%;
+  border: 1px solid #d8ba7d;
+  border-radius: 4px 0;
+}
+.ruin-book-cover i {
+  color: #f4d895;
+  font: 700 clamp(16px, 3.6cqw, 35px)/1 Georgia, serif;
+  margin-left: 8%;
+}
+.bag-keepsake.is-locked .ruin-book-cover { filter: grayscale(.8); opacity: .5; }
+
+.inventory-panel:has(.ruin-journal) {
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  padding-top: clamp(12px, 2.4cqw, 24px);
+}
+.inventory-panel:has(.ruin-journal) > :is(.bag-dressing, .bag-tabs, .bag-footer) { display: none; }
+.inventory-panel:has(.ruin-journal) .bag-collection {
+  grid-area: 1 / 1;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+.ruin-journal {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding: 1px 2px 2px clamp(6px, 1.4cqw, 13px);
+  border: 1px solid #506450;
+  border-radius: 3px 8px 7px 2px;
+  background: linear-gradient(90deg, #425949, #89947d 1.1%, #4b6553 2.2%, #57705c);
+  box-shadow: 1px 2px 0 #9b8665;
+  color: #344a3c;
+}
+.ruin-journal-heading, .ruin-book-nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(4px, .8cqw, 9px);
+  min-width: 0;
+  padding: 4px clamp(7px, 1.8cqw, 19px);
+  background: #f2e5c6;
+}
+.ruin-journal-heading {
+  border-radius: 1px 6px 0 0;
+  border-bottom: 1px solid #cabe9e;
+}
+.ruin-journal-heading > span { color: #78673f; font: 700 20px/1 Georgia, serif; }
+.ruin-journal-heading h4, .ruin-journal-paper h4, .ruin-puzzle h5 { margin: 0; }
+.ruin-journal-heading h4 { font-size: clamp(13px, 1.85cqw, 18px); }
+.ruin-book-count { margin-left: auto; color: #5f604b; font-size: clamp(10px, 1.4cqw, 13px); }
+.ruin-journal-paper {
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #a19575 #ede6d5;
+  scrollbar-width: thin;
+  min-height: 0;
+  padding: clamp(7px, 1.7cqw, 18px) clamp(9px, 2.6cqw, 28px);
+  background: linear-gradient(90deg, #d9cdaa, #faf1da 3%, #fff8e9 10%, #fff7e7 95%, #f2e7ce);
+  color: #3c493c;
+  font-size: clamp(13px, 1.65cqw, 16px);
+  line-height: 1.6;
+}
+.ruin-journal-paper:focus-visible { outline: 2px solid #758367; outline-offset: -3px; }
+.ruin-journal-paper h4 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #3e5948;
+  font-size: clamp(16px, 2.3cqw, 23px);
+}
+.ruin-journal-paper h4::after { content: ""; flex: 1; height: 1px; background: #d9c8a7; }
+.ruin-journal-paper h4 small { order: 1; color: #786b50; font-size: 12px; font-weight: 400; }
+.ruin-objective { margin: 5px 0 9px; color: #665538; }
+.ruin-rubbings, .ruin-seals { padding: 0; margin: 6px 0 0; list-style: none; }
+.ruin-rubbings li, .ruin-seals li { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+.ruin-rubbings li + li, .ruin-seals li + li { border-top: 1px dashed #d6c9ac; }
+.ruin-rubbings p, .ruin-seals p { margin: 0; }
+.ruin-rubbings em, .ruin-seals em {
+  margin-inline-start: .65em;
+  color: #6d6754;
+  white-space: nowrap;
+  font-style: normal;
+  font-size: .85em;
+}
+.ruin-relic {
+  flex: none;
+  width: clamp(28px, 5cqw, 46px);
+  aspect-ratio: 1;
+  background: url("./assets/astrolabe-relics.webp") 0 0 / 200% 200% no-repeat;
+}
+.relic-star { background-position: 100% 0; }
+.relic-brass { background-position: 0 100%; }
+.ruin-rubbings [data-found="false"] i { filter: sepia(.7) grayscale(.65); opacity: .55; }
+.ruin-seals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+}
+.ruin-seals li { align-items: flex-start; }
+.ruin-seals i {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border: 3px double currentColor;
+  border-radius: 6px 8px 5px 7px;
+  color: #8c8772;
+  font-style: normal;
+  font-weight: 700;
+}
+.ruin-seals [data-earned="true"] i { color: #9b5648; background: #f9e5c5; transform: rotate(-7deg); }
+.ruin-puzzle { margin-top: 10px; }
+.ruin-puzzle h5 { font-size: 1em; }
+.ruin-puzzle p { margin: 4px 0 6px; }
+.ruin-puzzle details { padding-inline-start: 8px; border-left: 2px solid #b1b995; }
+.ruin-puzzle summary { color: #456143; cursor: pointer; font-weight: 650; }
+.ruin-book-nav {
+  justify-content: end;
+  border-radius: 0 0 5px 1px;
+  border-top: 1px solid #c7b99b;
+  box-shadow: inset 0 -2px #dfd0ae;
+}
+.ruin-book-nav button {
+  padding: .2em .65em;
+  border: 1px solid #ac9c7a;
+  border-radius: 3px;
+  background: #fff6e2;
+  color: #4c5644;
+  font-size: clamp(12px, 1.55cqw, 15px);
+  font-weight: 650;
+  line-height: 1.45;
+}
+.ruin-book-nav [data-keepsakes] { margin-right: auto; }
+.ruin-book-nav [aria-current="page"] { background: #506b55; border-color: #4a614b; color: #fff8e8; }
+@container (max-width: 560px) {
+  .ruin-journal-heading, .ruin-book-nav { padding: 2px 4px; }
+  .ruin-book-nav button { padding: 2px 5px; }
+  .ruin-rubbings li, .ruin-seals li { gap: 6px; }
+  .ruin-seals { grid-template-columns: minmax(0, 1fr); }
+}
