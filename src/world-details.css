@@ -242,6 +242,17 @@
   white-space: nowrap;
 }
 .dialogue-hint { display:block; margin-top:4px; color:#735969; }
+.dialogue-name { display:flex; align-items:center; gap:6px; }
+.dialogue-name[data-read-more]::after {
+  content:"下滑阅读 ↓";
+  margin-left:auto;
+  color:#806c63;
+  font-size:11px;
+  font-weight:400;
+  letter-spacing:0;
+  white-space:nowrap;
+  pointer-events:none;
+}
 .scene-wrap .activity-hud[data-mode="dialogue"]:has(.dialogue-portrait[hidden]) { padding-left:12px; }
 .scene-wrap[data-light-scene] .activity-hud[data-mode="dialogue"] .activity-status { white-space: pre-line; }
 @media (max-width:540px) {

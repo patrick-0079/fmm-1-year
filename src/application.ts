@@ -740,15 +740,39 @@ export function mountGame(tasks: Task[]) {
   world.onScene("room");
   mountDebugPanel(world,inventory,nature,flowerTrail,async(scene,id,mode)=>{
     if(!worldReady || world.busy || transitioning || !world.canEnter(scene)) return false;
-    begin(); await world.prepareScene(scene);
-    if(world.busy || transitioning || !world.canEnter(scene)) return false;
+    begin();
     closePanels(); cinema.close(); arcade.close(); activities.close(); reader.close(); dismissRevive();
-    const spot=scenes[scene].spots.find(s=>s.id===id);
-    const arrival=mode==="trap" ? scenes.challenge.hazards[0] : spot?.approach;
-    if (world.scene === "room" && scene !== "room") fox.departed(false);
-    world.switchScene(scene,arrival); world.canvas.focus({preventScroll:true});
-    if(mode==="open" && spot) world.onInteract(spot.id);
-    revealMapIfOffscreen(); return true;
+    // Debug travel shares the normal crossing lock: a slow image must not move
+    // the player after a reset or overwrite a newer navigation request.
+    transitioning = true;
+    world.paused = true;
+    world.clearInput();
+    const overlay = document.querySelector(".scene-transition")!;
+    overlay.textContent = "正在前往"+scenes[scene].title+"…";
+    overlay.classList.add("active");
+    const spot = scenes[scene].spots.find(s => s.id === id);
+    let arrived = false;
+    try {
+      await world.prepareScene(scene);
+      if(world.busy || !world.canEnter(scene)) return false;
+      const arrival = mode === "trap" ? scenes.challenge.hazards[0] : spot?.approach;
+      if (world.scene === "room" && scene !== "room") fox.departed(false);
+      world.switchScene(scene,arrival);
+      arrived = true;
+      return true;
+    } finally {
+      overlay.classList.remove("active");
+      world.paused = false;
+      transitioning = false;
+      const next = afterCrossing;
+      afterCrossing = undefined;
+      if (next) next();
+      else if (arrived) {
+        world.canvas.focus({preventScroll:true});
+        if(mode === "open" && spot) world.onInteract(spot.id);
+        revealMapIfOffscreen();
+      }
+    }
   }, toast, () => resetAdventure(true));
   for (const id of GAME_IDS)
     if (!Object.values(scenes).some((s) => s.spots.some((p) => p.id === id)))

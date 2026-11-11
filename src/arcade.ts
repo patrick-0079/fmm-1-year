@@ -66,6 +66,10 @@ export class Arcade {
     world.onSecondaryPointer = (p) => this.pressMines(p, true) || secondary(p);
     world.onPointer = (type, p, pointerType) => {
       if (!this.active) return pointer(type, p, pointerType);
+      if (type === "cancel") {
+        this.engine?.cancelInput?.();
+        return true;
+      }
       if (world.suspended || this.paused) return true;
       if (this.engine instanceof MinesGame) {
         const touch = pointerType === "touch" || pointerType === "pen";
@@ -80,7 +84,7 @@ export class Arcade {
         return true;
       }
       if (type === "down") this.action("primary", true);
-      if (type === "up" || type === "cancel") this.action("primary", false);
+      if (type === "up") this.action("primary", false);
       return true;
     };
     const keyAction: Record<string, GameAction> = {
@@ -314,13 +318,11 @@ export class Arcade {
             this.action(action, true);
             this.action(action, false);
           });
-          b.addEventListener("blur", () => this.action(action, false));
-          for (const event of [
-            "pointerup",
-            "pointercancel",
-            "lostpointercapture",
-          ])
-            b.addEventListener(event, () => this.action(action, false));
+          b.addEventListener("pointerup", () => this.action(action, false));
+          // Losing a touch or focus abandons a held action; only an actual
+          // release should launch a charged jump.
+          for (const event of ["blur", "pointercancel", "lostpointercapture"])
+            b.addEventListener(event, () => this.engine?.cancelInput?.());
         });
     }
     this.hud.querySelector(".arcade-title")!.textContent = game.title;

@@ -292,6 +292,7 @@ export class GardenCinema {
     } catch {
       /* Full-window fallback. */
     }
+    if (this.expanded) this.video!.focus({ preventScroll: true });
   }
   private shrink() {
     if (!this.expanded) return;

@@ -19,7 +19,7 @@ import type { Facing } from "./equipment";
 import { whenAvatarLayersReady } from "./avatar";
 import bouquetUrl from "./assets/qingya-bouquet.webp";
 import type { AstrolabeState } from "./astrolabe";
-import { journalCoverMarkup, journalPageCount, renderRuinJournal } from "./ruin-journal";
+import { bindJournalScrollHint, journalCoverMarkup, journalPageCount, renderRuinJournal } from "./ruin-journal";
 type BagTab = "wardrobe" | "equipped" | "keepsakes";
 type Category = "all" | EquipSlot;
 const categories: readonly Category[] = ["all", ...EQUIP_SLOTS];
@@ -55,6 +55,7 @@ export class Inventory {
   private compact = false;
   private bouquetDetail = false;
   private journalPage: number | null = null;
+  private clearJournalHint: () => void = () => {};
   private readonly scene: HTMLElement;
   constructor(
     private world: World,
@@ -88,7 +89,7 @@ export class Inventory {
       const hotkey = e.key.toLowerCase() === "b" || (e.key === "Escape" && !this.root.hidden);
       if (!hotkey) return;
       if (reservedShortcut(e) || document.querySelector(".debug-panel:not([hidden])")) return;
-      if (this.root.hidden && (this.world.suspended || this.scene.querySelector(".intro-screen:not(.dismissed)"))) return;
+      if (this.root.hidden && !this.canOpen()) return;
       e.preventDefault();
       e.stopImmediatePropagation();
       if (!e.repeat) this.togglePanel();
@@ -158,8 +159,14 @@ export class Inventory {
     this.trying = false;
     this.sync(); this.render();
   }
+  private canOpen() {
+    // The cinema is outside the map stage, including its non-native fullscreen fallback.
+    // Opening the map's wardrobe underneath it would invisibly suspend playback.
+    return !this.world.suspended && !this.scene.querySelector(".intro-screen:not(.dismissed)") &&
+      !document.querySelector(".cinema-player:not([hidden])");
+  }
   open() {
-    if (!this.root.hidden || this.world.suspended) return;
+    if (!this.root.hidden || !this.canOpen()) return;
     this.root.hidden = false;
     this.tab = "wardrobe";
     this.category = "all";
@@ -198,6 +205,7 @@ export class Inventory {
     this.sync();
     this.render();
     this.onEquip();
+    if (!this.root.hidden) this.updateSuspension();
     sfx("interact");
     if (this.root.hidden) {
       if (!this.world.suspended) this.world.canvas.focus({ preventScroll: true });
@@ -233,6 +241,8 @@ export class Inventory {
   }
   close(restoreFocus = true) {
     const wasOpen = !this.root.hidden;
+    this.clearJournalHint();
+    this.clearJournalHint = () => {};
     this.root.hidden = true;
     this.journalPage = null;
     this.trying = false;
@@ -447,6 +457,7 @@ export class Inventory {
   }
   private render() {
     if (this.root.hidden) return;
+    this.clearJournalHint();
     const focused = document.activeElement instanceof HTMLElement && this.root.contains(document.activeElement) ? document.activeElement : null;
     const focusKey = focused?.dataset.focus;
     const page = this.journalPage;
@@ -481,6 +492,7 @@ export class Inventory {
       </div>
       <div class="bag-collection">${this.collection()}</div>
       <footer class="bag-footer">${this.footer()}</footer>`);
+    this.clearJournalHint = bindJournalScrollHint(this.root);
     if (focused) {
       const target = focusKey ? this.root.querySelector<HTMLElement>(`[data-focus="${focusKey}"]:not(:disabled)`) : null;
       const fallback = notebook ? this.root.querySelector<HTMLElement>(".ruin-journal-paper")

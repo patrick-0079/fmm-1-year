@@ -4,7 +4,7 @@ import { Inventory } from "../src/inventory";
 import { Arcade } from "../src/arcade";
 import type { MinesGame } from "../src/arcade-bonus";
 import { whenWardrobeReady } from "../src/item-art";
-import type { Engine, BlocksGame } from "../src/arcade-engines";
+import type { Engine, BlocksGame, HopGame } from "../src/arcade-engines";
 import { ARCADES } from "../src/town-data";
 import type { GameId } from "../src/arcade-engines";
 import { ITEMS, INVENTORY_KEY, type ItemId } from "../src/items";
@@ -100,6 +100,17 @@ await check("打开背包暂停小游戏与方向键；Esc 只收起背包，之
   assert(engine().status === "lost", "收起背包后原局没有继续运行");
 });
 
+await check("从放大的星盘互动开包换装，结束互动后衣橱仍开着且地图恢复探索", () => {
+  activities.menu("残缺的星盘留着三圈凹槽。", [], {x: 350, y: 280}, 1.55);
+  inventory.grant("wreath", false);
+  inventory.open();
+  assert(world.suspended && world.paused && canvas.inert, "检查星盘时开包未暂存原互动");
+  selectItem("wreath"); confirmItem("wreath");
+  assert(!activities.active && !world.paused, "确认换装没有结束星盘互动");
+  assert(!bag.hidden && !world.suspended && !canvas.inert, "互动结束后背包仍把地图锁定");
+  assert(!document.querySelector<HTMLElement>(".touch-controls")?.inert, "手机方向键仍被锁定");
+});
+
 await check("试穿的猫仍需正式领取，邀请会保存真实伙伴位，拒绝不会覆盖原有兔子", () => {
   inventory.reset(); inventory.setFitting(true);
   inventory.setCompanion("petBunny",true);
@@ -128,6 +139,29 @@ await check("查看说明时背包入口、B 和 NPC 不会在锁定的地图里
   world.suspend("help", false);
   inventory.openBouquet();
   assert(!world.suspended && !bag.hidden && bag.querySelector(".bouquet-detail"), "说明收起后无法打开真正收集的花束");
+});
+
+await check("全屏和全窗口放映时不在播放器背后开包，返回地图后可正常换装", () => {
+  const player = document.createElement("section");
+  player.className = "cinema-player";
+  document.body.append(player);
+  world.paused = true;
+  canvas.parentElement!.classList.add("cinema-active");
+  try {
+    assert(!key("b").defaultPrevented, "全屏播放器的按键被背包抢占");
+    inventory.open(); inventory.openBouquet();
+    assert(bag.hidden && !world.suspended && !canvas.inert, "在播放器背后开包并冻结了播放");
+    player.hidden = true;
+    key("b");
+    assert(!bag.hidden && world.suspended, "返回地图内观看后无法整理背包");
+    key("Escape");
+    assert(bag.hidden && !world.suspended && world.paused, "关包后没有恢复原来的影院模式");
+  } finally {
+    inventory.close(false);
+    canvas.parentElement!.classList.remove("cinema-active");
+    player.remove();
+    world.paused = false;
+  }
 });
 
 await check("礼盒不配对后立刻打开别的互动，旧计时不会改写新按钮", () => {
@@ -218,6 +252,44 @@ await check("窗口失焦后方块暂停；继续时不会残留按住的加速�
   key("p");
   world.onTick(0.1, 1.1);
   assert(blocks.y === 0 && !status().includes("暂停"), "恢复后仍加速落下");
+});
+
+await check("蓄力手势取消或按钮失焦不会起跳；正常鼠标、右键和 E 松开仍能跳", () => {
+  const capture = canvas.setPointerCapture;
+  // Synthetic pointers are not registered with the browser's native capture
+  // system; keep the real event handlers and stub only that native boundary.
+  canvas.setPointerCapture = () => {};
+  try {
+    for (const mode of ["touch-cancel", "canvas-lostcapture", "button-cancel", "button-lostcapture", "button-blur",
+      "right-cancel", "right-lostcapture", "mouse-up", "button-up", "right-up", "key-up"] as const) {
+      arcade.open("hop");
+      world.onAction(true); world.onAction(false);
+      const game = engine() as HopGame;
+      const button = document.querySelector<HTMLButtonElement>(".game-primary")!;
+      if (mode.startsWith("right"))
+        canvas.dispatchEvent(new PointerEvent("pointerdown", {button:2, pointerType:"mouse", bubbles:true, cancelable:true}));
+      else if (mode.startsWith("button")) key(" ", {}, button);
+      else key("e");
+      game.update(0.7);
+      assert(game.charging && game.charge > 0, mode + " 未开始蓄力");
+      if (mode === "button-blur") button.dispatchEvent(new FocusEvent("blur"));
+      else if (mode === "button-cancel") button.dispatchEvent(new PointerEvent("pointercancel"));
+      else if (mode === "button-lostcapture") button.dispatchEvent(new PointerEvent("lostpointercapture"));
+      else if (mode === "button-up") button.dispatchEvent(new PointerEvent("pointerup"));
+      else if (mode === "key-up") canvas.dispatchEvent(new KeyboardEvent("keyup", {key:"e", bubbles:true}));
+      else canvas.dispatchEvent(new PointerEvent(mode.includes("lostcapture") ? "lostpointercapture" : mode.endsWith("up") ? "pointerup" : "pointercancel",
+        {button:mode.startsWith("right") ? 2 : 0, pointerType:mode.startsWith("touch") ? "touch" : "mouse", bubbles:true}));
+      const released = mode.endsWith("up");
+      assert(game.grounded !== released && !game.charging && game.charge === 0,
+        mode + (released ? " 正常松开没有起跳" : " 取消被误当成松手起跳"));
+      // Capture loss commonly follows pointerup. A late release after a
+      // cancelled gesture must neither launch nor repeat the completed jump.
+      const velocity = game.vx;
+      canvas.dispatchEvent(new PointerEvent("lostpointercapture"));
+      world.onAction(false);
+      assert(game.grounded !== released && game.vx === velocity, mode + " 后续事件重复触发跳跃");
+    }
+  } finally { canvas.setPointerCapture = capture; }
 });
 
 await check("衣橱图集就绪会通知背包重绘", () => new Promise<void>((resolve, reject) => {

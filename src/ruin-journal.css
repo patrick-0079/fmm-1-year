@@ -67,6 +67,26 @@
 .ruin-journal-heading h4, .ruin-journal-paper h4, .ruin-puzzle h5 { margin: 0; }
 .ruin-journal-heading h4 { font-size: clamp(13px, 1.85cqw, 18px); }
 .ruin-book-count { margin-left: auto; color: #5f604b; font-size: clamp(10px, 1.4cqw, 13px); }
+.ruin-journal-page {
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  position: relative;
+  min-height: 0;
+}
+.ruin-read-more {
+  position: absolute;
+  right: 12px;
+  bottom: 3px;
+  padding: 1px 8px;
+  border: 1px solid #c7b99b;
+  border-radius: 8px;
+  background: #fff6e2f5;
+  box-shadow: 0 0 5px 3px #fff6e2d9;
+  color: #665538;
+  font-size: 11px;
+  line-height: 1.5;
+  pointer-events: none;
+}
 .ruin-journal-paper {
   overflow: auto;
   overscroll-behavior: contain;

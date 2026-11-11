@@ -4,6 +4,26 @@ const chapters = ["拓印", "印章", "解谜"] as const;
 export const journalPageCount = chapters.length;
 export const journalCoverMarkup = '<span class="ruin-book-cover" aria-hidden="true"><i>☾</i></span>';
 
+/** Keep the reading cue inside the book, without increasing its height. */
+export function bindJournalScrollHint(root: HTMLElement): () => void {
+  const paper = root.querySelector<HTMLElement>(".ruin-journal-paper");
+  const content = root.querySelector<HTMLElement>(".ruin-journal-content");
+  const hint = root.querySelector<HTMLElement>(".ruin-read-more");
+  if (!paper || !content || !hint) return () => {};
+  const update = () => {
+    hint.hidden = paper.clientHeight === 0 || paper.scrollHeight - paper.clientHeight - paper.scrollTop <= 4;
+  };
+  const observer = new ResizeObserver(update);
+  observer.observe(paper);
+  observer.observe(content);
+  paper.addEventListener("scroll", update, { passive: true });
+  update();
+  return () => {
+    observer.disconnect();
+    paper.removeEventListener("scroll", update);
+  };
+}
+
 function rubbings(state: AstrolabeState) {
   const entries = rings.map(ring => {
     const found = state.found.includes(ring.id);
@@ -50,10 +70,15 @@ export function renderRuinJournal(state: AstrolabeState, listened: boolean, page
     <header class="ruin-journal-heading"><span aria-hidden="true">☾</span><h4>遗迹手记</h4>
       <small class="ruin-book-count">${state.found.length} / ${rings.length} 拓印 · ${earned.length} / ${seals.length} 印章</small>
     </header>
-    <section class="ruin-journal-paper" tabindex="0" data-focus="journal-paper" aria-label="${title}，第 ${page+1} 页">
-      <h4><span>${title}</span><small>${page+1} / ${journalPageCount}</small></h4>
-      ${page === 0 ? rubbings(state) : page === 1 ? sealCollection(earned) : clues}
-    </section>
+    <div class="ruin-journal-page">
+      <section class="ruin-journal-paper" tabindex="0" data-focus="journal-paper" aria-label="${title}，第 ${page+1} 页">
+        <div class="ruin-journal-content">
+          <h4><span>${title}</span><small>${page+1} / ${journalPageCount}</small></h4>
+          ${page === 0 ? rubbings(state) : page === 1 ? sealCollection(earned) : clues}
+        </div>
+      </section>
+      <span class="ruin-read-more" aria-hidden="true" hidden>向下翻阅 ↓</span>
+    </div>
     <nav class="ruin-book-nav" aria-label="遗迹手记书签">
       <button type="button" data-keepsakes data-focus="journal-back" aria-label="返回纪念物">‹ 纪念物</button>${bookmarks}
     </nav>

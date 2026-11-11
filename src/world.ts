@@ -321,13 +321,18 @@ export class World {
         if (this.secondaryPressed || e.button === 2) {
           if (type !== "pointermove" && this.secondaryPressed) {
             this.secondaryPressed = false;
-            this.onAction(false);
+            if (type === "pointercancel") this.onInputCancel();
+            else this.onAction(false);
           }
           return;
         }
         if (!this.suspended)
           this.onPointer(type.replace("pointer", ""), this.pointerPoint(e), e.pointerType);
       });
+    canvas.addEventListener("lostpointercapture", () => {
+      this.secondaryPressed = false;
+      this.onInputCancel();
+    });
   }
   private spotAt(point: Point) {
     return clickedInteraction(point,this.config.spots.filter(s=>this.available(s)),s=>this.markerY(s));

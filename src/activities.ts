@@ -81,6 +81,7 @@ export class Activities {
     this.hud = document.querySelector(".activity-hud")!;
     this.status = this.hud.querySelector(".activity-status")!;
     new ResizeObserver(() => this.updateReadingFocus()).observe(this.status);
+    this.status.addEventListener("scroll", () => this.updateReadingFocus(), { passive: true });
     this.status.addEventListener("keydown", event => {
       if (this.status.tabIndex === 0 && ["ArrowUp","ArrowDown","Home","End","PageUp","PageDown"].includes(event.key))
         event.stopPropagation(); // Scroll the focused letter-sized text area with the browser's native keys.
@@ -170,6 +171,7 @@ export class Activities {
     this.dialogueAt = undefined;
     delete this.hud.dataset.dock;
     this.status.removeAttribute("tabindex");
+    this.speaker.removeAttribute("data-read-more");
     this.mode = "";
     this.hud.hidden = true;
     this.controls.replaceChildren();
@@ -200,9 +202,13 @@ export class Activities {
       this.hud.style.setProperty("--dialogue-room", height);
   }
   private updateReadingFocus() {
-    if (this.dialogueAt && narrowDialogue.matches && this.status.scrollHeight > this.status.clientHeight + 1)
+    const scrollable = !!this.dialogueAt && this.status.clientHeight > 0 &&
+      this.status.scrollHeight > this.status.clientHeight + 1;
+    if (scrollable && narrowDialogue.matches)
       this.status.tabIndex = 0;
     else this.status.removeAttribute("tabindex");
+    this.speaker.toggleAttribute("data-read-more", scrollable &&
+      this.status.scrollHeight - this.status.clientHeight - this.status.scrollTop > 4);
   }
   close() {
     this.hidePanel();
