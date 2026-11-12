@@ -18,6 +18,7 @@ import roomArtUrl from "./assets/room-interactive.webp";
 import { drawRoomWindow } from "./window-sky";
 import { drawKeepsake } from "./scene-art";
 import { drawWildSprite } from "./wild-art";
+import { drawFirefly, fireflyDrift } from "./firefly-art";
 interface NatureSave {
   picked: Record<string, number>;
   apple: number;
@@ -403,16 +404,16 @@ export class Nature {
       if (spot.id === "sunset") {
         drawWildSprite(c, atlas, 3, spot.x, spot.y + 7, 31);
       }
-      if (spot.id === "firefly")
-        for (let i = 0; i < 12; i++) {
-          const angle = (i / 12) * Math.PI * 2 + t * 0.5,
-            fx = spot.x + Math.cos(angle) * 21,
-            fy = spot.y + Math.sin(angle * 2) * 13;
-          c.fillStyle = "#fff3a977";
-          c.fillRect(fx - 2, fy - 2, 6, 6);
-          c.fillStyle = "#fff5bd";
-          c.fillRect(fx, fy, 2, 2);
+      if (spot.id === "firefly") {
+        const time = this.reduce.matches ? 0 : t;
+        const patch = [[-24,-8],[-12,-14],[2,-20],[19,-11],[-17,3],[5,1],[24,6],[-2,14],[12,-4]];
+        for (const [i, [dx, dy]] of patch.entries()) {
+          const phase = i * 1.73 + 2;
+          const drift = fireflyDrift(time, phase, .85);
+          drawFirefly(c, spot.x + dx + drift.x, spot.y + dy + drift.y,
+            time, phase, .85 + i % 3 * .13, .85);
         }
+      }
     }
     // Visible little ripples on the perimeter stream, never on walkable grass.
     c.strokeStyle = this.clock.phase === "night" ? "#a8d5f2aa" : "#e0f6eaaa";

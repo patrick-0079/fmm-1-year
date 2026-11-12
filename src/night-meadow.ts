@@ -5,6 +5,7 @@ import { sfx } from "./sound";
 import { drawWildSprite } from "./wild-art";
 import type { DepthLayer, World } from "./world";
 import { drawMoonCircle } from "./moon-circle";
+import { drawFirefly, fireflyDrift } from "./firefly-art";
 
 type Credit = typeof producers[number];
 const flock = [
@@ -167,12 +168,12 @@ export class NightMeadow {
     c.globalCompositeOperation = "screen";
     c.globalAlpha = .35;
     glow(c, campfire.x, campfire.y - 6, 32 + Math.sin(t * 3) * 2, "#ffb45f");
-    for (let i = 0; i < 27; i++) {
-      const x = 64 + i * 167 % 782 + Math.sin(t * .45 + i) * 8;
-      const y = 65 + i * 129 % 472 + Math.cos(t * .6 + i * 2) * 4;
-      c.globalAlpha = .18 + (1 + Math.sin(t * .9 + i * 3)) * .22;
-      glow(c, x, y, 5, "#e9e9a0");
-      c.fillStyle = "#eff2b5"; c.fillRect(Math.round(x), Math.round(y), 1.5, 1.5);
+    for (let i = 0; i < 22; i++) {
+      const phase = i * 2.41 + 1, drift = fireflyDrift(t, phase, 1.25);
+      const x = 64 + i * 167 % 782 + drift.x;
+      const y = 65 + i * 129 % 472 + drift.y;
+      c.globalAlpha = 1;
+      drawFirefly(c, x, y, t, phase, .65 + i % 4 * .13, .55 + i % 3 * .12);
     }
     if (this.memory?.burst && this.memory.age < 2.6) this.drawBurst(c, this.memory.origin, this.memory.age);
     c.restore();

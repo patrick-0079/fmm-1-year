@@ -393,7 +393,7 @@ export const scenes: Record<SceneId, Scene> = {
     hazards: [
       {
         id: "ribbon",
-        title: "绊脚缎带",
+        title: "松落的花藤",
         kind: "ribbon",
         x: 335,
         y: 438,
@@ -401,7 +401,7 @@ export const scenes: Record<SceneId, Scene> = {
       },
       {
         id: "stone",
-        title: "小小绊脚石",
+        title: "翘起的苔石",
         kind: "stone",
         x: 325,
         y: 356,
@@ -409,7 +409,7 @@ export const scenes: Record<SceneId, Scene> = {
       },
       {
         id: "mist",
-        title: "迷路的小雾",
+        title: "溪边薄雾",
         kind: "mist",
         x: 605,
         y: 254,
@@ -417,7 +417,7 @@ export const scenes: Record<SceneId, Scene> = {
       },
       {
         id: "wind",
-        title: "回旋小风",
+        title: "卷叶小风",
         kind: "wind",
         x: 466,
         y: 195,

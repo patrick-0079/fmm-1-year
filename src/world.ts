@@ -13,7 +13,7 @@ import wellUrl from "./assets/echo-well.webp";
 import { crossedEchoGate, townQuarry } from "./ruins-map";
 import { meadowAtlasUrl, orchardAtlasUrl } from "./wild-art";
 import { prepareSceneArt, sceneArt } from "./scene-art";
-import trapsUrl from "./assets/garden-traps.webp";
+import trapsUrl from "./assets/courage-path-props-v35.webp";
 import { drawItem, rewardsUrl } from "./item-art";
 import { emptyInventory, type Equipped } from "./items";
 import { bedRest, benchRest, type RestState } from "./rest";
@@ -25,7 +25,8 @@ import { connectionLayers } from "./connections";
 import { crossedTownGate } from "./gate-layout";
 import { enteredMoonCircle } from "./meadow-map";
 import { surfaceOutline } from "./collision";
-import { trapFootprint, trapSprite } from "./trap-art";
+import { trapFootprint } from "./trap-art";
+import { drawGardenHazard } from "./garden-hazards";
 import {
   advancePath,
   canStand,
@@ -729,16 +730,6 @@ export class World {
       c.fillRect(278, 370, 44, 7);
     }
     this.drawHazards();
-    for (let i = 0; this.scene !== "meadow" && i < 12; i++) {
-      const t = this.reducedMotion.matches ? 0 : this.time;
-      c.fillStyle = `rgba(255,245,195,${0.22 + Math.sin(t * 2 + i) * 0.18})`;
-      c.fillRect(
-        Math.round((i * 89 + t * 4) % width),
-        Math.round((i * 67 + Math.sin(t + i) * 7) % height),
-        2,
-        2,
-      );
-    }
     const drawPlayer = () => {
       if (this.actorHidden) return;
       const x = Math.round(this.player.x),
@@ -797,52 +788,42 @@ export class World {
     this.onEffects(c);
     if (this.debug) this.drawDebug();
     c.restore();
+    this.drawHazardHint();
     this.onOverlay(c);
   }
   private drawHazards() {
     const c = this.ctx,
       image = this.images.get(trapsUrl);
     for (const trap of this.config.hazards) {
-      const { x, y, radius: r } = trap;
-      c.save();
-      c.fillStyle = "#4a604b28";
-      c.beginPath();
-      c.ellipse(x, y + 3, r + 2, 7, 0, 0, Math.PI * 2);
-      c.fill();
-      const { frame: f, x: left, y: top, w, h } = trapSprite(trap);
-      const floating = trap.kind === "mist" || trap.kind === "wind";
-      const bob =
-        floating && !this.reducedMotion.matches
-          ? Math.sin(this.time * 1.4 + (trap.kind === "mist" ? 2 : 3)) * 1.5
-          : 0;
-      if (image) {
-        c.drawImage(
-          image,
-          f.x,
-          f.y,
-          f.w,
-          f.h,
-          left,
-          top + bob,
-          w,
-          h,
-        );
-      }
-      c.restore();
-      if (Math.hypot(this.player.x - x, this.player.y - y) < 70)
-        this.label(x, y + r + 12, "小挫折 · " + trap.title, "#8e7c69");
+      drawGardenHazard(c, image, trap, this.time, this.reducedMotion.matches);
     }
   }
-  private label(x: number, y: number, text: string, color: string) {
+  private drawHazardHint() {
+    const trap = this.config.hazards.reduce<Hazard | undefined>((near, candidate) => {
+      const distance = Math.hypot(this.player.x-candidate.x,this.player.y-candidate.y);
+      return distance < 70 && (!near || distance < Math.hypot(this.player.x-near.x,this.player.y-near.y))
+        ? candidate : near;
+    },undefined);
+    if (!trap) return;
+    // Screen-space type remains readable on phones and sits above actors,
+    // on the far side of the trap from the approaching player.
+    const top = this.player.y >= trap.y;
+    const point = this.project({x:trap.x,y:trap.y+(top ? -trap.radius-14 : trap.radius+16)});
+    const size = Math.max(9,11/(this.canvas.clientWidth/600 || 1));
     const c = this.ctx;
     c.save();
-    c.font = '9px "Microsoft YaHei", sans-serif';
+    c.font = `${size}px "Microsoft YaHei", sans-serif`;
     c.textAlign = "center";
+    c.textBaseline = "middle";
+    const text = "小挫折 · " + trap.title;
     const width = c.measureText(text).width + 10;
+    const height = size+8;
+    const x = Math.max(width/2+4,Math.min(596-width/2,point.x));
+    const y = Math.max(height/2+4,Math.min(396-height/2,point.y));
     c.fillStyle = "#fffaf0ed";
-    c.fillRect(x - width / 2, y - 8, width, 13);
-    c.fillStyle = color;
-    c.fillText(text, x, y + 1);
+    c.fillRect(x-width/2,y-height/2,width,height);
+    c.fillStyle = "#73624e";
+    c.fillText(text,x,y);
     c.restore();
   }
   private drawDebug() {
