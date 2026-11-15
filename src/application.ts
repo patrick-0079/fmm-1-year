@@ -72,7 +72,8 @@ export function mountGame(tasks: Task[]) {
     mailCount.textContent = mailboxLetters(story).length + " 封来信" + (postUnread(story) ? " · 1 封未读" : "");
   }
   function readCollection(id: string) {
-    if (id !== "letters") { openCollection(reader, id); return; }
+    if (id === "album") { openCollection(reader, id); return; }
+    if (id !== "letters") return;
     const story = progress.residents;
     openCollection(reader, id, {
       items: mailboxLetters(story), selectedId: selectedLetterId,
@@ -232,6 +233,7 @@ export function mountGame(tasks: Task[]) {
   }, { capture: true });
   const activities = new Activities(world, {
     complete,
+    isComplete: (id) => progress.completed.includes(id),
     toast,
     reward: (id) => inventory.grant(id),
   });
@@ -476,7 +478,7 @@ export function mountGame(tasks: Task[]) {
             activities.note("下一个晚安，也一起 ♡", anniversary.bilibili),
         },
       ]);
-    else {
+    else if (id === "letters" || id === "album") {
       activities.close();
       reader.inGame = id === "letters";
       readCollection(id);
@@ -646,7 +648,7 @@ export function mountGame(tasks: Task[]) {
           world.paused = !started;
           reader.inGame = false;
           readCollection("letters");
-        } else visit("room", button.dataset.memory!);
+        } else if (button.dataset.memory === "album") visit("room", "album");
       }),
     );
   reader.onChangeView = () => {

@@ -1,0 +1,53 @@
+.album-layout .collection-item {
+  padding: 6px;
+  color: #785d63;
+  font-size: 12px;
+  line-height: 1.6;
+  border-color: #d8c4b1;
+  background: #fff9ec;
+}
+.album-layout .collection-item img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 3px;
+  margin-bottom: 5px;
+}
+.album-layout .collection-item-title { display: block; text-wrap: balance; }
+.album-layout .collection-item.selected {
+  border-color: #ac657e;
+  box-shadow: 0 0 0 1px #ac657e;
+  background: #fff0ee;
+  color: #704652;
+}
+.album-layout .memory-detail {
+  background: #fffdf6;
+  border-color: #e2d0b9;
+  padding: clamp(10px, 2vw, 20px);
+}
+.album-layout .memory-image {
+  display: block;
+  aspect-ratio: 3 / 2;
+  max-height: none;
+  image-rendering: auto;
+  object-fit: contain;
+  box-shadow: 0 3px 12px #6850401a;
+}
+.album-layout .media-caption {
+  color: #775f62;
+  font-size: 13px;
+  line-height: 1.9;
+  margin: 14px 0 0;
+}
+@media (max-width: 700px) {
+  .map-reader .album-layout { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .album-layout .collection-list {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(96px, 1fr));
+    overflow-x: auto;
+    padding: 2px 2px 7px;
+  }
+  .album-layout .collection-item { min-width: 0; white-space: normal; }
+}

@@ -22,12 +22,12 @@
 | 位置 | 可以提供的内容 | 接入位置 |
 | --- | --- | --- |
 | 庭院小电视 | 正式影片的 CDN 直链和片名，当前使用已提供的占位 MP4 | `src/cinema-config.ts` 的 `gardenFilm` |
-| 回忆相册 | 图片原件、每张标题和可选配文或署名 | `src/content.ts` 的 `collections.album.items` |
-| 枕边电台 | 录音文件、曲目或节目标题、可选署名 | `collections.radio.items` |
-| 小小放映室 | 希望加入收藏的短片文件或直链、片名及可选配文 | `collections.tv.items` |
+| 回忆相册（可选扩充） | 已有四张生成的日常插画；如有新的正式图片，可提供原件、标题及配文或署名 | `src/content.ts` 的 `collections.album.items` |
 | 床边便签 | 可选的后续复活鼓励，每条一段，署名可写在文末。小叶子的固定文字和配图已经在游戏中 | `encouragements` |
 | 晚安信箱 | 如要继续收信，请提供新来信正文和展示署名。Kerry 的周年来信已经收录 | `collections.letters.items` |
 
 ## 正式上线时
+
+小屋的枕边电台与小小放映室已按要求移除，不再待收素材。相册四张插画已接入，详见 `ARTWORK-v36.md`。
 
 - [ ] 确定结束全配饰试穿的时间。正式发布时将 `VITE_WARDROBE_DEBUG` 改为 `false` 并重新构建。

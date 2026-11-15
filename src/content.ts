@@ -1,3 +1,12 @@
+const morning = new URL("./assets/album-v36/morning.webp", import.meta.url).href;
+const morningThumb = new URL("./assets/album-v36/morning-thumb.webp", import.meta.url).href;
+const reading = new URL("./assets/album-v36/reading.webp", import.meta.url).href;
+const readingThumb = new URL("./assets/album-v36/reading-thumb.webp", import.meta.url).href;
+const bass = new URL("./assets/album-v36/bass.webp", import.meta.url).href;
+const bassThumb = new URL("./assets/album-v36/bass-thumb.webp", import.meta.url).href;
+const fox = new URL("./assets/album-v36/fox.webp", import.meta.url).href;
+const foxThumb = new URL("./assets/album-v36/fox-thumb.webp", import.meta.url).href;
+
 export type MediaKind = "text" | "image" | "audio" | "video";
 export interface Memory {
   id: string;
@@ -5,6 +14,7 @@ export interface Memory {
   author?: string;
   text?: string;
   src?: string;
+  thumbnail?: string;
   alt?: string;
 }
 export interface Collection {
@@ -56,20 +66,21 @@ export const collections: Record<string, Collection> = {
   },
   album: {
     title: "回忆相册",
-    subtitle: "那些值得珍藏的瞬间，都会在这里相遇。",
+    subtitle: "把平凡的一天，也轻轻放进回忆里。",
     kind: "image",
-    items: [],
-  },
-  radio: {
-    title: "枕边电台",
-    subtitle: "按下播放，让熟悉的声音陪你一会儿。",
-    kind: "audio",
-    items: [],
-  },
-  tv: {
-    title: "小小放映室",
-    subtitle: "留一张软软的座位，等一段喜欢的回忆。",
-    kind: "video",
-    items: [],
+    items: [
+      { id: "fufu-morning", title: "草莓吐司的早晨", src: morning, thumbnail: morningThumb,
+        alt: "芙芙在小屋窗边捧着草莓杯，桌上放着果酱吐司与雏菊。",
+        text: "阳光刚好落到桌边，吐司还是热的。今天，也慢慢来吧。" },
+      { id: "fufu-reading", title: "雨声翻过一页书", src: reading, thumbnail: readingThumb,
+        alt: "芙芙窝在窗边的软椅上读书，窗外下着细雨，身旁亮着暖灯。",
+        text: "窗外的雨还没有停，故事也不急着讲完。留一小会儿，给自己。" },
+      { id: "fufu-bass", title: "把黄昏弹给你", src: bass, thumbnail: bassThumb,
+        alt: "芙芙坐在小屋里练习白色贝斯，夕阳照亮木地板和身旁的小音箱。",
+        text: "从一个音，到一小段旋律。等下次见面，再弹给你听。" },
+      { id: "fufu-fox", title: "小狐狸也说晚安", src: fox, thumbnail: foxThumb,
+        alt: "穿着月星睡衣的芙芙在床边抚摸粉色小狐狸，窗外升起月亮。",
+        text: "小尾巴慢慢安静下来。今天辛苦啦，明天再一起出门。" },
+    ],
   },
 };

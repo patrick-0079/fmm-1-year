@@ -88,8 +88,6 @@ export const EVENT_IDS = [
   ...GAME_IDS,
   "letters",
   "album",
-  "radio",
-  "tv",
   "danmaku",
   "bili",
 ];

@@ -2,6 +2,7 @@ import { collections, type Memory } from "./content";
 import { escapeHtml, icon } from "./icons";
 import { duckMusic } from "./sound";
 import { FilmPreloader, downloadLabel } from "./film-preloader";
+import "./album.css";
 export interface CollectionSurface {
   open(title: string, subtitle: string, label: string): HTMLElement;
   close(): void;
@@ -21,7 +22,7 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
   const body = modal.open(
     collection.title,
     collection.subtitle,
-    "A LITTLE MEMORY · 等一份心意",
+    collection.kind === "image" && items.length ? "FUFU'S LITTLE DAYS · 芙芙的日常" : "A LITTLE MEMORY · 珍藏一份心意",
   );
   const symbols = { text: "mail", image: "book", audio: "sound", video: "tv" };
   const nouns = { text: "留言", image: "图片", audio: "录音", video: "视频" };
@@ -33,6 +34,7 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     return;
   }
   body.innerHTML = `<div class="collection-layout"><nav class="collection-list" aria-label="${escapeHtml(collection.title)}列表"></nav><section class="memory-detail" aria-live="polite"></section></div>`;
+  body.querySelector(".collection-layout")!.classList.toggle("album-layout", collection.kind === "image");
   const list = body.querySelector(".collection-list")!,
     detail = body.querySelector(".memory-detail")!;
   let media: HTMLMediaElement | null = null;
@@ -53,7 +55,7 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     list.querySelectorAll("button").forEach((button, i) => {
       button.classList.toggle("selected", i === index);
       button.setAttribute("aria-pressed", String(i === index));
-      if (i === index) button.textContent = item.title;
+      if (i === index) button.querySelector(".collection-item-title")!.textContent = item.title;
     });
     detail.innerHTML = `<h3>${escapeHtml(item.title)}</h3>${item.author ? `<p class="memory-author">来自 ${escapeHtml(item.author)}</p>` : ""}<div class="memory-content"></div>`;
     const content = detail.querySelector(".memory-content")!;
@@ -72,6 +74,7 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
         element = new Image();
         element.alt = item.alt || item.title;
         element.className = "memory-image";
+        element.decoding = "async";
       } else {
         const player = document.createElement(collection.kind);
         player.controls = true;
@@ -136,7 +139,19 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     const button = document.createElement("button");
     button.className = "collection-item";
     button.dataset.memoryId = item.id;
-    button.textContent = item.title + (letters?.unreadId === item.id ? " · 未读" : "");
+    if (collection.kind === "image" && item.thumbnail) {
+      const thumbnail = new Image();
+      thumbnail.src = item.thumbnail;
+      thumbnail.alt = "";
+      thumbnail.decoding = "async";
+      thumbnail.width = 240;
+      thumbnail.height = 160;
+      button.append(thumbnail);
+    }
+    const title = document.createElement("span");
+    title.className = "collection-item-title";
+    title.textContent = item.title + (letters?.unreadId === item.id ? " · 未读" : "");
+    button.append(title);
     button.addEventListener("click", () => select(i));
     list.append(button);
   });

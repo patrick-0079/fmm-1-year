@@ -56,6 +56,20 @@ test("corrupt or unexpected saved data cannot break a new visit", () => {
   );
 });
 
+test("retired bedroom media visits are discarded without losing garden cinema or ruins radio progress", () => {
+  const progress = readProgress(JSON.stringify({
+    visited: ["tv", "radio", "album", "letters", "danmaku", "bili", "cake"],
+    completed: ["cake", "gifts"],
+    sound: true, bgm: true, bassSound: true,
+    echoes: {found: ["leaf", "bell", "star"], played: 3, listened: true},
+  }));
+  assert.deepEqual(progress.visited, ["album", "letters", "danmaku", "bili", "cake"]);
+  assert.deepEqual(progress.completed, ["cake", "gifts"]);
+  assert.deepEqual(progress.echoes, {found: ["leaf", "bell", "star"], played: 3, listened: true});
+  assert.equal(progress.sound && progress.bgm && progress.bassSound, true);
+  assert.deepEqual(readProgress(JSON.stringify(progress)), progress);
+});
+
 test("furniture and world borders block the player, but walls allow sliding", () => {
   const bounds = { x: 0, y: 0, w: 100, h: 100 },
     walls = [{ x: 50, y: 20, w: 20, h: 60 }];

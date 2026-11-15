@@ -9,6 +9,7 @@ import { ARCADES } from "../src/town-data";
 import type { GameId } from "../src/arcade-engines";
 import { ITEMS, INVENTORY_KEY, type ItemId } from "../src/items";
 import { GardenLife } from "../src/garden-life";
+import type { GiftUnwrapping } from "../src/gift-unwrapping";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#world")!;
 const world = new World(canvas);
@@ -17,7 +18,13 @@ const inventory = new Inventory(world, () => {}, {
   getItem: (id) => saves.get(id) ?? null,
   setItem: (id, value) => { saves.set(id, value); },
 }, true);
-const activities = new Activities(world, { complete() {}, toast() {} });
+const completedActivities = new Set<string>(), giftRewards: ItemId[] = [];
+let giftCompletions = 0;
+const activities = new Activities(world, {
+  complete(id) { completedActivities.add(id); if(id === "gifts") giftCompletions++; },
+  toast() {}, reward(id) { giftRewards.push(id); },
+  isComplete: id => completedActivities.has(id),
+});
 inventory.onEquip = () => activities.finishEquipmentChoice();
 const arcade = new Arcade(world, activities, inventory);
 const gardenMemory = {decoratorMet:false,rabbitIntroduced:false};
@@ -164,25 +171,73 @@ await check("全屏和全窗口放映时不在播放器背后开包，返回地�
   }
 });
 
-await check("礼盒不配对后立刻打开别的互动，旧计时不会改写新按钮", () => {
-  activities.gifts();
-  const cards = (activities as unknown as { cards: number[] }).cards;
-  const different = cards.findIndex((value) => value !== cards[0]);
-  document.querySelector<HTMLButtonElement>(".activity-actions button")!.click();
-  document.querySelectorAll<HTMLButtonElement>(".activity-actions button")[different].click();
-  activities.menu("新的周年对话", [{ title: "继续看花", run() {} }]);
-  world.onTick(1, 1);
-  assert(document.querySelector(".activity-actions")!.textContent === "继续看花", "旧礼盒计时覆盖了新对话");
+const giftState = () => (activities as unknown as { gift: GiftUnwrapping }).gift;
+const giftAction = () => document.querySelector<HTMLButtonElement>(".activity-actions button")!.click();
+const unwrapGift = () => {
+  giftAction(); giftAction(); world.onTick(.6,1); giftAction(); world.onTick(1,2);
+};
+await check("礼盒每次 E 独立解开一端，打开后不领奖；收下才完成且重看不重发", () => {
+  activities.reset(); completedActivities.delete("gifts"); giftCompletions=0; giftRewards.length=0;
+  world.scene="room"; activities.gifts();
+  key("e"); key("e", {repeat:true});
+  assert(giftState().ribbons.filter(Boolean).length===1, "按住 E 连续解开两端");
+  key("e"); assert(giftState().stage==="untying", "第二次 E 未解开另一端");
+  key("e"); assert(activities.active, "动画中 E 误关了互动");
+  world.onTick(.6,1); key("e"); world.onTick(1,2);
+  assert(giftState().stage==="revealed" && giftCompletions===0 && giftRewards.length===0,"只看到礼物就发奖");
+  key("e"); key("e",{repeat:true});
+  assert(giftCompletions===1 && giftRewards.join() === "ribbonShoes", "领取没有恰好记一次完成和奖励");
+  activities.gifts(); unwrapGift(); giftAction();
+  assert(giftCompletions===1 && giftRewards.length===1,"重看礼盒重复发奖");
+  key("Escape");
+  assert(!activities.active && !world.paused && !world.actorHidden,"离开礼盒后人物没有恢复");
 });
 
-await check("Ctrl / Alt / Meta 组合键不触发背包、游戏或数字翻牌", () => {
+await check("礼盒鼠标可先拉右端，触屏可点左端；取消拖动不拆开缎带", () => {
+  activities.gifts();
+  world.onPointer("down",{x:416,y:280},"touch"); world.onInputCancel();
+  world.onPointer("up",{x:416,y:280},"touch");
+  assert(!giftState().ribbons.some(Boolean),"取消手势却拆开缎带");
+  world.onPointer("down",{x:481,y:280},"mouse");
+  world.onPointer("move",{x:491,y:280},"mouse");
+  world.onPointer("up",{x:491,y:280},"mouse");
+  assert(giftState().ribbons[1]&&!giftState().ribbons[0],"右端拖动没有单独生效");
+  world.onPointer("down",{x:416,y:280},"touch");world.onPointer("up",{x:416,y:280},"touch");
+  world.onTick(.6,1);
+  world.onPointer("down",{x:448,y:265},"touch");world.onPointer("up",{x:448,y:265},"touch");
+  world.onTick(1,2);
+  assert(giftState().stage==="revealed","鼠标／触屏没走完拆盒步骤");
+});
+
+await check("掀盖时收起立即恢复探索，旧动画不会覆盖新对话，中途退出不完成任务", () => {
+  activities.reset(); completedActivities.delete("gifts"); giftCompletions=0; giftRewards.length=0;
+  activities.gifts();
+  giftAction(); giftAction(); world.onTick(.6,1); giftAction();
+  activities.close();
+  assert(!world.paused&&!world.actorHidden&&!world.onAction(true),"退出掀盖后地图仍被锁住");
+  activities.menu("新的周年对话", [{ title: "继续看花", run() {} }]);
+  world.onTick(1, 1);
+  assert(document.querySelector(".activity-actions")!.textContent === "继续看花", "旧礼盒动画覆盖了新对话");
+  assert(giftCompletions===0&&giftRewards.length===0,"中途退出礼盒却完成任务");
+});
+
+await check("已完成的旧存档重拆礼盒不会重复发奖，清档后可以重新领取", () => {
+  activities.reset(); completedActivities.add("gifts"); giftRewards.length=0; giftCompletions=0;
+  activities.gifts(); unwrapGift(); giftAction();
+  assert(giftCompletions===0&&giftRewards.length===0,"旧存档重发了奖励");
+  activities.reset(); completedActivities.delete("gifts");
+  activities.gifts(); unwrapGift(); giftAction();
+  assert(giftCompletions===1&&giftRewards.length===1,"清档后不能重新领取");
+});
+
+await check("Ctrl / Alt / Meta 组合键不触发背包、游戏或拆礼盒", () => {
   activities.gifts();
   const before = document.querySelector(".activity-actions")!.textContent;
   for (const modifier of ["ctrlKey", "altKey", "metaKey"])
     for (const value of ["b", "w", "1", " "])
       assert(!key(value, { [modifier]: true }).defaultPrevented, `${modifier}+${value} 被拦截`);
   assert(!world.suspended, "浏览器快捷键打开了背包");
-  assert(document.querySelector(".activity-actions")!.textContent === before, "组合键触发了翻牌");
+  assert(document.querySelector(".activity-actions")!.textContent === before, "组合键触发了拆礼盒");
 });
 
 await check("阅读区域保留空格和方向键滚动", () => {

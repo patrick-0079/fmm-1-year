@@ -15,6 +15,7 @@ import { helpMarkup } from "./help";
 import { ARCADES, TOWN_NPCS } from "./town-data";
 import { ITEMS } from "./items";
 import { anniversary, collections } from "./content";
+import { EVENT_IDS } from "./core";
 import { icon } from "./icons";
 import { prepareTextureCache } from "./texture-cache";
 
@@ -36,7 +37,7 @@ const tasks = [
   {
     id: "gifts",
     title: "拆一份心意",
-    subtitle: "找到礼物的好朋友",
+    subtitle: "解开缎带 · 揭开盒盖 · 收下心意",
     icon: "gift",
     scene: "room",
   },
@@ -58,8 +59,6 @@ const tasks = [
 const memories = [
   { id: "letters", icon: "mail", empty: "待寄达", unit: "封来信" },
   { id: "album", icon: "book", empty: "待收集", unit: "张回忆" },
-  { id: "radio", icon: "sound", empty: "待开播", unit: "段录音" },
-  { id: "tv", icon: "tv", empty: "待放映", unit: "段视频" },
 ];
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
@@ -89,7 +88,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
           </div>
           <section class="arcade-hud" hidden aria-label="小镇与遗迹小游戏"></section></div>
           <nav class="scene-nav" aria-label="地图导航"><button data-scene="room">晚安小屋</button><button data-scene="garden">周年花园</button><button data-scene="challenge">勇气花园</button><button data-scene="town">周年小镇</button><button data-scene="meadow" hidden>✿ 花海</button><button data-scene="ruins">回声遗迹</button><div class="volume-tools"><button class="volume-down" aria-label="降低游戏音量">−</button><span class="volume-value">45%</span><button class="volume-up" aria-label="提高游戏音量">＋</button></div></nav>
-          <div class="garden-pocket"><span>${icon("gift")}<span class="bag-count">苹果 0 · 花朵 0 · 星屑 0</span></span><span class="day-hint">十分钟一昼夜 · 找长椅休息，等一场黄昏和星夜</span></div><details class="flower-book" hidden><summary>✿ 七色花谱 <span class="prism-count">0 / 7</span></summary><p class="prism-hint"></p><ol class="prism-list"></ol></details><section class="map-reader" aria-label="地图物件阅读区" hidden></section><section class="inline-help" aria-label="完整游玩说明" hidden></section><div class="game-bottom"><div class="desktop-instructions"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span><span><kbd>E</kbd> / 右键 互动</span><i></i><span>左键走动 / 点标记 · <kbd>B</kbd> 背包 · <kbd>H</kbd> 花环</span></div><span class="exploration-count">${icon("star")} <span id="explored">0</span>/11 个角落</span></div>
+          <div class="garden-pocket"><span>${icon("gift")}<span class="bag-count">苹果 0 · 花朵 0 · 星屑 0</span></span><span class="day-hint">十分钟一昼夜 · 找长椅休息，等一场黄昏和星夜</span></div><details class="flower-book" hidden><summary>✿ 七色花谱 <span class="prism-count">0 / 7</span></summary><p class="prism-hint"></p><ol class="prism-list"></ol></details><section class="map-reader" aria-label="地图物件阅读区" hidden></section><section class="inline-help" aria-label="完整游玩说明" hidden></section><div class="game-bottom"><div class="desktop-instructions"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span><span><kbd>E</kbd> / 右键 互动</span><i></i><span>左键走动 / 点标记 · <kbd>B</kbd> 背包 · <kbd>H</kbd> 花环</span></div><span class="exploration-count">${icon("star")} <span id="explored">0</span>/${EVENT_IDS.length} 个角落</span></div>
           <p class="journey-legend">${icon("star")} 遇到小挫折，回小屋的床休息一下 <span>·</span> 勇气花园里藏着小挫折，小屋与周年花园安心玩</p>
           <div class="touch-controls"><div class="dpad" aria-label="移动方向键"><button data-direction="0,-1" class="dpad-up" aria-label="向上移动">↑</button><button data-direction="-1,0" class="dpad-left" aria-label="向左移动">←</button><span>${icon("heart")}</span><button data-direction="1,0" class="dpad-right" aria-label="向右移动">→</button><button data-direction="0,1" class="dpad-down" aria-label="向下移动">↓</button></div><div class="touch-hint">走近发光的小物件<br><span>或者直接点标记</span></div><button class="touch-interact">${icon("star")}<span>互动</span></button></div>
         </section>

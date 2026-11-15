@@ -109,7 +109,7 @@ export const ITEMS: Record<
     name: "草莓缎带鞋",
     slot: "shoes",
     description: "每一步都带一点甜甜的勇气。",
-    source: "完成周年礼物配对",
+    source: "在晚安小屋拆开礼盒并收下心意",
     icon: 6,
   },
   starShoes: {

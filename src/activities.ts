@@ -13,11 +13,14 @@ import {
 } from "./cake-party";
 import { drawPartyProp } from "./party-art";
 import type { ItemId } from "./items";
+import { GiftUnwrapping, drawUnwrappingGift } from "./gift-unwrapping";
+import "./gift-unwrapping.css";
 
 interface Hooks {
   complete: (id: string) => void;
   toast: (text: string) => void;
   reward?: (id: ItemId) => void;
+  isComplete?: (id: string) => boolean;
 }
 interface Particle extends Point {
   vx: number;
@@ -50,11 +53,9 @@ export class Activities {
   private eaten = new Set<number>();
   private eatTime = 0;
   private eating = 0;
-  private giftFlips = Array(8).fill(0);
-  private cards: number[] = [];
-  private flipped: number[] = [];
-  private matched = new Set<number>();
-  private flipWait = 0;
+  private gift = new GiftUnwrapping();
+  private giftCollected = false;
+  private giftReturnFocus = false;
   private balloon = [0, 0, 0];
   private released = false;
   private rise = 0;
@@ -111,6 +112,7 @@ export class Activities {
       this.blowing = false;
       this.cutStart = null;
       this.cutStroke = [];
+      this.gift.cancelPointer();
     };
     const previousAction = world.onAction;
     world.onAction = (pressed) => {
@@ -126,7 +128,7 @@ export class Activities {
         this.launch();
         return true;
       }
-      if (this.mode === "gifts" && this.flipWait > 0) return true;
+      if (this.mode === "gifts" && this.gift.busy) return true;
       const focused = document.activeElement;
       const action =
         focused instanceof HTMLButtonElement &&
@@ -143,10 +145,6 @@ export class Activities {
     window.addEventListener("keydown", (e) => {
       if (reservedShortcut(e) || world.suspended || readingTarget(e.target)) return;
       if (e.key === "Escape" && this.active) this.close();
-      if (this.mode === "gifts" && /^[1-8]$/.test(e.key) && !e.repeat) {
-        e.preventDefault();
-        this.flip(Number(e.key) - 1);
-      }
     });
     window.addEventListener("blur", () => {
       this.blowing = false;
@@ -165,7 +163,7 @@ export class Activities {
     if (!this.world.restState && ["dialogue", "nature", "note"].includes(this.mode)) this.close();
   }
   private hidePanel() {
-    const returnFocus = this.mode==="dialogue" && this.hud.contains(document.activeElement);
+    const returnFocus = ["dialogue", "gifts"].includes(this.mode) && this.hud.contains(document.activeElement);
     this.dialogueEnd?.();
     this.dialogueEnd = undefined;
     this.dialogueAt = undefined;
@@ -217,9 +215,8 @@ export class Activities {
     this.blowing = false;
     this.cutStart = null;
     this.cutStroke = [];
-    this.flipWait = 0;
-    this.flipped = [];
-    this.giftFlips = this.giftFlips.map(() => 0);
+    this.gift.cancelPointer();
+    this.giftReturnFocus = false;
     if (!this.world.restState) this.world.setFocus(null);
     this.world.paused = false;
     this.world.clearInput();
@@ -239,6 +236,8 @@ export class Activities {
     this.particles = [];
     this.rockets = [];
     this.skyWishes = [];
+    this.giftCollected = false;
+    this.gift.reset();
   }
   private begin(mode: string, text: string, point?: Point, zoom = 1) {
     this.close();
@@ -349,56 +348,57 @@ export class Activities {
   gifts() {
     this.begin(
       "gifts",
-      "把地毯上的礼物翻开，找到四对相同的小心意",
-      { x: 442, y: 320 },
-      2.8,
+      "给芙芙的一份心意 · 先轻轻解开两边的缎带",
+      { x: 454, y: narrowDialogue.matches ? 310 : 293 },
+      2.4,
     );
     this.world.actorHidden = true;
-    this.cards = [0, 1, 2, 3, 0, 1, 2, 3].sort(() => Math.random() - 0.5);
-    this.flipped = [];
-    this.matched.clear();
-    this.flipWait = 0;
-    this.giftFlips.fill(0);
+    this.gift.reset(this.giftCollected || !!this.hooks.isComplete?.("gifts"));
     this.giftControls();
   }
   private giftControls() {
+    const keepFocus = this.controls.contains(document.activeElement) || this.giftReturnFocus;
     this.controls.replaceChildren();
-    this.cards.forEach((value, i) => {
-      const visible = this.flipped.includes(i) || this.matched.has(i);
-      const button = this.action(
-        `${i + 1} ${visible ? ["草莓心意", "薄荷心意", "星月心意", "奶油心意"][value] : "拆开礼盒"}`,
-        () => this.flip(i),
-      );
-      button.disabled =
-        this.matched.has(i) || this.flipped.includes(i) || this.flipWait > 0;
-    });
-  }
-  private flip(index: number) {
-    if (
-      this.flipWait > 0 ||
-      this.matched.has(index) ||
-      this.flipped.includes(index)
-    )
-      return;
-    this.flipped.push(index);
-    this.giftFlips[index] = 0.4;
-    sfx("flip");
-    if (this.flipped.length === 2) {
-      const [a, b] = this.flipped;
-      if (this.cards[a] === this.cards[b]) {
-        this.matched.add(a);
-        this.matched.add(b);
-        this.flipped = [];
-        sfx("match");
-        this.status.textContent = `找到 ${this.matched.size / 2} / 4 对礼物啦`;
-        if (this.matched.size === 8) {
+    const gift = this.gift;
+    if (gift.stage === "tied") {
+      this.status.textContent = gift.ribbons.some(Boolean)
+        ? "一边已经松开啦 · 再解开另一端"
+        : "给芙芙的一份心意 · 点缎带两端，或向两边轻轻拉开";
+      ["解开左边缎带", "解开右边缎带"].forEach((label, i) => {
+        if (!gift.ribbons[i]) this.action(`${label} · E`, () => {
+          if (gift.untie(i)) { sfx("flip"); this.giftControls(); }
+        });
+      });
+    } else if (gift.stage === "untying") {
+      this.status.textContent = "缎带轻轻落在地板上…";
+    } else if (gift.stage === "ready") {
+      this.status.textContent = "缎带已经解开 · 盒子里会藏着什么呢？";
+      this.action("轻轻掀开盒盖 · E", () => {
+        if (gift.open()) { sfx("flip"); this.giftControls(); }
+      });
+    } else if (gift.stage === "opening") {
+      this.status.textContent = "把柔软的纸衬拨开，看看这份心意…";
+    } else if (gift.stage === "revealed") {
+      this.status.textContent = "是草莓缎带鞋！愿每一步，都有温柔相伴。";
+      this.action(gift.previouslyCollected ? "收好这份心意 · E" : "收下这份心意 · E", () => {
+        if (gift.collect()) {
+          this.giftCollected = true;
           this.hooks.complete("gifts");
           this.hooks.reward?.("ribbonShoes");
-          this.status.textContent = "每一份心意，都找到了好朋友 ♡";
+          sfx("complete");
         }
-      } else this.flipWait = 0.85;
+        this.giftControls();
+      });
+    } else {
+      this.status.textContent = "草莓缎带鞋已收在背包里 · 喜欢的时候，就穿着它出发吧。";
+      this.action("带着心意继续散步 · E", () => this.close());
+      this.action("再拆一次", () => { gift.reset(true); this.giftControls(); });
     }
-    this.giftControls();
+    if (keepFocus) {
+      const next = this.controls.querySelector<HTMLButtonElement>("button");
+      this.giftReturnFocus = !next;
+      (next ?? this.world.canvas).focus({preventScroll:true});
+    }
   }
   balloons() {
     if (this.released) {
@@ -554,11 +554,9 @@ export class Activities {
       return true;
     }
     if (this.mode === "gifts") {
-      if (type === "down") {
-        const col = Math.floor((point.x - 392) / 26),
-          row = Math.floor((point.y - 275) / 29);
-        if (col >= 0 && col < 4 && row >= 0 && row < 2)
-          this.flip(row * 4 + col);
+      if (this.gift.pointer(type, point)) {
+        sfx("flip");
+        this.giftControls();
       }
       return true;
     }
@@ -583,7 +581,10 @@ export class Activities {
   private tick(dt: number, _time: number) {
     this.dismissIfOutOfReach();
     this.positionDialogue();
-    this.giftFlips = this.giftFlips.map((n) => Math.max(0, n - dt));
+    if (this.mode === "gifts" && this.gift.tick(dt, matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+      if (this.gift.stage === "revealed") sfx("match");
+      this.giftControls();
+    }
     if (this.mode === "cake" && this.cakeStage === 4) {
       this.eatTime += dt;
       if (this.eatTime >= 3) this.finishEating();
@@ -596,14 +597,6 @@ export class Activities {
         this.blowing = false;
         sfx("match");
         this.cakeControls();
-      }
-    }
-    if (this.mode === "gifts" && this.flipWait > 0) {
-      this.flipWait -= dt;
-      if (this.flipWait <= 0) {
-        this.flipWait = 0;
-        this.flipped = [];
-        this.giftControls();
       }
     }
     if (this.released) this.rise = Math.min(650, this.rise + dt * 42);
@@ -691,72 +684,8 @@ export class Activities {
     if (this.world.scene === "room") {
       this.drawCake(c, t);
       if (this.mode === "gifts") {
-        c.fillStyle = "#88665633";
-        c.beginPath();
-        c.roundRect(387, 261, 113, 76, 5);
-        c.fill();
-        c.fillStyle = "#c29c7c";
-        c.beginPath();
-        c.roundRect(387, 259, 113, 76, 5);
-        c.fill();
-        c.fillStyle = "#fff1db";
-        c.beginPath();
-        c.roundRect(389, 261, 109, 72, 4);
-        c.fill();
-        c.fillStyle = "#9b6a86";
-        c.font = '7px "Microsoft YaHei",sans-serif';
-        c.textAlign = "center";
-        c.fillText("心意成双 · 芙芙一周年", 444, 270);
-        this.cards.forEach((value, i) => {
-          const x = 392 + (i % 4) * 26,
-            y = 275 + Math.floor(i / 4) * 29;
-          const matched = this.matched.has(i),
-            visible =
-              (this.flipped.includes(i) || matched) && this.giftFlips[i] < 0.2;
-          const scale =
-            this.giftFlips[i] > 0
-              ? Math.max(
-                  0.05,
-                  Math.abs(Math.cos((this.giftFlips[i] / 0.4) * Math.PI)),
-                )
-              : 1;
-          c.save();
-          c.translate(x + 12, y + 13);
-          c.scale(scale, 1);
-          c.fillStyle = matched ? "#e7eedb" : "#f7e7d8";
-          c.beginPath();
-          c.roundRect(-12, -13, 24, 27, 3);
-          c.fill();
-          c.strokeStyle = matched ? "#b3c398" : "#dbbba7";
-          c.lineWidth = 0.5;
-          c.stroke();
-          drawPartyProp(c, visible ? 4 + value : 4, -10, -11, 20, 23);
-          if (matched) {
-            c.fillStyle = "#769f83";
-            c.font = '6px "Microsoft YaHei",sans-serif';
-            c.fillText("✓", 8, -7);
-          } else {
-            c.fillStyle = "#9c7789";
-            c.font = '5px "Microsoft YaHei",sans-serif';
-            c.fillText(String(i + 1), -8, -7);
-          }
-          c.restore();
-        });
-        this.world.drawAvatarAt(c, 520, 324, 0);
-        drawPartyProp(c, 7, 508, 307, 11, 13);
-        if (this.matched.size === 8)
-          for (let i = 0; i < 9; i++) {
-            c.fillStyle = ["#e4b0c5", "#e9ca87", "#a9c8b5"][i % 3];
-            c.beginPath();
-            c.arc(
-              391 + i * 13,
-              255 + Math.sin(t * 2 + i) * 4,
-              1.1,
-              0,
-              Math.PI * 2,
-            );
-            c.fill();
-          }
+        drawUnwrappingGift(c, this.gift, t, matchMedia("(prefers-reduced-motion: reduce)").matches);
+        this.world.drawAvatarAt(c, 503, 318, 1);
       }
     }
     if (this.world.scene === "garden") {

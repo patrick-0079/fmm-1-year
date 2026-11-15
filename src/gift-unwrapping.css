@@ -1,0 +1,32 @@
+.scene-wrap .activity-hud[data-mode="gifts"] {
+  position: absolute;
+  inset: auto 10px 10px;
+  margin: 0;
+  padding: 10px 14px;
+  border: 2px solid #b98d87;
+  border-radius: 5px;
+  background: #fff7e9f5;
+  box-shadow: inset 0 0 0 2px #f9e3c9, 2px 3px 0 #815c642b;
+}
+.scene-wrap .activity-hud[data-mode="gifts"] .activity-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.scene-wrap .activity-hud[data-mode="gifts"] .map-action {
+  min-height: 34px;
+  border-radius: 4px;
+  background: #fae4e6;
+  border-color: #cca0a8;
+  box-shadow: inset 0 1px 0 #fff6e9;
+}
+.scene-wrap .activity-hud[data-mode="gifts"] .map-action:focus-visible {
+  outline: 2px solid #98677e;
+  outline-offset: 2px;
+}
+@media (max-width:540px) {
+  .scene-wrap .activity-hud[data-mode="gifts"] { inset:auto 5px 5px; padding:6px 8px; }
+  .scene-wrap .activity-hud[data-mode="gifts"] .activity-status { font-size:11px; line-height:1.5; }
+  .scene-wrap .activity-hud[data-mode="gifts"] .activity-actions { margin-top:4px; gap:4px; }
+  .scene-wrap .activity-hud[data-mode="gifts"] .map-action { min-height:30px; padding:4px 8px; font-size:11px; }
+}

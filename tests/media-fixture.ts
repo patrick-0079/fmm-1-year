@@ -51,11 +51,17 @@ for (let i = 0; i < samples; i++)
   );
 const audio = URL.createObjectURL(new Blob([wav], { type: "audio/wav" }));
 temporaryUrls.push(audio);
-collections.radio.items = [
-  { id: "test-audio", title: "测试提示音", src: audio },
-];
+// Audio/video examples belong only to this renderer fixture. The bedroom no
+// longer exposes a radio or cinema collection in the shipped game.
+collections["qa-audio"] = {
+  title: "音频渲染验收", subtitle: "仅用于开发测试", kind: "audio",
+  items: [{ id: "test-audio", title: "测试提示音", src: audio }],
+};
+collections["qa-video"] = {
+  title: "视频渲染验收", subtitle: "仅用于开发测试", kind: "video", items: [],
+};
 async function videoFixture() {
-  if (collections.tv.items.length) return;
+  if (collections["qa-video"].items.length) return;
   const canvas = document.createElement("canvas");
   canvas.width = 160;
   canvas.height = 100;
@@ -84,11 +90,11 @@ async function videoFixture() {
   });
   const video = URL.createObjectURL(blob);
   temporaryUrls.push(video);
-  collections.tv.items = [{ id: "test-video", title: "测试视频", src: video }];
+  collections["qa-video"].items = [{ id: "test-video", title: "测试视频", src: video }];
 }
 document.querySelectorAll<HTMLButtonElement>("[data-test]").forEach((button) =>
   button.addEventListener("click", async () => {
-    if (button.dataset.test === "tv") {
+    if (button.dataset.test === "qa-video") {
       document.querySelector("#fixture-status")!.textContent =
         "正在生成无声测试片段…";
       await videoFixture();
