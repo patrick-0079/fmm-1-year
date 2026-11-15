@@ -370,7 +370,7 @@ export class Activities {
         });
       });
     } else if (gift.stage === "untying") {
-      this.status.textContent = "缎带轻轻落在地板上…";
+      this.status.textContent = "缎带慢慢松开…";
     } else if (gift.stage === "ready") {
       this.status.textContent = "缎带已经解开 · 盒子里会藏着什么呢？";
       this.action("轻轻掀开盒盖 · E", () => {

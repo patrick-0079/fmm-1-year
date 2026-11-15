@@ -195,14 +195,14 @@ await check("礼盒每次 E 独立解开一端，打开后不领奖；收下才�
 
 await check("礼盒鼠标可先拉右端，触屏可点左端；取消拖动不拆开缎带", () => {
   activities.gifts();
-  world.onPointer("down",{x:416,y:280},"touch"); world.onInputCancel();
-  world.onPointer("up",{x:416,y:280},"touch");
+  world.onPointer("down",{x:435,y:295},"touch"); world.onInputCancel();
+  world.onPointer("up",{x:435,y:295},"touch");
   assert(!giftState().ribbons.some(Boolean),"取消手势却拆开缎带");
-  world.onPointer("down",{x:481,y:280},"mouse");
-  world.onPointer("move",{x:491,y:280},"mouse");
-  world.onPointer("up",{x:491,y:280},"mouse");
+  world.onPointer("down",{x:461,y:295},"mouse");
+  world.onPointer("move",{x:471,y:295},"mouse");
+  world.onPointer("up",{x:471,y:295},"mouse");
   assert(giftState().ribbons[1]&&!giftState().ribbons[0],"右端拖动没有单独生效");
-  world.onPointer("down",{x:416,y:280},"touch");world.onPointer("up",{x:416,y:280},"touch");
+  world.onPointer("down",{x:435,y:295},"touch");world.onPointer("up",{x:435,y:295},"touch");
   world.onTick(.6,1);
   world.onPointer("down",{x:448,y:265},"touch");world.onPointer("up",{x:448,y:265},"touch");
   world.onTick(1,2);
@@ -355,9 +355,19 @@ await check("衣橱图集就绪会通知背包重绘", () => new Promise<void>((
 await check("小游戏提示按钮更新后保留键盘焦点，不在下一帧再次移除", () => {
   arcade.open("mines");
   world.onAction(true);
+  // A random first reveal can legitimately clear all 26 safe cells and remove
+  // the hint button. Use a known unfinished board for the focus-retention case.
+  (engine() as MinesGame).mines = new Set([8,10,20,22]);
   document.querySelectorAll<HTMLButtonElement>(".arcade-extra-actions button")[1].click();
   world.onTick(0.1, 1);
   assert(document.activeElement?.textContent?.includes("安全提示 · 剩余 2"), "提示后的下一帧丢失焦点");
+  arcade.open("mines"); world.onAction(true);
+  (engine() as MinesGame).mines = new Set([4,5,10,11]);
+  document.querySelectorAll<HTMLButtonElement>(".arcade-extra-actions button")[1].click();
+  world.onTick(.1,1);
+  assert(engine().status === "won" && engine().score === 26, "安全提示通关布局未触发获胜");
+  assert(!document.querySelector(".arcade-extra-actions button") && document.activeElement === canvas,
+    "提示直接通关后没有移除旧按钮并把焦点交回画布");
 });
 
 await check("奶油猫与垂耳兔佩戴后七种小游戏可启动、暂停、收起背包和返回地图", () => {

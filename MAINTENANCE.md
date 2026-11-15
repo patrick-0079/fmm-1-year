@@ -34,7 +34,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 周年游园券、七幅棋盘与像素角色 | `src/arcade-art.ts`、`src/arcade-pixels.ts` 与 `src/festival-v11.css`。运行 `npm run art:festival` 重建游戏图和鞋子图层 |
 | 原创音乐《把晚安留给你》 | `src/lullaby.ts` 保存乐谱、各地图速度与配器。`src/sound.ts` 负责解锁音频、音量、放映时的音量变化和后台暂停 |
 | 小游戏规则与面板 | `src/arcade-engines.ts`、`src/arcade-bonus.ts`、`src/arcade.ts`；新增种类也要补 `town-data.ts` 与说明 |
-| 蛋糕、礼物、气球、烟花 | `src/activities.ts`；切割判定在 `src/cake-party.ts`，拆缎带/揭盒盖/领奖与绘制在 `src/gift-unwrapping.ts`，精细气球/礼盒裁切在 `src/party-art.ts` |
+| 蛋糕、礼物、气球、烟花 | `src/activities.ts`；切割判定在 `src/cake-party.ts`，拆缎带/揭盒盖/领奖在 `src/gift-unwrapping.ts`，礼盒素材锚点在 `src/gift-art.ts`，气球裁切在 `src/party-art.ts`；礼盒美术说明见 `ARTWORK-v37.md` |
 | 地图与物理通道 | `src/gate-layout.ts` 共用南门、北桥 / 石阶的路牌、碰撞和单向过线判定；`src/maps.ts` 的庭院边界沿两条实际石径。路线参考图及重建方式见 [v18 素材说明](ARTWORK-v18.md) |
 | 月芽传送阵与白色贝斯 | `src/moon-circle.ts` 在草地层绘制阵纹，中心进入判定在 `src/meadow-map.ts`。琴的位置、琴架占地在 `src/room-props.ts`；琴声音轨与音符分别由 `src/bass-audio.ts`、`src/room-bass.ts` 处理 |
 | 窗边周年曲《把晚安弹给你》 | `src/bass-score.ts` 维护弦号、品位、节拍和每个音对应的歌词；示范与玩家练习各有自己的进度。`src/room-bass.ts` 和 `src/bass-stage.css` 控制场内乐谱。运行 `npm run audio:bass` 可重建九个音高的本地 WAV 和整曲示范。示范跟随音轨播放位置走谱，`bassSound` 保存独立的琴声开关。仅弹完整首后在原存档记下 `bassSongPlayed` |

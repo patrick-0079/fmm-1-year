@@ -25,14 +25,3 @@ export function drawPartyProp(
     b = fitItem(sw, sh, x, y, w, h);
   c.drawImage(party, sx, sy, sw, sh, b.x, b.y, b.w, b.h);
 }
-
-/** A piece of the existing strawberry wrapping, used on the removable lid. */
-export function drawGiftPaper(c: CanvasRenderingContext2D, path: Path2D) {
-  if (!party.complete || !party.naturalWidth) return;
-  c.save(); c.clip(path); c.globalAlpha *= .34;
-  // Sample the flowered panel, away from the satin bands and the box outlines.
-  for (let x = -34; x < 34; x += 9)
-    for (let y = -60; y < -22; y += 12)
-      c.drawImage(party, 144, 819, 45, 60, x, y, 9, 12);
-  c.restore();
-}
