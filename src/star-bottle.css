@@ -1,0 +1,83 @@
+.star-bottle-page {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px max(20px, env(safe-area-inset-right)) 22px max(20px, env(safe-area-inset-left));
+  overflow: hidden;
+  overscroll-behavior: none;
+  isolation: isolate;
+  color: #f4ecd6;
+  background:
+    radial-gradient(ellipse at 28% 58%, #537a7c3b 0, transparent 43%),
+    radial-gradient(ellipse at 81% 18%, #77758b20 0, transparent 42%),
+    linear-gradient(145deg, #203849, #132b39 62%, #142e3c);
+  font: 15px/1.75 "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+}
+.star-bottle-page[hidden] { display: none !important; }
+.star-bottle-page > header { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex: 0 0 auto; width: min(1080px,100%); margin: 0 auto; padding-bottom: 16px; border-bottom: 1px solid #d6c49d2b; }
+.star-bottle-page h1 { margin: 0; color: #f8e8bb; font-size: 28px; font-weight: 650; letter-spacing: 3px; line-height: 1.4; }
+.star-bottle-eyebrow { font-size: 12px; color: #aebfc2; letter-spacing: 1px; }
+.star-bottle-return { min-height: 44px; padding: 7px 15px; border: 1px solid #c7b88d80; border-radius: 6px; background: #f7e8c40c; color: #eddfbf; font-size: 14px; }
+.star-bottle-return:hover { background: #f7e8c41c; }
+.star-bottle-layout { width: min(1080px,100%); margin: 0 auto; padding-top: 18px; display: grid; grid-template-columns: minmax(260px,1fr) minmax(300px,1fr); gap: clamp(24px,5vw,76px); flex: 1 1 auto; min-height: 0; }
+.star-bottle-display { min-height: 0; display: flex; flex-direction: column; align-items: center; }
+.star-bottle-art { flex: 1 1 auto; min-height: 0; width: 100%; display: grid; place-items: center; }
+.star-bottle-vessel { position: relative; width: min(340px,100%); aspect-ratio: 300 / 410; }
+.star-bottle-glass { display: block; width: 100%; height: 100%; overflow: visible; }
+.star-bottle-stars { position: absolute; inset: 0; }
+.star-bottle-star { position: absolute; width: 54px; height: 54px; padding: 4px; transform: translate(-50%,-50%); border: 0; border-radius: 50%; background: transparent; touch-action: manipulation; }
+.star-bottle-star::before { content: ""; position: absolute; inset: -5px; z-index: -1; border-radius: 50%; background: radial-gradient(circle,#ffe6a32b,transparent 67%); animation: bottle-star-breathe 5s ease-in-out infinite; animation-delay: var(--star-phase); pointer-events: none; }
+.star-bottle-star svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 2px 3px #0b263d50) drop-shadow(0 0 3px #ffe5aa62); pointer-events: none; }
+.star-bottle-star:hover svg, .star-bottle-star[aria-pressed="true"] svg { filter: drop-shadow(0 0 6px #ffefb7d0); }
+.star-bottle-star[aria-pressed="true"]::after { content: ""; position: absolute; inset: 1px; border: 1px solid #fff0bb8c; border-radius: 50%; pointer-events: none; }
+.star-bottle-page button:focus-visible, .star-bottle-message:focus-visible { outline: 2px solid #efdaa2; outline-offset: 3px; }
+.star-bottle-caption { flex: 0 0 auto; text-align: center; padding-top: 4px; }
+.star-bottle-count { color: #e9d7a7; font-size: 14px; }
+.star-bottle-caption p { margin: 2px 0 0; color: #adbec0; font-size: 12px; }
+.star-bottle-pager { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 12px; }
+.star-bottle-pager[hidden] { display: none !important; }
+.star-bottle-pager button { width: 44px; height: 44px; border: 0; border-radius: 5px; background: transparent; color: #eadbb6; font-size: 24px; }
+.star-bottle-pager button:disabled { opacity: .35; }
+.star-bottle-detail { align-self: center; width: 100%; max-height: 100%; min-height: 160px; display: flex; flex-direction: column; padding: 24px; border: 1px solid #c1b18a36; border-radius: 12px; background: linear-gradient(140deg,#4a5e661b,#d6d5ba0b); box-shadow: inset 0 0 0 4px #ded6b503; overflow: hidden; }
+.star-bottle-name { flex: 0 0 auto; margin: 0; padding-bottom: 14px; color: #f3dfa9; font-size: 24px; font-weight: 600; line-height: 1.5; letter-spacing: 1px; overflow-wrap: anywhere; }
+.star-bottle-intro { margin: 0; color: #b9c5c4; }
+.star-bottle-message { flex: 1 1 auto; min-height: 0; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; color: #ede8d9; padding-right: 9px; scrollbar-width: thin; scrollbar-color: #b6a67a #203947; overscroll-behavior: contain; touch-action: pan-y; }
+.star-bottle-detail[data-selected="true"][data-has-message="false"] { justify-content: center; text-align: center; border-color: transparent; background: transparent; box-shadow: none; }
+.star-bottle-detail[data-selected="true"][data-has-message="false"] .star-bottle-name { padding: 0; font-size: 30px; }
+body:has(.star-bottle-page:not([hidden])) .debug-trigger { visibility: hidden; pointer-events: none; }
+@keyframes bottle-star-breathe { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
+@media (min-width: 651px) {
+  .star-bottle-display { justify-content: center; }
+  .star-bottle-art { flex: 0 1 auto; height: min(520px,calc(100% - 48px)); }
+  .star-bottle-caption { margin-top: -10px; padding-top: 0; position: relative; }
+}
+@media (max-width: 650px) {
+  .star-bottle-page { padding: max(10px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom)); font-size: 14px; line-height: 1.7; }
+  .star-bottle-page > header { gap: 12px; padding-bottom: 9px; }
+  .star-bottle-page h1 { font-size: 22px; }
+  .star-bottle-eyebrow { font-size: 11px; }
+  .star-bottle-return { padding: 5px 10px; font-size: 13px; }
+  .star-bottle-layout { grid-template-columns: minmax(0,1fr); grid-template-rows: minmax(300px,46%) minmax(0,1fr); gap: 12px; padding-top: 4px; }
+  .star-bottle-vessel { width: min(244px,100%); }
+  .star-bottle-star { width: 44px; height: 44px; padding: 3px; }
+  .star-bottle-detail { align-self: stretch; min-height: 0; padding: 13px 14px; border-radius: 8px; }
+  .star-bottle-name { font-size: 19px; padding-bottom: 8px; }
+  .star-bottle-detail[data-selected="true"][data-has-message="false"] .star-bottle-name { font-size: 26px; }
+  .star-bottle-caption { padding-top: 0; }
+  .star-bottle-count { font-size: 13px; }
+  .star-bottle-caption p { font-size: 12px; }
+  .star-bottle-message { padding-right: 6px; }
+}
+@media (min-width: 651px) and (max-height: 560px) {
+  .star-bottle-page { padding-top: 8px; padding-bottom: 8px; }
+  .star-bottle-page > header { padding-bottom: 6px; }
+  .star-bottle-page h1 { font-size: 22px; }
+  .star-bottle-layout { padding-top: 6px; }
+  .star-bottle-vessel { width: 210px; }
+  .star-bottle-star { width: 44px; height: 44px; }
+  .star-bottle-detail { padding: 12px 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .star-bottle-star::before { animation: none; opacity: .75; } }

@@ -7,6 +7,7 @@ import type { DepthLayer, World } from "./world";
 import { drawMoonCircle } from "./moon-circle";
 import { drawFirefly, fireflyDrift } from "./firefly-art";
 import { MeadowStarReader } from "./meadow-star-reader";
+import { StarBottleView } from "./star-bottle";
 
 type Credit = typeof producers[number];
 const flock = [
@@ -32,14 +33,15 @@ function glint(c: CanvasRenderingContext2D, x: number, y: number, size: number, 
 
 export class NightMeadow {
   private time = 0;
-  private jarPage = 0;
   private reduced = matchMedia("(prefers-reduced-motion: reduce)");
   private caption = document.createElement("div");
   private memory?: {origin: Point; age: number; duration: number; burst: boolean};
   private reader: MeadowStarReader;
+  private bottle: StarBottleView;
 
   constructor(private world: World, private found: () => string[], private save: () => void) {
     this.reader = new MeadowStarReader(world);
+    this.bottle = new StarBottleView(world, found);
     this.caption.className = "star-whisper";
     this.caption.hidden = true;
     this.caption.setAttribute("role", "status");
@@ -67,12 +69,14 @@ export class NightMeadow {
     };
   }
   leave() {
-    this.jarPage = 0;
+    this.closeBottle();
     this.closeReader();
     this.clearCaption();
   }
   get readerOpen() { return this.reader.opened; }
   closeReader() { this.reader.close(); }
+  get bottleOpen() { return this.bottle.opened; }
+  closeBottle() { this.bottle.close(); }
   interact(id: string) {
     if (this.world.scene !== "meadow") return false;
     if (id === "meadow-camp") {
@@ -81,13 +85,9 @@ export class NightMeadow {
       return true;
     }
     if (id === "meadow-jar") {
-      const known = producers.filter(person => this.found().includes(person.id));
-      if (!known.length) {
-        this.whisper(starJar, "星光瓶", "瓶子还空着。草地上有几颗很亮的星星。", false);
-      } else {
-        const i = this.jarPage++ % known.length;
-        this.showCredit(known[i], starJar, false, `星光瓶 ${i + 1} / ${known.length}`);
-      }
+      this.closeReader();
+      this.clearCaption();
+      this.bottle.open();
       return true;
     }
     const person = producers.find(p => p.id === id);

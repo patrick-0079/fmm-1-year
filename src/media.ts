@@ -3,6 +3,7 @@ import { escapeHtml, icon } from "./icons";
 import { duckMusic } from "./sound";
 import { FilmPreloader, downloadLabel } from "./film-preloader";
 import "./album.css";
+import "./mailbox.css";
 export interface CollectionSurface {
   open(title: string, subtitle: string, label: string): HTMLElement;
   close(): void;
@@ -35,8 +36,15 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
   }
   body.innerHTML = `<div class="collection-layout"><nav class="collection-list" aria-label="${escapeHtml(collection.title)}列表"></nav><section class="memory-detail" aria-live="polite"></section></div>`;
   body.querySelector(".collection-layout")!.classList.toggle("album-layout", collection.kind === "image");
+  body.querySelector(".collection-layout")!.classList.toggle("mailbox-layout", collection.kind === "text");
+  body.classList.toggle("mailbox-reader-body", collection.kind === "text");
   const list = body.querySelector(".collection-list")!,
     detail = body.querySelector(".memory-detail")!;
+  if (collection.kind === "text") {
+    body.removeAttribute("tabindex");
+    detail.setAttribute("tabindex", "0");
+    detail.setAttribute("aria-label", "信件正文，可滚动阅读");
+  }
   let media: HTMLMediaElement | null = null;
   let filmUrl: string | undefined;
   const stop = () => {
@@ -55,13 +63,18 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     list.querySelectorAll("button").forEach((button, i) => {
       button.classList.toggle("selected", i === index);
       button.setAttribute("aria-pressed", String(i === index));
-      if (i === index) button.querySelector(".collection-item-title")!.textContent = item.title;
+      if (i === index) {
+        button.querySelector(".collection-item-title")!.textContent = item.title;
+        button.classList.remove("unread");
+        button.setAttribute("aria-label", item.title);
+      }
     });
     detail.innerHTML = `<h3>${escapeHtml(item.title)}</h3>${item.author ? `<p class="memory-author">来自 ${escapeHtml(item.author)}</p>` : ""}<div class="memory-content"></div>`;
     const content = detail.querySelector(".memory-content")!;
     if (collection.kind === "text") {
       // Each letter opens at its salutation, even after reading a long one.
       body.scrollTop = 0;
+      detail.scrollTop = 0;
       const p = document.createElement("p");
       p.className = "letter-text";
       p.textContent = item.text || "这封信的正文还在路上。";
@@ -141,6 +154,8 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     const button = document.createElement("button");
     button.className = "collection-item";
     button.dataset.memoryId = item.id;
+    button.setAttribute("aria-label", item.title + (letters?.unreadId === item.id ? "，未读" : ""));
+    button.classList.toggle("unread", letters?.unreadId === item.id);
     if (collection.kind === "image" && item.thumbnail) {
       const thumbnail = new Image();
       thumbnail.src = item.thumbnail;
@@ -154,6 +169,13 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     title.className = "collection-item-title";
     title.textContent = item.title + (letters?.unreadId === item.id ? " · 未读" : "");
     button.append(title);
+    if (collection.kind === "text") {
+      const short = document.createElement("span");
+      short.className = "collection-item-short";
+      short.setAttribute("aria-hidden", "true");
+      short.textContent = item.author?.split(" · ")[0] || item.title;
+      button.append(short);
+    }
     button.addEventListener("click", () => select(i));
     list.append(button);
   });
@@ -166,4 +188,5 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     document.removeEventListener("visibilitychange", visibility);
   });
   select(Math.max(0, items.findIndex(item => item.id === letters?.selectedId)));
+  if (collection.kind === "text") (detail as HTMLElement).focus({ preventScroll: true });
 }

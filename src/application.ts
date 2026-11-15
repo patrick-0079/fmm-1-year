@@ -215,6 +215,7 @@ export function mountGame(tasks: Task[]) {
     }
   };
   const closePanels = () => {
+    meadow.closeBottle();
     meadow.closeReader();
     bass.close(false);
     inventory.close(false);
@@ -289,7 +290,7 @@ export function mountGame(tasks: Task[]) {
   };
   world.retainCueHover = point => prompt.retainsHover(cuePoint(point));
   world.canShowInteractionCues = () => started && !transitioning && !resetInProgress &&
-    !activities.active && !arcade.active && !cinema.active && !bass.active && !bedNote.isOpen && !meadow.readerOpen &&
+    !activities.active && !arcade.active && !cinema.active && !bass.active && !bedNote.isOpen && !meadow.readerOpen && !meadow.bottleOpen &&
     cuePanels.every(panel => panel.hidden);
   world.onInteractionCue = spot => {
     const cue = spot ? resolveCue(spot, world.scene) : null;

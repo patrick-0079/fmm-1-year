@@ -18,11 +18,11 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 内容 | 文件与维护要点 |
 | --- | --- |
 | 主播链接、纪念日期、制作人 | `src/content.ts` 的 `anniversary`、`producers`。制作人记录的 `id` 对应存档，`name` 与 `message` 在拾星时揭晓。待收文案见 [todo.md](todo.md) |
-| 信箱与日常相册 | `src/content.ts` 的 `collections`；四张插画及缩略图在 `src/assets/album-v36/`，`scripts/build-album-art.mjs` 重建；可选新增文件放 `public/media/` |
+| 信箱与日常相册 | `src/content.ts` 的 `collections`；信箱左列标签与正文独立滚动的布局在 `src/mailbox.css`，正文滚动目标是 `.memory-detail`。四张插画及缩略图在 `src/assets/album-v36/`，`scripts/build-album-art.mjs` 重建；可选新增文件放 `public/media/` |
 | 花园大屏视频 | `src/cinema-config.ts`；使用直接可读取的 MP4 地址，推荐 H.264 + AAC，替换后核对 CORS |
 | 每次复活的床边便签 | `src/bed-note.ts`、`src/assets/xiaoye-note.webp`。首遇解锁图钉，之后每次回床也自动展信。附加文案在 `content.ts` 的 `encouragements` |
 | 回声遗迹 | `src/ruins-map.ts` 记录地砖范围和门槛，`src/echoes.ts` 校验拓本与解谜存档，`src/echo-ruins.ts` 负责祭坛、石座、听月泉和电波。地图、拱门和三张棋盘用 `node scripts/build-ruins-art.mjs` 从三张原画重建。 |
-| 七色花与夜间花海 | `src/rainbow-flowers.ts` 和 `src/flower-trail.ts` 维护七种花与入口。`src/meadow-map.ts` 描出草地、帐篷、火圈和水壶。`src/night-meadow.ts` 绘制羊、萤火与落星，管理寄语和星光瓶 |
+| 七色花与夜间花海 | `src/rainbow-flowers.ts` 和 `src/flower-trail.ts` 维护七种花与入口。`src/meadow-map.ts` 描出草地、帐篷、火圈和水壶。`src/night-meadow.ts` 绘制羊、萤火与落星并管理拾星寄语；`src/star-bottle.ts`、`src/star-bottle.css` 管理星光瓶独立收藏页 |
 | 苹果、可采花丛、勇气花和黄昏纸船 | `src/nature.ts` 按剩余数量和时段绘制，`src/wild-art.ts` 按脚底锚点读取四格图集。运行 `npm run art:night` 重建花海和采集物美术。[v16 素材说明](ARTWORK-v16.md) |
 | 烟花祝福 | `src/celebration.ts` 的 `fireworkWishes`；全部是预设文字 |
 | 小镇居民和小游戏摊位 | `src/town-data.ts`；位置、靠近点和半径需要一起验证 |
@@ -113,7 +113,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 当前花海有八颗落星。新增的小叶子使用 `star-xiaoye`、坐标 `(485,335)`，夜神华使用 `star-yeshenhua`、坐标 `(685,270)`；原六颗的 ID 和坐标保持不变。追加制作人时，选取草地上的空位，与营火、星光瓶及其他落星保持至少约 60 个逻辑像素的间距。`npm run check` 会验证署名 ID、点击和按键命中、落脚点以及寻路。已有玩家按稳定的 ID 记录收集进度，`readProgress` 从当前 `producers` 允许列表过滤，无需为追加落星另建存档。星光瓶按已拾 ID 从当前内容读取文字，补交寄语后老玩家也能重读。没有寄语时 `message` 保持空字符串，只显示署名。花海底图和羊群图集在集齐七朵花后一起预载。
 
-花海寄语使用地图内限高的阅读卡，长文滚动、手动收起或 Esc 关闭，不再依赖按字数计算的自动淡出。拾星荧光烟花照常播放；星光瓶每次互动翻一位已发现的制作人。检查长文时覆盖 320px、390px 手机宽度：正文应完整可读，指针滚动与阅读按键不得穿透到地图，收起后可立即继续走动。内容为空时不显示占位段落。
+花海寄语使用地图内限高的阅读卡，长文滚动、手动收起或 Esc 关闭，不再依赖按字数计算的自动淡出。拾星荧光烟花照常播放。星光瓶打开 `src/star-bottle.ts`、`src/star-bottle.css` 管理的独立收藏页，按已收集 ID 展示瓶内可选的星星，点击、轻触或 Tab / Enter 选读，选中后才显示姓名，Esc 返回花海。未收集星星不得出现在瓶中；有寄语显示完整正文，空字符串只显示姓名，不补占位段落。检查长文时覆盖 320px、390px 手机宽度：正文应完整可读，指针滚动与阅读按键不得穿透到地图，收起后可立即继续走动。
 
 | localStorage 键 | 内容 |
 | --- | --- |
@@ -218,4 +218,4 @@ R2 CORS 完整示例在 [README](README.md#花园小电视cdn-周年放映)。`C
 
 公开来信来自 `src/content.ts` 的 `collections.letters.items`，当前依次是小叶子、夜神华、Kerry；三封可直接阅读，未交稿的五封只登记在 `todo.md`。用户原文保留措辞和标点，仅按阅读需要分段。红笺的专属来信保存在 `src/resident-story.ts` 的 `postLetter`，完整正文与署名「红笺 · 周年小镇邮局」已经接入，`POST_LETTER_REVISION` 为 2。后续修改内容仍保留 id 并递增版本，读过旧版的玩家会收到未读提醒；尚未投递的玩家不会提前看到这封信。投递、已读版本、银铃赠礼剧情、栗栗留蛋糕与守护者邀请都保存在主存档的 `residents`。信箱各入口共用同一份已读记录。洋桔梗属于背包存档的 `bouquet` 字段，只能由青芽的收花选项领取。小镇收藏、试穿和七色花谱分别计数。
 
-信箱继续共用 `MapReader` 的游戏内和页面阅读入口。手机上的游戏内阅读器也固定在地图画幅内，只让正文滚动；不要恢复旧的相对定位样式撑大 `.scene-wrap`。长信应保留换行、清晰字体和可选择的正文，来回切换阅读方式时仍读取同一封信和同一份未读状态。
+信箱继续共用 `MapReader` 的游戏内和页面阅读入口，由 `src/mailbox.css` 统一左列来信标签与右侧正文的布局。`.collection-list` 与 `.memory-detail` 各自滚动，正文焦点、滚动检查和滚到底提示应定位到 `.memory-detail`，不要再滚整个 `.reader-body`。手机左列显示简短署名，正文保留完整标题与作者；游戏内阅读器固定在原画幅内，不恢复相对定位样式撑大 `.scene-wrap`。长信应保留换行、清晰字体和可选择的正文，来回切换阅读方式时仍读取同一封信和同一份未读状态。

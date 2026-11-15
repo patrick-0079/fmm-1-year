@@ -75,6 +75,26 @@ function closeStarReader() {
   const reader=q(".meadow-star-reader");
   if (!reader.hidden) q(".meadow-star-reader-close").click();
 }
+function closeStarBottle() {
+  const bottle=document.querySelector<HTMLElement>(".star-bottle-page");
+  if (bottle && !bottle.hidden) q(".star-bottle-return").click();
+}
+function checkBottleCollection() {
+  const known=producers.filter(person=>state().creditStars.includes(person.id));
+  const bottle=q(".star-bottle-page");
+  expect(!bottle.hidden && world.suspended,"星光瓶没有打开独立收藏页面并暂停探索");
+  const buttons=[...bottle.querySelectorAll<HTMLButtonElement>(".star-bottle-star")];
+  expect(buttons.map(button=>button.dataset.starId).join()===known.map(person=>person.id).join(),"瓶中星星没有按已收集名单显示");
+  expect(q(".star-bottle-count").textContent?.includes(String(known.length)),"瓶中收藏数不正确");
+  if (!known.length) expect(!producers.some(person=>bottle.textContent?.includes(person.name)),"空瓶泄露了未发现的署名");
+}
+function selectBottleStar(person: typeof producers[number]) {
+  const before=state().creditStars.join();
+  q(`[data-star-id="${person.id}"]`).click();
+  expect(q(".star-bottle-name").textContent===person.name,"瓶内选择的星星署名不正确");
+  expect(q(".star-bottle-message").textContent?.replace(/\s/g,"")===person.message.replace(/\s/g,""),"瓶内寄语未读取当前完整正文，或空文带有占位符");
+  expect(state().creditStars.join()===before,"瓶内重读不应更改已收集名单");
+}
 function checkStarWords(person: typeof producers[number]) {
   expect(q(".star-whisper strong").textContent===person.name,"落星署名不正确");
   const reader=q(".meadow-star-reader");
@@ -180,13 +200,13 @@ async function checkAll() {
   world.switchScene("garden",meadowGate.approach); world.interact(); await insideMeadow();
   const jar = meadowSpot("meadow-jar"), fire = meadowSpot("meadow-camp");
   world.switchScene("meadow", jar.approach); world.interact();
-  expect(q(".star-whisper").textContent?.includes("瓶子还空着"), "空瓶泄露了未发现的署名");
+  checkBottleCollection(); closeStarBottle();
   world.switchScene("meadow",fire.approach); world.interact();
   expect(world.restState?.kind==="sitting" && q(".rest-tools").textContent?.includes("营火"),"营火旁不能坐下");
   world.interact();
   for (const [i, person] of producers.slice(0,-1).entries()) await collectStar(person,i===0);
   world.switchScene("meadow",jar.approach); world.interact();
-  checkStarWords(producers[0]); closeStarReader();
+  checkBottleCollection(); selectBottleStar(producers[0]); closeStarBottle();
   const exit=scenes.meadow.spots.find(s=>s.id==="meadow-exit")!;
   world.switchScene("meadow",exit.approach); world.interact();
   await wait(()=>world.scene==="garden");
@@ -656,12 +676,12 @@ if (sessionStorage.getItem(space+"reload")) {
     const last=producers.at(-1)!;
     if (!state().creditStars.includes(last.id)) await collectStar(last);
     const jar=meadowSpot("meadow-jar");
-    world.switchScene("meadow",jar.approach);
+    world.switchScene("meadow",jar.approach); world.interact(); checkBottleCollection();
     for(const p of producers) {
-      world.interact();
-      checkStarWords(p); closeStarReader();
+      selectBottleStar(p);
     }
-    log("刷新后继续拾齐全部落星，星光瓶能够依次重读每一位制作人的寄语");
+    closeStarBottle();
+    log("刷新后继续拾齐全部落星，星光瓶独立收藏页可点选每一位制作人的星星并重读寄语");
   });
 }
 
@@ -675,7 +695,7 @@ Object.assign(window, { contentQA: {
     canvas:world.canvas.getBoundingClientRect().toJSON(), scrollY,
     focused:document.activeElement===world.canvas ? "canvas" : (document.activeElement as HTMLElement)?.className}),
   async visit(scene: Parameters<World["switchScene"]>[0], id?: string) {
-    closeStarReader();
+    closeStarReader(); closeStarBottle();
     await world.prepareScene(scene);
     const config=scene==="town"?world.townMap:scenes[scene];
     world.switchScene(scene,id?config.spots.find(s=>s.id===id)?.approach:config.spawn);
@@ -688,4 +708,6 @@ Object.assign(window, { contentQA: {
     return {x:r.left+p.x*r.width/600,y:r.top+p.y*r.height/400};
   },
   canvasImage: () => world.canvas.toDataURL(),
+  checkBottleCollection,
+  selectBottleStar: (id: string) => selectBottleStar(producers.find(person=>person.id===id)!),
 } });
