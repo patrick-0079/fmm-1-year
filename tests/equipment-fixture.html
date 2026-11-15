@@ -2,13 +2,14 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>饰品姿势验收</title>
     <style>
       body {
         margin: 24px;
         background: #faf1dc;
         color: #735b66;
-        font: 14px monospace;
+        font: 14px "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
       }
       h1 {
         font-size: 20px;
@@ -41,13 +42,34 @@
       #backpacks th, #backpacks td { padding: 3px 5px; border: 1px solid #cbc9b6; }
       #backpacks th { font: 600 14px system-ui, sans-serif; white-space: nowrap; background: #f2e9d5; }
       #backpacks canvas { width: 108px; }
+      #headwear .headwear-scroll { max-width: 100%; overflow-x: auto; }
+      #headwear table { border-collapse: collapse; background: #e6e9d9; }
+      #headwear th, #headwear td { border: 1px solid #c5c6b5; padding: 4px; text-align: center; }
+      #headwear th { white-space: nowrap; font-weight: 600; background: #f5edda; }
+      #headwear th[scope="row"] { min-width: 132px; position: sticky; left: 0; z-index: 1; }
+      #headwear .rear-view { background: #dce7df; }
+      #headwear canvas { width: 96px; height: 132px; }
+      #headwear .headwear-scroll:focus-visible { outline: 2px solid #98677e; outline-offset: 2px; }
     </style>
   </head>
   <body>
-    <h1>十四种纪念品 · 四向、坐姿与睡姿</h1>
+    <h1>纪念品佩戴验收 · 四向、坐姿与睡姿</h1>
     <p>
       开发验收页，复用游戏实际绘制代码。睡觉时全部饰品应隐藏；本页不解锁或修改游戏存档，生产构建不包含此页。
     </p>
+    <section id="headwear">
+      <h2>头饰逐帧对照</h2>
+      <p>第一行是未佩戴头饰的原角色，其余四行依次为花环、星糖发夹、耳机与星翼发饰。每个朝向都有待机与两帧行走；淡绿色列突出背面。坐姿沿用正面，睡觉时应与原角色一致。窄窗口可横向滚动本表。</p>
+      <div class="headwear-scroll" tabindex="0" role="region" aria-label="四种头饰与原角色的逐帧对照，可横向滚动">
+        <table>
+          <thead>
+            <tr><th rowspan="2" scope="col">头饰</th><th colspan="3" scope="colgroup">正面</th><th colspan="3" scope="colgroup">向左</th><th colspan="3" scope="colgroup">向右</th><th colspan="3" scope="colgroup" class="rear-view">背面</th><th rowspan="2" scope="col">坐下</th><th rowspan="2" scope="col">睡觉</th></tr>
+            <tr><th scope="col">待机</th><th scope="col">迈步一</th><th scope="col">迈步二</th><th scope="col">待机</th><th scope="col">迈步一</th><th scope="col">迈步二</th><th scope="col">待机</th><th scope="col">迈步一</th><th scope="col">迈步二</th><th scope="col" class="rear-view">待机</th><th scope="col" class="rear-view">迈步一</th><th scope="col" class="rear-view">迈步二</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
     <section id="backpacks">
       <h2>背包侧身逐帧对照</h2>
       <table aria-label="三款背包左右侧身的待机与行走姿势">
@@ -60,7 +82,7 @@
     </section>
     <section id="outfits"><h2>衣服与叠穿逐帧对照</h2><p>原衣、周年蔷薇裙、晨露薄荷披肩、披肩配兔包与星星耳机。各行依次展示四个朝向的三帧、坐姿与睡姿。</p><canvas id="garments" width="1176" height="440" style="width:min(100%,1176px)"></canvas></section>
     <section><h2>鞋子逐帧对照</h2><p>从左到右依次为正面、向左、向右、背面各三帧，末列为坐姿。从上至下为原鞋、草莓缎带鞋、星月旅行鞋。</p><canvas id="footsteps" width="1092" height="350" style="width:min(100%,1092px)"></canvas></section>
-    <details id="all-poses"><summary>十四种配饰总览 · 正面、左右、背面、坐姿、睡姿</summary>
+    <details id="all-poses"><summary>全部配饰总览 · 正面、左右、背面、坐姿、睡姿</summary>
     <canvas id="catalog" width="1152" height="630" style="width:min(100%,1152px)"></canvas></details>
     <main></main>
     <script type="module" src="/tests/equipment-fixture.ts"></script>

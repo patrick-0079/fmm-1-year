@@ -22,6 +22,41 @@ const [a, b, c, d] = await Promise.all(
 const images = { sprite: a, rest: b, wreath: c, rewards: d };
 await Promise.all([prepareSceneArt("ruins"), new Promise<void>(whenWardrobeReady)]);
 
+const headRows = document.querySelector<HTMLTableSectionElement>("#headwear tbody")!;
+const headFrames: { pose: AvatarPose; facing: Facing; walkFrame: number; label: string }[] = [];
+for (const [facing, direction] of (["正面", "向左", "向右", "背面"] as const).entries())
+  for (let frame = 0; frame < 3; frame++)
+    headFrames.push({ pose: "standing", facing: facing as Facing, walkFrame: frame, label: `${direction} · ${["待机", "迈步一", "迈步二"][frame]}` });
+headFrames.push({ pose: "sitting", facing: 0, walkFrame: 0, label: "坐下" });
+headFrames.push({ pose: "lying", facing: 0, walkFrame: 0, label: "睡觉 · 无头饰" });
+for (const head of [null, "wreath", "candyClip", "headphones", "starWings"] as const) {
+  const row = headRows.insertRow();
+  row.dataset.head = head ?? "none";
+  const name = document.createElement("th");
+  name.scope = "row";
+  name.textContent = head ? ITEMS[head].name : "原角色 · 无头饰";
+  row.append(name);
+  for (const {pose, facing, walkFrame, label} of headFrames) {
+    const cell = row.insertCell();
+    if (pose === "standing" && facing === 3) cell.classList.add("rear-view");
+    const canvas = document.createElement("canvas");
+    canvas.width = 96; canvas.height = 132;
+    canvas.dataset.head = head ?? "none";
+    canvas.dataset.pose = pose;
+    canvas.dataset.facing = String(facing);
+    canvas.dataset.walkFrame = String(walkFrame);
+    canvas.setAttribute("aria-label", `${name.textContent} · ${label}`);
+    const ctx = canvas.getContext("2d")!;
+    ctx.imageSmoothingEnabled = false;
+    ctx.translate(48, pose === "lying" ? 80 : 125);
+    const zoom = pose === "lying" ? 1.15 : 2.5;
+    ctx.scale(zoom, zoom);
+    drawAvatar(ctx, pose, facing, walkFrame, {head}, images);
+    cell.append(canvas);
+  }
+}
+document.querySelector<HTMLElement>("#headwear")!.dataset.ready = "true";
+
 const bagRows = document.querySelector<HTMLTableSectionElement>("#backpacks tbody")!;
 for (const backpack of ["moonBag", "berryBag", "rabbitSatchel"] as const) {
   const row = bagRows.insertRow();

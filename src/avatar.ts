@@ -3,6 +3,7 @@ import { drawItem, drawWornBag } from "./item-art";
 import garmentUrl from "./assets/fufu-garments-v15.webp";
 import {
   equipmentParts,
+  fitItem,
   type AvatarPose,
   type Facing,
   type EquipmentPart,
@@ -42,6 +43,36 @@ function paintPart(
       c.drawImage(garments, frame * 128, row * 176, 128, 176, p.x, p.y, p.w, p.h);
   } else if (p.style === "bag") {
     drawWornBag(c, p, facing === 1 || facing === 2, images.rewards);
+  } else if (p.style === "wreathFar" || p.style === "wreathNear") {
+    // Both halves use one fitted source rectangle, so the crown keeps its
+    // proportions and there is no seam/overlap when composited around hair.
+    const b = fitItem(239, 76, p.x, p.y, p.w, p.h), split = b.y + b.h * .46;
+    c.beginPath();
+    if (p.style === "wreathFar") c.rect(b.x, b.y, b.w, split - b.y);
+    else c.rect(b.x, split, b.w, b.y + b.h - split);
+    c.clip();
+    if (p.mirror) {
+      c.translate(p.x + p.w, p.y); c.scale(-1, 1);
+      drawItem(c, p.id, 0, 0, p.w, p.h, images.wreath, images.rewards);
+    } else drawItem(c, p.id, p.x, p.y, p.w, p.h, images.wreath, images.rewards);
+  } else if (p.style === "rearBand" || p.style === "rearEarpieces") {
+    c.translate(0, p.y);
+    if (p.style === "rearBand") {
+      c.beginPath(); c.moveTo(-10.8, 11.3);
+      c.bezierCurveTo(-11.4, -1.5, 10.7, -1.5, 10.8, 11.3);
+      c.lineCap = "round";
+      c.lineWidth = 1.8; c.strokeStyle = "#80627f"; c.stroke();
+      c.lineWidth = .8; c.strokeStyle = "#d4b8d3"; c.stroke();
+    } else for (const side of [-1, 1]) {
+      // Only the narrow rear shells are visible, not the front heart pads.
+      const x = side * 10.9;
+      c.fillStyle = "#795d79";
+      c.beginPath(); c.ellipse(x, 12.2, 1.7, 3.8, 0, 0, Math.PI * 2); c.fill();
+      c.fillStyle = "#b69cbd";
+      c.beginPath(); c.ellipse(x + side * .3, 12.05, 1.05, 3.05, 0, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = "#eed5dc"; c.lineWidth = .55;
+      c.beginPath(); c.moveTo(x + side * .65, 10.6); c.lineTo(x + side * .65, 13.2); c.stroke();
+    }
   } else if (p.style === "band" || p.style === "earpieces") {
     c.translate(0,p.y);
     const profile = facing === 1 || facing === 2;
