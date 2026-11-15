@@ -23,7 +23,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 每次复活的床边便签 | `src/bed-note.ts`、`src/assets/xiaoye-note.webp`。首遇解锁图钉，之后每次回床也自动展信。附加文案在 `content.ts` 的 `encouragements` |
 | 回声遗迹 | `src/ruins-map.ts` 记录地砖范围和门槛，`src/echoes.ts` 校验拓本与解谜存档，`src/echo-ruins.ts` 负责祭坛、石座、听月泉和电波。地图、拱门和三张棋盘用 `node scripts/build-ruins-art.mjs` 从三张原画重建。 |
 | 七色花与夜间花海 | `src/rainbow-flowers.ts` 和 `src/flower-trail.ts` 维护七种花与入口。`src/meadow-map.ts` 描出草地、帐篷、火圈和水壶。`src/night-meadow.ts` 绘制羊、萤火与落星并管理拾星寄语；`src/star-bottle.ts`、`src/star-bottle.css` 管理游戏内锥形星光瓶特写 |
-| 苹果、可采花丛、勇气花和黄昏纸船 | `src/nature.ts` 按剩余数量和时段绘制，`src/wild-art.ts` 按脚底锚点读取四格图集。运行 `npm run art:night` 重建花海和采集物美术。[v16 素材说明](ARTWORK-v16.md) |
+| 苹果、可采花丛、勇气花和黄昏纸船 | `src/nature.ts` 按剩余数量和时段绘制，`src/wild-art.ts` 按脚底锚点读取四格图集。运行 `npm run art:night` 重建花海和采集物美术。[v16 素材说明](doc/artwork/ARTWORK-v16.md) |
 | 烟花祝福 | `src/celebration.ts` 的 `fireworkWishes`；全部是预设文字 |
 | 小镇居民和小游戏摊位 | `src/town-data.ts`；位置、靠近点和半径需要一起验证 |
 | 庭院来宾与动物 | `src/garden-guests.ts`；对话与跟随逻辑在 `src/garden-life.ts` |
@@ -35,8 +35,8 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 周年游园券、七幅棋盘与像素角色 | `src/arcade-art.ts`、`src/arcade-pixels.ts` 与 `src/festival-v11.css`。运行 `npm run art:festival` 重建游戏图和鞋子图层 |
 | 原创音乐《把晚安留给你》 | `src/lullaby.ts` 保存乐谱、各地图速度与配器。`src/sound.ts` 负责解锁音频、音量、放映时的音量变化和后台暂停 |
 | 小游戏规则与面板 | `src/arcade-engines.ts`、`src/arcade-bonus.ts`、`src/arcade.ts`；新增种类也要补 `town-data.ts` 与说明 |
-| 蛋糕、礼物、气球、烟花 | `src/activities.ts`；切割判定在 `src/cake-party.ts`，拆缎带/揭盒盖/领奖在 `src/gift-unwrapping.ts`，礼盒素材锚点在 `src/gift-art.ts`，气球裁切在 `src/party-art.ts`；礼盒美术说明见 `ARTWORK-v37.md` |
-| 地图与物理通道 | `src/gate-layout.ts` 共用南门、北桥 / 石阶的路牌、碰撞和单向过线判定；`src/maps.ts` 的庭院边界沿两条实际石径。路线参考图及重建方式见 [v18 素材说明](ARTWORK-v18.md) |
+| 蛋糕、礼物、气球、烟花 | `src/activities.ts`；切割判定在 `src/cake-party.ts`，拆缎带/揭盒盖/领奖在 `src/gift-unwrapping.ts`，礼盒素材锚点在 `src/gift-art.ts`，气球裁切在 `src/party-art.ts`；礼盒美术说明见 `doc/artwork/ARTWORK-v37.md` |
+| 地图与物理通道 | `src/gate-layout.ts` 共用南门、北桥 / 石阶的路牌、碰撞和单向过线判定；`src/maps.ts` 的庭院边界沿两条实际石径。路线参考图及重建方式见 [v18 素材说明](doc/artwork/ARTWORK-v18.md) |
 | 月芽传送阵与白色贝斯 | `src/moon-circle.ts` 在草地层绘制阵纹，中心进入判定在 `src/meadow-map.ts`。琴的位置、琴架占地在 `src/room-props.ts`；琴声音轨与音符分别由 `src/bass-audio.ts`、`src/room-bass.ts` 处理 |
 | 窗边周年曲《把晚安弹给你》 | `src/bass-score.ts` 维护弦号、品位、节拍和每个音对应的歌词；示范与玩家练习各有自己的进度。`src/room-bass.ts` 和 `src/bass-stage.css` 控制场内乐谱。运行 `npm run audio:bass` 可重建九个音高的本地 WAV 和整曲示范。示范跟随音轨播放位置走谱，`bassSound` 保存独立的琴声开关。仅弹完整首后在原存档记下 `bassSongPlayed` |
 | 芙芙主题鼠标指针 | `scripts/build-cursors.mjs` 是两款指针的矢量母稿。`npm run art:cursors` 更新 `src/assets/fufu-cursor-*` 的 SVG 和 PNG。两种指针均为 32×32，尖端热点都是 (2, 2)。`src/fufu-cursors.css` 定义鼠标适用范围；地图悬停和点击共用 `World.spotAt` |
@@ -67,23 +67,23 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 可坐长椅只保留在勇气花园：`src/maps.ts` 的 `challenge` 添加 `rest` 互动点与同位置的椅子碰撞，`src/nature.ts` 仅在互动点存在时绘制椅子。周年花园已移除这把可坐长椅，原位置可以步行穿过；修改提示时不要引导玩家在周年花园寻找休息长椅。
 
-小屋门垫由 `src/door-rug.ts` 在地板层绘制，范围为 `(260,357)` 到 `(340,381)`，不占碰撞。勇气花园北侧现在是封闭花篱，底图与 `challenge.floor` 同步收口；只有南门通往周年花园。勇气之花的靠近点 `(450,125)` 保留。旧存档若落在原北门内，`readJourney` 会按现有安全落点规则回到南侧出生点。素材与生成记录见 [v43 地图整理](ARTWORK-v43.md)。
+小屋门垫由 `src/door-rug.ts` 在地板层绘制，范围为 `(260,357)` 到 `(340,381)`，不占碰撞。勇气花园北侧现在是封闭花篱，底图与 `challenge.floor` 同步收口；只有南门通往周年花园。勇气之花的靠近点 `(450,125)` 保留。旧存档若落在原北门内，`readJourney` 会按现有安全落点规则回到南侧出生点。素材与生成记录见 [v43 地图整理](doc/artwork/ARTWORK-v43.md)。
 
 碰撞计算在 `src/collision.ts`。半径 5 个地图像素的脚底沿整段移动轨迹检测墙角、水岸和路面边界。道路可以交叠，只有合并后露在外面的边缘挡脚。键盘与触屏方向键优先沿输入方向移动，遇墙再沿可走方向滑动。点击寻路使用相同检测，起点或终点落在窄弯里时会在附近加密搜索。描楼梯时沿两侧踏面画可走区域，单独描栏柱与灯座。小镇高清图上的 2 个原画像素对应 1 个地图像素。
 
-邮局路线的回归在 `tests/post-streets.test.ts`。从主街转入麦田边的下路，上阶与红笺交谈，再从原路走回。另走一次花盆北侧的上路，并尝试从两条路之间穿过花坛，核对石柱、花盆、栏杆和路灯的位置。修改镇民动作时同步核对 `src/town-resident-map.ts` 的实时脚底与互动点。勇气花园的花藤与苔石在 `src/trap-art.ts` 定义接地轮廓，`src/garden-hazards.ts` 绘制贴地道具、薄雾与卷叶。素材重建和辨识度要求见 [v35 美术说明](ARTWORK-v35.md)。
+邮局路线的回归在 `tests/post-streets.test.ts`。从主街转入麦田边的下路，上阶与红笺交谈，再从原路走回。另走一次花盆北侧的上路，并尝试从两条路之间穿过花坛，核对石柱、花盆、栏杆和路灯的位置。修改镇民动作时同步核对 `src/town-resident-map.ts` 的实时脚底与互动点。勇气花园的花藤与苔石在 `src/trap-art.ts` 定义接地轮廓，`src/garden-hazards.ts` 绘制贴地道具、薄雾与卷叶。素材重建和辨识度要求见 [v35 美术说明](doc/artwork/ARTWORK-v35.md)。
 
 两花园的萤火彩蛋和花海共用 `src/firefly-art.ts` 的细翅、腹光与漂浮函数，各只萤火虫独立明灭。`Nature` 与 `NightMeadow` 在减少动态效果时传入固定时间，仍绘制可见的静态虫群。不要恢复旧版在所有地图（包括白天和室内）漂浮的方块粒子。
 
 房间逻辑尺寸为 600×400，庭院和勇气花园为 900×600，小镇为 1536×1024。摄像机视口逻辑尺寸保持 600×400，画布实际像素按设备像素密度调整。不要把画布重新缩为低分辨率来画文字；系统字体与像素图片分别渲染。
 
-图集不一定是等宽网格。修改角色、衣橱或庆典素材时，核对 `src/sprite-frames.ts`、`equipment.ts`、`item-art.ts`、`party-art.ts` 的实际裁切区域。生成来源与原始提示词在 `ARTWORK*.md`，v11 新素材详见 [ARTWORK-v11.md](ARTWORK-v11.md)。透明图集压缩保持原尺寸；不要仅凭格数平均裁切。
+图集不一定是等宽网格。修改角色、衣橱或庆典素材时，核对 `src/sprite-frames.ts`、`equipment.ts`、`item-art.ts`、`party-art.ts` 的实际裁切区域。生成来源与原始提示词统一在 `doc/artwork/ARTWORK*.md`，v11 新素材详见 [ARTWORK-v11.md](doc/artwork/ARTWORK-v11.md)。这些文档中的构建命令仍从仓库根目录执行；Markdown 文件链接则相对于各文档位置解析。透明图集压缩保持原尺寸；不要仅凭格数平均裁切。
 
-周年游园券、七幅棋盘背景、飞行与跳跃角色的原画、图集顺序及提示词见 [v14 美术与配乐记录](ARTWORK-v14.md)。
+周年游园券、七幅棋盘背景、飞行与跳跃角色的原画、图集顺序及提示词见 [v14 美术与配乐记录](doc/artwork/ARTWORK-v14.md)。
 
 小镇的预览图 `anniversary-town-v13.webp` 和高清图 `anniversary-town-hd-v13.webp` 出自同一份 3072×2048 母图。进入小镇才请求高清图，解码成功后再替换；失败保留预览并在下次进镇重试。`World.paintMap` 按图片实际尺寸换算源区域，底图和树冠裁片走同一套取样。调整摊位时把两只柜脚都放在原图的空地上，预留人物可走到的柜台正面；不要用纹理多边形盖住原图来制造空地。
 
-南门及木桥门两侧的热点、对应出口、碰撞和灯光共用 `townGates`。立柱阻挡脚步，中间开口可通行；门体同人物按脚底排序。高清重绘、拼图与压缩方法见 [ARTWORK-v13.md](ARTWORK-v13.md)。窗景仍通过玻璃遮罩绘制四时图集，保留窗框、窗帘和花朵，见 [ARTWORK-v12.md](ARTWORK-v12.md)。
+南门及木桥门两侧的热点、对应出口、碰撞和灯光共用 `townGates`。立柱阻挡脚步，中间开口可通行；门体同人物按脚底排序。高清重绘、拼图与压缩方法见 [ARTWORK-v13.md](doc/artwork/ARTWORK-v13.md)。窗景仍通过玻璃遮罩绘制四时图集，保留窗框、窗帘和花朵，见 [ARTWORK-v12.md](doc/artwork/ARTWORK-v12.md)。
 
 `npm run optimize:art` 只重建脚本登记的 WebP。它会覆盖这些派生文件，因此运行后检查图片差异与裁切对齐，再构建。晨露花已有单独裁切的 WebP，不在批量重建列表中。
 
@@ -109,19 +109,21 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 调整小游戏排版后，在开发页 `/tests/exploration-fixture.html` 选择「验收七款小游戏的画幅与镜头」。分别用桌面和手机窗口运行，检查开局、暂停、恢复、展开扫雷规则及返回地图时的画布尺寸、镜头缩放和页面位置。棋盘的绘制与点击命中共用 `src/arcade.ts` 的缩放和原点，操作栏放在画布下方，和地图一起随背包或游玩说明暂停。
 
-验收鞋子时访问 `/tests/equipment-fixture.html`，对照原鞋与两双配饰的四向三帧和坐姿。当前佩戴层使用 `fufu-footwear-v38.webp`，鞋子使用角色原画的脚部透明轮廓。更换角色源图时要同步核对 `scripts/build-shoes.mjs` 的逐帧坐标，再运行 `npm run art:festival`。草莓鞋的礼盒与背包插画共用 `strawberry-flats-v38.webp`，用 `node scripts/build-strawberry-shoe-art.mjs` 重建；美术及按键记录见 [ARTWORK-v38.md](ARTWORK-v38.md)。小游戏画面与可试听、可导出的原曲在开发页 `/tests/festival-preview.html`。
+验收鞋子时访问 `/tests/equipment-fixture.html`，对照原鞋与两双配饰的四向三帧和坐姿。当前佩戴层使用 `fufu-footwear-v38.webp`，鞋子使用角色原画的脚部透明轮廓。更换角色源图时要同步核对 `scripts/build-shoes.mjs` 的逐帧坐标，再运行 `npm run art:festival`。草莓鞋的礼盒与背包插画共用 `strawberry-flats-v38.webp`，用 `node scripts/build-strawberry-shoe-art.mjs` 重建；美术及按键记录见 [ARTWORK-v38.md](doc/artwork/ARTWORK-v38.md)。小游戏画面与可试听、可导出的原曲在开发页 `/tests/festival-preview.html`。
 
-验收蔷薇裙、薄荷披肩、头戴与背包叠穿时查看同页第一组逐帧对照。`npm run art:meadow` 从人物原画重建衣料及肩带遮罩，也会导出 v15 的七色花和花门。当前夜间场景使用 `npm run art:night`。[v15 素材说明](ARTWORK-v15.md) · [金盏菊和白雏菊原画、重建方法](ARTWORK-v20.md)
+验收蔷薇裙、薄荷披肩、头戴与背包叠穿时查看同页第一组逐帧对照。`npm run art:meadow` 从人物原画重建衣料及肩带遮罩，也会导出 v15 的七色花和花门。当前夜间场景使用 `npm run art:night`。[v15 素材说明](doc/artwork/ARTWORK-v15.md) · [金盏菊和白雏菊原画、重建方法](doc/artwork/ARTWORK-v20.md)
 
 开发页 `/tests/exploration-fixture.html` 使用独立的临时存档。「验收游戏内衣橱、装备预览与分页」可以在电脑和手机宽度运行，覆盖 15 格与 8 格分页、四向预览、装备与伙伴、洋桔梗、画幅和页面位置。「测量实际琴声与示范」连接真实媒体输出，测量四根弦及示范轨的播放位置和峰值。「验收月兔台、金盏菊与清档」从南侧主街走进摊位，再检查清档取消、确认、声音偏好及开始页。「验收周年演奏、调试与背包」检查错音、示范、鼠标与键盘各自弹完整首曲、调试隔离、游戏内背包的位置、贝斯开合前后的画布尺寸与镜头、打开小游戏不滚动，并生成小镇四个时段的对照图。四种光照由 `src/town-light.ts` 平滑混合，灯的位置在 `src/lights.ts`。「运行完整验收」检查开包移动、床边安全存档、采集、七色花门往返、营火小坐、拾星与重读，以及移动后的自动与手动保存。「刷新并验证存档」从开始页继续到上次在花海站立的位置，再收齐剩余落星并核对星光瓶。「预览夜间营地」使用同一套七色花互动进入花海。
 
 当前花海有九颗落星。小叶子使用 `star-xiaoye`、坐标 `(485,335)`，夜神华使用 `star-yeshenhua`、坐标 `(685,270)`；Rabe 新增为 `star-rabe`、坐标 `(605,390)`，原八颗的 ID 和坐标保持不变。Rabe 来信独立保存在信箱，星星的 `message` 仍为空。追加制作人时，选取草地上的空位，与营火、星光瓶及其他落星保持至少约 60 个逻辑像素的间距。`npm run check` 会验证署名 ID、点击和按键命中、落脚点以及寻路。已有玩家按稳定的 ID 记录收集进度，`readProgress` 从当前 `producers` 允许列表过滤，无需为追加落星另建存档。星光瓶按已拾 ID 从当前内容读取文字，补交寄语后老玩家也能重读。没有寄语时 `message` 保持空字符串，只显示署名。花海底图和羊群图集在集齐七朵花后一起预载。
 
-花海寄语使用地图内限高的阅读卡，长文滚动、手动收起或 Esc 关闭。拾星荧光烟花照常播放。星光瓶特写放在 `.game-stage-frame` 内、与 `.game-stage` 同级，覆盖同一 3:2 区域；不能放在被 `world.suspend` 设为 inert 的节点内，也不再设置 `#app.inert`。按游戏容器的实际宽度 600px 切换桌面瓶文并排与手机瓶子／寄语两视图。全部已拾星始终同瓶显示，不分页；槽位使用完整名单索引，不能按已拾数量重新编号。`src/star-bottle-layout.ts` 维护与 801×1204 运行图一致的错落落点、角度和大小。手机星图较小，提供至少44px的逐颗选择和阅读按钮作为等效触控入口；直接点瓶身时统一按22px半径内最近星心命中，避免透明按钮互相抢点。`tests/star-bottle.test.ts` 验证九星图像位于玻璃内部、图像不重叠、直接命中准确和旧存档位置稳定。素材与重建方法见 [v44 美术说明](ARTWORK-v44.md)。只从已收集 ID 读取当前署名和寄语，空寄语不补占位文字。关闭只释放 `star-bottle` 的暂停原因，切图、开其他入口时同时清理特写。
+花海寄语使用地图内限高的阅读卡，长文滚动、手动收起或 Esc 关闭。拾星荧光烟花照常播放。星光瓶特写放在 `.game-stage-frame` 内、与 `.game-stage` 同级，覆盖同一 3:2 区域；不能放在被 `world.suspend` 设为 inert 的节点内，也不再设置 `#app.inert`。按游戏容器的实际宽度 600px 切换桌面瓶文并排与手机瓶子／寄语两视图。全部已拾星始终同瓶显示，不分页；槽位使用完整名单索引，不能按已拾数量重新编号。`src/star-bottle-layout.ts` 维护与 801×1204 运行图一致的错落落点、角度和大小。手机星图较小，提供至少44px的逐颗选择和阅读按钮作为等效触控入口；直接点瓶身时统一按22px半径内最近星心命中，避免透明按钮互相抢点。`tests/star-bottle.test.ts` 验证九星图像位于玻璃内部、图像不重叠、直接命中准确和旧存档位置稳定。素材与重建方法见 [v44 美术说明](doc/artwork/ARTWORK-v44.md)。只从已收集 ID 读取当前署名和寄语，空寄语不补占位文字。关闭只释放 `star-bottle` 的暂停原因，切图、开其他入口时同时清理特写。
 
 ## 网页纪念手账与阅读
 
 `src/main.ts` 与 `src/page-journal.css` 管理游戏外布局。1100px 以上游戏与272px心愿侧栏并排，窄屏单列；回忆收藏与导览都在游戏下方。旧的 `.journal` 跨行布局不能再作用于新区域。每种动态入口保留一份 DOM，来信与影片状态仍更新各自入口内的 `small`。
+
+画面角落只保留当前位置、时间等标签，不再放快捷切图、花环穿脱或复活点条幅。地图切换使用画面下方导航和实际出口；花环穿脱使用背包或 H 键。添加界面或事件时不要重新绑定已移除的角落按钮，复活仍回到小屋床上。
 
 `PageMemoryReader` 实现 `CollectionSurface`，在 `.page-memory-reader` 中复用 `openCollection`。打开前设置触发按钮；阅读使用独立的 `page-memory` suspension，收起恢复来源焦点，跳往游戏或别的入口使用 `close(false)`。网页读相册不调用 `visit()`，不写入探索记录。网页控件标记 `data-page-ui`，方向键与E不传给地图，进入这些控件时清理之前按住的方向键；该标记不能加在游戏的祖先容器上。若玩家在转场尚未完成时选择网页阅读，旧转场可以完成，但不得把页面滚回地图或抢走阅读焦点。
 

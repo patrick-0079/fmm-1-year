@@ -1,8 +1,8 @@
 # 金盏菊与白雏菊
 
-内置 imagegen 生成的透明原画保存在 [garden-daisies-v20.png](src/assets/garden-daisies-v20.png)。左边的金盏菊对应周年庭院的橙色七色花，右边的白雏菊对应勇气花园的勇气之花。
+内置 imagegen 生成的透明原画保存在 [garden-daisies-v20.png](../../src/assets/garden-daisies-v20.png)。左边的金盏菊对应周年庭院的橙色七色花，右边的白雏菊对应勇气花园的勇气之花。
 
-运行 `node scripts/build-daisies.mjs` 将两朵花分别放进 [七色花原图](src/assets/rainbow-flowers-v15.png) 的第二格和 [采集物原图](src/assets/orchard-v16.png) 的第三格。然后运行 `node scripts/build-meadow-art.mjs` 和 `node scripts/build-night-meadow.mjs` 导出游戏使用的 [七色花贴图](src/assets/rainbow-flowers-v15.webp) 和 [采集物贴图](src/assets/orchard-v16.webp)。旧存档读取时会将橙色花的收藏迁到新 ID。
+运行 `node scripts/build-daisies.mjs` 将两朵花分别放进 [七色花原图](../../src/assets/rainbow-flowers-v15.png) 的第二格和 [采集物原图](../../src/assets/orchard-v16.png) 的第三格。然后运行 `node scripts/build-meadow-art.mjs` 和 `node scripts/build-night-meadow.mjs` 导出游戏使用的 [七色花贴图](../../src/assets/rainbow-flowers-v15.webp) 和 [采集物贴图](../../src/assets/orchard-v16.webp)。旧存档读取时会将橙色花的收藏迁到新 ID。
 
 原画生成提示词如下。
 

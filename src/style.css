@@ -333,25 +333,6 @@ a .icon {
 .location-pill span {
   letter-spacing: 0.8px;
 }
-.map-switch {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  border: 1px solid #fffaf5b5;
-  border-radius: 4px;
-  padding: 8px 10px;
-  font-size: 10px;
-  color: #7c5d72;
-  background: #fff7f1e8;
-  pointer-events: auto;
-}
-.map-switch:hover {
-  background: #fff9f4;
-}
-.map-switch .icon {
-  width: 12px;
-  height: 12px;
-}
 .scene-transition {
   position: absolute;
   inset: 0;
@@ -1960,9 +1941,6 @@ footer .reset-button {
     transform: scale(1.1);
     margin: 5px;
   }
-  .map-switch {
-    padding: 9px 11px;
-  }
   .window-tools .icon-button {
     width: 34px;
     height: 34px;
@@ -2072,15 +2050,6 @@ footer .reset-button {
   .location-pill .icon {
     width: 9px;
     height: 9px;
-  }
-  .map-switch {
-    padding: 6px 7px;
-    font-size: 8px;
-    gap: 4px;
-  }
-  .map-switch .icon {
-    width: 10px;
-    height: 10px;
   }
   .intro-stars {
     display: none;
@@ -2565,27 +2534,6 @@ footer .reset-button {
   line-height: 1.9;
   margin: 12px 0 0;
 }
-.checkpoint-pill {
-  position: absolute;
-  top: 54px;
-  left: 17px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 9px;
-  background: #fff9e8ec;
-  border: 1px solid #edd195b5;
-  border-radius: 4px;
-  color: #8c7542;
-  font-size: 9px;
-  pointer-events: none;
-  z-index: 1;
-}
-.checkpoint-pill .icon {
-  width: 10px;
-  height: 10px;
-  color: #dcac47;
-}
 .journey-legend {
   display: flex;
   gap: 7px;
@@ -2719,17 +2667,6 @@ footer .reset-button {
   background: #ae83bf;
 }
 @media (max-width: 540px) {
-  .checkpoint-pill {
-    top: 41px;
-    left: 10px;
-    padding: 4px 6px;
-    font-size: 7px;
-    gap: 3px;
-  }
-  .checkpoint-pill .icon {
-    width: 8px;
-    height: 8px;
-  }
   .journey-legend {
     font-size: 8px;
     gap: 4px;
@@ -2869,7 +2806,6 @@ footer .reset-button {
   opacity: 0.45;
   text-decoration: line-through;
 }
-.scene-wrap.inspecting .checkpoint-pill,
 .scene-wrap.inspecting .time-pill {
   visibility: hidden;
 }
@@ -2906,13 +2842,6 @@ footer .reset-button {
 .garden-pocket .icon {
   width: 12px;
   height: 12px;
-}
-.garden-pocket .crown-toggle {
-  margin-left: auto;
-  border: 1px solid #cdd9bd;
-  border-radius: 4px;
-  padding: 5px 8px;
-  color: #829268;
 }
 .day-hint {
   width: 100%;

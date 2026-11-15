@@ -3,7 +3,7 @@
   container-type: inline-size;
 }
 .bass-playing
-  :is(.scene-top, .time-pill, .checkpoint-pill, .map-tool, .interaction-prompt) {
+  :is(.scene-top, .time-pill, .map-tool, .interaction-prompt) {
   display: none;
 }
 .bass-hud {

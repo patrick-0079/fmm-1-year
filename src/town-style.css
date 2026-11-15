@@ -134,9 +134,7 @@
   display: none;
 }
 .arcade-active .scene-top,
-.arcade-active .checkpoint-pill,
 .arcade-active .time-pill,
-.arcade-active .crown-toggle,
 .arcade-active .interaction-prompt {
   visibility: hidden;
 }

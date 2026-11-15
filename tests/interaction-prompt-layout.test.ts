@@ -45,7 +45,7 @@ test("a long label at a right-edge NPC flips left instead of leaving the game", 
   assert.equal(result.edge, "right");
 });
 
-test("narrow-screen labels avoid the checkpoint and top navigation as well as the character", () => {
+test("narrow-screen labels avoid visible map controls as well as the character", () => {
   const viewport = { w: 298, h: 198.66 }, size = { w: 139, h: 44 };
   const object = { x: 8, y: 95, w: 28, h: 20 }, player = { x: 51, y: 96, w: 18, h: 25 };
   const hud = [{ x: 7, y: 7, w: 143, h: 32 }, { x: 7, y: 46, w: 116, h: 27 },

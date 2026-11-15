@@ -91,7 +91,7 @@ export class InteractionPrompt {
     });
     container.append(button);
     const hud = Array.from(container.querySelectorAll<HTMLElement>(
-      ".scene-top > *, .time-pill, .checkpoint-pill, .bag-toggle, .crown-toggle, .bed-note-pin",
+      ".scene-top > *, .time-pill, .bag-toggle, .bed-note-pin",
     ));
     // The observer handles content changes, orientation and responsive layout.
     // Per-frame camera updates only write transforms, without synchronous reads.

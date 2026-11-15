@@ -11,7 +11,6 @@ import type { Hotspot } from "./maps";
 import { gardenTrees, creeks } from "./landscape";
 import { drawCreek, drawGardenTree } from "./landscape-renderer";
 import benchUrl from "./assets/garden-bench.webp";
-import wreathUrl from "./assets/flower-wreath.webp";
 import treeUrl from "./assets/apple-tree.webp";
 import dewUrl from "./assets/morning-dew-flower.webp";
 import roomArtUrl from "./assets/room-interactive.webp";
@@ -123,9 +122,6 @@ export class Nature {
       tick(dt, t);
       this.tick(dt);
     };
-    document
-      .querySelector(".crown-toggle")!
-      .addEventListener("click", () => this.toggleCrown());
     window.addEventListener("keydown", (e) => {
       if (reservedShortcut(e) || this.world.suspended || readingTarget(e.target)) return;
       if (
@@ -357,16 +353,8 @@ export class Nature {
     );
     document.querySelector(".bag-count")!.textContent =
       `苹果 ${this.state.apple} · 花朵 ${this.state.flower} · 星屑 ${this.state.star}`;
-    const crown = document.querySelector<HTMLButtonElement>(".crown-toggle")!;
     const wearing = this.inventory.state.equipped.head === "wreath";
-    crown.hidden = !this.inventory.has("wreath") && !wearing;
     this.state.wearing = this.inventory.has("wreath") && wearing;
-    crown.innerHTML = `<img src="${wreathUrl}" alt=""><span>${wearing ? "摘下花环" : "戴上花环"}</span><kbd>H</kbd>`;
-    crown.setAttribute(
-      "aria-label",
-      wearing ? "摘下花环，快捷键 H" : "戴上花环，快捷键 H",
-    );
-    crown.setAttribute("aria-pressed", String(wearing));
     document.querySelector(".day-hint")!.textContent = ruins ? "石廊里的三块铭文，记着一段遗忘的晚安。" : meadow ? "草间有落星，营火旁有一只收着星光的玻璃瓶。" :
       `第 ${clock.day} 天 · 十分钟一昼夜 · ${clock.phase === "dawn" ? "晨露花醒来了" : clock.phase === "dusk" ? "溪边漂来一只纸船" : clock.phase === "night" ? "萤火心愿悄悄出现" : "去勇气花园的长椅休息，等一场黄昏和星夜"}`;
   }

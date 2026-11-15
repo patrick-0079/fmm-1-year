@@ -431,8 +431,6 @@ export function mountGame(tasks: Task[]) {
     nature.refreshClock();
     document.querySelector("#location-name")!.textContent =
       `${({room:"ROOM 01",garden:"GARDEN 02",challenge:"GARDEN 03",town:"TOWN 04",meadow:"SECRET 05",ruins:"RUINS 06"})[scene]} · ${scenes[scene].title}`;
-    document.querySelector(".map-switch")!.innerHTML =
-      `${scene === "room" || scene === "meadow" ? "周年花园" : scene === "garden" ? "勇气花园" : scene === "town" ? "回声遗迹" : "周年小镇"} ${icon("arrow")}`;
     document
       .querySelectorAll<HTMLButtonElement>(".scene-nav button[data-scene]")
       .forEach((button) => {
@@ -614,17 +612,6 @@ export function mountGame(tasks: Task[]) {
   document.querySelector(".help-button")!.addEventListener("click", () => {
     if (help.hidden) setHelp(true);
     else returnFromHelp();
-  });
-  document.querySelector(".map-switch")!.addEventListener("click", () => {
-    begin();
-    transition(
-      world.scene === "room" || world.scene === "meadow"
-        ? "garden"
-        : world.scene === "garden"
-          ? "challenge"
-          : world.scene === "town" ? "ruins" : "town",
-      world.scene === "meadow" ? "prism-arch" : world.scene === "ruins" ? "echo-gate" : undefined,
-    );
   });
   document
     .querySelectorAll<HTMLButtonElement>(".scene-nav button[data-scene]")

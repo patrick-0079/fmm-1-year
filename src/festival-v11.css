@@ -1,7 +1,5 @@
 .arcade-active .scene-top,
-.arcade-active .time-pill,
-.arcade-active .checkpoint-pill,
-.arcade-active .crown-toggle {
+.arcade-active .time-pill {
   visibility: hidden;
 }
 .game-stage > .arcade-hud {

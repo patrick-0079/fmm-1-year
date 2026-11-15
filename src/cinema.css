@@ -70,8 +70,6 @@
 }
 .cinema-active .scene-top,
 .cinema-active .time-pill,
-.cinema-active .checkpoint-pill,
-.cinema-active .crown-toggle,
 .cinema-active .interaction-prompt {
   visibility: hidden;
 }
