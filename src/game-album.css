@@ -13,6 +13,7 @@
 .game-album-reader > header { gap: 10px; background: #fff8e9; padding-bottom: 10px; }
 .game-album-reader header h3::after { content: "滚动看配文"; display: inline-block; margin-left: 10px; color: #8c7474; font-size: 12px; font-weight: 400; white-space: nowrap; }
 .game-album-reader .reader-tools button { min-height: 44px; }
+.game-album-reader .media-error button { min-height: 44px; }
 .game-letter-reader.game-album-reader > .reader-body {
   display: flex;
   flex: 1 1 auto;
