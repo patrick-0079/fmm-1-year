@@ -5,7 +5,7 @@ import { bloomingGarden, scenes } from "../src/maps.ts";
 import { rainbowFlowers, rainbowIds, meadowOpen, meadowGate, meadowGatePosts, pickRainbow } from "../src/rainbow-flowers.ts";
 import { producers } from "../src/content.ts";
 import { campfire, enteredMoonCircle, meadowExit } from "../src/meadow-map.ts";
-import { clickedInteraction } from "../src/interaction.ts";
+import { clickedInteraction, nearbyInteraction } from "../src/interaction.ts";
 
 test("small flowers remain clickable at their petals and the moon circle only triggers on entry", () => {
   for (const f of rainbowFlowers) {
@@ -58,16 +58,32 @@ test("when the rainbow arch appears its pillars are solid, its mouth and the cou
 
 test("each producer has one anonymous, clickable and reachable star", () => {
   const spots = scenes.meadow.spots;
+  assert.equal(producers.length, 8);
   assert.equal(new Set(producers.map(p => p.id)).size, producers.length);
   for (const person of producers) {
     const s = spots.find(p => p.id === person.id)!;
     assert.equal(s.title, "拾起草间的落星");
     assert.ok(s.selfMarked);
-    assert.equal(clickedInteraction({x: s.x, y: s.y - 11}, spots, p => p.y - 11)?.id, person.id);
-    const nearest = [...spots].sort((a, b) => Math.hypot(a.x - s.approach.x, a.y - s.approach.y) -
-      Math.hypot(b.x - s.approach.x, b.y - s.approach.y))[0];
-    assert.equal(nearest.id, person.id);
+    assert.equal(clickedInteraction({x: s.x, y: s.y - 11}, spots)?.id, person.id);
+    assert.equal(nearbyInteraction(s.approach, spots)?.id, person.id, "E at the reachable approach selects this star");
+    assert.deepEqual(findPath(scenes.meadow.spawn, s.approach, scenes.meadow)?.at(-1), s.approach, person.id + " has a real route from the entrance");
   }
+});
+
+test("six previous producer IDs and positions survive adding Xiaoye and Yeshenhua", () => {
+  const previous = [
+    ["star-patrick", 390, 450], ["star-kerry", 172, 308], ["star-suyan", 415, 160],
+    ["star-qing", 724, 142], ["star-zhenghao", 754, 378], ["star-qianyu", 578, 502],
+  ] as const;
+  for (const [id, x, y] of previous) {
+    const person = producers.find(p => p.id === id);
+    assert.ok(person, id);
+    assert.deepEqual({ x: person.x, y: person.y }, { x, y });
+    assert.equal(person.message, "", "no placeholder text should become a message");
+  }
+  const old = readProgress(JSON.stringify({ creditStars: previous.map(([id]) => id) }));
+  assert.deepEqual(old.creditStars, previous.map(([id]) => id));
+  assert.deepEqual(producers.filter(p => !old.creditStars.includes(p.id)).map(p => p.id), ["star-xiaoye", "star-yeshenhua"]);
 });
 test("credit discoveries survive updates and reload, without counting as any of the seven flowers", () => {
   const ids = producers.map(p => p.id);

@@ -6,6 +6,7 @@ import { drawWildSprite } from "./wild-art";
 import type { DepthLayer, World } from "./world";
 import { drawMoonCircle } from "./moon-circle";
 import { drawFirefly, fireflyDrift } from "./firefly-art";
+import { MeadowStarReader } from "./meadow-star-reader";
 
 type Credit = typeof producers[number];
 const flock = [
@@ -35,8 +36,10 @@ export class NightMeadow {
   private reduced = matchMedia("(prefers-reduced-motion: reduce)");
   private caption = document.createElement("div");
   private memory?: {origin: Point; age: number; duration: number; burst: boolean};
+  private reader: MeadowStarReader;
 
   constructor(private world: World, private found: () => string[], private save: () => void) {
+    this.reader = new MeadowStarReader(world);
     this.caption.className = "star-whisper";
     this.caption.hidden = true;
     this.caption.setAttribute("role", "status");
@@ -65,8 +68,11 @@ export class NightMeadow {
   }
   leave() {
     this.jarPage = 0;
+    this.closeReader();
     this.clearCaption();
   }
+  get readerOpen() { return this.reader.opened; }
+  closeReader() { this.reader.close(); }
   interact(id: string) {
     if (this.world.scene !== "meadow") return false;
     if (id === "meadow-camp") {
@@ -95,20 +101,28 @@ export class NightMeadow {
     }
     return true;
   }
-  private showCredit(person: Credit, at: Point, burst: boolean, source = "落星里的署名") {
-    this.whisper(at, person.name, person.message, burst, source);
+  private showCredit(person: Credit, at: Point, burst: boolean, source = "") {
+    this.closeReader();
+    // Every star still reveals its name in the soft burst. A letter keeps
+    // its own readable surface instead of expiring with that short effect.
+    this.whisper(at, person.name, "", burst, source);
+    if (person.message.trim()) this.reader.open(person.name, person.message, source || "落星里的留言");
   }
   private whisper(at: Point, name: string, message: string, burst: boolean, source = "") {
-    const by = document.createElement("strong"), line = document.createElement("span");
+    const by = document.createElement("strong");
     by.textContent = name;
-    line.textContent = message;
     this.caption.replaceChildren();
     if (source) {
       const small = document.createElement("small");
       small.textContent = source;
       this.caption.append(small);
     }
-    this.caption.append(by, line);
+    this.caption.append(by);
+    if (message.trim()) {
+      const line = document.createElement("span");
+      line.textContent = message;
+      this.caption.append(line);
+    }
     this.memory = {origin: at, age: 0, duration: Math.max(6, 3 + Array.from(message).length / 4), burst};
     this.positionCaption();
   }

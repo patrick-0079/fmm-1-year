@@ -16,6 +16,7 @@ import { verifyFieldTrip } from "./field-trip-cases";
 import { verifyTownResidents } from "./town-dialogue-cases";
 import { verifyWardrobe } from "./wardrobe-cases";
 import { foxNook } from "../src/room-props";
+import { interactionHitY } from "../src/interaction";
 
 // Same application as the homepage; all its saves are private to this QA tab.
 const space="fufu-only-exploration-fixture/";
@@ -70,6 +71,21 @@ async function insideMeadow() {
   expect(world.meadowSprites?.naturalWidth,"花海可互动时小羊与落星尚未就绪");
 }
 const meadowSpot = (id: string) => scenes.meadow.spots.find(s => s.id === id)!;
+function closeStarReader() {
+  const reader=q(".meadow-star-reader");
+  if (!reader.hidden) q(".meadow-star-reader-close").click();
+}
+function checkStarWords(person: typeof producers[number]) {
+  expect(q(".star-whisper strong").textContent===person.name,"落星署名不正确");
+  const reader=q(".meadow-star-reader");
+  if (person.message) {
+    expect(!reader.hidden && q(".meadow-star-reader-name").textContent===person.name,"有正文的落星没有打开阅读卡");
+    expect(q(".meadow-star-reader-body").textContent?.replace(/\s/g,"")===person.message.replace(/\s/g,""),"落星正文没有完整显示");
+    expect(world.paused && !world.suspended,"阅读应只暂停人物，不能冻结花海环境");
+  } else {
+    expect(reader.hidden && !q(".star-whisper").querySelector("span") && !world.paused,"未写寄语的落星不应出现正文、占位符或暂停人物");
+  }
+}
 async function collectStar(person: typeof producers[number], pointer = false) {
   const spot = meadowSpot(person.id), count = state().creditStars.length;
   world.switchScene("meadow", pointer ? {x: spot.x - 39, y: spot.y + 12} : spot.approach);
@@ -79,11 +95,12 @@ async function collectStar(person: typeof producers[number], pointer = false) {
       clientX:r.left + pos.x * r.width / 600, clientY:r.top + pos.y * r.height / 400}));
   } else { key("e"); key("e",false); }
   await wait(()=>state().creditStars.includes(person.id));
-  expect(q(".star-whisper strong").textContent === person.name && q(".star-whisper span").textContent === person.message,
-    "署名或寄语没有在地图中显示");
-  expect(!q(".star-whisper").hidden && !world.available(spot) && !world.paused, "落星重复出现或阻挡探索");
+  checkStarWords(person);
+  expect(!q(".star-whisper").hidden && !world.available(spot), "落星重复出现或署名未显示");
   world.onInteract(spot.id);
   expect(state().creditStars.length===count+1, "落星被重复收集");
+  closeStarReader();
+  expect(!world.paused,"收起星星寄语没有恢复探索");
 }
 function checkHarvest() {
   const apple = scenes.garden.spots.find(s=>s.id==="apple")!;
@@ -169,7 +186,7 @@ async function checkAll() {
   world.interact();
   for (const [i, person] of producers.slice(0,-1).entries()) await collectStar(person,i===0);
   world.switchScene("meadow",jar.approach); world.interact();
-  expect(q(".star-whisper strong").textContent===producers[0].name,"星光瓶未能重读署名");
+  checkStarWords(producers[0]); closeStarReader();
   const exit=scenes.meadow.spots.find(s=>s.id==="meadow-exit")!;
   world.switchScene("meadow",exit.approach); world.interact();
   await wait(()=>world.scene==="garden");
@@ -642,8 +659,33 @@ if (sessionStorage.getItem(space+"reload")) {
     world.switchScene("meadow",jar.approach);
     for(const p of producers) {
       world.interact();
-      expect(q(".star-whisper strong").textContent===p.name,"星光瓶回看漏掉 "+p.name);
+      checkStarWords(p); closeStarReader();
     }
     log("刷新后继续拾齐全部落星，星光瓶能够依次重读每一位制作人的寄语");
   });
 }
+
+// Browser QA drives the same app without sharing the real homepage's storage.
+// Expose only test state/position helpers; all interactions use real UI or E.
+Object.assign(window, { contentQA: {
+  ready: () => !!world && !q<HTMLButtonElement>(".enter-button").disabled,
+  catalogue: () => producers.map(person => ({...person})),
+  snapshot: () => ({scene:world.scene, player:{...world.player}, paused:world.paused,
+    suspended:world.suspended, activeCue:world.activeCueId, progress:state(),
+    canvas:world.canvas.getBoundingClientRect().toJSON(), scrollY,
+    focused:document.activeElement===world.canvas ? "canvas" : (document.activeElement as HTMLElement)?.className}),
+  async visit(scene: Parameters<World["switchScene"]>[0], id?: string) {
+    closeStarReader();
+    await world.prepareScene(scene);
+    const config=scene==="town"?world.townMap:scenes[scene];
+    world.switchScene(scene,id?config.spots.find(s=>s.id===id)?.approach:config.spawn);
+    world.setCueInput("keyboard");
+    await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
+  },
+  point(id: string) {
+    const spot=world.config.spots.find(s=>s.id===id)!;
+    const p=world.project({x:spot.x,y:interactionHitY(spot)}),r=world.canvas.getBoundingClientRect();
+    return {x:r.left+p.x*r.width/600,y:r.top+p.y*r.height/400};
+  },
+  canvasImage: () => world.canvas.toDataURL(),
+} });

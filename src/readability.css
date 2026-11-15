@@ -134,13 +134,15 @@ small {
   text-align: left;
 }
 .game-letter-reader {
+  display: flex;
+  flex-direction: column;
   position: absolute;
   z-index: 12;
   right: 14px;
   bottom: 14px;
   width: min(620px, 76%);
   max-height: calc(100% - 78px);
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   background: #fffaf0;
   color: #514b57;
@@ -150,6 +152,7 @@ small {
   box-shadow: 0 8px 30px #362b4930;
 }
 .game-letter-reader > header {
+  flex: 0 0 auto;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -157,10 +160,16 @@ small {
   justify-content: space-between;
   border-bottom: 1px solid #eadbcc;
   padding-bottom: 12px;
-  position: sticky;
-  top: -20px;
   background: #fffaf0;
   z-index: 1;
+}
+.game-letter-reader[hidden] { display: none; }
+.game-letter-reader > .reader-body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y;
+  scrollbar-width: thin;
 }
 .game-letter-reader header h3 {
   margin: 4px 0;
@@ -274,18 +283,45 @@ small {
     padding: 8px 6px;
   }
   .game-letter-reader {
-    position: relative;
-    inset: auto;
-    margin: 6px;
+    position: absolute;
+    inset: 6px;
+    margin: 0;
     width: auto;
-    max-height: 520px;
-    padding: 14px;
+    max-height: none;
+    padding: 8px;
   }
   .game-letter-reader header h3 {
-    font-size: 18px;
+    font-size: 15px;
+    margin: 0;
   }
   .game-letter-reader > header {
-    top: -14px;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px;
+    padding-bottom: 6px;
+  }
+  .game-letter-reader .reader-tools {
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+  .game-letter-reader .reader-tools button {
+    font-size: 12px;
+    min-height: 44px;
+    padding: 4px 6px;
+    white-space: nowrap;
+  }
+  .game-letter-reader .collection-list {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-x;
+    margin-bottom: 6px;
+  }
+  .game-letter-reader .collection-item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    min-height: 44px;
+    padding: 6px 8px;
   }
   .game-letter-reader header p,
   .game-letter-reader header small {

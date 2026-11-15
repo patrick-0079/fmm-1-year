@@ -163,6 +163,7 @@ export class Inventory {
     // The cinema is outside the map stage, including its non-native fullscreen fallback.
     // Opening the map's wardrobe underneath it would invisibly suspend playback.
     return !this.world.suspended && !this.scene.querySelector(".intro-screen:not(.dismissed)") &&
+      !this.scene.querySelector(".meadow-star-reader:not([hidden])") &&
       !document.querySelector(".cinema-player:not([hidden])");
   }
   open() {

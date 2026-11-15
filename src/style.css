@@ -756,33 +756,6 @@ kbd {
   color: #8b8491;
   margin: 0;
 }
-.world-note {
-  position: relative;
-  margin: 35px 0 0;
-  padding: 5px 24px 5px;
-  border-left: 2px solid #e9d5e1;
-  max-width: 800px;
-}
-.world-note > span {
-  font-size: 12px;
-  font-weight: 600;
-  color: #9f8098;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.world-note > span .icon {
-  width: 15px;
-  height: 15px;
-  color: #8db6c6;
-}
-.world-note p {
-  font-size: 11px;
-  line-height: 1.9;
-  color: #938a97;
-  letter-spacing: 0.4px;
-  margin: 8px 0;
-}
 .text-button {
   display: inline-flex;
   align-items: center;
@@ -1674,9 +1647,6 @@ footer .reset-button {
   .journal-note {
     margin-top: 21px;
   }
-  .world-note {
-    margin-top: 42px;
-  }
 }
 @media (max-width: 1120px) {
   .page-shell {
@@ -1872,9 +1842,6 @@ footer .reset-button {
   }
   .game-bottom {
     padding: 13px 16px;
-  }
-  .world-note {
-    margin-top: 30px;
   }
   footer {
     margin-top: 32px;
@@ -2277,21 +2244,6 @@ footer .reset-button {
   }
   .journal-progress p {
     font-size: 8px;
-  }
-  .world-note {
-    padding: 4px 0 4px 15px;
-    margin: 27px 3px 0;
-  }
-  .world-note > span {
-    font-size: 11px;
-  }
-  .world-note p {
-    font-size: 10px;
-    line-height: 1.9;
-    max-width: 315px;
-  }
-  .desktop-break {
-    display: none;
   }
   footer {
     margin-top: 28px;

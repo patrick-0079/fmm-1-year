@@ -215,6 +215,7 @@ export function mountGame(tasks: Task[]) {
     }
   };
   const closePanels = () => {
+    meadow.closeReader();
     bass.close(false);
     inventory.close(false);
     if (!help.hidden) setHelp(false);
@@ -288,7 +289,7 @@ export function mountGame(tasks: Task[]) {
   };
   world.retainCueHover = point => prompt.retainsHover(cuePoint(point));
   world.canShowInteractionCues = () => started && !transitioning && !resetInProgress &&
-    !activities.active && !arcade.active && !cinema.active && !bass.active && !bedNote.isOpen &&
+    !activities.active && !arcade.active && !cinema.active && !bass.active && !bedNote.isOpen && !meadow.readerOpen &&
     cuePanels.every(panel => panel.hidden);
   world.onInteractionCue = spot => {
     const cue = spot ? resolveCue(spot, world.scene) : null;
@@ -617,11 +618,6 @@ export function mountGame(tasks: Task[]) {
         transition(button.dataset.scene as SceneId);
       }),
     );
-  document.querySelector(".garden-link")!.addEventListener("click", () => {
-    begin();
-    transition("garden");
-    revealMapIfOffscreen();
-  });
   const visit = (scene: SceneId, id: string) => {
     if (world.busy || !world.canEnter(scene)) return;
     if (transitioning) {

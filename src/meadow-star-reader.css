@@ -1,0 +1,84 @@
+.meadow-star-reader {
+  position: absolute;
+  z-index: 5;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  width: min(360px, calc(100% - 24px));
+  max-height: 70%;
+  min-height: 0;
+  padding: 13px 15px 15px;
+  overflow: hidden;
+  color: #f4eddb;
+  background: linear-gradient(145deg, #293d4bf5, #1c303df7);
+  border: 1px solid #c7b384;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 3px #a6b0a312, 0 5px 18px #0e1c2d63;
+  font: 15px/1.8 "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  text-align: left;
+  overscroll-behavior: contain;
+}
+.meadow-star-reader[hidden] { display: none !important; }
+.meadow-star-reader > header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #c7b38445;
+  touch-action: none;
+}
+.meadow-star-reader > header > div { min-width: 0; }
+.meadow-star-reader-source { display: block; color: #bcc9cc; font-size: 12px; line-height: 1.4; margin-bottom: 3px; }
+.meadow-star-reader-source::before { content: "✦"; margin-right: 6px; color: #dcc38c; font-size: 11px; }
+.meadow-star-reader-name { display: block; color: #f3dca5; font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
+.meadow-star-reader-close {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 4px 9px;
+  border: 1px solid #c7b38466;
+  border-radius: 4px;
+  background: #f1e0b910;
+  color: #f3e7cb;
+  font: 13px/1.5 "Microsoft YaHei", "PingFang SC", sans-serif;
+  touch-action: manipulation;
+}
+.meadow-star-reader-close:hover { background: #f1e0b924; }
+.meadow-star-reader-close:focus-visible,
+.meadow-star-reader-body:focus-visible { outline: 2px solid #d9c58e; outline-offset: 2px; }
+.meadow-star-reader-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 5px 0 0;
+  color: #f4eddb;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  scrollbar-width: thin;
+  scrollbar-color: #c0b083 #1d3340;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scroll-behavior: auto;
+}
+.meadow-reading > .interaction-prompt { display: none !important; }
+body:has(.meadow-star-reader:not([hidden]), .game-letter-reader:not([hidden])) .debug-trigger {
+  visibility: hidden;
+  pointer-events: none;
+}
+@container (max-width: 560px) {
+  .meadow-star-reader {
+    inset: 6px;
+    width: auto;
+    max-height: none;
+    padding: 8px 10px 10px;
+    font-size: 14px;
+    line-height: 1.75;
+  }
+  .meadow-star-reader > header { margin-bottom: 6px; padding-bottom: 6px; align-items: center; }
+  .meadow-star-reader-name { font-size: 15px; }
+  .meadow-star-reader-close { min-height: 44px; padding: 5px 9px; font-size: 14px; }
+}

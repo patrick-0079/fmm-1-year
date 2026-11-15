@@ -60,6 +60,8 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     detail.innerHTML = `<h3>${escapeHtml(item.title)}</h3>${item.author ? `<p class="memory-author">来自 ${escapeHtml(item.author)}</p>` : ""}<div class="memory-content"></div>`;
     const content = detail.querySelector(".memory-content")!;
     if (collection.kind === "text") {
+      // Each letter opens at its salutation, even after reading a long one.
+      body.scrollTop = 0;
       const p = document.createElement("p");
       p.className = "letter-text";
       p.textContent = item.text || "这封信的正文还在路上。";
