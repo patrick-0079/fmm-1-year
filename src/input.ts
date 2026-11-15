@@ -9,7 +9,7 @@ export function readingTarget(target: EventTarget | null) {
   return (
     target instanceof Element &&
     !!target.closest(
-      "input,textarea,select,[contenteditable=true],.reader-body,.meadow-star-reader,.star-bottle-page,.inventory-panel,.inline-help,.debug-panel,.mine-rules",
+      "input,textarea,select,[contenteditable=true],[data-page-ui],.page-memory-reader,.reader-body,.meadow-star-reader,.star-bottle-page,.inventory-panel,.inline-help,.debug-panel,.mine-rules",
     )
   );
 }

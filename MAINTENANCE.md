@@ -22,7 +22,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 花园大屏视频 | `src/cinema-config.ts`；使用直接可读取的 MP4 地址，推荐 H.264 + AAC，替换后核对 CORS |
 | 每次复活的床边便签 | `src/bed-note.ts`、`src/assets/xiaoye-note.webp`。首遇解锁图钉，之后每次回床也自动展信。附加文案在 `content.ts` 的 `encouragements` |
 | 回声遗迹 | `src/ruins-map.ts` 记录地砖范围和门槛，`src/echoes.ts` 校验拓本与解谜存档，`src/echo-ruins.ts` 负责祭坛、石座、听月泉和电波。地图、拱门和三张棋盘用 `node scripts/build-ruins-art.mjs` 从三张原画重建。 |
-| 七色花与夜间花海 | `src/rainbow-flowers.ts` 和 `src/flower-trail.ts` 维护七种花与入口。`src/meadow-map.ts` 描出草地、帐篷、火圈和水壶。`src/night-meadow.ts` 绘制羊、萤火与落星并管理拾星寄语；`src/star-bottle.ts`、`src/star-bottle.css` 管理星光瓶独立收藏页 |
+| 七色花与夜间花海 | `src/rainbow-flowers.ts` 和 `src/flower-trail.ts` 维护七种花与入口。`src/meadow-map.ts` 描出草地、帐篷、火圈和水壶。`src/night-meadow.ts` 绘制羊、萤火与落星并管理拾星寄语；`src/star-bottle.ts`、`src/star-bottle.css` 管理游戏内锥形星光瓶特写 |
 | 苹果、可采花丛、勇气花和黄昏纸船 | `src/nature.ts` 按剩余数量和时段绘制，`src/wild-art.ts` 按脚底锚点读取四格图集。运行 `npm run art:night` 重建花海和采集物美术。[v16 素材说明](ARTWORK-v16.md) |
 | 烟花祝福 | `src/celebration.ts` 的 `fireworkWishes`；全部是预设文字 |
 | 小镇居民和小游戏摊位 | `src/town-data.ts`；位置、靠近点和半径需要一起验证 |
@@ -117,7 +117,15 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 当前花海有八颗落星。新增的小叶子使用 `star-xiaoye`、坐标 `(485,335)`，夜神华使用 `star-yeshenhua`、坐标 `(685,270)`；原六颗的 ID 和坐标保持不变。追加制作人时，选取草地上的空位，与营火、星光瓶及其他落星保持至少约 60 个逻辑像素的间距。`npm run check` 会验证署名 ID、点击和按键命中、落脚点以及寻路。已有玩家按稳定的 ID 记录收集进度，`readProgress` 从当前 `producers` 允许列表过滤，无需为追加落星另建存档。星光瓶按已拾 ID 从当前内容读取文字，补交寄语后老玩家也能重读。没有寄语时 `message` 保持空字符串，只显示署名。花海底图和羊群图集在集齐七朵花后一起预载。
 
-花海寄语使用地图内限高的阅读卡，长文滚动、手动收起或 Esc 关闭，不再依赖按字数计算的自动淡出。拾星荧光烟花照常播放。星光瓶打开 `src/star-bottle.ts`、`src/star-bottle.css` 管理的独立收藏页，按已收集 ID 展示瓶内可选的星星，点击、轻触或 Tab / Enter 选读，选中后才显示姓名，Esc 返回花海。未收集星星不得出现在瓶中；有寄语显示完整正文，空字符串只显示姓名，不补占位段落。检查长文时覆盖 320px、390px 手机宽度：正文应完整可读，指针滚动与阅读按键不得穿透到地图，收起后可立即继续走动。
+花海寄语使用地图内限高的阅读卡，长文滚动、手动收起或 Esc 关闭。拾星荧光烟花照常播放。星光瓶特写放在 `.game-stage-frame` 内、与 `.game-stage` 同级，覆盖同一 3:2 区域；不能放在被 `world.suspend` 设为 inert 的节点内，也不再设置 `#app.inert`。按游戏容器的实际宽度 600px 切换桌面瓶文并排与手机瓶子／寄语两视图；锥形瓶在手机每页两颗星，确保至少 44px 的点击区域不重叠。`src/star-bottle-layout.ts` 维护与 801×1204 运行图一致的落点，`tests/star-bottle.test.ts` 会验证点击框位于透明玻璃范围内。素材与重建方法见 [v44 美术说明](ARTWORK-v44.md)。只从已收集 ID 读取当前署名和寄语，空寄语不补占位文字。关闭只释放 `star-bottle` 的暂停原因，切图、开其他入口时同时清理特写。
+
+## 网页纪念手账与阅读
+
+`src/main.ts` 与 `src/page-journal.css` 管理游戏外布局。1100px 以上游戏与272px心愿侧栏并排，窄屏单列；回忆收藏与导览都在游戏下方。旧的 `.journal` 跨行布局不能再作用于新区域。每种动态入口保留一份 DOM，来信与影片状态仍更新各自入口内的 `small`。
+
+`PageMemoryReader` 实现 `CollectionSurface`，在 `.page-memory-reader` 中复用 `openCollection`。打开前设置触发按钮；阅读使用独立的 `page-memory` suspension，收起恢复来源焦点，跳往游戏或别的入口使用 `close(false)`。网页读相册不调用 `visit()`，不写入探索记录。网页控件标记 `data-page-ui`，方向键与E不传给地图，进入这些控件时清理之前按住的方向键；该标记不能加在游戏的祖先容器上。若玩家在转场尚未完成时选择网页阅读，旧转场可以完成，但不得把页面滚回地图或抢走阅读焦点。
+
+验收覆盖未开局阅读、页面与地图信件的未读同步、相册完整比例、手机左侧列表、长信末句、切换收藏不跳页、关闭后恢复移动，以及导览所有7款游戏/15位居民。星瓶检查空瓶、旧六星、部分与八星存档，手机翻页不遗漏、未发现姓名不进入DOM、减少动态效果、Esc与切图清理，以及帮助/背包暂停互不覆盖。
 
 | localStorage 键 | 内容 |
 | --- | --- |

@@ -7,6 +7,7 @@ import { resolveCue } from "./interaction-cues";
 import { Activities } from "./activities";
 import { BedNote } from "./bed-note";
 import { MapReader } from "./reader";
+import { PageMemoryReader } from "./page-memory-reader";
 import { Inventory } from "./inventory";
 import { Arcade } from "./arcade";
 import { Town, TOWN_TALKED_KEY } from "./town";
@@ -29,7 +30,7 @@ import { RoomFox } from "./room-fox";
 import { mountDebugPanel } from "./debug-panel";
 import { meadowOpen } from "./rainbow-flowers";
 import { JOURNEY_KEY, readJourney, type Journey } from "./journey";
-import { openCollection } from "./media";
+import { openCollection, type CollectionSurface } from "./media";
 import {
   chime,
   setSound,
@@ -67,17 +68,19 @@ export function mountGame(tasks: Task[]) {
     if (rect.bottom<=0 || rect.top>=window.innerHeight) board.scrollIntoView({block:"nearest",behavior:"instant"});
   };
   const reader = new MapReader(world);
+  const pageReader = new PageMemoryReader(world);
   let selectedLetterId: string | undefined;
   const mailCount = document.querySelector<HTMLElement>('[data-memory="letters"] small')!;
   function updateMailCount() {
     const story = progress.residents;
     mailCount.textContent = mailboxLetters(story).length + " 封来信" + (postUnread(story) ? " · 1 封未读" : "");
+    mailCount.closest("button")?.classList.toggle("has-unread", postUnread(story));
   }
-  function readCollection(id: string) {
-    if (id === "album") { openCollection(reader, id); return; }
+  function readCollection(id: string, surface: CollectionSurface = reader) {
+    if (id === "album") { openCollection(surface, id); return; }
     if (id !== "letters") return;
     const story = progress.residents;
-    openCollection(reader, id, {
+    openCollection(surface, id, {
       items: mailboxLetters(story), selectedId: selectedLetterId,
       unreadId: postUnread(story) ? postLetter.id : undefined,
       onRead: letterId => {
@@ -205,7 +208,11 @@ export function mountGame(tasks: Task[]) {
     : null;
   const help = document.querySelector<HTMLElement>(".inline-help")!;
   const setHelp = (open: boolean) => {
-    if (open) inventory.close(false);
+    if (open) {
+      pageReader.close(false);
+      meadow.closeBottle();
+      inventory.close(false);
+    }
     help.hidden = !open;
     world.suspend("help", open);
     document.querySelector(".help-button")!.setAttribute("aria-expanded", String(open));
@@ -215,6 +222,7 @@ export function mountGame(tasks: Task[]) {
     }
   };
   const closePanels = () => {
+    pageReader.close(false);
     meadow.closeBottle();
     meadow.closeReader();
     bass.close(false);
@@ -272,7 +280,7 @@ export function mountGame(tasks: Task[]) {
   const sceneWrap = world.canvas.parentElement!;
   const prompt = new InteractionPrompt(sceneWrap, id => world.activateCue(id));
   const touchAction = document.querySelector<HTMLElement>(".touch-interact span")!;
-  const cuePanels = Array.from(document.querySelectorAll<HTMLElement>(".inventory-panel,.map-reader,.game-letter-reader"));
+  const cuePanels = Array.from(document.querySelectorAll<HTMLElement>(".inventory-panel,.map-reader,.game-letter-reader,.page-memory-reader"));
   let cueScale = world.canvas.clientWidth / 600;
   let cueOffset = {x:world.canvas.offsetLeft,y:world.canvas.offsetTop};
   new ResizeObserver(() => {
@@ -356,7 +364,9 @@ export function mountGame(tasks: Task[]) {
       world.switchScene(scene, arrival, Math.abs(dx)>Math.abs(dy) ? (dx>0 ? 2 : 1) : (dy<0 ? 3 : 0));
       if (leavingHome && world.scene === scene) fox.departed(true);
       else if (scene === "room" && from !== scene && world.scene === scene) fox.arrive(false);
-      revealMapIfOffscreen();
+      // A newer reading choice must keep its position and focus even when
+      // an already-started map crossing finishes in the background.
+      if (!pageReader.opened) revealMapIfOffscreen();
     }).catch(() => {
       if (leavingHome) fox.clear();
       toast("地图暂未载入，稍后可以再试一次。");
@@ -540,6 +550,11 @@ export function mountGame(tasks: Task[]) {
     world.canvas.focus({ preventScroll: true });
   }
   enter.addEventListener("click", begin);
+  pageReader.onReturnToGame = () => {
+    if (started) world.canvas.focus({preventScroll:true});
+    else enter.focus({preventScroll:true});
+    revealMapIfOffscreen();
+  };
   world
     .load()
     .then(async () => {
@@ -619,6 +634,14 @@ export function mountGame(tasks: Task[]) {
         transition(button.dataset.scene as SceneId);
       }),
     );
+  document.querySelectorAll<HTMLButtonElement>("[data-explore-scene]").forEach(button => {
+    button.addEventListener("click", () => {
+      const scene = button.dataset.exploreScene;
+      if (scene !== "town" && scene !== "ruins") return;
+      begin();
+      transition(scene);
+    });
+  });
   const visit = (scene: SceneId, id: string) => {
     if (world.busy || !world.canEnter(scene)) return;
     if (transitioning) {
@@ -666,27 +689,37 @@ export function mountGame(tasks: Task[]) {
         visit("town", "npc-" + b.dataset.townNpc),
       ),
     );
+  const openPageMemory = (id: "letters" | "album", trigger: HTMLElement | null) => {
+    // Reading a keepsake does not start the adventure, claim an exploration
+    // corner, or let an older queued guide click replace the new reading view.
+    afterCrossing = undefined;
+    closePanels();
+    cinema.close();
+    arcade.close();
+    activities.close();
+    reader.close();
+    dismissRevive();
+    world.paused = !started || transitioning;
+    pageReader.setTrigger(trigger);
+    readCollection(id, pageReader);
+  };
   document
     .querySelectorAll<HTMLButtonElement>("[data-memory]")
     .forEach((button) =>
       button.addEventListener("click", () => {
-        if (button.dataset.memory === "letters") {
-          closePanels();
-          cinema.close();
-          arcade.close();
-          activities.close();
-          world.paused = !started;
-          reader.inGame = false;
-          readCollection("letters");
-        } else if (button.dataset.memory === "album") visit("room", "album");
+        const id = button.dataset.memory;
+        if (id === "letters" || id === "album") openPageMemory(id, button);
       }),
     );
   reader.onChangeView = () => {
     if (reader.inGame) {
-      reader.inGame = false;
-      readCollection("letters");
+      openPageMemory("letters", document.querySelector('[data-memory="letters"]'));
     } else visit("room", "letters");
   };
+  for (const region of document.querySelectorAll<HTMLElement>("[data-page-ui]")) {
+    region.addEventListener("pointerdown", () => world.clearInput());
+    region.addEventListener("focusin", () => world.clearInput());
+  }
   document
     .querySelectorAll<HTMLButtonElement>("[data-direction]")
     .forEach((button) => {
