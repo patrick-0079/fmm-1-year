@@ -40,10 +40,10 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
   body.classList.toggle("mailbox-reader-body", collection.kind === "text");
   const list = body.querySelector(".collection-list")!,
     detail = body.querySelector(".memory-detail")!;
-  if (collection.kind === "text") {
+  if (collection.kind === "text" || collection.kind === "image") {
     body.removeAttribute("tabindex");
     detail.setAttribute("tabindex", "0");
-    detail.setAttribute("aria-label", "信件正文，可滚动阅读");
+    detail.setAttribute("aria-label", collection.kind === "text" ? "信件正文，可滚动阅读" : "相片与说明，可滚动阅读");
   }
   let media: HTMLMediaElement | null = null;
   let filmUrl: string | undefined;
@@ -59,6 +59,8 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
   };
   const select = (index: number) => {
     stop();
+    body.scrollTop = 0;
+    detail.scrollTop = 0;
     const item = items[index];
     list.querySelectorAll("button").forEach((button, i) => {
       button.classList.toggle("selected", i === index);
@@ -188,5 +190,5 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     document.removeEventListener("visibilitychange", visibility);
   });
   select(Math.max(0, items.findIndex(item => item.id === letters?.selectedId)));
-  if (collection.kind === "text") (detail as HTMLElement).focus({ preventScroll: true });
+  if (collection.kind === "text" || collection.kind === "image") (detail as HTMLElement).focus({ preventScroll: true });
 }

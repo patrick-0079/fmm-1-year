@@ -18,7 +18,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 内容 | 文件与维护要点 |
 | --- | --- |
 | 主播链接、纪念日期、制作人 | `src/content.ts` 的 `anniversary`、`producers`。制作人记录的 `id` 对应存档，`name` 与 `message` 在拾星时揭晓。待收文案见 [todo.md](todo.md) |
-| 信箱与日常相册 | `src/content.ts` 的 `collections`；信箱左列标签与正文独立滚动的布局在 `src/mailbox.css`，正文滚动目标是 `.memory-detail`。四张插画及缩略图在 `src/assets/album-v36/`，`scripts/build-album-art.mjs` 重建；可选新增文件放 `public/media/` |
+| 信箱与日常相册 | `src/content.ts` 的 `collections`；信箱布局在 `src/mailbox.css`，游戏内相册布局在 `src/game-album.css`，正文滚动目标均为 `.memory-detail`。四张插画及缩略图在 `src/assets/album-v36/`，`scripts/build-album-art.mjs` 重建；可选新增文件放 `public/media/` |
 | 花园大屏视频 | `src/cinema-config.ts`；使用直接可读取的 MP4 地址，推荐 H.264 + AAC，替换后核对 CORS |
 | 每次复活的床边便签 | `src/bed-note.ts`、`src/assets/xiaoye-note.webp`。首遇解锁图钉，之后每次回床也自动展信。附加文案在 `content.ts` 的 `encouragements` |
 | 回声遗迹 | `src/ruins-map.ts` 记录地砖范围和门槛，`src/echoes.ts` 校验拓本与解谜存档，`src/echo-ruins.ts` 负责祭坛、石座、听月泉和电波。地图、拱门和三张棋盘用 `node scripts/build-ruins-art.mjs` 从三张原画重建。 |
@@ -75,6 +75,8 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 两花园的萤火彩蛋和花海共用 `src/firefly-art.ts` 的细翅、腹光与漂浮函数，各只萤火虫独立明灭。`Nature` 与 `NightMeadow` 在减少动态效果时传入固定时间，仍绘制可见的静态虫群。不要恢复旧版在所有地图（包括白天和室内）漂浮的方块粒子。
 
+周年花园南门西侧的路灯与石柱在 `src/nature.ts` 的 `gardenGateLamp` 描边，从现有 1536×1024 底图取样后映射到 900×600 地图。灯身与两侧提环分别取轮廓，提环空隙保留后面的树；深度以石柱底部为准，与树和人物一起排序。更换底图时同步核对轮廓，不要用矩形补片覆盖树，也不要把整座门放到人物上层。
+
 房间逻辑尺寸为 600×400，庭院和勇气花园为 900×600，小镇为 1536×1024。摄像机视口逻辑尺寸保持 600×400，画布实际像素按设备像素密度调整。不要把画布重新缩为低分辨率来画文字；系统字体与像素图片分别渲染。
 
 图集不一定是等宽网格。修改角色、衣橱或庆典素材时，核对 `src/sprite-frames.ts`、`equipment.ts`、`item-art.ts`、`party-art.ts` 的实际裁切区域。生成来源与原始提示词统一在 `doc/artwork/ARTWORK*.md`，v11 新素材详见 [ARTWORK-v11.md](doc/artwork/ARTWORK-v11.md)。这些文档中的构建命令仍从仓库根目录执行；Markdown 文件链接则相对于各文档位置解析。透明图集压缩保持原尺寸；不要仅凭格数平均裁切。
@@ -125,7 +127,11 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 画面角落只保留当前位置、时间等标签，不再放快捷切图、花环穿脱或复活点条幅。地图切换使用画面下方导航和实际出口；花环穿脱使用背包或 H 键。添加界面或事件时不要重新绑定已移除的角落按钮，复活仍回到小屋床上。
 
+时间与当前位置共用 `.scene-top` 顶部行，时间固定靠右，窄屏优先省略位置名尾部。矿场也沿用同一位置，不保留旧的下移或左下角覆盖规则。
+
 `PageMemoryReader` 实现 `CollectionSurface`，在 `.page-memory-reader` 中复用 `openCollection`。打开前设置触发按钮；阅读使用独立的 `page-memory` suspension，收起恢复来源焦点，跳往游戏或别的入口使用 `close(false)`。网页读相册不调用 `visit()`，不写入探索记录。网页控件标记 `data-page-ui`，方向键与E不传给地图，进入这些控件时清理之前按住的方向键；该标记不能加在游戏的祖先容器上。若玩家在转场尚未完成时选择网页阅读，旧转场可以完成，但不得把页面滚回地图或抢走阅读焦点。
+
+小屋相册使用 `MapReader.inGame`，复用游戏内阅读层并加 `.game-album-reader`。左侧缩略图与右侧照片、字幕各自滚动，切图回到正文开头，照片不能裁切或拉伸。阅读时隐藏角落标签，暂停人物并阻止叠开背包；收起后清除按键状态并恢复画布焦点。方向键、PageUp/Down、Home/End 滚动阅读区，滚轮和触屏在边界不带动整页。网页相册仍通过 `PageMemoryReader` 打开，不能随小屋入口一起改成游戏内阅读。
 
 验收覆盖未开局阅读、页面与地图信件的未读同步、相册完整比例、手机左侧列表、长信末句、切换收藏不跳页、关闭后恢复移动，以及导览所有7款游戏/15位居民。星瓶检查空瓶、旧八星、部分与九星存档，手机同屏显示全部收藏、逐颗选择不隐藏星星、未发现姓名不进入DOM、减少动态效果、Esc与切图清理，以及帮助/背包暂停互不覆盖。
 

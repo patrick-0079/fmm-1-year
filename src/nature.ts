@@ -39,6 +39,25 @@ const gardenSign = [[183,454],[181,450],[181,432],[186,427],[194,426],
   [190,418],[192,416],[199,426],[205,416],[208,417],[204,426],[213,427],
   [218,432],[218,451],[213,456],[203,457],[202,474],[209,477],[208,480],
   [189,480],[189,476],[196,474],[196,457],[186,456]].map(([x,y])=>({x,y}));
+// South-west entrance lantern and its pillar, traced on the 1536 × 1024
+// garden illustration. Keep the two handle openings transparent to the tree
+// behind them; a rectangular patch would erase foliage around the lantern.
+const gardenGateLamp = [
+  [[625,843],[629,844],[631,848],[629,852],[632,855],[635,858],
+    [640,861],[642,866],[640,872],[639,879],[637,892],[633,897],
+    [630,899],[629,904],[630,907],[631,912],[629,916],
+    [635,918],[638,923],[639,930],[639,943],[638,950],
+    [640,961],[640,984],[633,981],[626,977],[619,973],[613,973],
+    [612,955],[611,950],[612,936],[612,928],[614,922],[620,918],
+    [623,915],[622,911],[623,906],[624,900],[617,897],[613,894],
+    [610,888],[608,878],[607,871],[610,865],[614,860],[619,855],
+    [622,852],[623,846]],
+  [[624,849],[619,846],[614,846],[610,848],[608,852],[608,858],
+    [610,863],[612,860],[610,856],[611,852],[614,850],[618,850],
+    [622,853]],
+  [[630,849],[634,850],[639,854],[642,858],[643,864],[641,866],
+    [640,860],[637,856],[633,853],[629,852]],
+].map(outline=>outline.map(([x,y])=>({x:x*900/1536,y:y*600/1024})));
 const initial = (): NatureSave => ({
   picked: {},
   apple: 0,
@@ -433,7 +452,12 @@ export class Nature {
       apple = this.world.config.spots.find((s) => s.id === "apple")!,
       bench = this.world.config.spots.find((s) => s.id === "rest");
     return [
-      ...(scene === "garden" ? [{ y: 479, draw: (c: CanvasRenderingContext2D) => this.world.drawMapFragment(c, gardenSign) }] : []),
+      ...(scene === "garden" ? [
+        { y: 479, draw: (c: CanvasRenderingContext2D) => this.world.drawMapFragment(c, gardenSign) },
+        { y: 984 * 600 / 1024, draw: (c: CanvasRenderingContext2D) => {
+          for (const outline of gardenGateLamp) this.world.drawMapFragment(c, outline);
+        } },
+      ] : []),
       ...gardenTrees[scene].map((tree) => ({
         y: tree.y + 23 * tree.scale,
         draw: (c: CanvasRenderingContext2D) =>

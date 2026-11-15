@@ -1,0 +1,109 @@
+/* A paper album contained by the existing 3:2 game stage. Webpage reading
+   keeps its own PageMemoryReader styles and its independent pause reason. */
+.game-letter-reader.game-album-reader {
+  inset: 12px;
+  width: auto;
+  height: auto;
+  max-height: none;
+  padding: 14px;
+  border: 2px solid #bfa48f;
+  background: #fff8e9;
+  box-shadow: inset 3px 0 #e0c9ac, 0 8px 26px #49332c35;
+}
+.game-album-reader > header { gap: 10px; background: #fff8e9; padding-bottom: 10px; }
+.game-album-reader header h3::after { content: "滚动看配文"; display: inline-block; margin-left: 10px; color: #8c7474; font-size: 12px; font-weight: 400; white-space: nowrap; }
+.game-album-reader .reader-tools button { min-height: 44px; }
+.game-letter-reader.game-album-reader > .reader-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  outline-offset: -3px;
+}
+.game-letter-reader.game-album-reader .collection-layout.album-layout {
+  display: grid;
+  grid-template-columns: 136px minmax(0, 1fr);
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  margin: 10px 0 0;
+  gap: 14px;
+}
+.game-letter-reader.game-album-reader .album-layout .collection-list {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 9px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 2px 10px 2px 2px;
+  border-right: 1px solid #decab2;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+.game-letter-reader.game-album-reader .album-layout .collection-item {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px;
+  color: #765763;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: normal;
+  background: #fffaf0;
+  border-color: #d9c2ac;
+  touch-action: manipulation;
+}
+.game-letter-reader.game-album-reader .album-layout .collection-item.selected {
+  color: #704652;
+  background: #fff0ee;
+  border-color: #ac657e;
+  box-shadow: inset 3px 0 #ac657e;
+}
+.game-album-reader .album-layout .collection-item img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; margin-bottom: 4px; }
+.game-letter-reader.game-album-reader .album-layout .memory-detail {
+  container-type: size;
+  min-height: 0;
+  min-width: 0;
+  padding: 12px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  background: #fffdf6;
+  border-color: #e2d0b9;
+  outline-offset: -3px;
+}
+.game-album-reader .memory-detail:focus-visible { outline: 2px solid #b98298; }
+.game-album-reader .album-layout .memory-detail h3 { margin: 0 0 9px; font-size: 17px; line-height: 1.5; }
+.game-letter-reader.game-album-reader .album-layout .memory-image {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: auto;
+  max-height: max(24px, calc(100cqh - 36px));
+  margin-inline: auto;
+  object-fit: contain;
+  image-rendering: auto;
+}
+.game-album-reader .album-layout .media-caption { margin: 12px 0 0; font-size: 14px; line-height: 1.8; color: #705c60; }
+.reading-letter:has(.game-album-reader:not([hidden])) :is(.bag-toggle,.time-pill,.scene-top) { visibility: hidden; }
+@media (max-width: 650px) {
+  .game-letter-reader.game-album-reader { inset: 4px; padding: 6px; border-radius: 7px; }
+  .game-album-reader > header { padding-bottom: 5px; gap: 5px; }
+  .game-album-reader header h3 { font-size: 15px; }
+  .game-letter-reader.game-album-reader .collection-layout.album-layout { grid-template-columns: 58px minmax(0, 1fr); margin-top: 5px; gap: 6px; }
+  .game-letter-reader.game-album-reader .album-layout .collection-list { padding: 1px 5px 1px 1px; gap: 6px; }
+  .game-letter-reader.game-album-reader .album-layout .collection-item { padding: 3px; font-size: 12px; line-height: 1.45; }
+  .game-letter-reader.game-album-reader .album-layout .memory-detail { padding: 6px; }
+  .game-album-reader .album-layout .memory-detail h3 { margin-bottom: 5px; font-size: 14px; }
+  .game-letter-reader.game-album-reader .album-layout .memory-image { max-height: max(24px, calc(100cqh - 28px)); }
+  .game-album-reader .album-layout .media-caption { font-size: 14px; line-height: 1.6; margin-top: 8px; }
+}

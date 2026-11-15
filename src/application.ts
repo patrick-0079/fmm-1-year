@@ -523,7 +523,7 @@ export function mountGame(tasks: Task[]) {
       ]);
     else if (id === "letters" || id === "album") {
       activities.close();
-      reader.inGame = id === "letters";
+      reader.inGame = true;
       readCollection(id);
     }
   };
