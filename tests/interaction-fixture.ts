@@ -420,6 +420,36 @@ await check("奶油猫与垂耳兔佩戴后七种小游戏可启动、暂停、�
   }
 });
 
+await check("小游戏退出后焦点回到画布，不跳页，也不会抢走画面外已有的焦点", () => {
+  for (const id of Object.keys(ARCADES) as GameId[]) {
+    arcade.open(id); world.onAction(true);
+    const close = document.querySelector<HTMLButtonElement>(".arcade-close")!;
+    close.focus({preventScroll:true});
+    const top = window.scrollY;
+    close.click();
+    assert(document.activeElement === canvas, `${id} 退出后键盘焦点丢失`);
+    assert(window.scrollY === top && !world.paused, `${id} 退出时跳页或无法探索`);
+  }
+  arcade.open("blocks");
+  const outside = document.createElement("button"); document.body.append(outside);
+  outside.focus({preventScroll:true}); arcade.close();
+  assert(document.activeElement === outside, "切换页面内容时小游戏抢走了外部焦点");
+  outside.remove();
+});
+
+await check("蛋糕、礼盒、气球和烟花收起后，键盘焦点与操作立即返回地图", () => {
+  for (const activity of ["cake", "gifts", "balloons", "fireworks"] as const) {
+    activities[activity]();
+    const close = document.querySelector<HTMLButtonElement>(".activity-close")!;
+    close.focus({preventScroll:true});
+    const top = window.scrollY;
+    key("Escape", {}, close);
+    assert(!activities.active && !world.paused && !world.actorHidden, activity + " 没有恢复探索");
+    assert(document.activeElement === canvas && window.scrollY === top, activity + " 收起后失去焦点或跳页");
+    assert(!world.onAction(true), activity + " 收起后仍拦截地图互动");
+  }
+});
+
 const frames = (count: number) => new Promise<void>((resolve) => {
   const next = () => --count > 0 ? requestAnimationFrame(next) : resolve();
   requestAnimationFrame(next);

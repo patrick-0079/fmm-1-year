@@ -234,7 +234,7 @@ export class Nature {
       this.save();
       sfx("match");
       this.activities.note(
-        "捡到一顶花环 · 按 H 或点击场景右侧的「戴上花环」，给芙芙戴上吧",
+        "捡到一顶花环 · 按 H 戴上，或打开背包为芙芙搭配",
       );
       return true;
     }
@@ -317,7 +317,7 @@ export class Nature {
     }
     this.activities.menu(
       remaining > 0
-        ? "采到小花，编进花环里 · 按 H 或点游戏里的花环按钮佩戴"
+        ? "采到小花，编进花环里 · 按 H 戴上，或打开背包搭配花环"
         : "这片花今天采完啦，明天再来看看。",
       [
         ...(remaining > 1

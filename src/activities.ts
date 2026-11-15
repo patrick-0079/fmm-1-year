@@ -167,7 +167,7 @@ export class Activities {
     if (!this.world.restState && ["dialogue", "nature", "note"].includes(this.mode)) this.close();
   }
   private hidePanel() {
-    const returnFocus = ["dialogue", "gifts"].includes(this.mode) && this.hud.contains(document.activeElement);
+    const returnFocus = this.hud.contains(document.activeElement);
     this.dialogueEnd?.();
     this.dialogueEnd = undefined;
     this.dialogueAt = undefined;

@@ -229,7 +229,12 @@ export class BlocksGame implements Engine {
   }
   input(action: GameAction, pressed: boolean) {
     if (action === "down") {
-      this.soft = pressed;
+      if (this.soft !== pressed) {
+        this.soft = pressed;
+        // Time already spent falling normally must not become a burst of
+        // accelerated steps. Key repeat keeps the current cadence intact.
+        this.clock = 0;
+      }
       return;
     }
     if (!pressed || this.status !== "playing") return;

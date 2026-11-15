@@ -15,6 +15,7 @@ import { verifyGuests } from "./guest-cases";
 import { verifyFieldTrip } from "./field-trip-cases";
 import { verifyTownResidents } from "./town-dialogue-cases";
 import { verifyWardrobe } from "./wardrobe-cases";
+import { verifyReadingControls } from "./reading-cases";
 import { foxNook } from "../src/room-props";
 import { interactionHitY } from "../src/interaction";
 
@@ -135,7 +136,9 @@ function checkHarvest() {
     expect(q(".activity-status").textContent?.includes("还剩 "+(3-i)+" 颗"),"剩余的树果数量不正确");
     q(".activity-close").click();
   }
-  world.interact(); expect(q(".activity-status").textContent?.includes("摘完"),"同一天能收第四颗苹果");
+  expect(!world.available(apple),"采空的苹果树仍显示为可采集目标");
+  world.interact(); world.onInteract("apple");
+  expect(q(".bag-count").textContent?.includes("苹果 3"),"同一天能收第四颗苹果");
   q(".activity-close").click();
   const flowers = scenes.garden.spots.find(s=>s.id==="flowers")!;
   world.switchScene("garden", flowers.approach);
@@ -144,7 +147,9 @@ function checkHarvest() {
     expect(q(".bag-count").textContent?.includes("花朵 "+i),"花朵没有入袋");
     q(".activity-close").click();
   }
-  world.interact(); expect(q(".activity-status").textContent?.includes("今天采完"),"同一天能收第四丛花");
+  expect(!world.available(flowers),"采空的花丛仍显示为可采集目标");
+  world.interact(); world.onInteract("flowers");
+  expect(q(".bag-count").textContent?.includes("花朵 3"),"同一天能收第四丛花");
   q(".activity-close").click();
   log("摘三颗苹果、采三丛花后当日采空，背包数量与树果剩余数相符");
 }
@@ -234,6 +239,10 @@ async function run(check:()=>Promise<void>) {
   finally {q<HTMLButtonElement>("#verify").disabled=false;}
 }
 q("#verify").addEventListener("click",()=>void run(checkAll));
+q("#check-reading").addEventListener("click",()=>void run(async()=>{
+  if (!q(".intro-screen").classList.contains("dismissed")) await start();
+  await verifyReadingControls(world,log);
+}));
 q("#check-wardrobe").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();
   await verifyWardrobe(world,log);

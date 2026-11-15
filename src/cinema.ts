@@ -304,6 +304,11 @@ export class GardenCinema {
     this.world.canvas.focus({ preventScroll: true });
   }
   private toggle() {
+    if (this.session.stage === "error") {
+      this.retry();
+      this.play();
+      return;
+    }
     if (this.session.wanted || this.session.stage === "playing") {
       this.video?.pause();
       this.session.pause();

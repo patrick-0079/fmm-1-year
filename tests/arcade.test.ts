@@ -52,6 +52,26 @@ test("four simultaneous tetris lines clear cleanly and award a win", () => {
   assert.equal(edge.x, 0);
   assert.equal(edge.fits(edge.x, edge.y), true);
 });
+test("starting soft drop does not spend the old normal-fall time as an instant plunge", () => {
+  const game = new BlocksGame(() => 0);
+  game.start();
+  game.update(0.64);
+  const before = game.y;
+  game.input("down", true);
+  game.update(0.01);
+  assert.equal(game.y, before, "pressing down suddenly dropped nine accumulated rows");
+  // Repeated keydown events must not keep restarting the soft-drop timer.
+  for (let i = 0; i < 3; i++) {
+    game.input("down", true);
+    game.update(0.03);
+  }
+  assert.equal(game.y, before + 1);
+  game.input("down", false);
+  game.update(0.6);
+  assert.equal(game.y, before + 1, "releasing down should restore normal speed");
+  game.update(0.06);
+  assert.equal(game.y, before + 2);
+});
 test("hop charging and landing can reach eight platforms without mid-air double jumps", () => {
   const g = new HopGame(() => 0.35);
   g.start();

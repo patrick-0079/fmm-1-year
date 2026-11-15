@@ -178,12 +178,14 @@ export class Arcade {
   }
   close() {
     if (!this.active) return;
+    const returnFocus = this.hud.contains(document.activeElement);
     this.engine = null;
     this.world.canvas.parentElement!.classList.remove("arcade-active");
     this.hud.hidden = true;
     this.hud.replaceChildren();
     this.world.paused = false;
     this.world.clearInput();
+    if (returnFocus) this.world.canvas.focus({ preventScroll: true });
   }
   private start() {
     if (!this.engine) return;

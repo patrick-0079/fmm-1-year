@@ -232,7 +232,7 @@ export function mountGame(tasks: Task[]) {
   const returnFromHelp = () => {
     setHelp(false);
     if (world.suspended) return;
-    world.canvas.focus({ preventScroll: true });
+    if (!reader.restoreFocus()) world.canvas.focus({ preventScroll: true });
     world.canvas.parentElement!.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   help.querySelector(".help-close")!.addEventListener("click", returnFromHelp);

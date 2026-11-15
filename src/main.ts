@@ -184,8 +184,19 @@ document.querySelectorAll<HTMLDetailsElement>(".page-games, .page-residents").fo
     if (details.open) paintGuideArt();
   });
 });
-void prepareTextureCache().then(() => import("./application")).then(({mountGame}) => mountGame(tasks))
+// The paper cards render before the deferred game module. Do not present live
+// buttons without handlers while that module (or the cache worker) is loading.
+const startupButtons = [...document.querySelectorAll<HTMLButtonElement>("#app button:not([disabled])")];
+for (const button of startupButtons) button.disabled = true;
+document.querySelector("#app")!.setAttribute("aria-busy", "true");
+void prepareTextureCache().then(() => import("./application")).then(({mountGame}) => {
+  for (const button of startupButtons) button.disabled = false;
+  mountGame(tasks);
+  document.querySelector("#app")!.removeAttribute("aria-busy");
+})
   .catch(() => {
+    for (const button of startupButtons) button.disabled = true;
+    document.querySelector("#app")!.removeAttribute("aria-busy");
     const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
     enter.disabled = false;
     enter.textContent = "游戏未能载入，点击重试";

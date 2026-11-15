@@ -11,11 +11,15 @@ export class MapReader {
   onChangeView: () => void = () => {};
   private ownsPause = false;
   private touchY = 0;
+  private readingFocus: HTMLElement | null = null;
   constructor(private world: World) {
     this.root = document.querySelector(".map-reader")!;
     for (const root of document.querySelectorAll<HTMLElement>(
       ".map-reader,.game-letter-reader",
     )) {
+      root.addEventListener("focusin", event => {
+        if (event.target instanceof HTMLElement) this.readingFocus = event.target;
+      });
       root.addEventListener("click", (e) => {
         if ((e.target as Element).closest(".reader-close")) this.close();
         if ((e.target as Element).closest(".reader-change-view"))
@@ -69,6 +73,15 @@ export class MapReader {
   onCleanup(callback: () => void) {
     this.cleanups.push(callback);
   }
+  /** Return from help to the selected photo/letter, not the paused canvas. */
+  restoreFocus() {
+    if (this.root.hidden) return false;
+    const target = this.readingFocus && this.root.contains(this.readingFocus)
+      ? this.readingFocus
+      : this.root.querySelector<HTMLElement>(".memory-detail,.reader-body");
+    target?.focus({ preventScroll: true });
+    return true;
+  }
   private canScroll(target: EventTarget | null, delta: number) {
     const scroller = target instanceof Element ? target.closest<HTMLElement>(".collection-list,.memory-detail") : null;
     if (!scroller || !this.root.contains(scroller)) return false;
@@ -92,6 +105,7 @@ export class MapReader {
     for (const cleanup of this.cleanups.splice(0)) cleanup();
     this.root.hidden = true;
     this.root.replaceChildren();
+    this.readingFocus = null;
     if (this.ownsPause) {
       this.ownsPause = false;
       this.world.paused = false;
