@@ -1,4 +1,5 @@
 import { EQUIP_SLOTS, ITEMS, INVENTORY_KEY } from "../src/items";
+import { elderPlaces } from "../src/elders-data";
 import type { World } from "../src/world";
 
 /** Run once at desktop width and once at phone width in the isolated exploration fixture. */
@@ -31,6 +32,14 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   await frame();
   const box = panel.getBoundingClientRect();
   const compact = panel.dataset.compact === "true";
+  const wheel = new WheelEvent("wheel", {deltaY: 120, bubbles: true, cancelable: true});
+  avatar().dispatchEvent(wheel);
+  check(wheel.defaultPrevented, "滚轮从衣橱穿透到网页");
+  for (const name of ["Home", "End", "PageUp", "PageDown"]) {
+    const key = new KeyboardEvent("keydown", {key:name, bubbles:true, cancelable:true});
+    button(".bag-close").dispatchEvent(key);
+    check(key.defaultPrevented, "衣橱按键滚动了外部网页：" + name);
+  }
   check(box.left >= bounds.left-1 && box.right <= bounds.right+1 && box.top >= bounds.top-1 && box.bottom <= bounds.bottom+1, "衣橱超出地图边缘");
   for (const element of panel.querySelectorAll<HTMLElement>("button, .bag-footer, .bag-avatar")) {
     if (!element.getClientRects().length) continue;
@@ -85,4 +94,47 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   sameFrame();
   check(panel.hidden && document.activeElement===world.canvas && !world.suspended, "收起后未恢复地图操作");
   log((compact ? "手机 4×2 两页、身上六槽" : "桌面 5×3 和六个装备槽") + "、六部位筛选、左右转身、未确认退出、3:2 画幅和视口均通过");
+}
+
+/** The book's controls must keep scrolling inside the book, including at its edges. */
+export async function verifyJournalInput(world: World, log: (message: string) => void) {
+  const q = <T extends HTMLElement = HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
+  const check = (ok: unknown, message: string) => { if (!ok) throw new Error(message); };
+  await world.prepareScene("ruins");
+  world.switchScene("ruins", elderPlaces.ruins.approach);
+  world.onInteract(elderPlaces.ruins.id);
+  for (let step = 0; step < 3; step++) {
+    const choices = [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")];
+    const openBook = choices.find(button => button.textContent === "翻开遗迹手记");
+    if (openBook) { openBook.click(); break; }
+    const reply = choices.find(button => ["什么尝试？", "好，我去试一下"].includes(button.textContent ?? ""));
+    check(reply, "守护者缺少领取手记的选项"); reply!.click();
+  }
+  const panel = q(".inventory-panel");
+  check(!panel.hidden && world.suspended, "从守护者手中领取的手记未打开");
+  q<HTMLButtonElement>('[data-journal-page="2"]').click();
+  const paper = q(".ruin-journal-paper");
+  for (const details of paper.querySelectorAll<HTMLDetailsElement>("details")) details.open = true;
+  await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+  const bookmark = q('[data-journal-page="2"]');
+  bookmark.focus({preventScroll:true});
+  const key = (name: string, options: KeyboardEventInit = {}) => {
+    const event = new KeyboardEvent("keydown", {key:name, bubbles:true, cancelable:true, ...options});
+    bookmark.dispatchEvent(event); return event;
+  };
+  check(key("End").defaultPrevented && paper.scrollTop + paper.clientHeight >= paper.scrollHeight - 2,
+    "手记书签上的 End 没有滚到书页底部");
+  check(key("PageDown").defaultPrevented, "书页底部按 PageDown 穿透到网页");
+  const edge = new WheelEvent("wheel", {deltaY:120, bubbles:true, cancelable:true});
+  paper.dispatchEvent(edge); check(edge.defaultPrevented, "书页底部的滚轮穿透到网页");
+  check(key("Home").defaultPrevented && paper.scrollTop === 0, "手记书签上的 Home 没有回到书页开头");
+  const middle = new WheelEvent("wheel", {deltaY:40, bubbles:true, cancelable:true});
+  paper.dispatchEvent(middle); check(!middle.defaultPrevented, "手记正文不能继续向下滚动");
+  check(!key("Home", {ctrlKey:true}).defaultPrevented, "手记截获浏览器组合键");
+  key("ArrowLeft");
+  check(q('[data-journal-page="1"]').getAttribute("aria-current") === "page" &&
+    document.activeElement === q('[data-journal-page="1"]'), "方向键翻页后书签焦点丢失");
+  q(".bag-close").click();
+  check(panel.hidden && !world.suspended && document.activeElement === world.canvas, "收起手记后不能继续探索");
+  log("守护者赠书后，书签 Home/End/PageDown 和滚轮都留在当前书页，方向键翻页、组合键和关闭恢复正常。");
 }

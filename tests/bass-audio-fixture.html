@@ -1,0 +1,6 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>贝斯音频故障回归</title>
+<style>body{max-width:840px;margin:30px auto;padding:20px;font:16px/1.7 system-ui;color:#493c56;background:#fff9f0}button{padding:12px 24px}li{margin:8px 0}.pass{color:#256b4d}.fail{color:#b5264b}</style></head><body>
+<h1>贝斯音频故障回归</h1><p>专用测试 Service Worker 只控制 /tests/ 页面，模拟 WAV 断网与损坏，并检查播放开始后的媒体解码错误。检查实际音频输出；不加载游戏、不读写存档。</p>
+<button id="run">开始检查（会播放短音）</button><p id="summary" role="status">尚未开始</p><ol id="results"></ol><div id="media"></div>
+<script type="module" src="/tests/bass-audio-fixture.ts"></script></body></html>

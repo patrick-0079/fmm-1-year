@@ -62,6 +62,7 @@ export function mountGame(tasks: Task[]) {
   // The guide stays clickable during the brief gate fade. Honor its latest
   // destination as soon as the current crossing has finished.
   let afterCrossing: (() => void) | undefined;
+  let readingRequest = 0;
   const world = new World(document.querySelector("#world")!);
   const revealMapIfOffscreen = () => {
     const board=world.canvas.parentElement!, rect=board.getBoundingClientRect();
@@ -342,6 +343,7 @@ export function mountGame(tasks: Task[]) {
     reader.close();
     dismissRevive();
     transitioning = true;
+    const readingAtStart = readingRequest;
     const from = world.scene;
     const leavingHome = from === "room" && scene !== from;
     if (leavingHome) world.standUp();
@@ -366,7 +368,7 @@ export function mountGame(tasks: Task[]) {
       else if (scene === "room" && from !== scene && world.scene === scene) fox.arrive(false);
       // A newer reading choice must keep its position and focus even when
       // an already-started map crossing finishes in the background.
-      if (!pageReader.opened) revealMapIfOffscreen();
+      if (readingRequest === readingAtStart && !pageReader.opened) revealMapIfOffscreen();
     }).catch(() => {
       if (leavingHome) fox.clear();
       toast("地图暂未载入，稍后可以再试一次。");
@@ -680,6 +682,7 @@ export function mountGame(tasks: Task[]) {
     // Reading a keepsake does not start the adventure, claim an exploration
     // corner, or let an older queued guide click replace the new reading view.
     afterCrossing = undefined;
+    readingRequest++;
     closePanels();
     cinema.close();
     arcade.close();
@@ -792,6 +795,7 @@ export function mountGame(tasks: Task[]) {
   world.onScene("room");
   mountDebugPanel(world,inventory,nature,flowerTrail,async(scene,id,mode)=>{
     if(!worldReady || world.busy || transitioning || !world.canEnter(scene)) return false;
+    const readingAtStart = readingRequest;
     begin();
     closePanels(); cinema.close(); arcade.close(); activities.close(); reader.close(); dismissRevive();
     // Debug travel shares the normal crossing lock: a slow image must not move
@@ -819,7 +823,10 @@ export function mountGame(tasks: Task[]) {
       const next = afterCrossing;
       afterCrossing = undefined;
       if (next) next();
-      else if (arrived) {
+      else if (arrived && readingRequest === readingAtStart && !pageReader.opened) {
+        // A newer page-reading choice supersedes the requested debug activity.
+        // Loading the destination may finish, but must not reopen its old game
+        // or pull the reader's focus and scroll back to the canvas.
         world.canvas.focus({preventScroll:true});
         if(mode === "open" && spot) world.onInteract(spot.id);
         revealMapIfOffscreen();

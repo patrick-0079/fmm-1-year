@@ -52,9 +52,13 @@ export class RoomBass {
     this.voice = new BassAudio(
       this.panel,
       () => this.stopDemo(),
-      () => {
+      (reason) => {
         this.stopDemo();
-        this.message = "琴声未能播放，请再点一次琴弦或「听示范」。";
+        this.message = reason === "resource"
+          ? "琴声资源未能播放。请检查网络，再点琴弦或「听示范」会重新加载。"
+          : reason === "permission"
+            ? "浏览器还没允许琴声播放。请直接点一次琴弦或「听示范」重试。"
+            : "琴声未能播放，请再点一次琴弦或「听示范」。";
         this.render();
       },
     );
@@ -274,7 +278,7 @@ export class RoomBass {
         : "";
     });
     const cue = done
-      ? "芙芙，一周年快乐。下一个晚安，也一起。♡"
+      ? [this.message, "芙芙，一周年快乐。下一个晚安，也一起。♡"].filter(Boolean).join(" ")
       : demo
         ? `示范 ·「${next.word}」　${bassStrings[next.string]} 弦`
         : [

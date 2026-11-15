@@ -14,8 +14,9 @@ import { ARCADES } from "../src/town-data";
 import { verifyGuests } from "./guest-cases";
 import { verifyFieldTrip } from "./field-trip-cases";
 import { verifyTownResidents } from "./town-dialogue-cases";
-import { verifyWardrobe } from "./wardrobe-cases";
+import { verifyWardrobe, verifyJournalInput } from "./wardrobe-cases";
 import { verifyReadingControls } from "./reading-cases";
+import { verifyNavigationRaces } from "./adversarial-cases";
 import { foxNook } from "../src/room-props";
 import { interactionHitY } from "../src/interaction";
 
@@ -243,9 +244,14 @@ q("#check-reading").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();
   await verifyReadingControls(world,log);
 }));
+q("#check-races").addEventListener("click",()=>void run(async()=>{
+  if (!q(".intro-screen").classList.contains("dismissed")) await start();
+  await verifyNavigationRaces(world,log);
+}));
 q("#check-wardrobe").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();
   await verifyWardrobe(world,log);
+  await verifyJournalInput(world,log);
 }));
 q("#check-residents").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();

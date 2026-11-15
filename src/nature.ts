@@ -103,6 +103,10 @@ export class Nature {
         this.origin = clock.origin;
         this.shift = clock.shift;
       }
+    } catch {
+      // A damaged clock starts a fresh day, without discarding the separate bag.
+    }
+    try {
       const data = JSON.parse(localStorage.getItem(NATURE_KEY) || "null");
       if (data && typeof data === "object") {
         for (const field of ["apple", "flower", "star"] as const)

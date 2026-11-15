@@ -101,7 +101,7 @@ export class PageMemoryReader implements CollectionSurface {
     const target = event.target;
     if (event.key === " " && target.closest("button,a")) return;
     const scroller = target.closest<HTMLElement>(".collection-list,.memory-detail") ??
-      (target.matches(".reader-body") ? this.root.querySelector<HTMLElement>(".memory-detail") : null);
+      this.root.querySelector<HTMLElement>(".memory-detail");
     if (!scroller) return;
     const page = Math.max(48, scroller.clientHeight * .85);
     let next: number | undefined;

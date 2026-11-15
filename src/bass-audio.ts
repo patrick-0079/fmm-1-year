@@ -7,6 +7,7 @@ export interface BassMix {
   enabled: boolean;
   volume: number;
 }
+export type BassFailure = "resource" | "permission" | "playback";
 
 /** Each user gesture plays a local take directly; the demo needs just one
  * gesture for the entire track, on browsers that restrict autoplay. */
@@ -15,11 +16,12 @@ export class BassAudio {
   private demo?: HTMLAudioElement;
   private active?: HTMLAudioElement;
   private playId = 0;
+  private releaseErrorListener?: () => void;
   private mix: BassMix = { enabled: true, volume: 0.45 };
   constructor(
     private host: HTMLElement,
     private onEnd: () => void,
-    private onFailure: () => void,
+    private onFailure: (reason: BassFailure) => void,
   ) {}
   prepare() {
     if (this.demo) return;
@@ -55,13 +57,24 @@ export class BassAudio {
     this.stop();
     this.active = audio;
     const id = this.playId;
-    const failed = () => {
-      if (id === this.playId) {
+    const failed = (error?: unknown) => {
+      if (id === this.playId && this.active === audio) {
+        const name = error instanceof DOMException ? error.name : "";
+        const reason: BassFailure = name === "NotAllowedError" ? "permission"
+          : audio.error || name === "NotSupportedError" ? "resource" : "playback";
         this.stop();
-        this.onFailure();
+        this.onFailure(reason);
       }
     };
+    // play() only reports startup failures. A download or decode can also fail
+    // later, after that promise has resolved (especially during the demo).
+    const mediaError = () => failed();
+    audio.addEventListener("error", mediaError);
+    this.releaseErrorListener = () => audio.removeEventListener("error", mediaError);
     try {
+      // An errored media element will reject every further play() until its
+      // resource selection is restarted. Retry inside this fresh user gesture.
+      if (audio.error || audio.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) audio.load();
       audio.currentTime = 0;
       void audio.play().catch(failed);
     } catch {
@@ -80,6 +93,8 @@ export class BassAudio {
   }
   stop() {
     this.playId++;
+    this.releaseErrorListener?.();
+    this.releaseErrorListener = undefined;
     this.active?.pause();
     this.active = undefined;
   }

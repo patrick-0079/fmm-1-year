@@ -55,6 +55,7 @@ export class Inventory {
   private compact = false;
   private bouquetDetail = false;
   private journalPage: number | null = null;
+  private touchY = 0;
   private clearJournalHint: () => void = () => {};
   private readonly scene: HTMLElement;
   constructor(
@@ -82,6 +83,18 @@ export class Inventory {
     this.trigger.addEventListener("click", () => this.togglePanel());
     this.root.addEventListener("click", (event) => this.handleClick(event));
     this.root.addEventListener("keydown", (event) => this.handleTabKey(event));
+    this.root.addEventListener("wheel", event => {
+      if (!event.ctrlKey && !this.canScroll(event.target, event.deltaY)) event.preventDefault();
+    }, { passive: false });
+    this.root.addEventListener("touchstart", event => {
+      this.touchY = event.touches[0]?.clientY ?? 0;
+    }, { passive: true });
+    this.root.addEventListener("touchmove", event => {
+      if (event.touches.length !== 1) return;
+      const y = event.touches[0]?.clientY ?? this.touchY, delta = this.touchY - y;
+      this.touchY = y;
+      if (!this.canScroll(event.target, delta)) event.preventDefault();
+    }, { passive: false });
     new ResizeObserver(() => {
       if (!this.root.hidden && this.measureLayout()) this.render();
     }).observe(this.scene);
@@ -366,6 +379,11 @@ export class Inventory {
     this.journalPage = page;
     this.render();
   }
+  private canScroll(target: EventTarget | null, delta: number) {
+    const paper = target instanceof Element ? target.closest<HTMLElement>(".ruin-journal-paper") : null;
+    if (!paper || !this.root.contains(paper)) return false;
+    return delta < 0 ? paper.scrollTop > 0 : delta > 0 && paper.scrollTop + paper.clientHeight < paper.scrollHeight - 1;
+  }
   private handleTabKey(event: KeyboardEvent) {
     if (this.journalPage !== null && !reservedShortcut(event) && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
       event.preventDefault();
@@ -374,6 +392,22 @@ export class Inventory {
       this.turnJournalPage(this.journalPage + (event.key === "ArrowRight" ? 1 : -1));
       if (onBookmark) this.root.querySelector<HTMLButtonElement>('[data-journal-page][aria-current="page"]')?.focus({preventScroll:true});
       return;
+    }
+    if (!reservedShortcut(event)) {
+      const paper = this.root.querySelector<HTMLElement>(".ruin-journal-paper");
+      const nativeSpace = event.key === " " && event.target instanceof Element && event.target.closest("button,summary,a");
+      const readingKey = ["Home", "End", "PageUp", "PageDown"].includes(event.key) ||
+        (paper && ["ArrowUp", "ArrowDown", " "].includes(event.key));
+      if (readingKey && !nativeSpace) {
+        event.preventDefault();
+        if (paper) {
+          const page = Math.max(40, paper.clientHeight * .85);
+          const step = event.key === "ArrowUp" ? -40 : event.key === "ArrowDown" ? 40 :
+            event.key === "PageUp" || (event.key === " " && event.shiftKey) ? -page : page;
+          paper.scrollTop = event.key === "Home" ? 0 : event.key === "End" ? paper.scrollHeight : paper.scrollTop + step;
+        }
+        return;
+      }
     }
     if (event.repeat && event.key === "Enter") event.preventDefault();
     if (event.key !== "Tab" || reservedShortcut(event)) return;
