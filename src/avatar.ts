@@ -8,7 +8,7 @@ import {
   type EquipmentPart,
 } from "./equipment";
 import type { Equipped } from "./items";
-import footwearUrl from "./assets/fufu-footwear-v14.webp";
+import footwearUrl from "./assets/fufu-footwear-v38.webp";
 const footwear = new Image();
 footwear.src = footwearUrl;
 const garments = new Image();

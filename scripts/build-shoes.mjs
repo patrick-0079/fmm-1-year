@@ -23,11 +23,11 @@ const feet = [
 const sitting = { x: 87, y: 88, w: 593, h: 733 };
 const frames = [...spriteFrames, sitting];
 const palettes = [
-  [[78,46,64],[140,66,91],[205,101,126],[244,163,173],[255,221,203]],
+  [[96,61,77],[173,110,131],[229,160,177],[249,202,211],[255,237,224]],
   [[76,55,79],[119,91,131],[166,145,181],[221,196,207],[255,233,195]],
 ];
 const ornaments = [
-  ["p...p","ppgpp","..g..",".p.p."],
+  ["..ggg..","pp.r.pp","ppprppp","..rsr..","...r..."],
   ["..g..",".ggg.","gglgg","..g..","..g.."],
 ];
 const cellW = 128, cellH = 40, layers = [];
@@ -41,6 +41,16 @@ for (let index = 0; index < frames.length; index++) {
     const pixels = Buffer.alloc(data.length);
     for (const [left, top, right, bottom, cx, cy] of feet[index]) {
       const badgeSize = seated ? 8 : 3;
+      // Follow the traced shoe edge rather than a horizontal stripe, keeping
+      // the cream outsole on the ground through both side-view walking frames.
+      const edge = new Map();
+      if (kind === 0) for (let x = left; x <= right; x++) {
+        for (let y = bottom; y >= top; y--) {
+          const p = (y * frame.w + x) * 4;
+          const [r,g,b,a] = data.subarray(p, p + 4);
+          if (a >= 160 && !(g - b > 5 && r - b > 23)) { edge.set(x,y); break; }
+        }
+      }
       for (let y = top; y <= bottom; y++) for (let x = left; x <= right; x++) {
         const p = (y * frame.w + x) * 4;
         const [r,g,b,a] = data.subarray(p, p + 4);
@@ -49,8 +59,21 @@ for (let index = 0; index < frames.length; index++) {
         const shade = Math.min(3.999, Math.max(0, (brightness - 43) / 48));
         const low = Math.floor(shade), blend = shade - low;
         const color = palette[low].map((v, i) => Math.round(v + (palette[low+1][i] - v) * blend));
-        const mark = ornaments[kind][Math.floor((y-cy)/badgeSize+2)]?.[Math.floor((x-cx)/badgeSize+2)];
-        const ink = mark === "p" ? [255,206,211] : mark === "g" ? [250,197,92] : mark === "l" ? [255,242,191] : color;
+        const mark = ornaments[kind][Math.floor((y-cy)/badgeSize+2)]?.[Math.floor((x-cx)/badgeSize+(kind === 0 ? 3 : 2))];
+        let ink;
+        if (kind === 0) {
+          // Soft cloth bows, a strawberry centre and tiny green leaves. The
+          // low cream sole is still confined to the original opaque shoe mask.
+          const outsole = y >= (edge.get(x) ?? bottom) - (seated ? 10 : 4);
+          ink = outsole && brightness > 95 ? [247,224,200]
+            : mark === "p" ? [255,231,218]
+            : mark === "g" ? [134,165,108]
+            : mark === "r" ? [219,104,126]
+            : mark === "s" ? [255,231,180] : color;
+        } else {
+          // The star-shoe row is deliberately byte-for-byte the v14 palette.
+          ink = mark === "p" ? [255,206,211] : mark === "g" ? [250,197,92] : mark === "l" ? [255,242,191] : color;
+        }
         pixels.set([...ink, a], p);
       }
     }
@@ -61,4 +84,4 @@ for (let index = 0; index < frames.length; index++) {
   }
 }
 await sharp({create:{width:cellW*frames.length,height:cellH*2,channels:4,background:"#0000"}})
-  .composite(layers).webp({lossless:true}).toFile("src/assets/fufu-footwear-v14.webp");
+  .composite(layers).webp({lossless:true}).toFile("src/assets/fufu-footwear-v38.webp");

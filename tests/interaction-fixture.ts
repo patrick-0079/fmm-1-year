@@ -209,6 +209,34 @@ await check("礼盒鼠标可先拉右端，触屏可点左端；取消拖动不�
   assert(giftState().stage==="revealed","鼠标／触屏没走完拆盒步骤");
 });
 
+await check("礼盒 1 解左、2 解右，焦点在按钮时可逆序操作；已解侧和长按不跳步", () => {
+  activities.gifts();
+  const buttons = document.querySelectorAll<HTMLButtonElement>(".activity-actions button");
+  assert(buttons[0].textContent === "解开左边缎带 · 1" && buttons[1].textContent === "解开右边缎带 · 2",
+    "左右缎带没有各自的快捷键标签");
+  buttons[1].focus(); key("2",{},buttons[1]);
+  assert(giftState().ribbons[1]&&!giftState().ribbons[0],"按 2 没有只解开右边");
+  const remaining = document.querySelector<HTMLButtonElement>(".activity-actions button")!;
+  assert(document.activeElement===remaining && remaining.textContent?.includes("· 1"), "右端解开后焦点未移到左端按钮");
+  key("2",{repeat:true},remaining); key("2",{},remaining); key("1",{repeat:true},remaining);
+  assert(!giftState().ribbons[0]&&giftState().stage==="tied", "已解侧或长按误解开另一端");
+  key("1",{},remaining);
+  assert(giftState().stage==="untying", "新按 1 没有解开左边");
+  world.onTick(.6,1); key("1"); key("2");
+  assert(giftState().stage==="ready", "数字快捷键误打开盒盖");
+  key("e"); assert(giftState().stage==="opening", "后续盒盖不能用 E 打开");
+});
+
+await check("礼盒数字快捷键不抢占暂停、阅读和输入法操作", () => {
+  activities.gifts();
+  world.suspend("gift-key-check",true);
+  key("1"); key("2");
+  world.suspend("gift-key-check",false);
+  const reader=document.querySelector(".reader-body")!;
+  key("1",{},reader); key("2",{},reader); key("1",{isComposing:true});
+  assert(!giftState().ribbons.some(Boolean), "暂停、阅读或输入法中触发了解缎带");
+});
+
 await check("掀盖时收起立即恢复探索，旧动画不会覆盖新对话，中途退出不完成任务", () => {
   activities.reset(); completedActivities.delete("gifts"); giftCompletions=0; giftRewards.length=0;
   activities.gifts();
@@ -234,7 +262,7 @@ await check("Ctrl / Alt / Meta 组合键不触发背包、游戏或拆礼盒", (
   activities.gifts();
   const before = document.querySelector(".activity-actions")!.textContent;
   for (const modifier of ["ctrlKey", "altKey", "metaKey"])
-    for (const value of ["b", "w", "1", " "])
+    for (const value of ["b", "w", "1", "2", " "])
       assert(!key(value, { [modifier]: true }).defaultPrevented, `${modifier}+${value} 被拦截`);
   assert(!world.suspended, "浏览器快捷键打开了背包");
   assert(document.querySelector(".activity-actions")!.textContent === before, "组合键触发了拆礼盒");

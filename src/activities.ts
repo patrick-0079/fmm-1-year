@@ -145,6 +145,10 @@ export class Activities {
     window.addEventListener("keydown", (e) => {
       if (reservedShortcut(e) || world.suspended || readingTarget(e.target)) return;
       if (e.key === "Escape" && this.active) this.close();
+      if (this.mode === "gifts" && this.gift.stage === "tied" && ["1", "2"].includes(e.key)) {
+        e.preventDefault();
+        if (!e.repeat) this.untieGift(Number(e.key) - 1);
+      }
     });
     window.addEventListener("blur", () => {
       this.blowing = false;
@@ -365,9 +369,10 @@ export class Activities {
         ? "一边已经松开啦 · 再解开另一端"
         : "给芙芙的一份心意 · 点缎带两端，或向两边轻轻拉开";
       ["解开左边缎带", "解开右边缎带"].forEach((label, i) => {
-        if (!gift.ribbons[i]) this.action(`${label} · E`, () => {
-          if (gift.untie(i)) { sfx("flip"); this.giftControls(); }
-        });
+        if (!gift.ribbons[i]) {
+          const button = this.action(`${label} · ${i + 1}`, () => this.untieGift(i));
+          button.setAttribute("aria-keyshortcuts", String(i + 1));
+        }
       });
     } else if (gift.stage === "untying") {
       this.status.textContent = "缎带慢慢松开…";
@@ -399,6 +404,9 @@ export class Activities {
       this.giftReturnFocus = !next;
       (next ?? this.world.canvas).focus({preventScroll:true});
     }
+  }
+  private untieGift(index: number) {
+    if (this.gift.untie(index)) { sfx("flip"); this.giftControls(); }
   }
   balloons() {
     if (this.released) {

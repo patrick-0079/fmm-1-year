@@ -4,12 +4,25 @@ import { drawRelic } from "./relic-icons";
 import wreathUrl from "./assets/flower-wreath.webp";
 import rewardsUrl from "./assets/reward-icons.webp";
 import wardrobeUrl from "./assets/wardrobe-v11.webp";
+import strawberryShoesUrl from "./assets/strawberry-flats-v38.webp";
 export { wreathUrl, rewardsUrl };
 const wardrobe = new Image();
 wardrobe.src = wardrobeUrl;
+const strawberryShoes = new Image();
+strawberryShoes.src = strawberryShoesUrl;
 export function whenWardrobeReady(callback: () => void) {
-  if (wardrobe.complete && wardrobe.naturalWidth) callback();
-  else wardrobe.addEventListener("load", callback, { once: true });
+  const pending = [wardrobe, strawberryShoes].filter(sheet => !sheet.complete);
+  let remaining = pending.length;
+  if (!remaining) { callback(); return; }
+  for (const sheet of pending) {
+    const done = () => {
+      sheet.removeEventListener("load", done);
+      sheet.removeEventListener("error", done);
+      if (--remaining === 0) callback();
+    };
+    sheet.addEventListener("load", done, { once: true });
+    sheet.addEventListener("error", done, { once: true });
+  }
 }
 export const wardrobeFrames = [
   [17, 67, 409, 378],
@@ -24,7 +37,6 @@ export const wardrobeFrames = [
 const wardrobeIndex: Partial<Record<ItemId, number>> = {
   roseDress: 0,
   mintCape: 1,
-  ribbonShoes: 2,
   starShoes: 3,
   berryBag: 4,
   petBunny: 5,
@@ -98,6 +110,13 @@ export function drawItem(
   wreath?: HTMLImageElement,
   rewards?: HTMLImageElement,
 ) {
+  if (id === "ribbonShoes") {
+    if (strawberryShoes.complete && strawberryShoes.naturalWidth) {
+      const b = fitItem(strawberryShoes.naturalWidth, strawberryShoes.naturalHeight, x, y, w, h);
+      c.drawImage(strawberryShoes, b.x, b.y, b.w, b.h);
+    }
+    return;
+  }
   const extra = wardrobeIndex[id];
   if (id === "echoBrooch") {
     drawRelic(c,"brooch",x,y,w,h);

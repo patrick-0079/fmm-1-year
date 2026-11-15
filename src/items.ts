@@ -108,7 +108,7 @@ export const ITEMS: Record<
   ribbonShoes: {
     name: "草莓缎带鞋",
     slot: "shoes",
-    description: "每一步都带一点甜甜的勇气。",
+    description: "圆圆的鞋头、奶油软底，蝴蝶结上藏着一颗小草莓。",
     source: "在晚安小屋拆开礼盒并收下心意",
     icon: 6,
   },

@@ -7,7 +7,7 @@ import wreath from "../src/assets/flower-wreath.webp";
 import rewards from "../src/assets/reward-icons.webp";
 import { drawItem, whenWardrobeReady } from "../src/item-art";
 import { prepareSceneArt } from "../src/scene-art";
-import shoes from "../src/assets/fufu-footwear-v14.webp";
+import shoes from "../src/assets/fufu-footwear-v38.webp";
 import garments from "../src/assets/fufu-garments-v15.webp";
 import type { Equipped } from "../src/items";
 const load = (src: string) =>
