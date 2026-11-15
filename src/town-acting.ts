@@ -512,7 +512,7 @@ export function townResidentLayers(
         if (npc.id === "post") postbox(c, -height * 0.28);
         if (page) actorProps(c, npc, page, still ? 1 : t, still);
         c.restore();
-        if (!page && Math.hypot(world.player.x - foot.x, world.player.y - foot.y) < 100) {
+        if (!page && world.activeCueId !== "npc-" + npc.id && Math.hypot(world.player.x - foot.x, world.player.y - foot.y) < 100) {
           c.save();
           nameplate(c, npc, foot, visited);
           c.restore();

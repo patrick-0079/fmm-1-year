@@ -19,7 +19,8 @@ import { emptyInventory, type Equipped } from "./items";
 import { bedRest, benchRest, type RestState } from "./rest";
 import { drawAvatar } from "./avatar";
 import type { Facing } from "./equipment";
-import { clickedInteraction } from "./interaction";
+import { clickedInteraction, nearbyInteraction } from "./interaction";
+import { drawInteractionGlints } from "./interaction-glints";
 import { reservedShortcut, readingTarget } from "./input";
 import { connectionLayers } from "./connections";
 import { crossedTownGate } from "./gate-layout";
@@ -134,6 +135,12 @@ export class World {
   visited: string[] = [];
   onInteract: (id: string) => void = () => {};
   onNearby: (spot: Hotspot | null) => void = () => {};
+  canShowInteractionCues: () => boolean = () => true;
+  retainCueHover: (point: Point) => boolean = () => false;
+  onInteractionCue: (spot: Hotspot | null) => void = () => {};
+  cueInputMode: "keyboard" | "pointer" | "touch" = "keyboard";
+  activeCueId = "";
+  private hoveredSpotId = "";
   onScene: (id: SceneId) => void = () => {};
   onToast: (text: string) => void = () => {};
   onRestChange: (state: RestState | null) => void = () => {};
@@ -223,6 +230,7 @@ export class World {
         return;
       if (key === " " && (e.target as Element).closest("button,a,audio,video"))
         return;
+      if (/^(?:arrow(?:up|down|left|right)|[wasde]| )$/.test(key)) this.setCueInput("keyboard");
       if (key === "e" || key === " ") {
         e.preventDefault();
         if (e.repeat) return;
@@ -272,6 +280,7 @@ export class World {
     });
     canvas.addEventListener("pointerdown", (e) => {
       if (this.suspended) return;
+      this.setCueInput(e.pointerType === "touch" ? "touch" : "pointer");
       canvas.focus({ preventScroll: true });
       const point = this.pointerPoint(e);
       if (e.button === 2) {
@@ -304,8 +313,18 @@ export class World {
       );
     });
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-    canvas.addEventListener("pointerleave",()=>canvas.removeAttribute("data-pointable"));
+    canvas.addEventListener("pointerleave", e => {
+      canvas.removeAttribute("data-pointable");
+      if (!(e.relatedTarget instanceof Element && e.relatedTarget.closest(".interaction-prompt"))) this.hoveredSpotId = "";
+    });
     const scene = this.inputRegion;
+    scene.addEventListener("pointerdown", e => {
+      this.setCueInput(e.pointerType === "touch" ? "touch" : "pointer");
+    }, { capture: true });
+    scene.addEventListener("pointerleave", () => { this.hoveredSpotId = ""; });
+    scene.addEventListener("pointermove", e => {
+      if (e.target !== canvas && !(e.target instanceof Element && e.target.closest(".interaction-prompt"))) this.hoveredSpotId = "";
+    });
     scene.addEventListener("contextmenu", (e) => e.preventDefault());
     scene.addEventListener("pointerdown", (e) => {
       if (e.button !== 2 || e.defaultPrevented || e.target === canvas) return;
@@ -317,8 +336,14 @@ export class World {
     });
     for (const type of ["pointermove", "pointerup", "pointercancel"] as const)
       canvas.addEventListener(type, (e) => {
-        if (type === "pointermove" && e.pointerType !== "touch" && !e.buttons)
-          canvas.toggleAttribute("data-pointable",!this.paused && !this.suspended && !this.busy && !!this.spotAt(this.pointerPoint(e)));
+        if (type === "pointermove" && e.pointerType !== "touch" && !e.buttons) {
+          this.setCueInput("pointer");
+          const point = this.pointerPoint(e);
+          const spot = !this.paused && !this.suspended && !this.busy ? this.spotAt(point) : null;
+          if (spot) this.hoveredSpotId = spot.id;
+          else if (!this.hoveredSpotId || !this.retainCueHover(point)) this.hoveredSpotId = "";
+          canvas.toggleAttribute("data-pointable", !!spot);
+        }
         if (this.secondaryPressed || e.button === 2) {
           if (type !== "pointermove" && this.secondaryPressed) {
             this.secondaryPressed = false;
@@ -336,7 +361,42 @@ export class World {
     });
   }
   private spotAt(point: Point) {
-    return clickedInteraction(point,this.config.spots.filter(s=>this.available(s)),s=>this.markerY(s));
+    return clickedInteraction(point,this.config.spots.filter(s=>this.available(s)));
+  }
+  setCueInput(mode: "keyboard" | "pointer" | "touch") {
+    this.cueInputMode = mode;
+    if (mode !== "pointer") this.hoveredSpotId = "";
+  }
+  inInteractionRange(spot: Hotspot) {
+    return Math.hypot(this.player.x - spot.x, this.player.y - spot.y) < (spot.radius ?? 48);
+  }
+  activateCue(id: string) {
+    if (!this.cuesVisible) return;
+    const spot = this.config.spots.find(s => s.id === id && this.available(s));
+    if (!spot) return;
+    this.canvas.focus({ preventScroll: true });
+    if (this.inInteractionRange(spot)) {
+      this.clearInput();
+      this.onInteract(id);
+    } else this.visit(id);
+  }
+  private get cuesVisible() {
+    return !this.paused && !this.suspended && !this.busy && !this.focus && !this.restState && this.canShowInteractionCues();
+  }
+  private refreshInteractionCue() {
+    if (!this.cuesVisible) {
+      this.hoveredSpotId = "";
+      this.activeCueId = "";
+      this.onInteractionCue(null);
+      return;
+    }
+    const nearest = this.nearest();
+    this.nearbyId = nearest?.id ?? "";
+    const hovered = this.cueInputMode === "pointer"
+      ? this.config.spots.find(s => s.id === this.hoveredSpotId && this.available(s)) : null;
+    const spot = hovered ?? nearest;
+    this.activeCueId = spot?.id ?? "";
+    this.onInteractionCue(spot);
   }
   private pointerPoint(e: PointerEvent): Point {
     const rect = this.canvas.getBoundingClientRect();
@@ -491,6 +551,7 @@ export class World {
   }
   setTouch(x: number, y: number) {
     if (this.paused || this.busy || this.suspended) return;
+    this.setCueInput("touch");
     if (x || y) this.standUp();
     this.touch = { x, y };
     this.path = [];
@@ -513,6 +574,9 @@ export class World {
     };
     this.facing = facing;
     this.nearbyId = "";
+    this.hoveredSpotId = "";
+    this.activeCueId = "";
+    this.onInteractionCue(null);
     this.updateCamera();
     this.onNearby(null);
     this.onScene(scene);
@@ -547,16 +611,7 @@ export class World {
     this.targetEvent = event;
   }
   private nearest() {
-    return (
-      this.config.spots
-        .filter((s) => this.available(s))
-        .map((s) => ({
-          s,
-          d: Math.hypot(this.player.x - s.x, this.player.y - s.y),
-        }))
-        .filter(({ s, d }) => d < (s.radius ?? 48))
-        .sort((a, b) => a.d - b.d)[0]?.s ?? null
-    );
+    return nearbyInteraction(this.player, this.config.spots.filter(s => this.available(s)), this.nearbyId);
   }
   private frame = (timestamp: number) => {
     const dt = Math.min((timestamp - (this.last || timestamp)) / 1000, 0.05);
@@ -565,6 +620,7 @@ export class World {
     this.onTick(document.hidden || this.suspended ? 0 : dt, this.time);
     if (!this.paused && !this.suspended && !document.hidden) this.update(dt);
     this.updateCamera();
+    this.refreshInteractionCue();
     this.draw();
     this.frameId = requestAnimationFrame(this.frame);
   };
@@ -686,21 +742,6 @@ export class World {
       ),
     );
   }
-  private markerY(spot: Hotspot) {
-    if (spot.selfMarked) return spot.y - (spot.markerOffset ?? 10);
-    const y = Math.round(
-      spot.y -
-        (spot.markerOffset ?? 12) +
-        (this.reducedMotion.matches ? 0 : Math.sin(this.time * 2 + spot.x) * 2),
-    );
-    if (
-      Math.abs(spot.x - this.player.x) < 22 &&
-      y > this.player.y - 50 &&
-      y < this.player.y + 8
-    )
-      return Math.round(this.player.y - 57);
-    return y;
-  }
   private draw() {
     const c = this.ctx,
       { width, height } = this.config;
@@ -763,28 +804,9 @@ export class World {
       { y: this.player.y, draw: drawPlayer },
     ];
     layers.sort((a, b) => a.y - b.y).forEach((layer) => layer.draw(c));
-    for (const spot of this.config.spots) {
-      if (spot.selfMarked || !this.available(spot)) continue;
-      if (this.restState && (spot.id === "rest" || spot.id === "bed")) continue;
-      if (this.focus) continue;
-      const y = this.markerY(spot);
-      c.fillStyle = "#fff8ed";
-      c.fillRect(spot.x - 6, y - 6, 12, 12);
-      c.fillStyle =
-        spot.id === this.nearbyId ? "#a25491" : (spot.color ?? "#e87d9e");
-      c.fillRect(spot.x - 4, y - 4, 8, 8);
-      c.fillStyle = "#fffaf1";
-      if (this.visited.includes(spot.id)) {
-        c.fillRect(spot.x - 2, y, 2, 2);
-        c.fillRect(spot.x, y - 2, 2, 4);
-        c.fillRect(spot.x + 2, y - 4, 2, 4);
-      } else {
-        c.fillRect(spot.x - 1, y - 3, 2, 4);
-        c.fillRect(spot.x - 1, y + 2, 2, 1);
-      }
-    }
     this.onDraw(c, this.time);
     this.onLighting(c);
+    if (this.cuesVisible) drawInteractionGlints(c, this.config.spots.filter(s => this.available(s)), this.scene, this.time, this.reducedMotion.matches, this.activeCueId);
     this.onEffects(c);
     if (this.debug) this.drawDebug();
     c.restore();

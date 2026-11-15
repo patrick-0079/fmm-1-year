@@ -72,7 +72,7 @@
 .cinema-active .time-pill,
 .cinema-active .checkpoint-pill,
 .cinema-active .crown-toggle,
-.cinema-active .nearby-prompt {
+.cinema-active .interaction-prompt {
   visibility: hidden;
 }
 .game-window:has(.cinema-active) .touch-controls {

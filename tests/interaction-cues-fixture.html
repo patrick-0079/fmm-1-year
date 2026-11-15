@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>地图互动提示回归</title></head>
+<body>
+  <section style="max-width:1100px;margin:12px auto;padding:12px;font:14px/1.6 system-ui;background:#fff6dc;color:#604e61">
+    <strong>地图互动提示回归</strong> <span id="cue-report" role="status">等待游戏载入</span>
+    <button id="verify-cues" disabled>验收真实 World 的提示与可用状态</button>
+    <p>使用正式主页、真实地图与提示控件；存档仅保存在此测试标签页。</p>
+    <ol id="cue-results"></ol>
+  </section>
+  <div id="app"></div>
+  <script type="module" src="/tests/interaction-cues-fixture.ts"></script>
+</body>
+</html>

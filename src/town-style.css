@@ -137,7 +137,7 @@
 .arcade-active .checkpoint-pill,
 .arcade-active .time-pill,
 .arcade-active .crown-toggle,
-.arcade-active .nearby-prompt {
+.arcade-active .interaction-prompt {
   visibility: hidden;
 }
 .game-window:has(.arcade-active) .touch-controls {

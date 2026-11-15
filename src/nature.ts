@@ -193,6 +193,7 @@ export class Nature {
   }
   private available(spot: Hotspot) {
     if (spot.id === "wreath") return !this.inventory.has("wreath");
+    if (spot.id === "apple" || spot.id === "flowers") return this.picked(spot.id) < 3;
     if (!eggAvailable(spot.id, this.clock.phase)) return false;
     if (["drop", "dew", "sunset", "firefly"].includes(spot.id))
       return this.picked(spot.id) === 0;

@@ -368,33 +368,6 @@ a .icon {
 .scene-transition.active {
   opacity: 1;
 }
-.nearby-prompt {
-  position: absolute;
-  left: 50%;
-  bottom: 19px;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  white-space: nowrap;
-  color: #fff4f9;
-  background: #69445ce8;
-  border: 1px solid #ffe0ed75;
-  padding: 9px 13px;
-  border-radius: 5px;
-  font-size: 12px;
-  pointer-events: none;
-  box-shadow: 0 3px 10px #4c2a4933;
-}
-.nearby-prompt kbd {
-  color: #5f5b6e;
-  background: #fae8ef;
-  border: 0;
-}
-.prompt-verb {
-  font-size: 10px;
-  color: #e8cfdd;
-}
 .intro-screen {
   position: absolute;
   inset: 0;
@@ -2015,14 +1988,6 @@ footer .reset-button {
     justify-content: center;
     padding: 9px;
     min-height: 34px;
-  }
-  .nearby-prompt kbd {
-    display: none;
-  }
-  .nearby-prompt {
-    bottom: 14px;
-    padding: 7px 11px;
-    font-size: 11px;
   }
   .dpad {
     transform: scale(1.1);

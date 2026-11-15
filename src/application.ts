@@ -2,6 +2,8 @@ import { anniversary, encouragements } from "./content";
 import { EVENT_IDS, GAME_IDS, SAVE_KEY, readProgress } from "./core";
 import { icon } from "./icons";
 import { World, scenes, type SceneId } from "./world";
+import { InteractionPrompt } from "./interaction-prompt";
+import { resolveCue } from "./interaction-cues";
 import { Activities } from "./activities";
 import { BedNote } from "./bed-note";
 import { MapReader } from "./reader";
@@ -265,6 +267,42 @@ export function mountGame(tasks: Task[]) {
   const cinema = new GardenCinema(world, toast);
   const bedNote = new BedNote(world);
   const fox = new RoomFox(world, () => progress.roomFox, save);
+  const sceneWrap = world.canvas.parentElement!;
+  const prompt = new InteractionPrompt(sceneWrap, id => world.activateCue(id));
+  const touchAction = document.querySelector<HTMLElement>(".touch-interact span")!;
+  const cuePanels = Array.from(document.querySelectorAll<HTMLElement>(".inventory-panel,.map-reader,.game-letter-reader"));
+  let cueScale = world.canvas.clientWidth / 600;
+  let cueOffset = {x:world.canvas.offsetLeft,y:world.canvas.offsetTop};
+  new ResizeObserver(() => {
+    cueScale = world.canvas.clientWidth / 600;
+    cueOffset = {x:world.canvas.offsetLeft,y:world.canvas.offsetTop};
+  }).observe(world.canvas);
+  const cuePoint = (point: {x:number;y:number}) => {
+    const p = world.project(point);
+    return {x:p.x*cueScale+cueOffset.x, y:p.y*cueScale+cueOffset.y};
+  };
+  const cueBox = (point: {x:number;y:number}, box: {x:number;y:number;w:number;h:number}) => {
+    const a = cuePoint({x:point.x+box.x,y:point.y+box.y});
+    const b = cuePoint({x:point.x+box.x+box.w,y:point.y+box.y+box.h});
+    return {...a,w:b.x-a.x,h:b.y-a.y};
+  };
+  world.retainCueHover = point => prompt.retainsHover(cuePoint(point));
+  world.canShowInteractionCues = () => started && !transitioning && !resetInProgress &&
+    !activities.active && !arcade.active && !cinema.active && !bass.active && !bedNote.isOpen &&
+    cuePanels.every(panel => panel.hidden);
+  world.onInteractionCue = spot => {
+    const cue = spot ? resolveCue(spot, world.scene) : null;
+    const verb = cue?.verb ?? (world.restState ? "起身" : "互动");
+    if (touchAction.textContent !== verb) touchAction.textContent = verb;
+    if (!spot || !cue) { prompt.update(null); return; }
+    prompt.update({
+      id: spot.id, action: cue.action, verb: cue.verb, kind: cue.kind,
+      mode: world.cueInputMode, inRange: world.inInteractionRange(spot),
+      anchor: cuePoint({x:spot.x+cue.anchor.x,y:spot.y+cue.anchor.y}),
+      objectBox: cueBox(spot,cue.objectBox),
+      playerBox: cueBox(world.player,{x:-16,y:-44,w:32,h:46}),
+    });
+  };
   const previousTick = world.onTick;
   world.onTick = (dt, t) => {
     previousTick(dt, t);
@@ -373,11 +411,6 @@ export function mountGame(tasks: Task[]) {
     );
     revealMapIfOffscreen();
   };
-  world.onNearby = (spot) => {
-    const prompt = document.querySelector<HTMLElement>(".nearby-prompt")!;
-    prompt.hidden = !spot || activities.active || cinema.active || bass.active;
-    if (spot) prompt.querySelector("span")!.textContent = spot.title;
-  };
   world.onScene = (scene) => {
     bass.close(false);
     saveLocation();
@@ -410,7 +443,7 @@ export function mountGame(tasks: Task[]) {
     }
     reader.close();
     dismissRevive();
-    document.querySelector<HTMLElement>(".nearby-prompt")!.hidden = true;
+    prompt.update(null);
     if (flowerTrail.interact(id) || meadow.interact(id) || ruins.interact(id) || starQuest.interact(id)) return;
     if (id === foxNook.id) { activities.close(); fox.pet(); return; }
     if (id.startsWith("arcade-")) {
@@ -449,7 +482,7 @@ export function mountGame(tasks: Task[]) {
       save();
       update();
     }
-    document.querySelector<HTMLElement>(".nearby-prompt")!.hidden = true;
+    prompt.update(null);
     sfx("interact");
     if (id === "cake") activities.cake();
     else if (id === "gifts") activities.gifts();
@@ -676,7 +709,7 @@ export function mountGame(tasks: Task[]) {
     });
   document
     .querySelector(".touch-interact")!
-    .addEventListener("click", () => world.interact());
+    .addEventListener("click", () => { world.setCueInput("touch"); world.interact(); });
   document.querySelector(".reset-button")!.addEventListener("click", () => {
     document.querySelector<HTMLElement>(".reset-confirmation")!.hidden = false;
   });

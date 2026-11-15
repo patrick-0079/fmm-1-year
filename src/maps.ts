@@ -9,6 +9,7 @@ import { meadowScene } from "./meadow-map.ts";
 import { ruinsScene } from "./ruins-map.ts";
 import { bassStand, foxNook } from "./room-props.ts";
 import { elderPlaces } from "./elders-data.ts";
+import type { InteractionCue } from "./interaction-cues.ts";
 export type SceneId = "room" | "garden" | "challenge" | "town" | "meadow" | "ruins";
 export interface Hotspot {
   id: string;
@@ -16,6 +17,8 @@ export interface Hotspot {
   x: number;
   y: number;
   approach: Point;
+  /** Presentation only; never used for reach, pathfinding, or click geometry. */
+  cue?: InteractionCue;
   color?: string;
   radius?: number;
   portal?: SceneId;
