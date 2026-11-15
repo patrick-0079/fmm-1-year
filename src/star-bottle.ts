@@ -4,7 +4,7 @@ import { reservedShortcut } from "./input";
 import { meadowAtlasUrl } from "./wild-art";
 import meadowBackground from "./assets/night-meadow-v16.webp";
 import bottleUrl from "./assets/star-bottle-closeup.webp";
-import { BOTTLE_COMPACT_WIDTH,bottleEntries,bottleGeometry,bottleScrollTop,type BottleEntry } from "./star-bottle-layout";
+import { BOTTLE_COMPACT_WIDTH,bottleEntries,bottleGeometry,bottleScrollTop,nearestBottleStar,type BottleEntry } from "./star-bottle-layout";
 import type { World } from "./world";
 
 export class StarBottleView {
@@ -21,10 +21,9 @@ export class StarBottleView {
   private readonly returnButton=document.createElement("button");
   private readonly previous=document.createElement("button");
   private readonly next=document.createElement("button");
-  private readonly pageNumber=document.createElement("span");
+  private readonly readButton=document.createElement("button");
   private readonly pickedName=document.createElement("p");
   private known:BottleEntry[]=[];
-  private pageIndex=0;
   private selected="";
   private compact=false;
   private touchY=0;
@@ -45,19 +44,30 @@ export class StarBottleView {
     main.className="star-bottle-layout";display.className="star-bottle-display";this.art.className="star-bottle-art";this.vessel.className="star-bottle-vessel";
     glass.className="star-bottle-glass";glass.src=bottleUrl;glass.alt="";glass.decoding="async";glass.draggable=false;
     this.stars.className="star-bottle-stars";this.vessel.append(glass,this.stars);this.art.append(this.vessel);
-    this.previous.type=this.next.type="button";this.previous.className="star-bottle-previous";this.next.className="star-bottle-next";
-    this.previous.textContent="‹";this.next.textContent="›";this.previous.setAttribute("aria-label","上一页星星");this.next.setAttribute("aria-label","下一页星星");
-    this.previous.addEventListener("click",()=>this.changePage(-1));this.next.addEventListener("click",()=>this.changePage(1));
-    this.pageNumber.className="star-bottle-page-number";this.pageNumber.setAttribute("aria-live","polite");
+    this.previous.type=this.next.type="button";this.previous.className="star-bottle-pick-previous";this.next.className="star-bottle-pick-next";
+    this.previous.innerHTML="‹<span>上一颗</span>";this.next.innerHTML="›<span>下一颗</span>";
+    this.previous.setAttribute("aria-label","选中上一颗星星，全部星星仍在瓶中");this.next.setAttribute("aria-label","选中下一颗星星，全部星星仍在瓶中");
+    this.previous.addEventListener("click",()=>this.chooseAdjacent(-1));this.next.addEventListener("click",()=>this.chooseAdjacent(1));
+    this.readButton.type="button";this.readButton.className="star-bottle-read";this.readButton.textContent="阅读寄语";this.readButton.hidden=true;
+    this.readButton.addEventListener("click",()=>{const person=this.known.find(p=>p.id===this.selected);if(person)this.select(person);});
     this.pickedName.className="star-bottle-chosen-name";this.pickedName.setAttribute("role","status");this.pickedName.hidden=true;
     const empty=document.createElement("p");empty.className="star-bottle-empty";empty.textContent="瓶子还空着。\n去草地上拾起一颗落星，让它在瓶里住下来。";
-    display.append(this.art,this.previous,this.next,this.pageNumber,this.pickedName,empty);
+    display.append(this.art,this.previous,this.next,this.pickedName,this.readButton,empty);
     this.detail.className="star-bottle-detail";this.name.className="star-bottle-name";this.name.tabIndex=-1;this.intro.className="star-bottle-intro";
     this.message.className="star-bottle-message";this.message.tabIndex=0;this.message.setAttribute("role","region");
     this.detail.append(this.name,this.intro,this.message);main.append(display,this.detail);root.append(fireflies,heading,main);
     const frame=world.canvas.closest<HTMLElement>(".game-stage-frame");if(!frame)throw new Error("星光瓶需要游戏画框");frame.append(root);
     new ResizeObserver(()=>this.resize()).observe(frame);new ResizeObserver(()=>this.positionStars()).observe(this.art);
     root.addEventListener("pointerdown",event=>event.stopPropagation());root.addEventListener("click",event=>event.stopPropagation());root.addEventListener("contextmenu",event=>event.preventDefault());
+    this.art.addEventListener("click",event=>{
+      // Keyboard activation keeps its exact focused star; pointer/touch can
+      // miss a tiny sprite by a few pixels without choosing its DOM neighbour.
+      if(!event.detail)return;
+      event.preventDefault();event.stopPropagation();
+      const rect=this.vessel.getBoundingClientRect(),size=bottleGeometry(this.art.clientWidth,this.art.clientHeight,this.compact,producers.length);
+      const slot=nearestBottleStar(this.known.map(p=>({slot:p.slot,...size.slots[p.slot]})),event.clientX-rect.left,event.clientY-rect.top);
+      const person=this.known.find(p=>p.slot===slot);if(person)this.select(person);
+    });
     root.addEventListener("wheel",event=>{event.stopPropagation();if(!this.canScrollMessage(event.target,event.deltaY))event.preventDefault();},{passive:false});
     root.addEventListener("touchstart",event=>{this.touchY=event.touches[0]?.clientY??0;},{passive:true});
     root.addEventListener("touchmove",event=>{const y=event.touches[0]?.clientY??this.touchY,delta=this.touchY-y;this.touchY=y;if(!this.canScrollMessage(event.target,delta))event.preventDefault();},{passive:false});
@@ -74,7 +84,7 @@ export class StarBottleView {
   get opened(){return !this.element.hidden;}
   open() {
     this.compact=this.element.parentElement!.clientWidth<BOTTLE_COMPACT_WIDTH;this.element.dataset.compact=String(this.compact);this.element.dataset.view="bottle";
-    this.known=bottleEntries(producers,this.found(),this.compact);this.pageIndex=0;this.selected="";this.pickedName.hidden=true;this.pickedName.textContent="";this.world.suspend("star-bottle",true);this.element.hidden=false;
+    this.known=bottleEntries(producers,this.found());this.selected="";this.pickedName.hidden=true;this.pickedName.textContent="";this.readButton.hidden=true;this.world.suspend("star-bottle",true);this.element.hidden=false;
     this.count.textContent=`已收藏 ${this.known.length}/${producers.length} 颗星`;
     this.name.textContent=this.known.length?"轻点瓶中的星星":"瓶子还空着";this.intro.textContent=this.known.length?"让旅途中遇见的光，陪你停留一会儿。":"去草地上拾起一颗落星，它就会住进这里。";
     this.intro.hidden=false;this.message.hidden=true;this.message.textContent="";this.detail.dataset.hasMessage="false";this.detail.dataset.selected="false";
@@ -88,8 +98,7 @@ export class StarBottleView {
     const compact=this.element.parentElement!.clientWidth<BOTTLE_COMPACT_WIDTH;
     if(compact!==this.compact){
       const focusedStar=(document.activeElement as HTMLElement|null)?.closest<HTMLButtonElement>(".star-bottle-star")?.dataset.starId;
-      this.compact=compact;this.element.dataset.compact=String(compact);this.known=bottleEntries(producers,this.found(),compact);
-      this.pageIndex=this.known.find(person=>person.id===this.selected)?.page??0;this.renderStars();
+      this.compact=compact;this.element.dataset.compact=String(compact);this.renderStars();
       if(this.opened&&focusedStar){
         const reading=compact&&this.element.dataset.view==="reading"&&!this.message.hidden;
         (reading?this.message:this.stars.querySelector<HTMLButtonElement>(`[data-star-id="${focusedStar}"]`)??this.stars.querySelector<HTMLButtonElement>("button"))?.focus({preventScroll:true});
@@ -98,8 +107,8 @@ export class StarBottleView {
     this.positionStars();
   }
   private positionStars() {
-    const size=bottleGeometry(this.art.clientWidth,this.art.clientHeight,this.compact);this.vessel.style.width=`${size.width}px`;this.vessel.style.height=`${size.height}px`;
-    for(const button of this.stars.querySelectorAll<HTMLButtonElement>("button")){const point=size.slots[Number(button.dataset.slot)];if(point){button.style.left=`${point.x}px`;button.style.top=`${point.y}px`;}}
+    const size=bottleGeometry(this.art.clientWidth,this.art.clientHeight,this.compact,producers.length);this.vessel.style.width=`${size.width}px`;this.vessel.style.height=`${size.height}px`;
+    for(const button of this.stars.querySelectorAll<HTMLButtonElement>("button")){const point=size.slots[Number(button.dataset.slot)];if(point){button.style.left=`${point.x}px`;button.style.top=`${point.y}px`;button.style.setProperty("--star-size",`${point.size}px`);button.style.setProperty("--star-angle",`${point.angle}deg`);}}
   }
   private canScrollMessage(target:EventTarget|null,delta:number) {
     if(!(target instanceof Node)||!this.message.contains(target)||this.message.hidden)return false;
@@ -107,28 +116,28 @@ export class StarBottleView {
   }
   private renderStars() {
     this.stars.replaceChildren();
-    const selection=this.known.find(person=>person.id===this.selected);
-    this.pickedName.hidden=!selection||selection.page!==this.pageIndex||!!selection.message.trim();
-    for(const person of this.known.filter(item=>item.page===this.pageIndex)){
+    for(const person of this.known){
       const button=document.createElement("button"),art=document.createElement("span");button.type="button";button.className="star-bottle-star";button.dataset.starId=person.id;button.dataset.slot=String(person.slot);
       button.setAttribute("aria-label",`查看${person.name}的星星`);button.setAttribute("aria-pressed",String(this.selected===person.id));art.className="star-bottle-star-art";art.setAttribute("aria-hidden","true");art.style.setProperty("--star-phase",`${person.slot*-.73}s`);
-      button.append(art);button.addEventListener("click",()=>this.select(person));this.stars.append(button);
+      button.append(art);button.addEventListener("click",event=>{if(!event.detail)this.select(person);});this.stars.append(button);
     }
-    const pages=Math.max(1,Math.ceil(this.known.length/(this.compact?2:8)));this.previous.hidden=this.next.hidden=this.pageNumber.hidden=pages<=1;this.previous.disabled=this.pageIndex===0;this.next.disabled=this.pageIndex>=pages-1;this.pageNumber.textContent=`${this.pageIndex+1} / ${pages}`;this.positionStars();
+    this.previous.hidden=this.next.hidden=this.known.length<2;this.positionStars();
   }
-  private changePage(delta:number) {
-    const page=this.pageIndex+delta,pages=Math.ceil(this.known.length/(this.compact?2:8));if(page<0||page>=pages)return;
-    this.pageIndex=page;this.renderStars();this.stars.querySelector<HTMLButtonElement>("button")?.focus({preventScroll:true});
+  private chooseAdjacent(delta:number) {
+    if(!this.known.length)return;
+    const index=this.known.findIndex(p=>p.id===this.selected);
+    const next=index<0?(delta>0?0:this.known.length-1):(index+delta+this.known.length)%this.known.length;
+    this.select(this.known[next],false);
   }
   private showBottle() {
-    this.element.dataset.view="bottle";this.pageIndex=this.known.find(person=>person.id===this.selected)?.page??this.pageIndex;this.renderStars();
+    this.element.dataset.view="bottle";this.renderStars();
     (this.stars.querySelector<HTMLButtonElement>(`[data-star-id="${this.selected}"]`)??this.closeButton).focus({preventScroll:true});
   }
-  private select(person:BottleEntry) {
+  private select(person:BottleEntry,openMessage=true) {
     this.selected=person.id;this.name.textContent=person.name;this.intro.hidden=true;const hasMessage=!!person.message.trim();this.message.hidden=!hasMessage;this.message.textContent=hasMessage?person.message:"";this.message.scrollTop=0;
     this.message.setAttribute("aria-label",`${person.name}的留言，可滚动阅读`);this.detail.dataset.hasMessage=String(hasMessage);this.detail.dataset.selected="true";
-    this.element.dataset.view=hasMessage?"reading":"bottle";this.pickedName.textContent=person.name;this.pickedName.hidden=hasMessage;
+    this.element.dataset.view=hasMessage&&openMessage?"reading":"bottle";this.pickedName.textContent=person.name;this.pickedName.hidden=false;this.readButton.hidden=!hasMessage;
     for(const button of this.stars.querySelectorAll<HTMLButtonElement>("button"))button.setAttribute("aria-pressed",String(button.dataset.starId===person.id));
-    if(this.compact&&hasMessage)this.message.focus({preventScroll:true});
+    if(this.compact&&hasMessage&&openMessage)this.message.focus({preventScroll:true});
   }
 }

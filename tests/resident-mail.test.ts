@@ -4,16 +4,16 @@ import { readProgress } from "../src/core.ts";
 import { readInventory } from "../src/items.ts";
 import { readResidentStory, mailboxLetters, postLetter, postUnread, POST_LETTER_REVISION } from "../src/resident-story.ts";
 
-test("three public letters remain available and the postman adds exactly one delivered letter", () => {
+test("four public letters remain available and the postman adds exactly one delivered letter", () => {
   const old = readProgress('{"visited":["letters"],"decoratorMet":true}').residents;
-  assert.equal(mailboxLetters(old).length, 3);
+  assert.equal(mailboxLetters(old).length, 4);
   assert.deepEqual(mailboxLetters(old).map(letter => letter.title), [
-    "小叶子的周年来信", "夜神华的周年来信", "Kerry 的周年来信",
+    "小叶子的周年来信", "夜神华的周年来信", "Kerry 的周年来信", "Rabe 的周年来信",
   ]);
   assert.equal(mailboxLetters(old).some(letter => letter.id === postLetter.id), false);
   assert.ok(mailboxLetters(old).some(letter => letter.id === "kerry-anniversary-letter"));
   const delivered = readResidentStory({...old, postDelivered: true});
-  assert.equal(mailboxLetters(delivered).length, 4);
+  assert.equal(mailboxLetters(delivered).length, 5);
   assert.equal(mailboxLetters(delivered).filter(letter => letter.id === postLetter.id).length, 1);
   assert.equal(postUnread(delivered), true);
   delivered.postReadRevision = POST_LETTER_REVISION;

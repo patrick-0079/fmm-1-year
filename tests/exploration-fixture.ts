@@ -82,18 +82,11 @@ function closeStarBottle() {
 function checkBottleCollection() {
   const known=producers.filter(person=>state().creditStars.includes(person.id));
   const bottle=q(".star-bottle-page");
-  expect(!bottle.hidden && world.suspended,"星光瓶没有打开独立收藏页面并暂停探索");
+  expect(!bottle.hidden && world.suspended,"星光瓶没有打开游戏内特写并暂停探索");
   if (bottle.dataset.compact==="true" && bottle.dataset.view==="reading") q(".star-bottle-back").click();
-  const previous=q<HTMLButtonElement>(".star-bottle-previous"), next=q<HTMLButtonElement>(".star-bottle-next");
-  while (!previous.hidden && !previous.disabled) previous.click();
-  const ids:string[]=[];
-  do {
-    ids.push(...[...bottle.querySelectorAll<HTMLButtonElement>(".star-bottle-star")].map(button=>button.dataset.starId!));
-    if(next.hidden || next.disabled) break;
-    next.click();
-  } while (ids.length<=known.length);
-  expect(ids.join()===known.map(person=>person.id).join(),"瓶中星星没有按已收集名单分页显示");
-  while (!previous.hidden && !previous.disabled) previous.click();
+  const ids=[...bottle.querySelectorAll<HTMLButtonElement>(".star-bottle-star")].map(button=>button.dataset.starId!);
+  expect(ids.join()===known.map(person=>person.id).join(),"已收集星星没有同时显示在同一个瓶子里");
+  expect(!bottle.querySelector(".star-bottle-page-number"),"星光瓶不应保留分页页码");
   expect(q(".star-bottle-count").textContent?.includes(String(known.length)),"瓶中收藏数不正确");
   if (!known.length) expect(!producers.some(person=>bottle.textContent?.includes(person.name)),"空瓶泄露了未发现的署名");
 }
@@ -101,9 +94,6 @@ function selectBottleStar(person: typeof producers[number]) {
   const before=state().creditStars.join();
   const bottle=q(".star-bottle-page");
   if (bottle.dataset.compact==="true" && bottle.dataset.view==="reading") q(".star-bottle-back").click();
-  const previous=q<HTMLButtonElement>(".star-bottle-previous"), next=q<HTMLButtonElement>(".star-bottle-next");
-  while (!previous.hidden && !previous.disabled) previous.click();
-  while (!bottle.querySelector(`[data-star-id="${person.id}"]`) && !next.hidden && !next.disabled) next.click();
   q(`[data-star-id="${person.id}"]`).click();
   expect(q(".star-bottle-name").textContent===person.name,"瓶内选择的星星署名不正确");
   expect(q(".star-bottle-message").textContent?.replace(/\s/g,"")===person.message.replace(/\s/g,""),"瓶内寄语未读取当前完整正文，或空文带有占位符");

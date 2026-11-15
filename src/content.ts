@@ -51,6 +51,7 @@ export const producers = [
   { id: "star-qing", name: "卿取之于蓝", message: "", x: 724, y: 142 },
   { id: "star-zhenghao", name: "正号", message: "", x: 754, y: 378 },
   { id: "star-qianyu", name: "千羽", message: "", x: 578, y: 502 },
+  { id: "star-rabe", name: "Rabe", message: "", x: 605, y: 390 },
 ];
 
 export interface Encouragement {
@@ -95,6 +96,18 @@ export const collections: Record<string, Collection> = {
         title: "Kerry 的周年来信",
         author: "Kerry",
         text: "芙芙一周年快乐！从初见到现在，转眼也是5个月过去了。印象最深一句话是，“放心你明天会成功的，我的祝福可是很灵的哦”。第二天迟迟没有进展的实验居然真的有了突破，这可没法把你写进实验操作指南里。他人的鼓励确实能安抚焦虑，给人勇气，感谢有你陪伴。（小小芙多来点谢谢）",
+      },
+      {
+        id: "rabe-anniversary-letter",
+        title: "Rabe 的周年来信",
+        author: "Rabe",
+        text: `芙总，认识你这件事，我晚了一整年——十月一日才摸进狐狸窝，算到今天，不过才一“坤"月。
+
+可就是这一"坤"月，我的深夜突然有了去处：睡不着的时候戴上耳机，听你说话，天大的事都轻了。
+
+一周年这天，我还是不太擅长表述这些，只想把最老实的一句话放在这里：
+
+愿你的直播间永远有人等，也永远有我们。明年今天，我准时到。`,
       },
     ],
   },
