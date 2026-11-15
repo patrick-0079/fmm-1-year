@@ -224,7 +224,8 @@ export class Nature {
       return true;
     }
     if (id === "rest") {
-      const bench = this.world.config.spots.find((s) => s.id === "rest")!;
+      const bench = this.world.config.spots.find((s) => s.id === "rest");
+      if (!bench) return false;
       this.world.sit(bench, bench.approach);
       this.activities.menu(
         `在长椅上坐下了 · 现在是${phaseNames[this.clock.phase]}，歇一会再走吧`,
@@ -258,7 +259,7 @@ export class Nature {
     }
     const spot = this.world.config.spots.find((s) => s.id === id)!;
     if (!this.available(spot)) {
-      this.toast("这份小惊喜正在等另一个时刻。坐坐长椅，也许会有新发现。");
+      this.toast("这份小惊喜正在等另一个时刻。去勇气花园的长椅歇一会，也许会有新发现。");
       return true;
     }
     this.mark(id);
@@ -352,7 +353,7 @@ export class Nature {
     time.textContent = ruins ? "♫ 遗迹 · 长明灯" : meadow ? "☾ 花海 · 静夜" : `${{ dawn: "☀", day: "☀", dusk: "◒", night: "☾" }[clock.phase]} ${clock.label} · ${phaseNames[clock.phase]}`;
     time.setAttribute(
       "title",
-      ruins ? "地底的石灯昼夜长明" : meadow ? "花海长夜，庭院的时钟仍在走动" : `第 ${clock.day} 天 · 现实十分钟为一天；花园长椅可休息到下一时段`,
+      ruins ? "地底的石灯昼夜长明" : meadow ? "花海长夜，庭院的时钟仍在走动" : `第 ${clock.day} 天 · 现实十分钟为一天；勇气花园长椅可休息到下一时段`,
     );
     document.querySelector(".bag-count")!.textContent =
       `苹果 ${this.state.apple} · 花朵 ${this.state.flower} · 星屑 ${this.state.star}`;
@@ -367,7 +368,7 @@ export class Nature {
     );
     crown.setAttribute("aria-pressed", String(wearing));
     document.querySelector(".day-hint")!.textContent = ruins ? "石廊里的三块铭文，记着一段遗忘的晚安。" : meadow ? "草间有落星，营火旁有一只收着星光的玻璃瓶。" :
-      `第 ${clock.day} 天 · 十分钟一昼夜 · ${clock.phase === "dawn" ? "晨露花醒来了" : clock.phase === "dusk" ? "溪边漂来一只纸船" : clock.phase === "night" ? "萤火心愿悄悄出现" : "找长椅休息，等一场黄昏和星夜"}`;
+      `第 ${clock.day} 天 · 十分钟一昼夜 · ${clock.phase === "dawn" ? "晨露花醒来了" : clock.phase === "dusk" ? "溪边漂来一只纸船" : clock.phase === "night" ? "萤火心愿悄悄出现" : "去勇气花园的长椅休息，等一场黄昏和星夜"}`;
   }
   refreshClock() {
     this.lastUi = 0;
@@ -442,7 +443,7 @@ export class Nature {
       return [];
     const scene = this.world.scene,
       apple = this.world.config.spots.find((s) => s.id === "apple")!,
-      bench = this.world.config.spots.find((s) => s.id === "rest")!;
+      bench = this.world.config.spots.find((s) => s.id === "rest");
     return [
       ...(scene === "garden" ? [{ y: 479, draw: (c: CanvasRenderingContext2D) => this.world.drawMapFragment(c, gardenSign) }] : []),
       ...gardenTrees[scene].map((tree) => ({
@@ -465,13 +466,13 @@ export class Nature {
           }
         },
       },
-      {
+      ...(bench ? [{
         y: bench.y - 4,
         draw: (c: CanvasRenderingContext2D) => {
           if (this.benchImage.complete && this.benchImage.naturalWidth)
             c.drawImage(this.benchImage, bench.x - 38, bench.y - 25, 76, 46);
         },
-      },
+      }] : []),
     ];
   }
   private lighting(c: CanvasRenderingContext2D) {

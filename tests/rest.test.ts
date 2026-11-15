@@ -24,20 +24,30 @@ test("the single respawn destination is the bed, with a safe exit from its solid
     "outdoor lights must not become respawn locations",
   );
 });
-test("every garden seat has a safe get-up position outside the bench collider", () => {
-  for (const name of ["garden", "challenge"] as const) {
-    const scene = scenes[name],
-      spot = scene.spots.find((s) => s.id === "rest")!;
-    const rest = benchRest(name, spot, spot.approach);
-    assert.equal(rest.kind, "sitting");
-    assert.equal(
-      canStand(rest.anchor, scene.walls, scene.bounds, scene.floor),
-      false,
-    );
-    assert.equal(
-      canStand(rest.exit, scene.walls, scene.bounds, scene.floor),
-      true,
-    );
+test("the courage garden seat has a safe get-up position outside the bench collider", () => {
+  const scene = scenes.challenge,
+    spot = scene.spots.find((s) => s.id === "rest")!;
+  const rest = benchRest("challenge", spot, spot.approach);
+  assert.equal(rest.kind, "sitting");
+  assert.equal(
+    canStand(rest.anchor, scene.walls, scene.bounds, scene.floor),
+    false,
+  );
+  assert.equal(
+    canStand(rest.exit, scene.walls, scene.bounds, scene.floor),
+    true,
+  );
+});
+test("the anniversary garden has no seat interaction or invisible bench obstacle", () => {
+  const scene = scenes.garden;
+  assert.equal(scene.spots.some((spot) => spot.id === "rest"), false);
+  assert.equal(scene.walls.some((wall) => wall.label === "休息长椅"), false);
+  for (const [from, to] of [
+    [{ x: 340, y: 434 }, { x: 430, y: 434 }],
+    [{ x: 400, y: 400 }, { x: 400, y: 455 }],
+  ]) {
+    assert.equal(canTravelBetween(from, to, scene), true,
+      "the removed bench footprint must allow continuous walking");
   }
 });
 test("stream water is solid while each wooden bridge permits a crossing", () => {

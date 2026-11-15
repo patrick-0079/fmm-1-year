@@ -691,20 +691,24 @@ Object.assign(window, { contentQA: {
   ready: () => !!world && !q<HTMLButtonElement>(".enter-button").disabled,
   catalogue: () => producers.map(person => ({...person})),
   snapshot: () => ({scene:world.scene, player:{...world.player}, paused:world.paused,
-    suspended:world.suspended, activeCue:world.activeCueId, progress:state(),
+    suspended:world.suspended, activeCue:world.activeCueId, rest:world.restState && {...world.restState}, progress:state(),
     canvas:world.canvas.getBoundingClientRect().toJSON(), scrollY,
     focused:document.activeElement===world.canvas ? "canvas" : (document.activeElement as HTMLElement)?.className}),
-  async visit(scene: Parameters<World["switchScene"]>[0], id?: string) {
+  async visit(scene: Parameters<World["switchScene"]>[0], id?: string, at?: {x: number; y: number}) {
     closeStarReader(); closeStarBottle();
     await world.prepareScene(scene);
     const config=scene==="town"?world.townMap:scenes[scene];
-    world.switchScene(scene,id?config.spots.find(s=>s.id===id)?.approach:config.spawn);
+    world.switchScene(scene,at ?? (id?config.spots.find(s=>s.id===id)?.approach:config.spawn));
     world.setCueInput("keyboard");
     await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
   },
   point(id: string) {
     const spot=world.config.spots.find(s=>s.id===id)!;
     const p=world.project({x:spot.x,y:interactionHitY(spot)}),r=world.canvas.getBoundingClientRect();
+    return {x:r.left+p.x*r.width/600,y:r.top+p.y*r.height/400};
+  },
+  pointAt(x: number, y: number) {
+    const p=world.project({x,y}),r=world.canvas.getBoundingClientRect();
     return {x:r.left+p.x*r.width/600,y:r.top+p.y*r.height/400};
   },
   canvasImage: () => world.canvas.toDataURL(),

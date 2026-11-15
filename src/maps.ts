@@ -357,11 +357,11 @@ export const scenes: Record<SceneId, Scene> = {
     width: 900,
     height: 600,
     bounds: { x: 56, y: 51, w: 789, h: 525 },
-    // Inside the banks and the woodland, with independent openings at both arches.
+    // The north edge ends at the flowering hedge; only the southern gate is an exit.
     floor: [
       [96,135],[109,114],[128,96],[157,87],[164,72],[193,68],[224,72],
-      [248,78],[282,77],[319,87],[351,97],[392,104],[415,99],[420,75],
-      [469,75],[475,94],[491,99],[524,94],[557,89],[588,85],[620,80],
+      [248,78],[282,77],[319,87],[351,97],[392,104],
+      [491,99],[524,94],[557,89],[588,85],[620,80],
       [648,72],[675,65],[705,65],[730,81],[749,98],[775,106],[784,124],
       [786,151],[802,171],[822,181],[833,202],[821,226],[810,242],[803,259],
       [809,287],[825,306],[831,325],[824,347],[817,370],[810,399],[815,415],
@@ -480,10 +480,20 @@ for (const id of ["garden", "challenge"] as const) {
   }
   const flowers = id === "garden" ? { x: 548, y: 410 } : { x: 170, y: 267 };
   const drop = id === "garden" ? { x: 590, y: 365 } : { x: 295, y: 225 };
-  const bench = id === "garden" ? { x: 385, y: 420 } : { x: 560, y: 430 };
-  outdoor.walls.push(polygon("休息长椅", [
-    [-27,0],[26,0],[30,6],[28,16],[22,18],[20,13],[-19,13],[-21,18],[-27,16],[-30,7],
-  ].map(([dx,dy]) => [bench.x+dx,bench.y+dy])));
+  if (id === "challenge") {
+    const bench = { x: 560, y: 430 };
+    outdoor.walls.push(polygon("休息长椅", [
+      [-27,0],[26,0],[30,6],[28,16],[22,18],[20,13],[-19,13],[-21,18],[-27,16],[-30,7],
+    ].map(([dx,dy]) => [bench.x+dx,bench.y+dy])));
+    outdoor.spots.push({
+      id: "rest",
+      title: "在勇气花园里歇一会",
+      ...bench,
+      approach: { x: 560, y: 457 },
+      radius: 50,
+      color: "#97c9ce",
+    });
+  }
   outdoor.spots.push(
     {
       id: "apple",
@@ -522,15 +532,6 @@ for (const id of ["garden", "challenge"] as const) {
       approach: { x: drop.x, y: drop.y + 15 },
       radius: 38,
       color: "#e4c776",
-    },
-    {
-      id: "rest",
-      title: "在花园里歇一会",
-      x: id === "garden" ? 385 : 560,
-      y: id === "garden" ? 420 : 430,
-      approach: id === "garden" ? { x: 385, y: 447 } : { x: 560, y: 457 },
-      radius: 50,
-      color: "#97c9ce",
     },
     {
       id: "dew",

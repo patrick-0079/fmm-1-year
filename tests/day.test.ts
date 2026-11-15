@@ -31,7 +31,7 @@ test("one real ten-minute interval is exactly one complete world day", () => {
   assert.equal(worldTime(300).phase, "night");
   assert.equal(worldTime(525).phase, "dawn");
 });
-test("the garden bench advances to each exclusive easter-egg window", () => {
+test("the courage garden bench advances to each exclusive easter-egg window", () => {
   let elapsed = 0;
   for (const phase of ["dusk", "night", "dawn", "day"]) {
     elapsed += untilNextPhase(elapsed);

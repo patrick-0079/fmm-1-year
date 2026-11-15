@@ -28,6 +28,7 @@ import { enteredMoonCircle } from "./meadow-map";
 import { surfaceOutline } from "./collision";
 import { trapFootprint } from "./trap-art";
 import { drawGardenHazard } from "./garden-hazards";
+import { drawDoorRug } from "./door-rug";
 import {
   advancePath,
   canStand,
@@ -764,12 +765,7 @@ export class World {
     const view = this.visibleArea;
     this.paintMap(c, view.x, view.y, Math.min(view.w, width - view.x), Math.min(view.h, height - view.y));
     this.onEnvironment(c, this.time);
-    if (this.scene === "room") {
-      c.fillStyle = "#8171b0";
-      c.fillRect(274, 368, 52, 11);
-      c.fillStyle = "#c9b8e5";
-      c.fillRect(278, 370, 44, 7);
-    }
+    if (this.scene === "room") drawDoorRug(c);
     this.drawHazards();
     const drawPlayer = () => {
       if (this.actorHidden) return;

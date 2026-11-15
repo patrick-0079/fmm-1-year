@@ -35,10 +35,11 @@ test("both stream bridges admit crossings in each direction and stop feet at eit
   }
 });
 
-test("the courage garden follows its riverbanks, woodland and two visible gate openings", () => {
-  checkFeet("challenge", [[92,270],[784,325],[135,151],[450,86],[450,557]],
-    [[610,520],[194,504],[829,265],[399,551]]);
+test("the courage garden ends at the north hedge and keeps its flower approach and south exit open", () => {
+  checkFeet("challenge", [[92,270],[784,325],[135,151],[450,125],[450,557]],
+    [[610,520],[194,504],[829,265],[399,551],[450,86]]);
   assert.ok(canTravelBetween({x:450,y:510},{x:450,y:560},scenes.challenge));
+  assert.deepEqual(scenes.challenge.spots.filter(spot => spot.portal).map(spot => spot.id), ["return-gate"]);
 });
 
 test("the two bronze mirror bases are solid and the engraved star tile stays walkable", () => {

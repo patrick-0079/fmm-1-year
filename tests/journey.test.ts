@@ -15,6 +15,16 @@ test("resuming respects existing collision, hazards and the seven-flower lock", 
   for (const pos of [scenes.challenge.hazards[0],{x:-999,y:88}])
     assert.deepEqual(restore("challenge", pos),{scene:"challenge",...scenes.challenge.spawn,savedAt});
 });
+test("saved positions remain safe after removing the anniversary bench and closing the north gate", () => {
+  const oldNorth = readJourney(JSON.stringify({scene:"challenge",x:450,y:86,savedAt}),[]);
+  assert.deepEqual(oldNorth,{scene:"challenge",...scenes.challenge.spawn,savedAt},
+    "a save inside the former north opening returns to the safe south entrance");
+  for (const flowers of [[],rainbowIds]) {
+    const oldBenchExit = {scene:"garden",x:385,y:447,savedAt};
+    assert.deepEqual(readJourney(JSON.stringify(oldBenchExit),flowers),oldBenchExit,
+      "removing the bench does not move players saved at its former get-up point");
+  }
+});
 test("malformed location data cannot enter an unknown scene or disturb earned records", () => {
   for (const raw of [null, "{", "null", JSON.stringify({scene:"constructor",x:30,y:40,savedAt}),
     JSON.stringify({scene:["room"],x:40,y:40,savedAt}), JSON.stringify({scene:"room",x:40,y:40,savedAt:Number.MAX_SAFE_INTEGER}),
