@@ -1,6 +1,13 @@
 import type { Point } from "./core.ts";
 
 export const EMBRACE_SECONDS = 4.8;
+// Leave room for both heads and hairstyles. Only the paw overlaps a shoulder.
+export const EMBRACE_BODY_GAP = 26;
+export const EMBRACE_SHOULDER_Y = -19;
+export function isEmbraceApproach(player: Point, origin: Point) {
+  const dx=Math.abs(player.x-origin.x),dy=player.y-origin.y;
+  return Number.isFinite(dx) && Number.isFinite(dy) && dx>=22 && dx<=29 && dy>=1 && dy<=14;
+}
 export type EmbraceStage = "anticipate" | "open" | "close" | "hold" | "release" | "settle";
 export interface EmbracePose {
   stage: EmbraceStage;

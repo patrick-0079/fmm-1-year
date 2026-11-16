@@ -6,7 +6,7 @@ import { sceneArt } from "./scene-art";
 import { scenes } from "./maps";
 import { XiaoyeHug, xiaoyeFrame, xiaoyeFrames, xiaoyeHugText, xiaoyeLanternOn,
   xiaoyeLanternPoint, xiaoyeScale, xiaoyeSpot } from "./xiaoye-data";
-import { embracePose, boundedEmbraceFoot } from "./xiaoye-embrace";
+import { embracePose, boundedEmbraceFoot, isEmbraceApproach, EMBRACE_BODY_GAP, EMBRACE_SHOULDER_Y } from "./xiaoye-embrace";
 import { embraceFrames, EMBRACE_ART_SCALE } from "./xiaoye-embrace-art";
 
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -63,13 +63,23 @@ export class Xiaoye {
   interact(id: string) {
     if (id !== xiaoyeSpot.id || this.world.scene !== "garden") return false;
     if (!this.available() || this.ownsDialogue || this.hug.active) return true;
+    // Above/below or pressed against the plush, the profile poses cannot safely
+    // embrace. Walk to the existing side approach; manual movement can cancel it.
+    if(!isEmbraceApproach(this.world.player,xiaoyeSpot)) {
+      this.world.visit(xiaoyeSpot.id);
+      return true;
+    }
+    const player=this.world.player, side=player.x<xiaoyeSpot.x ? -1 : 1;
+    const contact=boundedEmbraceFoot(xiaoyeSpot,{x:player.x-side*EMBRACE_BODY_GAP,y:player.y-4});
+    if(!canTravelBetween(xiaoyeSpot,contact,space) || Math.abs(player.x-contact.x)<EMBRACE_BODY_GAP-.1) {
+      this.world.visit(xiaoyeSpot.id);
+      return true;
+    }
     const lampStart=this.lampPoint();
     if (!this.hug.begin(this.world.player)) return true;
     this.lampStart=lampStart;
     // The plush takes a small, validated step. Never move the player's real feet.
-    const side=this.hug.mirrored ? -1 : 1, player=this.world.player;
-    const contact=boundedEmbraceFoot(xiaoyeSpot,{x:player.x-side*15,y:player.y-3});
-    this.contactFoot=canTravelBetween(xiaoyeSpot,contact,space) ? contact : {...xiaoyeSpot};
+    this.contactFoot=contact;
     this.activities.dialogue("小叶子 · 大猫猫玩偶", xiaoyeHugText, [], c => {
       this.drawEmbrace(c,2,{x:24,y:53},false,0,false,54/HEIGHT);
     }, xiaoyeSpot, () => this.reset());
@@ -100,7 +110,13 @@ export class Xiaoye {
     const image=sceneArt.xiaoyeEmbrace;
     if (!image.naturalWidth) return;
     const f=embraceFrames[frame],crop=pawOnly ? f.paw : f,s=EMBRACE_ART_SCALE*scale;
+    if(pawOnly && !f.foreground.length)return;
     c.save();c.translate(foot.x,foot.y);if(mirror)c.scale(-1,1);c.rotate(lean);
+    if(pawOnly) {
+      c.beginPath();
+      f.foreground.forEach(([x,y],i)=>i ? c.lineTo((x-f.footX)*s,(y-f.footY)*s) : c.moveTo((x-f.footX)*s,(y-f.footY)*s));
+      c.closePath();c.clip();
+    }
     c.drawImage(image,crop.x,crop.y,crop.w,crop.h,
       (crop.x-f.footX)*s,(crop.y-f.footY)*s,crop.w*s,crop.h*s);
     c.restore();
@@ -117,10 +133,15 @@ export class Xiaoye {
     }}];
     // The forearm alone wraps over Fufu's shoulder. Neither head/body is pasted
     // on top of the player, and the arm retreats with the rest of the animation.
-    if(v.active && v.pose.contact>.2 && Math.abs(this.world.player.x-v.foot.x)>=8 &&
+    if(v.active && v.pose.contact>.2 && Math.abs(this.world.player.x-v.foot.x)>=22 &&
       Math.abs(this.world.player.y-v.foot.y)<18)
-      layers.push({y:Math.max(v.foot.y,this.world.player.y)+.1,draw:c=>
-        this.drawEmbrace(c,v.pose.frame,v.foot,v.mirror,v.pose.lean,true)});
+      layers.push({y:Math.max(v.foot.y,this.world.player.y)+.1,draw:c=>{
+        c.save();c.beginPath();
+        // The raised upper arm stays behind Fufu's head/hair. Only the lower paw
+        // crosses in front at the shoulder, so it cannot emerge through her face.
+        c.rect(this.world.player.x-45,this.world.player.y+EMBRACE_SHOULDER_Y,90,35);c.clip();
+        this.drawEmbrace(c,v.pose.frame,v.foot,v.mirror,v.pose.lean,true);c.restore();
+      }});
     if(v.active && xiaoyeLanternOn(this.phase())) {
       const lamp=this.lampPoint();
       layers.push({y:xiaoyeSpot.y+3,draw:c=>this.drawParkedLantern(c,lamp)});

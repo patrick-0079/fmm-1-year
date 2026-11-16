@@ -1,7 +1,52 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { embraceFrames, EMBRACE_ART_SCALE } from "../src/xiaoye-embrace-art.ts";
-import { EMBRACE_SECONDS, embracePose, boundedEmbraceFoot } from "../src/xiaoye-embrace.ts";
+import { EMBRACE_SECONDS, embracePose, boundedEmbraceFoot, isEmbraceApproach,
+  EMBRACE_BODY_GAP, EMBRACE_SHOULDER_Y } from "../src/xiaoye-embrace.ts";
+import { polygonContains, canStand, canTravelBetween, findPath } from "../src/core.ts";
+import { scenes } from "../src/maps.ts";
+import { xiaoyeSpot } from "../src/xiaoye-data.ts";
+
+test("foreground paw masks keep real pads but exclude the old ribbon and torso rectangle leaks", () => {
+  assert.equal(embraceFrames[0].foreground.length,0,"resting arms must stay behind Fufu");
+  for(const [frame,pad,leaks] of [
+    [1,[970,485],[[906,427],[908,505],[921,529]]],
+    [2,[1495,515],[[1428,445],[1425,537],[1450,544]]],
+    [3,[2044,520],[[1987,474],[1990,541],[2002,548]]],
+  ] as const) {
+    const mask=embraceFrames[frame].foreground.map(([x,y])=>({x,y}));
+    assert.ok(polygonContains({x:pad[0],y:pad[1]},mask),"missing paw pad in frame "+frame);
+    for(const [x,y]of leaks)
+      assert.equal(polygonContains({x,y},mask),false,`frame ${frame} leaks non-arm pixels at ${x},${y}`);
+    const crop=embraceFrames[frame].paw;
+    for(const point of mask)assert.ok(point.x>=crop.x && point.x<=crop.x+crop.w &&
+      point.y>=crop.y && point.y<=crop.y+crop.h,"contour escapes its source crop");
+  }
+  assert.equal(EMBRACE_SHOULDER_Y,-19,"foreground starts below the face and head accessories");
+});
+
+test("only roomy side approaches can start profile hugs; front, rear and crowded feet must walk around", () => {
+  for(const at of [xiaoyeSpot.approach,{x:306,y:318},{x:308,y:329},{x:359,y:316}])
+    assert.equal(isEmbraceApproach(at,xiaoyeSpot),true,JSON.stringify(at));
+  for(const at of [{x:330,y:288},{x:330,y:340},{x:345,y:318},{x:306,y:310},
+    {x:354,y:340},{x:360,y:320},{x:NaN,y:327},{x:354,y:Infinity}])
+    assert.equal(isEmbraceApproach(at,xiaoyeSpot),false,JSON.stringify(at));
+  assert.deepEqual(findPath(scenes.garden.spawn,xiaoyeSpot.approach,scenes.garden)?.at(-1),xiaoyeSpot.approach);
+});
+
+test("both real side approaches preserve a 26 pixel body gap on accessible ground", () => {
+  const room={...scenes.garden,walls:scenes.garden.walls.filter(w=>w.label!=="来宾 · 小叶子")};
+  assert.equal(EMBRACE_BODY_GAP,26);
+  for(const player of [xiaoyeSpot.approach,{x:306,y:318}]) {
+    const side=player.x<xiaoyeSpot.x ? -1 : 1;
+    const foot=boundedEmbraceFoot(xiaoyeSpot,{x:player.x-side*EMBRACE_BODY_GAP,y:player.y-4});
+    assert.equal(Math.abs(player.x-foot.x),26);
+    assert.ok(Math.hypot(foot.x-xiaoyeSpot.x,foot.y-xiaoyeSpot.y)<=12);
+    assert.ok(canStand(foot,room.walls,room.bounds,room.floor,room.surfaces));
+    assert.ok(canTravelBetween(xiaoyeSpot,foot,room));
+    assert.ok(foot.y<player.y,"the full plush stays behind Fufu; only its masked paw may pass in front");
+  }
+});
 
 test("embrace atlas preserves one scale, grounded feet and isolated foreground paws", () => {
   for (const [i,f] of embraceFrames.entries()) {

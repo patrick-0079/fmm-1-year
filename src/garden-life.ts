@@ -202,7 +202,7 @@ export class Companion {
     const id=this.world.equipment.pet;
     if(id!=="petBunny" && id!=="petCat"){ this.id=null; this.welcome=null; return; }
     if(this.scene!==this.world.scene || this.id!==id) {
-      this.scene=this.world.scene; this.id=id; this.motion.reset(this.world.player);
+      this.scene=this.world.scene; this.id=id; this.motion.join(this.world.player,this.world.config);
       this.gait.reset();
       if(id==="petCat" && !sceneArt.peachWalk.naturalWidth) void prepareProp("peachWalk").catch(()=>{});
     }
