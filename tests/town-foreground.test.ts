@@ -39,7 +39,7 @@ test("cross-street pennants have their own foreground without creating a wall un
   const bakery = townForeground.find(part => part.id === "bakery-stair-pennants")!;
   assert.ok(polygonContains({x:525,y:200},north.points));
   assert.ok(!polygonContains({x:525,y:210},north.points));
-  assert.ok(polygonContains({x:742,y:337},bakery.points));
+  assert.ok(polygonContains({x:739,y:331},bakery.points));
   assert.ok(!polygonContains({x:742,y:350},bakery.points));
   assert.ok(canTravelBetween({x:781,y:283},{x:789,y:319},scenes.town));
   assert.equal(new Set(townForeground.map(part=>part.id)).size,townForeground.length);

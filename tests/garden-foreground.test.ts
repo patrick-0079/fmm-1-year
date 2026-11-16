@@ -3,8 +3,17 @@ import assert from "node:assert/strict";
 import { canStand, canTravelBetween, polygonContains } from "../src/core.ts";
 import { scenes } from "../src/maps.ts";
 import { gardenForeground } from "../src/garden-foreground.ts";
+import { gardenGateLamp } from "../src/garden-gate-lamp.ts";
 
 const point = (x:number,y:number) => ({x:x*900/1536,y:y*900/1536});
+
+test("entrance lantern excludes its grass halo and keeps bronze, stone and open handles", () => {
+  const covered=(x:number,y:number)=>gardenGateLamp.some(outline=>polygonContains(point(x+.5,y+.5),outline));
+  for(const [x,y] of [[625,844],[610,852],[639,857],[625,874],[625,901],[626,908],[625,934],[635,976]])
+    assert.ok(covered(x,y),`lost lantern/post ${x},${y}`);
+  for(const [x,y] of [[607,875],[610,886],[619,899],[631,903],[621,905],[636,914],[640,924],[640,939],[616,966],[616,854],[635,855]])
+    assert.ok(!covered(x,y),`grass/paving or aperture repainted at ${x},${y}`);
+});
 
 test("garden arch masks cover painted crowns, leaving doorways and paving open", () => {
   // Independent landmarks on the original illustration, not generated from masks.

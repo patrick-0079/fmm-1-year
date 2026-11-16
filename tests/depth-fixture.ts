@@ -2,7 +2,11 @@ import { World, type DepthLayer } from "../src/world";
 import type { Point } from "../src/core";
 import type { SceneId } from "../src/maps";
 import { gardenForeground } from "../src/garden-foreground";
+import { gardenGateLamp } from "../src/garden-gate-lamp";
 import { townForeground } from "../src/town-foreground";
+import { townCanopies } from "../src/town-scenery";
+import { gardenSign } from "../src/garden-sign";
+import { televisionSilhouette } from "../src/cinema-config";
 
 // This standalone page uses the complete game but never writes its real saves.
 const prefix="fufu-depth-fixture/";
@@ -30,6 +34,7 @@ interface DepthCase {
   subpixelClear?:number[];
   actor?:{x:number;positions:number[]};
   existingOutline?:Point[];
+  fragments?:Point[][];
   // Original-image pixel centres, checked at 3 rendered pixels per source
   // pixel so mobile canvas resampling cannot hide a dirty one-pixel edge.
   edges?:{solid:Point[];clear:Point[]};
@@ -48,18 +53,41 @@ const cases:DepthCase[]=[
     solid:[[204,680],[216,677],[222,667],[215,664],[201,694],[224,696]].map(([x,y])=>pixel(x,y)),
     clear:[[204,660],[205,663],[202,665],[217,660],[215,661],[217,661],[213,693],[233,700]].map(([x,y])=>pixel(x,y)),
   }},
-  {id:"west-alcove-arch",scene:"garden",depth:606*gardenScale,solid:[gp(198,510)],clear:[gp(204,564),gp(204,614)],occludedClear:[0,1]},
+  {id:"west-alcove-arch",scene:"garden",depth:606*gardenScale,solid:[gp(198,510)],clear:[gp(204,564),gp(204,614)],occludedClear:[0,1],edges:{
+    solid:[[199,503],[175,507],[229,519]].map(([x,y])=>pixel(x,y)),
+    clear:[[192,494],[201,494],[217,503],[224,506]].map(([x,y])=>pixel(x,y)),
+  }},
   {id:"northeast-bench-arbour",scene:"garden",depth:184*gardenScale,solid:[gp(1100,114)],clear:[gp(1100,138),gp(1100,192)]},
-  {id:"garden-gate-lamp",scene:"garden",depth:984*gardenScale,solid:[gp(625,874)],clear:[gp(616,854),gp(635,856),gp(625,991)],subpixelClear:[1],existingOutline:[gp(605,841),gp(644,991)]},
-  {id:"northwest-path-lamp",scene:"garden",depth:418*gardenScale,solid:[gp(670,345)],clear:[gp(710,365),gp(670,433)]},
-  {id:"northeast-path-lamp",scene:"garden",depth:418*gardenScale,solid:[gp(832,345)],clear:[gp(795,365),gp(832,433)]},
-  {id:"southwest-square-lamp",scene:"garden",depth:735*gardenScale,solid:[gp(659,695)],clear:[gp(700,705),gp(659,750)]},
-  {id:"southeast-square-lamp",scene:"garden",depth:735*gardenScale,solid:[gp(843,695)],clear:[gp(800,705),gp(843,750)]},
+  {id:"garden-gate-lamp",scene:"garden",depth:984*gardenScale,solid:[gp(625,874)],clear:[gp(616,854),gp(635,856),gp(625,991)],subpixelClear:[1],existingOutline:gardenGateLamp.flat(),fragments:gardenGateLamp,edges:{
+    solid:[[625,844],[610,852],[639,857],[625,874],[625,901],[626,908],[625,934],[635,976]].map(([x,y])=>pixel(x,y)),
+    clear:[[607,875],[610,886],[619,899],[631,903],[621,905],[636,914],[640,924],[640,939],[616,966],[616,854],[635,855]].map(([x,y])=>pixel(x,y)),
+  }},
+  {id:"northwest-path-lamp",scene:"garden",depth:418*gardenScale,solid:[gp(670,345)],clear:[gp(710,365),gp(670,433)],edges:{
+    solid:[[672,325],[667,333],[670,347],[672,362]].map(([x,y])=>pixel(x,y)),
+    clear:[[668,318],[661,329],[659,345],[679,362]].map(([x,y])=>pixel(x,y)),
+  }},
+  {id:"northeast-path-lamp",scene:"garden",depth:418*gardenScale,solid:[gp(832,345)],clear:[gp(795,365),gp(832,433)],edges:{
+    solid:[[833,325],[830,334],[832,347],[833,363]].map(([x,y])=>pixel(x,y)),
+    clear:[[829,318],[823,328],[820,345],[839,328]].map(([x,y])=>pixel(x,y)),
+  }},
+  {id:"southwest-square-lamp",scene:"garden",depth:735*gardenScale,solid:[gp(659,695)],clear:[gp(700,705),gp(659,750)],edges:{
+    solid:[[657,668],[654,680],[656,695]].map(([x,y])=>pixel(x,y)),
+    clear:[[659,659],[668,674],[672,686]].map(([x,y])=>pixel(x,y)),
+  }},
+  {id:"southeast-square-lamp",scene:"garden",depth:735*gardenScale,solid:[gp(843,695)],clear:[gp(800,705),gp(843,750)],edges:{
+    solid:[[848,668],[844,680],[849,695]].map(([x,y])=>pixel(x,y)),
+    clear:[[842,659],[836,674],[834,687]].map(([x,y])=>pixel(x,y)),
+  }},
   {id:"flower-arch",scene:"town",depth:328,solid:[{x:236,y:262}],clear:[{x:234,y:295},{x:233,y:338}]},
   {id:"pond-arch",scene:"town",depth:909,solid:[{x:928,y:834}],clear:[{x:929,y:878},{x:926,y:916}]},
   {id:"quarry-lintel",scene:"town",depth:91,solid:[{x:1428,y:31}],clear:[{x:1428,y:65},{x:1428,y:99}]},
   {id:"north-stair-pennants",scene:"town",depth:272,solid:[{x:525,y:200}],clear:[{x:536,y:209},{x:536,y:280}]},
-  {id:"bakery-stair-pennants",scene:"town",depth:362,solid:[{x:742,y:337}],clear:[{x:750,y:348},{x:750,y:370}]},
+  {id:"bakery-stair-pennants",scene:"town",depth:362,solid:[{x:739,y:331}],clear:[{x:750,y:348},{x:750,y:370}]},
+  {id:"plaza-west-pennants",scene:"town",depth:441,solid:[{x:620,y:385}],clear:[{x:626,y:385},{x:606,y:394}]},
+  {id:"bakery-fence-pennants",scene:"town",depth:247,solid:[{x:978,y:186}],clear:[{x:985,y:185},{x:998,y:184}]},
+  {id:"garden-sign",scene:"garden",depth:479,solid:[{x:191,y:415},{x:208,y:415}],clear:[{x:197,y:420},{x:205,y:471}],existingOutline:gardenSign,fragments:[gardenSign]},
+  {id:"garden-screen",scene:"garden",depth:273,solid:[{x:708,y:163},{x:721,y:164}],clear:[{x:716,y:169},{x:680,y:175}],existingOutline:televisionSilhouette,fragments:[televisionSilhouette]},
+  {id:"town-west-tree",scene:"town",depth:432,solid:[{x:340,y:350},{x:320,y:370}],clear:[{x:330,y:331},{x:345,y:334}],existingOutline:townCanopies[0].points,fragments:[townCanopies[0].points]},
 ];
 const run=document.querySelector<HTMLButtonElement>("#depth-run")!;
 const summary=document.querySelector<HTMLElement>("#depth-summary")!;
@@ -91,10 +119,10 @@ function capture(points:Point[]) {
     (right-left)*world.canvas.width/600,(bottom-top)*world.canvas.height/400,0,0,image.width,image.height);
   return image.toDataURL();
 }
-function sampleEdges(outline:Point[],landmarks:NonNullable<DepthCase["edges"]>){
+function sampleEdges(outlines:Point[][],landmarks:NonNullable<DepthCase["edges"]>){
   // Draw the actual fragment renderer at an exact integer multiple of the
   // source resolution, rather than upscaling an already downsampled screenshot.
-  const source=[...outline,...landmarks.solid,...landmarks.clear].map(p=>({x:p.x/gardenScale,y:p.y/gardenScale}));
+  const source=[...outlines.flat(),...landmarks.solid,...landmarks.clear].map(p=>({x:p.x/gardenScale,y:p.y/gardenScale}));
   const left=Math.floor(Math.min(...source.map(p=>p.x)))-2;
   const top=Math.floor(Math.min(...source.map(p=>p.y)))-2;
   const width=Math.ceil(Math.max(...source.map(p=>p.x)))-left+2;
@@ -102,7 +130,7 @@ function sampleEdges(outline:Point[],landmarks:NonNullable<DepthCase["edges"]>){
   const zoom=3,canvas=document.createElement("canvas");canvas.width=width*zoom;canvas.height=height*zoom;
   const c=canvas.getContext("2d")!;c.imageSmoothingEnabled=false;c.fillStyle="#ff00ff";c.fillRect(0,0,canvas.width,canvas.height);
   c.setTransform(zoom/gardenScale,0,0,zoom/gardenScale,-left*zoom,-top*zoom);
-  world.drawMapFragment(c,outline);
+  for(const outline of outlines)world.drawMapFragment(c,outline);
   const read=(point:Point):Sample=>({point,rgb:[...c.getImageData(Math.floor((point.x/gardenScale-left)*zoom),Math.floor((point.y/gardenScale-top)*zoom),1,1).data].slice(0,3)});
   return {image:canvas.toDataURL(),solid:landmarks.solid.map(read),clear:landmarks.clear.map(read)};
 }
@@ -131,15 +159,15 @@ async function verify(test:DepthCase){
     record.behind=points.map(sample);photo("脚底在柱后：拱顶遮挡；门洞保留（其他前景树仍会遮挡）");
     world.getDepthLayers=()=>[...saved.layers(),probe(test.depth+1)];drawNow();
     record.front=points.map(sample);photo("脚底在柱前：拱门不再遮挡；其他前景保留");
-    if(!test.existingOutline){
+    if(!test.existingOutline || test.fragments){
       // Use World.draw and drawMapFragment, never a duplicate polygon renderer.
       // Removing unrelated foliage only for this extra mask check lets a tree
       // in front of the west alcove coexist with a genuinely transparent arch.
-      world.getDepthLayers=()=>[{y:target!.y,draw:c=>world.drawMapFragment(c,target!.points)},probe(test.depth-1)];
+      world.getDepthLayers=()=>[{y:target!.y,draw:c=>{for(const outline of test.fragments??[target!.points])world.drawMapFragment(c,outline);}},probe(test.depth-1)];
       drawNow();record.mask=points.map(sample);
     }
     if(test.edges){
-      const edge=sampleEdges(target!.points,test.edges);record.edges={solid:edge.solid,clear:edge.clear};
+      const edge=sampleEdges(test.fragments??[target!.points],test.edges);record.edges={solid:edge.solid,clear:edge.clear};
       const figure=document.createElement("figure"),img=document.createElement("img"),caption=document.createElement("figcaption");
       img.src=edge.image;img.alt="原图像素3倍边缘采样";caption.textContent="单片边缘 ×3：地砖/草地空隙透明，花瓣/叶尖保留";
       figure.append(img,caption);images.append(figure);
@@ -157,7 +185,7 @@ async function verify(test:DepthCase){
     assert(record.front.every((p,i)=>i>=test.solid.length&&test.occludedClear?.includes(i-test.solid.length)?!pink(p):pink(p)),"柱前人物遮挡不符合实景");
     if(record.mask){
       assert(record.mask.slice(0,test.solid.length).every(p=>!pink(p)),"单片拱顶遮罩未覆盖实体");
-      assert(record.mask.slice(test.solid.length).every(p=>pink(p)),"门洞/地面被单片前景贴图擦除");
+      assert(record.mask.slice(test.solid.length).every((p,i)=>pink(p,test.subpixelClear?.includes(i)?40:3)),"门洞/地面被单片前景贴图擦除");
     }
     if(record.edges){
       const missing=record.edges.solid.filter(p=>pink(p)),dirty=record.edges.clear.filter(p=>!pink(p));
