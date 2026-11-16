@@ -151,6 +151,15 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
         content.append(caption);
       }
     }
+    // Direct NPC links can select a letter below the phone's visible tab list.
+    // Move only that list, never scrollIntoView (which would move the page).
+    const active = list.querySelector<HTMLElement>(".selected");
+    if (active && list.clientHeight > 0) {
+      const viewport = list.getBoundingClientRect(), tab = active.getBoundingClientRect();
+      const top = viewport.top + list.clientTop, bottom = top + list.clientHeight;
+      if (tab.top < top) list.scrollTop += tab.top - top;
+      else if (tab.bottom > bottom) list.scrollTop += tab.bottom - bottom;
+    }
   };
   items.forEach((item, i) => {
     const button = document.createElement("button");

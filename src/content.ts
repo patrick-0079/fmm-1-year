@@ -31,8 +31,16 @@ export const anniversary = {
   bilibili: "https://space.bilibili.com/3546844953054084",
 };
 
-// id 也是落星的存档键。改署名或寄语时保留 id；新增成员选一处空草地。
-export const producers = [
+export interface CreditStar {
+  id: string;
+  name: string;
+  message: string;
+  x: number;
+  y: number;
+  shape?: "cross";
+}
+// id 也是落星的存档键。改署名、寄语或外形时保留 id；新增成员选一处空草地。
+export const producers: CreditStar[] = [
   {
     id: "star-xiaoye", name: "小叶子", x: 485, y: 335,
     message: `这是一颗星星，是众多芙妮宝里的没那么亮的一颗。原本这颗星星就很黯淡无光，漫无目的地漂泊在宇宙里，就差一点点就要被黑洞吸走了。
@@ -49,7 +57,7 @@ export const producers = [
   { id: "star-kerry", name: "Kerry", message: "", x: 172, y: 308 },
   { id: "star-suyan", name: "苏颜", message: "", x: 415, y: 160 },
   { id: "star-qing", name: "卿取之于蓝", message: "", x: 724, y: 142 },
-  { id: "star-zhenghao", name: "正号", message: "", x: 754, y: 378 },
+  { id: "star-zhenghao", name: "正号", message: "", shape: "cross", x: 754, y: 378 },
   { id: "star-qianyu", name: "千羽", message: "", x: 578, y: 502 },
   { id: "star-rabe", name: "Rabe", message: "", x: 605, y: 390 },
 ];
@@ -96,6 +104,12 @@ export const collections: Record<string, Collection> = {
         title: "Kerry 的周年来信",
         author: "Kerry",
         text: "芙芙一周年快乐！从初见到现在，转眼也是5个月过去了。印象最深一句话是，“放心你明天会成功的，我的祝福可是很灵的哦”。第二天迟迟没有进展的实验居然真的有了突破，这可没法把你写进实验操作指南里。他人的鼓励确实能安抚焦虑，给人勇气，感谢有你陪伴。（小小芙多来点谢谢）",
+      },
+      {
+        id: "suyan-anniversary-letter",
+        title: "苏颜的周年来信",
+        author: "苏颜",
+        text: "芙芙周年快乐喔（要很多很多的那个）",
       },
       {
         id: "rabe-anniversary-letter",

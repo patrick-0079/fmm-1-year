@@ -24,7 +24,7 @@ test("the nine stars retain the approved names, order and two authored messages"
 test("public letters keep their approved order, paragraph boundaries and supplied wording", () => {
   assert.deepEqual(collections.letters.items.map(letter => [letter.id, letter.author]), [
     ["xiaoye-anniversary-letter", "小叶子"], ["yeshenhua-anniversary-letter", "夜神华"], ["kerry-anniversary-letter", "Kerry"],
-    ["rabe-anniversary-letter", "Rabe"],
+    ["suyan-anniversary-letter", "苏颜"], ["rabe-anniversary-letter", "Rabe"],
   ]);
   const leaf = collections.letters.items[0].text!;
   assert.equal(leaf.split(/\r?\n\s*\r?\n/).length, 6);
@@ -45,6 +45,15 @@ test("Rabe's supplied wording is a public letter, not a star message", () => {
   assert.equal(letter.text!.replace(/\s/g, ""), supplied.replace(/\s/g, ""));
   assert.equal(letter.text!.split(/\r?\n\s*\r?\n/).length, 4);
   assert.equal(producers.find(person => person.id === "star-rabe")!.message, "");
+});
+
+test("Suyan's new letter keeps the supplied wording, while only Zhenghao owns the silent cross star", () => {
+  const letter = collections.letters.items.find(item => item.id === "suyan-anniversary-letter")!;
+  assert.equal(letter.author, "苏颜");
+  assert.equal(letter.text, "芙芙周年快乐喔（要很多很多的那个）");
+  assert.deepEqual(producers.filter(person => person.shape === "cross").map(person => person.id), ["star-zhenghao"]);
+  assert.equal(producers.find(person => person.id === "star-zhenghao")!.message, "");
+  assert.equal(producers.find(person => person.id === "star-suyan")!.message, "");
 });
 
 test("Kerry's existing letter stays byte-for-byte unchanged and the fictional post letter is attributed", () => {

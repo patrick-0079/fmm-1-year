@@ -2,7 +2,7 @@
 
 ## 花海落星
 
-以下七份星星寄语尚待提供。收到后填写 `src/content.ts` 的 `producers[].message`，保留对应星星 ID。
+以下七颗星尚未提供寄语，按要求继续留空，不显示占位文字。后续如提供，填写 `src/content.ts` 的 `producers[].message`，保留对应星星 ID。
 
 | 制作人 | 寄语 | 对应的星 |
 | --- | --- | --- |
@@ -10,7 +10,7 @@
 | Kerry | 待提供 | `star-kerry` |
 | 苏颜 | 待提供 | `star-suyan` |
 | 卿取之于蓝 | 待提供 | `star-qing` |
-| 正号 | 待提供 | `star-zhenghao` |
+| 正号 | 十字星的触碰文字暂留空，待提供 | `star-zhenghao` |
 | 千羽 | 待提供 | `star-qianyu` |
 | Rabe | 待提供 | `star-rabe` |
 
@@ -18,10 +18,9 @@
 
 ## 晚安信箱
 
-以下五封来信尚待提供。收到后加入 `src/content.ts` 的 `collections.letters.items`。
+以下四封来信尚待提供，暂不生成空信封。收到后加入 `src/content.ts` 的 `collections.letters.items`。
 
 - [ ] 派大星的来信：标题、展示署名与完整正文。
-- [ ] 苏颜的来信：标题、展示署名与完整正文。
 - [ ] 卿取之于蓝的来信：标题、展示署名与完整正文。
 - [ ] 正号的来信：标题、展示署名与完整正文。
 - [ ] 千羽的来信：标题、展示署名与完整正文。
@@ -33,7 +32,7 @@
 | 庭院小电视 | 正式影片的 CDN 直链和片名 | `src/cinema-config.ts` 的 `gardenFilm` |
 | 回忆相册（可选扩充） | 新的正式图片原件、标题及配文或署名 | `src/content.ts` 的 `collections.album.items` |
 | 床边便签（可选扩充） | 后续复活鼓励，每条一段，署名可写在文末 | `src/content.ts` 的 `encouragements` |
-| 晚安信箱（可选扩充） | 除上述五封待收来信外，可继续提供新来信正文、标题和展示署名 | `collections.letters.items` |
+| 晚安信箱（可选扩充） | 除上述四封待收来信外，可继续提供新来信正文、标题和展示署名 | `collections.letters.items` |
 
 ## 正式上线时
 

@@ -322,6 +322,8 @@ R2 CORS 完整示例在 [README](README.md#花园小电视cdn-周年放映)。`C
 
 拥抱不发奖励、不记入小镇居民计数、不新增存档字段。随时走开或收起、切图、复活、清档与打开其他面板都应结束演出；连续操作不能叠加计时或残留控制锁。减少动态效果时使用静态环抱。见 [v54 角色记录](doc/artwork/ARTWORK-v54.md) 与 [v55 动画素材、提示词及验证](doc/artwork/ARTWORK-v55.md)。
 
-公开来信来自 `src/content.ts` 的 `collections.letters.items`，当前依次是小叶子、夜神华、Kerry、Rabe；四封可直接阅读，未交稿的五封只登记在 `todo.md`。用户原文保留措辞和标点，仅按阅读需要分段。Rabe 使用 `rabe-anniversary-letter`，正文保留原稿中不同样式的引号。红笺的专属来信保存在 `src/resident-story.ts` 的 `postLetter`，完整正文与署名「红笺 · 周年小镇邮局」已经接入，`POST_LETTER_REVISION` 为 2。后续修改内容仍保留 id 并递增版本，读过旧版的玩家会收到未读提醒；尚未投递的玩家不会提前看到这封信。投递、已读版本、银铃赠礼剧情、栗栗留蛋糕与守护者邀请都保存在主存档的 `residents`。信箱各入口共用同一份已读记录。洋桔梗属于背包存档的 `bouquet` 字段，只能由青芽的收花选项领取。小镇收藏、试穿和七色花谱分别计数。
+公开来信来自 `src/content.ts` 的 `collections.letters.items`，当前有小叶子、夜神华、Kerry、苏颜、Rabe 五封可直接阅读，未交稿的四封只登记在 `todo.md`。用户原文保留措辞和标点，仅按阅读需要分段。Rabe 使用 `rabe-anniversary-letter`，正文保留原稿中不同样式的引号。苏颜使用 `suyan-anniversary-letter`，与花园 NPC 对话共用同一段正文。红笺的专属来信保存在 `src/resident-story.ts` 的 `postLetter`，完整正文与署名「红笺 · 周年小镇邮局」已经接入，`POST_LETTER_REVISION` 为 2。后续修改内容仍保留 id 并递增版本，读过旧版的玩家会收到未读提醒；尚未投递的玩家不会提前看到这封信。投递、已读版本、银铃赠礼剧情、栗栗留蛋糕与守护者邀请都保存在主存档的 `residents`。信箱各入口共用同一份已读记录。洋桔梗属于背包存档的 `bouquet` 字段，只能由青芽的收花选项领取。小镇收藏、试穿和七色花谱分别计数。
+
+苏颜是独立的周年花园来宾，站在放映草坪北侧 `(650,181)`，靠近点 `(650,205)`。`src/suyan-data.ts` 维护小脚底碰撞、头像本体点击范围和动作提示；`src/suyan.ts` 使用 `drawSuyan` 在地图和对白中绘制同一个角色，按脚底深度排序。她沿用 `Activities.dialogue` 的 72px 离开收起规则；「阅读苏颜的来信」先关对白，再通过原游戏阅读器选择同一封公开来信，不写新进度、不替换已有 NPC、不修改小镇 15 人计数。`src/assets/suyan.webp` 纳入花园资源预载和现有内容哈希缓存。替换素材时应同步校准 `src/suyan-art.ts` 的裁切与脚底锚点，保持大帽子的头顶到双脚等比高度。
 
 信箱继续共用 `MapReader` 的游戏内和页面阅读入口，由 `src/mailbox.css` 统一左列来信标签与右侧正文的布局。`.collection-list` 与 `.memory-detail` 各自滚动，正文焦点、滚动检查和滚到底提示应定位到 `.memory-detail`，不要再滚整个 `.reader-body`。手机左列显示简短署名，正文保留完整标题与作者；游戏内阅读器固定在原画幅内，不恢复相对定位样式撑大 `.scene-wrap`。长信应保留换行、清晰字体和可选择的正文，来回切换阅读方式时仍读取同一封信和同一份未读状态。

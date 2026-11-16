@@ -12,6 +12,7 @@ test("one bottle holds every discovered star while new discoveries never shuffle
   assert.deepEqual(known.map(person=>person.id),old);
   const partial=bottleEntries(producers,[producers[1].id,producers[6].id]);
   assert.deepEqual(partial.map(person=>person.name),["夜神华","正号"]);
+  assert.equal(partial[1].shape,"cross","an already collected Zhenghao star should adopt the current cross artwork");
   assert.deepEqual(partial.map(person=>person.slot),[known[1].slot,known[6].slot]);
   const all=bottleEntries(producers,producers.map(person=>person.id));
   assert.equal(all.length,9);assert.equal(all.at(-1)?.id,"star-rabe");

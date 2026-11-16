@@ -1,7 +1,7 @@
 /** The trimmed conical sprite and the click targets share this exact rectangle. */
 export const BOTTLE_REFERENCE = { width: 801, height: 1204 } as const;
 export const BOTTLE_COMPACT_WIDTH = 600;
-export interface BottlePerson { id: string; name: string; message: string }
+export interface BottlePerson { id: string; name: string; message: string; shape?: "cross" }
 export interface BottleEntry extends BottlePerson { slot: number }
 
 export function bottleEntries(people: readonly BottlePerson[], found: readonly string[]): BottleEntry[] {

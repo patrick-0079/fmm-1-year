@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>苏颜与十字星验收</title></head>
+<body>
+  <section class="fixture-tools" style="max-width:1100px;margin:12px auto;padding:12px;font:14px/1.6 system-ui;background:#fff6dc;color:#604e61">
+    <strong>苏颜与十字星验收</strong> <span id="cue-report" role="status">等待游戏载入</span>
+    <div><button id="visit-suyan" disabled>走到苏颜面前</button> <button id="leave-suyan" disabled>离开苏颜</button>
+      <button id="visit-cross-star" disabled>花海正号星星</button> <button id="visit-star-bottle" disabled>营地星光瓶</button></div>
+    <div><button data-preview-width="">桌面宽度</button> <button data-preview-width="390">390px 预览</button> <button data-preview-width="320">320px 预览</button></div>
+    <p>测试页隔离存档：只预先收集其他八星和七色花。到位后请亲自用 E／右键／点击或触屏互动。离开按钮只移动主角，保留对白供距离规则自动关闭。</p>
+    <button id="verify-cues" disabled hidden>验收真实 World 的提示与可用状态</button><ol id="cue-results" hidden></ol>
+  </section>
+  <div id="app"></div>
+  <script type="module" src="/tests/suyan-fixture.ts"></script>
+</body>
+</html>

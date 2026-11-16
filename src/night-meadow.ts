@@ -9,6 +9,7 @@ import { drawFirefly, fireflyDrift } from "./firefly-art";
 import { MeadowStarReader } from "./meadow-star-reader";
 import { StarBottleView } from "./star-bottle";
 import { showQuietStarEffect } from "./quiet-star-effect";
+import { drawCrossStar } from "./credit-star-art";
 
 type Credit = typeof producers[number];
 const flock = [
@@ -173,7 +174,8 @@ export class NightMeadow {
       layers.push({y, draw: c => {
         const pulse = (1 + Math.sin(t * 1.5 + i)) / 2;
         glow(c, x, y - 8, 22 + pulse * 3, "#ffda80");
-        drawWildSprite(c, atlas, 2, x, y - 1 - pulse, 19);
+        if (person.shape === "cross") drawCrossStar(c, x, y - 1 - pulse, 19);
+        else drawWildSprite(c, atlas, 2, x, y - 1 - pulse, 19);
         glint(c, x + 10, y - 15 - pulse * 2, 1.5, "#fff3c5");
       }});
     }

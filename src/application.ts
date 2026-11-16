@@ -14,6 +14,8 @@ import { Town, TOWN_TALKED_KEY } from "./town";
 import { GardenCinema } from "./cinema";
 import { GardenLife } from "./garden-life";
 import { Xiaoye } from "./xiaoye";
+import { Suyan } from "./suyan";
+import { SUYAN_LETTER_ID } from "./suyan-data";
 import { worldTime } from "./day";
 import { ARCADES } from "./town-data";
 import { reservedShortcut } from "./input";
@@ -265,6 +267,11 @@ export function mountGame(tasks: Task[]) {
     { story: () => progress.residents, save, notify: toast });
   const gardenLife = new GardenLife(world, activities, inventory, () => progress, save);
   const xiaoye = new Xiaoye(world, activities, () => nature.timePreview ?? worldTime(nature.elapsed).phase);
+  const suyan = new Suyan(world, activities, () => {
+    selectedLetterId = SUYAN_LETTER_ID;
+    reader.inGame = true;
+    readCollection("letters");
+  });
   const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);
   const meadow = new NightMeadow(world, () => progress.creditStars, save);
   const starQuest = new AstrolabeQuest(world, activities, inventory, () => progress.astrolabe,
@@ -489,7 +496,7 @@ export function mountGame(tasks: Task[]) {
       ]);
       return;
     }
-    if (xiaoye.interact(id) || gardenLife.interact(id) || elders.interact(id)) return;
+    if (suyan.interact(id) || xiaoye.interact(id) || gardenLife.interact(id) || elders.interact(id)) return;
     if (town.interact(id)) return;
     if (nature.interact(id)) return;
     if (EVENT_IDS.includes(id) && !progress.visited.includes(id)) {
