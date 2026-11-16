@@ -6,6 +6,7 @@ import meadowBackground from "./assets/night-meadow-v16.webp";
 import bottleUrl from "./assets/star-bottle-closeup.webp";
 import { BOTTLE_COMPACT_WIDTH,bottleEntries,bottleGeometry,bottleScrollTop,nearestBottleStar,type BottleEntry } from "./star-bottle-layout";
 import type { World } from "./world";
+import { clearQuietStarEffect, showQuietStarEffect } from "./quiet-star-effect";
 
 export class StarBottleView {
   readonly element=document.createElement("section");
@@ -92,6 +93,7 @@ export class StarBottleView {
   }
   close() {
     if(!this.opened)return;this.element.hidden=true;this.message.replaceChildren();this.world.suspend("star-bottle",false);
+    clearQuietStarEffect(this.stars);
     if(!this.world.suspended)this.world.canvas.focus({preventScroll:true});
   }
   private resize() {
@@ -137,7 +139,12 @@ export class StarBottleView {
     this.selected=person.id;this.name.textContent=person.name;this.intro.hidden=true;const hasMessage=!!person.message.trim();this.message.hidden=!hasMessage;this.message.textContent=hasMessage?person.message:"";this.message.scrollTop=0;
     this.message.setAttribute("aria-label",`${person.name}的留言，可滚动阅读`);this.detail.dataset.hasMessage=String(hasMessage);this.detail.dataset.selected="true";
     this.element.dataset.view=hasMessage&&openMessage?"reading":"bottle";this.pickedName.textContent=person.name;this.pickedName.hidden=false;this.readButton.hidden=!hasMessage;
-    for(const button of this.stars.querySelectorAll<HTMLButtonElement>("button"))button.setAttribute("aria-pressed",String(button.dataset.starId===person.id));
+    clearQuietStarEffect(this.stars);
+    for(const button of this.stars.querySelectorAll<HTMLButtonElement>("button")) {
+      const selected=button.dataset.starId===person.id;
+      button.setAttribute("aria-pressed",String(selected));
+      if(selected&&!hasMessage)showQuietStarEffect(button,person.id,"bottle");
+    }
     if(this.compact&&hasMessage&&openMessage)this.message.focus({preventScroll:true});
   }
 }

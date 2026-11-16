@@ -79,7 +79,18 @@ function closeStarReader() {
 }
 function closeStarBottle() {
   const bottle=document.querySelector<HTMLElement>(".star-bottle-page");
-  if (bottle && !bottle.hidden) q(".star-bottle-return").click();
+  if (bottle && !bottle.hidden) {
+    q(".star-bottle-return").click();
+    expect(!bottle.querySelector(".quiet-star-effect"),"收起星光瓶后残留了上一颗星的光效");
+  }
+}
+function checkQuietEffect(host: Element, expected: boolean, label: string) {
+  const effects=host.querySelectorAll<SVGElement>("svg.quiet-star-effect");
+  expect(effects.length===(expected?1:0),label+(expected?"应只有一份柔和星光":"不应残留无寄语星光"));
+  if (expected) {
+    expect(effects[0].getAttribute("aria-hidden")==="true","装饰星光不应被读屏当成正文");
+    expect(getComputedStyle(effects[0]).pointerEvents==="none","装饰星光会遮挡物件或星星的点击");
+  }
 }
 function checkBottleCollection() {
   const known=producers.filter(person=>state().creditStars.includes(person.id));
@@ -91,25 +102,53 @@ function checkBottleCollection() {
   expect(!bottle.querySelector(".star-bottle-page-number"),"星光瓶不应保留分页页码");
   expect(q(".star-bottle-count").textContent?.includes(String(known.length)),"瓶中收藏数不正确");
   if (!known.length) expect(!producers.some(person=>bottle.textContent?.includes(person.name)),"空瓶泄露了未发现的署名");
+  expect(q(".star-whisper").hidden,"打开星光瓶后草地上的署名仍然显示");
+  checkQuietEffect(q(".star-whisper"),false,"打开星光瓶后草地署名");
 }
 function selectBottleStar(person: typeof producers[number]) {
   const before=state().creditStars.join();
   const bottle=q(".star-bottle-page");
-  if (bottle.dataset.compact==="true" && bottle.dataset.view==="reading") q(".star-bottle-back").click();
+  if (bottle.dataset.compact==="true" && bottle.dataset.view==="reading") {
+    q(".star-bottle-back").click();
+    const vessel=q(".star-bottle-vessel").getBoundingClientRect();
+    expect(vessel.width>0 && vessel.height>0,"返回瓶中时瓶身尺寸尚未恢复，会让立即点击偏离星星");
+    for(const button of bottle.querySelectorAll<HTMLButtonElement>(".star-bottle-star")) {
+      const rect=button.getBoundingClientRect(),x=rect.x+rect.width/2,y=rect.y+rect.height/2;
+      expect(x>=vessel.left && x<=vessel.right && y>=vessel.top && y<=vessel.bottom,"返回瓶中后星星触点落在瓶身外");
+    }
+  }
   q(`[data-star-id="${person.id}"]`).click();
   expect(q(".star-bottle-name").textContent===person.name,"瓶内选择的星星署名不正确");
   expect(q(".star-bottle-message").textContent?.replace(/\s/g,"")===person.message.replace(/\s/g,""),"瓶内寄语未读取当前完整正文，或空文带有占位符");
   expect(state().creditStars.join()===before,"瓶内重读不应更改已收集名单");
+  const blank=!person.message.trim();
+  checkQuietEffect(bottle,blank,"瓶内选星");
+  if (blank) {
+    checkQuietEffect(q(`[data-star-id="${person.id}"]`),true,"当前选中的无寄语星");
+    expect(q(".star-bottle-message").hidden && bottle.dataset.view==="bottle","无寄语星不应打开空信纸或切到阅读画面");
+  }
+  expect(world.suspended && !bottle.hidden,"点选星星不应提前结束瓶子的输入隔离");
+}
+function checkBottleQuietEffects() {
+  const known=producers.filter(person=>state().creditStars.includes(person.id));
+  const blank=known.filter(person=>!person.message.trim()), written=known.find(person=>person.message.trim());
+  expect(blank.length && written,"先收集至少一颗无寄语星和一颗有寄语星，再检查瓶内切换");
+  const before=state().creditStars.join();
+  // Re-selecting restarts one effect; switching stars must remove the old one.
+  for (const person of [blank[0],blank[0],blank[1]??blank[0],written!,blank[0]]) selectBottleStar(person);
+  expect(state().creditStars.join()===before,"空星重选和寄语切换改变了收藏进度");
 }
 function checkStarWords(person: typeof producers[number]) {
   expect(q(".star-whisper strong").textContent===person.name,"落星署名不正确");
   const reader=q(".meadow-star-reader");
-  if (person.message) {
+  if (person.message.trim()) {
     expect(!reader.hidden && q(".meadow-star-reader-name").textContent===person.name,"有正文的落星没有打开阅读卡");
     expect(q(".meadow-star-reader-body").textContent?.replace(/\s/g,"")===person.message.replace(/\s/g,""),"落星正文没有完整显示");
     expect(world.paused && !world.suspended,"阅读应只暂停人物，不能冻结花海环境");
+    checkQuietEffect(q(".star-whisper"),false,"有寄语的落星");
   } else {
-    expect(reader.hidden && !q(".star-whisper").querySelector("span") && !world.paused,"未写寄语的落星不应出现正文、占位符或暂停人物");
+    expect(reader.hidden && !q(".star-whisper").querySelector(":scope > span") && !world.paused && !world.suspended,"未写寄语的落星不应出现正文、占位符或暂停人物");
+    checkQuietEffect(q(".star-whisper"),true,"无寄语的落星");
   }
 }
 async function collectStar(person: typeof producers[number], pointer = false) {
@@ -125,6 +164,7 @@ async function collectStar(person: typeof producers[number], pointer = false) {
   expect(!q(".star-whisper").hidden && !world.available(spot), "落星重复出现或署名未显示");
   world.onInteract(spot.id);
   expect(state().creditStars.length===count+1, "落星被重复收集");
+  checkStarWords(person);
   closeStarReader();
   expect(!world.paused,"收起星星寄语没有恢复探索");
 }
@@ -214,13 +254,30 @@ async function checkAll() {
   world.switchScene("meadow",fire.approach); world.interact();
   expect(world.restState?.kind==="sitting" && q(".rest-tools").textContent?.includes("营火"),"营火旁不能坐下");
   world.interact();
-  for (const [i, person] of producers.slice(0,-1).entries()) await collectStar(person,i===0);
+  let quietPickups=0;
+  for (const [i, person] of producers.slice(0,-1).entries()) {
+    await collectStar(person,i===0 || (!person.message.trim() && quietPickups===0));
+    if (person.message.trim()) continue;
+    quietPickups++;
+    if (quietPickups===1) {
+      world.switchScene("meadow",jar.approach); world.interact();
+      checkBottleCollection(); checkBottleQuietEffects(); closeStarBottle();
+      expect(!world.paused && !world.suspended,"收起星光瓶后无寄语星的特效阻断探索");
+    } else if (quietPickups===2) {
+      world.switchScene("garden",meadowGate.approach);
+      expect(q(".star-whisper").hidden,"无寄语星的署名没有随切图清理");
+      checkQuietEffect(q(".star-whisper"),false,"离开花海后");
+      world.switchScene("meadow",jar.approach); await insideMeadow();
+    }
+  }
   world.switchScene("meadow",jar.approach); world.interact();
-  checkBottleCollection(); selectBottleStar(producers[0]); closeStarBottle();
+  checkBottleCollection(); checkBottleQuietEffects(); selectBottleStar(producers[0]); closeStarBottle();
+  log("无寄语星仅出现一份柔和星光且不暂停探索，开瓶与切图清理；瓶内重选及空／有寄语切换不叠光、不改收藏");
   const exit=scenes.meadow.spots.find(s=>s.id==="meadow-exit")!;
   world.switchScene("meadow",exit.approach); world.interact();
   await wait(()=>world.scene==="garden");
   expect(q(".star-whisper").hidden && !q(".time-pill").textContent?.includes("静夜"),"花海特效或时钟泄漏到庭院");
+  checkQuietEffect(q(".star-whisper"),false,"返回庭院后");
   expect(Math.hypot(world.player.x-meadowGate.approach.x,world.player.y-meadowGate.approach.y)<3,"返回落脚点错误");
   world.interact(); await insideMeadow();
   log("实体花门可往返，营火可坐，鼠标寻路和 E 均能拾星，已拾署名可在瓶中重读");
@@ -699,6 +756,7 @@ if (sessionStorage.getItem(space+"reload")) {
     for(const p of producers) {
       selectBottleStar(p);
     }
+    checkBottleQuietEffects();
     closeStarBottle();
     log("刷新后继续拾齐全部落星，星光瓶独立收藏页可点选每一位制作人的星星并重读寄语");
   });
@@ -732,5 +790,6 @@ Object.assign(window, { contentQA: {
   },
   canvasImage: () => world.canvas.toDataURL(),
   checkBottleCollection,
+  checkBottleQuietEffects,
   selectBottleStar: (id: string) => selectBottleStar(producers.find(person=>person.id===id)!),
 } });

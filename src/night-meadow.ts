@@ -8,6 +8,7 @@ import { drawMoonCircle } from "./moon-circle";
 import { drawFirefly, fireflyDrift } from "./firefly-art";
 import { MeadowStarReader } from "./meadow-star-reader";
 import { StarBottleView } from "./star-bottle";
+import { showQuietStarEffect } from "./quiet-star-effect";
 
 type Credit = typeof producers[number];
 const flock = [
@@ -60,6 +61,7 @@ export class NightMeadow {
       tick(dt, t);
       if (world.scene !== "meadow") return;
       this.time += dt;
+      this.caption.style.setProperty("--quiet-star-play", dt === 0 ? "paused" : "running");
       if (this.memory && (this.memory.age += dt) >= this.memory.duration) this.clearCaption();
     };
     world.getDepthLayers = () => world.scene === "meadow" ? [...layers(), ...this.layers()] : layers();
@@ -107,6 +109,7 @@ export class NightMeadow {
     // its own readable surface instead of expiring with that short effect.
     this.whisper(at, person.name, "", burst, source);
     if (person.message.trim()) this.reader.open(person.name, person.message, source || "落星里的留言");
+    else showQuietStarEffect(this.caption, person.id, "name");
   }
   private whisper(at: Point, name: string, message: string, burst: boolean, source = "") {
     const by = document.createElement("strong");
