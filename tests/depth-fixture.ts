@@ -30,14 +30,24 @@ interface DepthCase {
   subpixelClear?:number[];
   actor?:{x:number;positions:number[]};
   existingOutline?:Point[];
+  // Original-image pixel centres, checked at 3 rendered pixels per source
+  // pixel so mobile canvas resampling cannot hide a dirty one-pixel edge.
+  edges?:{solid:Point[];clear:Point[]};
 }
 // Pixel landmarks are authored independently of the masks. Deriving them from
 // those polygons would let an accidentally filled doorway pass its own test.
 const gardenScale=900/1536;
 const gp=(x:number,y:number):Point=>({x:x*gardenScale,y:y*gardenScale});
+const pixel=(x:number,y:number)=>gp(x+.5,y+.5);
 const cases:DepthCase[]=[
-  {id:"south-rose-arch",scene:"garden",depth:976*gardenScale,solid:[gp(750,830)],clear:[gp(750,900),gp(750,984)],actor:{x:750*gardenScale,positions:[860,950,980].map(y=>y*gardenScale)}},
-  {id:"west-rose-crown",scene:"garden",depth:760*gardenScale,solid:[gp(218,676)],clear:[gp(211,725),gp(211,782)],actor:{x:210*gardenScale,positions:[714,750,790].map(y=>y*gardenScale)}},
+  {id:"south-rose-arch",scene:"garden",depth:976*gardenScale,solid:[gp(750,830)],clear:[gp(750,900),gp(750,984)],actor:{x:750*gardenScale,positions:[860,950,980].map(y=>y*gardenScale)},edges:{
+    solid:[[753,820],[751,829],[735,833],[747,849],[769,851],[764,845]].map(([x,y])=>pixel(x,y)),
+    clear:[[736,816],[738,815],[741,816],[745,816],[725,822],[735,820],[728,820],[799,871],[807,884],[805,893],[802,935],[798,866]].map(([x,y])=>pixel(x,y)),
+  }},
+  {id:"west-rose-crown",scene:"garden",depth:760*gardenScale,solid:[gp(218,676)],clear:[gp(211,725),gp(211,782)],actor:{x:210*gardenScale,positions:[714,750,790].map(y=>y*gardenScale)},edges:{
+    solid:[[204,680],[216,677],[222,667],[215,664],[201,694],[224,696]].map(([x,y])=>pixel(x,y)),
+    clear:[[204,660],[205,663],[202,665],[217,660],[215,661],[217,661],[213,693],[233,700]].map(([x,y])=>pixel(x,y)),
+  }},
   {id:"west-alcove-arch",scene:"garden",depth:606*gardenScale,solid:[gp(198,510)],clear:[gp(204,564),gp(204,614)],occludedClear:[0,1]},
   {id:"northeast-bench-arbour",scene:"garden",depth:184*gardenScale,solid:[gp(1100,114)],clear:[gp(1100,138),gp(1100,192)]},
   {id:"garden-gate-lamp",scene:"garden",depth:984*gardenScale,solid:[gp(625,874)],clear:[gp(616,854),gp(635,856),gp(625,991)],subpixelClear:[1],existingOutline:[gp(605,841),gp(644,991)]},
@@ -59,7 +69,7 @@ const wait=async(check:()=>boolean)=>{const until=performance.now()+20000;while(
 const assert=(condition:unknown,message:string)=>{if(!condition)throw Error(message);};
 const rgb=[255,0,255];
 type Sample={point:Point;rgb:number[]};
-type Evidence={id:string;scene:SceneId;depth:number;behind:Sample[];front:Sample[];mask?:Sample[];occludedClear?:number[];status:string};
+type Evidence={id:string;scene:SceneId;depth:number;behind:Sample[];front:Sample[];mask?:Sample[];edges?:{solid:Sample[];clear:Sample[]};occludedClear?:number[];status:string};
 const evidence:Evidence[]=[];
 function drawNow(){(world as unknown as {draw:()=>void}).draw();}
 function sample(point:Point):Sample {
@@ -80,6 +90,21 @@ function capture(points:Point[]) {
   c.drawImage(world.canvas,left*world.canvas.width/600,top*world.canvas.height/400,
     (right-left)*world.canvas.width/600,(bottom-top)*world.canvas.height/400,0,0,image.width,image.height);
   return image.toDataURL();
+}
+function sampleEdges(outline:Point[],landmarks:NonNullable<DepthCase["edges"]>){
+  // Draw the actual fragment renderer at an exact integer multiple of the
+  // source resolution, rather than upscaling an already downsampled screenshot.
+  const source=[...outline,...landmarks.solid,...landmarks.clear].map(p=>({x:p.x/gardenScale,y:p.y/gardenScale}));
+  const left=Math.floor(Math.min(...source.map(p=>p.x)))-2;
+  const top=Math.floor(Math.min(...source.map(p=>p.y)))-2;
+  const width=Math.ceil(Math.max(...source.map(p=>p.x)))-left+2;
+  const height=Math.ceil(Math.max(...source.map(p=>p.y)))-top+2;
+  const zoom=3,canvas=document.createElement("canvas");canvas.width=width*zoom;canvas.height=height*zoom;
+  const c=canvas.getContext("2d")!;c.imageSmoothingEnabled=false;c.fillStyle="#ff00ff";c.fillRect(0,0,canvas.width,canvas.height);
+  c.setTransform(zoom/gardenScale,0,0,zoom/gardenScale,-left*zoom,-top*zoom);
+  world.drawMapFragment(c,outline);
+  const read=(point:Point):Sample=>({point,rgb:[...c.getImageData(Math.floor((point.x/gardenScale-left)*zoom),Math.floor((point.y/gardenScale-top)*zoom),1,1).data].slice(0,3)});
+  return {image:canvas.toDataURL(),solid:landmarks.solid.map(read),clear:landmarks.clear.map(read)};
 }
 async function verify(test:DepthCase){
   const foreground=test.scene==="town"?townForeground:gardenForeground;
@@ -113,15 +138,31 @@ async function verify(test:DepthCase){
       world.getDepthLayers=()=>[{y:target!.y,draw:c=>world.drawMapFragment(c,target!.points)},probe(test.depth-1)];
       drawNow();record.mask=points.map(sample);
     }
+    if(test.edges){
+      const edge=sampleEdges(target!.points,test.edges);record.edges={solid:edge.solid,clear:edge.clear};
+      const figure=document.createElement("figure"),img=document.createElement("img"),caption=document.createElement("figcaption");
+      img.src=edge.image;img.alt="原图像素3倍边缘采样";caption.textContent="单片边缘 ×3：地砖/草地空隙透明，花瓣/叶尖保留";
+      figure.append(img,caption);images.append(figure);
+    }
     world.getDepthLayers=saved.layers;world.actorHidden=false;
     const positions=test.actor?.positions??[test.solid[0].y+24,test.depth-18,test.depth+15];
     for(const [index,label]of ["人物经过上方背后","人物位于门洞／支柱中段","人物站在门前／柱前"].entries()){world.player={x:test.actor?.x??center.x,y:positions[index]};drawNow();photo(label);}
+    if(test.edges){
+      world.player={x:test.actor?.x??center.x,y:positions[0]};
+      world.setFocus({x:world.player.x,y:test.solid[0].y+12},2.8);
+      drawNow();photo("固定脚点近看：人物在花冠后方，检查花叶间是否混入地砖/草地");
+    }
     assert(record.behind.slice(0,test.solid.length).every(p=>!pink(p)),"柱后人物压在实体拱顶上");
     assert(record.behind.slice(test.solid.length).every((p,i)=>test.occludedClear?.includes(i)?!pink(p):pink(p,test.subpixelClear?.includes(i)?40:3)),"完整场景门洞/地面遮挡不符合实景");
     assert(record.front.every((p,i)=>i>=test.solid.length&&test.occludedClear?.includes(i-test.solid.length)?!pink(p):pink(p)),"柱前人物遮挡不符合实景");
     if(record.mask){
       assert(record.mask.slice(0,test.solid.length).every(p=>!pink(p)),"单片拱顶遮罩未覆盖实体");
       assert(record.mask.slice(test.solid.length).every(p=>pink(p)),"门洞/地面被单片前景贴图擦除");
+    }
+    if(record.edges){
+      const missing=record.edges.solid.filter(p=>pink(p)),dirty=record.edges.clear.filter(p=>!pink(p));
+      assert(!missing.length,"边缘花瓣/叶尖被错误删掉："+JSON.stringify(missing));
+      assert(!dirty.length,"边缘带入地砖/草地："+JSON.stringify(dirty));
     }
     record.status="通过";
   }catch(error){record.status=String(error);throw error;}

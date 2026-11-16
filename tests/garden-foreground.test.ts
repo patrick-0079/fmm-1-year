@@ -50,3 +50,19 @@ test("garden lamp silhouettes do not cover adjacent paths", () => {
   }
   assert.equal(new Set(gardenForeground.map(layer=>layer.id)).size,gardenForeground.length);
 });
+
+test("garden flower edges preserve petals but exclude paving triangles and grass between leaves", () => {
+  // Landmarks come from the original illustration, independently of the
+  // production vertices. Sample source pixel centres, not polygon corners.
+  const cases=[
+    {id:"south-rose-arch",
+      solid:[[753,820],[751,829],[735,833],[747,849],[769,851],[764,845]],
+      clear:[[736,816],[738,815],[741,816],[745,816],[725,822],[735,820],[728,820],[799,871],[807,884],[805,893],[802,935],[798,866]]},
+    {id:"west-rose-crown",solid:[[204,680],[216,677],[222,667],[215,664],[201,694],[224,696]],clear:[[204,660],[205,663],[202,665],[217,660],[215,661],[217,661],[213,693],[233,700]]},
+  ];
+  for(const {id,solid,clear}of cases){
+    const layer=gardenForeground.find(layer=>layer.id===id)!;
+    for(const [x,y]of solid)assert.ok(polygonContains(point(x+.5,y+.5),layer.points),`${id} lost petal/leaf ${x},${y}`);
+    for(const [x,y]of clear)assert.ok(!polygonContains(point(x+.5,y+.5),layer.points),`${id} retained paving/grass ${x},${y}`);
+  }
+});
