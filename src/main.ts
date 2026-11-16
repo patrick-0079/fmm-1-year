@@ -23,6 +23,8 @@ import townCover from "./assets/anniversary-town-v13.webp";
 import ruinsCover from "./assets/echo-ruins.webp";
 import meadowCover from "./assets/night-meadow-v16.webp";
 import residentsUrl from "./assets/town-npcs.webp";
+import yeshenhuaUrl from "./assets/yeshenhua.webp";
+import { drawYeshenhuaGuide } from "./yeshenhua-art";
 import { anniversary, collections } from "./content";
 import { EVENT_IDS } from "./core";
 import { icon } from "./icons";
@@ -142,7 +144,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
             <details class="page-games"><summary><span>${icon("star")} 遗迹游园券 <small>3 个小游戏</small></span><span class="details-action">展开</span></summary><div class="page-game-tickets">${gameTickets("ruins")}</div></details>
           </article>
         </div>
-        <details class="town-guide page-residents"><summary><span>认识小镇居民 <strong id="town-npc-count">0 / 15</strong><small>镇民为游戏角色</small></span><span class="details-action">展开导览</span></summary><div>${TOWN_NPCS.map((npc) => `<button data-town-npc="${npc.id}"><span class="resident-portrait"><canvas data-page-npc="${npc.sprite}" width="80" height="88" aria-hidden="true"></canvas></span><span><strong>${npc.name}</strong><small>${npc.role}</small></span><span class="resident-arrow" aria-hidden="true">↗</span></button>`).join("")}</div></details>
+        <details class="town-guide page-residents"><summary><span>认识小镇居民 <strong id="town-npc-count">0 / 15</strong><small>镇民为游戏角色</small></span><span class="details-action">展开导览</span></summary><div>${TOWN_NPCS.map((npc) => `<button data-town-npc="${npc.id}"><span class="resident-portrait"><canvas data-page-npc="${npc.sprite}" data-page-resident="${npc.id}" width="80" height="88" aria-hidden="true"></canvas></span><span><strong>${npc.name}</strong><small>${npc.role}</small></span><span class="resident-arrow" aria-hidden="true">↗</span></button>`).join("")}</div></details>
       </section>
       <section class="credits page-meadow-note" aria-labelledby="credits-title"><img src="${meadowCover}" alt="" loading="lazy"/><div class="credits-heading"><span class="eyebrow">还有一些喜欢，藏在星星里</span><h2 id="credits-title">草地上的署名</h2><p>集齐七色花，去夜里的花海走走。<br>拾起一颗落星，就能遇见一位制作人。</p><span class="meadow-note-sign" aria-hidden="true">✧ 愿每一份晚安，都被温柔珍藏</span></div></section>
     </main>
@@ -156,9 +158,15 @@ let guideArtRequested = false;
 const paintGuideArt = () => {
   if (guideArtRequested) return;
   guideArtRequested = true;
-  const residents = new Image(), rewards = new Image();
-  residents.onload = () => {
+  const residents = new Image(), yeshenhua = new Image(), rewards = new Image();
+  const paintResidents = () => {
     for (const canvas of document.querySelectorAll<HTMLCanvasElement>("canvas[data-page-npc]")) {
+      const npc=TOWN_NPCS.find(n=>n.id===canvas.dataset.pageResident);
+      if (npc?.appearance === "yeshenhua") {
+        drawYeshenhuaGuide(canvas.getContext("2d")!,yeshenhua);
+        continue;
+      }
+      if (!residents.complete || !residents.naturalWidth) continue;
       const frame = TOWN_FRAMES[Number(canvas.dataset.pageNpc)], c = canvas.getContext("2d")!;
       const cropHeight = Math.min(frame.h, frame.w * 1.1);
       const scale = Math.min(72 / frame.w, 80 / cropHeight);
@@ -166,6 +174,8 @@ const paintGuideArt = () => {
       c.drawImage(residents, frame.x, frame.y, frame.w, cropHeight, (80-frame.w*scale)/2, 4, frame.w*scale, cropHeight*scale);
     }
   };
+  residents.onload = paintResidents;
+  yeshenhua.onload = paintResidents;
   const paintRewards = () => {
     for (const canvas of document.querySelectorAll<HTMLCanvasElement>("canvas[data-page-reward]")) {
       const c = canvas.getContext("2d")!;
@@ -175,7 +185,7 @@ const paintGuideArt = () => {
   };
   rewards.onload = paintRewards;
   whenWardrobeReady(paintRewards);
-  residents.src = residentsUrl; rewards.src = rewardsUrl;
+  residents.src = residentsUrl; yeshenhua.src = yeshenhuaUrl; rewards.src = rewardsUrl;
 };
 document.querySelectorAll<HTMLDetailsElement>(".page-games, .page-residents").forEach(details => {
   details.addEventListener("toggle", () => {

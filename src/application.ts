@@ -13,6 +13,8 @@ import { Arcade } from "./arcade";
 import { Town, TOWN_TALKED_KEY } from "./town";
 import { GardenCinema } from "./cinema";
 import { GardenLife } from "./garden-life";
+import { Xiaoye } from "./xiaoye";
+import { worldTime } from "./day";
 import { ARCADES } from "./town-data";
 import { reservedShortcut } from "./input";
 import type { GameId } from "./arcade-engines";
@@ -262,6 +264,7 @@ export function mountGame(tasks: Task[]) {
   const town = new Town(world, activities, inventory, id => visit(ARCADES[id].scene, "arcade-"+id),
     { story: () => progress.residents, save, notify: toast });
   const gardenLife = new GardenLife(world, activities, inventory, () => progress, save);
+  const xiaoye = new Xiaoye(world, activities, () => nature.timePreview ?? worldTime(nature.elapsed).phase);
   const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);
   const meadow = new NightMeadow(world, () => progress.creditStars, save);
   const starQuest = new AstrolabeQuest(world, activities, inventory, () => progress.astrolabe,
@@ -486,7 +489,7 @@ export function mountGame(tasks: Task[]) {
       ]);
       return;
     }
-    if (gardenLife.interact(id) || elders.interact(id)) return;
+    if (xiaoye.interact(id) || gardenLife.interact(id) || elders.interact(id)) return;
     if (town.interact(id)) return;
     if (nature.interact(id)) return;
     if (EVENT_IDS.includes(id) && !progress.visited.includes(id)) {
@@ -754,6 +757,7 @@ export function mountGame(tasks: Task[]) {
     progress = { ...readProgress(null), sound, bgm, bassSound, volume };
     selectedLetterId = undefined;
     elders.reset();
+    xiaoye.reset();
     cinema.reset();
     activities.reset();
     nature.reset();

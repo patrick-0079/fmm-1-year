@@ -9,6 +9,7 @@ import { meadowScene } from "./meadow-map.ts";
 import { ruinsScene } from "./ruins-map.ts";
 import { bassStand, foxNook } from "./room-props.ts";
 import { elderPlaces } from "./elders-data.ts";
+import { xiaoyeSpot, xiaoyeFootprint } from "./xiaoye-data.ts";
 import type { InteractionCue } from "./interaction-cues.ts";
 export type SceneId = "room" | "garden" | "challenge" | "town" | "meadow" | "ruins";
 export interface Hotspot {
@@ -436,6 +437,8 @@ export const scenes: Record<SceneId, Scene> = {
 
 scenes.garden.walls.push(...townGates.filter((g) => g.scene === "garden").flatMap(gatePosts));
 scenes.garden.spots.push(meadowGate);
+scenes.garden.spots.push(xiaoyeSpot);
+scenes.garden.walls.push(xiaoyeFootprint);
 for (const scene of ["challenge", "ruins"] as const) {
   const elder = elderPlaces[scene];
   scenes[scene].spots.push(elder);

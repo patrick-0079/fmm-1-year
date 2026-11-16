@@ -99,6 +99,7 @@ export interface TownNpc {
   x: number;
   y: number;
   sprite: number;
+  appearance?: "yeshenhua";
   game?: GameId;
 }
 export const TOWN_NPCS: TownNpc[] = [
@@ -136,11 +137,12 @@ export const TOWN_NPCS: TownNpc[] = [
   },
   {
     id: "radio-host",
-    name: "夜弦",
+    name: "夜神华",
     role: "晚安电台主持",
     x: 1305,
     y: 842,
     sprite: 4,
+    appearance: "yeshenhua",
   },
   {
     id: "books",

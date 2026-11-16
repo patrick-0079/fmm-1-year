@@ -6,6 +6,8 @@ import { drawCakeSlice } from "./cake-party";
 import bouquetUrl from "./assets/qingya-bouquet.webp";
 import cakeUrl from "./assets/cake-slice-v11.webp";
 import gesturesUrl from "./assets/town-gestures.webp";
+import { sceneArt } from "./scene-art";
+import { drawYeshenhua, yeshenhuaPose } from "./yeshenhua-art";
 
 export interface TownAct {
   npcId: string;
@@ -188,7 +190,7 @@ function drawWhiteboardInk(c: Brush, page: string, t: number, still: boolean, h:
 }
 function actorProps(c: Brush, n: TownNpc, page: string, t: number, still: boolean) {
   const f = TOWN_FRAMES[n.sprite],
-    h = (f.h * 43) / 337,
+    h = n.appearance === "yeshenhua" ? 43 : (f.h * 43) / 337,
     y = -h * 0.28;
   switch (n.id) {
     case "post": {
@@ -385,6 +387,10 @@ function bakerPose(page: string) {
   return 0;
 }
 export function drawResidentPortrait(c: Brush, npc: TownNpc, sprites: HTMLImageElement, page: string) {
+  if (npc.appearance === "yeshenhua") {
+    drawYeshenhua(c,sceneArt.yeshenhua,24,52,47,yeshenhuaPose(page));
+    return;
+  }
   const special =
     npc.id === "baker"
       ? bakerPose(page)
@@ -457,7 +463,7 @@ export function townResidentLayers(
     t = performance?.elapsed ?? 0;
   const still = motion.matches,
     f = TOWN_FRAMES[npc.sprite];
-  const height = (f.h * 43) / 337,
+  const height = npc.appearance === "yeshenhua" ? 43 : (f.h * 43) / 337,
     width = (f.w * 43) / 337;
   const { foot, cell, reverse } = placement;
   let lean = placement.lean;
@@ -476,12 +482,14 @@ export function townResidentLayers(
     {
       y: foot.y + 0.05,
       draw(c) {
-        if (!sprites.naturalWidth) return;
+        if (npc.appearance === "yeshenhua" ? !sceneArt.yeshenhua.naturalWidth : !sprites.naturalWidth) return;
         c.save();
         disk(c, "#3f51432e", foot.x, foot.y, 9, 3);
         c.translate(foot.x, foot.y + bob);
         c.rotate(lean);
-        if (cell === undefined || !gestureCell(c, cell, height, reverse)) {
+        if (npc.appearance === "yeshenhua") {
+          drawYeshenhua(c,sceneArt.yeshenhua,0,0,height,yeshenhuaPose(page));
+        } else if (cell === undefined || !gestureCell(c, cell, height, reverse)) {
           if (lowered > 0) {
             const head = Math.round(f.h * 0.56),
               ratio = head / f.h;
