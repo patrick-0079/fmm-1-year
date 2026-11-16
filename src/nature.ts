@@ -18,6 +18,7 @@ import { drawRoomWindow } from "./window-sky";
 import { drawKeepsake } from "./scene-art";
 import { drawWildSprite } from "./wild-art";
 import { drawFirefly, fireflyDrift } from "./firefly-art";
+import { gardenForeground } from "./garden-foreground";
 interface NatureSave {
   picked: Record<string, number>;
   apple: number;
@@ -457,6 +458,7 @@ export class Nature {
       bench = this.world.config.spots.find((s) => s.id === "rest");
     return [
       ...(scene === "garden" ? [
+        ...gardenForeground.map(part => ({y:part.y, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,part.points)})),
         { y: 479, draw: (c: CanvasRenderingContext2D) => this.world.drawMapFragment(c, gardenSign) },
         { y: 984 * 600 / 1024, draw: (c: CanvasRenderingContext2D) => {
           for (const outline of gardenGateLamp) this.world.drawMapFragment(c, outline);

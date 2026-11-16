@@ -6,6 +6,7 @@ import { residentOpening, townDialogues, type TownPage } from "./town-dialogue";
 import type { ResidentStory } from "./resident-story";
 import { townResidentLayers, residentPlacement, drawResidentPortrait, type TownAct } from "./town-acting";
 import { TownResidentMap } from "./town-resident-map";
+import { townForeground } from "./town-foreground";
 import { townScene } from "./town-map";
 import { drawArcadeStall } from "./arcade-stall";
 import type { GameId } from "./arcade-engines";
@@ -179,6 +180,10 @@ export class Town {
   private layers(): DepthLayer[] {
     if (this.world.scene !== "town") return [];
     return [
+      ...townForeground.map(part => ({
+        y: part.y,
+        draw: (c: CanvasRenderingContext2D) => this.world.drawMapFragment(c, part.points),
+      })),
       ...townCanopies.map((t) => ({
         y: t.y,
         draw: (c: CanvasRenderingContext2D) => {
