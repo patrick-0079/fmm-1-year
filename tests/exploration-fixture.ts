@@ -767,7 +767,8 @@ if (sessionStorage.getItem(space+"reload")) {
 Object.assign(window, { contentQA: {
   ready: () => !!world && !q<HTMLButtonElement>(".enter-button").disabled,
   catalogue: () => producers.map(person => ({...person})),
-  snapshot: () => ({scene:world.scene, player:{...world.player}, equipment:{...world.equipment}, paused:world.paused,
+  snapshot: () => ({scene:world.scene, player:{...world.player}, facing:world.facing,
+    presentation:world.getActorPresentation(), equipment:{...world.equipment}, paused:world.paused,
     suspended:world.suspended, activeCue:world.activeCueId, rest:world.restState && {...world.restState}, progress:state(),
     canvas:world.canvas.getBoundingClientRect().toJSON(), scrollY,
     focused:document.activeElement===world.canvas ? "canvas" : (document.activeElement as HTMLElement)?.className}),

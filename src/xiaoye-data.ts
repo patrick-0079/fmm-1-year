@@ -1,6 +1,7 @@
 import type { Obstacle, Point } from "./core.ts";
 import type { Phase } from "./day.ts";
 import type { Hotspot } from "./maps.ts";
+import { EMBRACE_SECONDS } from "./xiaoye-embrace.ts";
 
 /** Grass northwest of the central plaza's west entrance. Keep the y=340
  * cross-plaza passage entirely open, including the player's foot radius. */
@@ -23,7 +24,7 @@ export const xiaoyeFootprint: Obstacle = {
   label: "来宾 · 小叶子",
   x: xiaoyeSpot.x - 9, y: xiaoyeSpot.y - 4, w: 18, h: 8,
 };
-export const XIAOYE_HUG_SECONDS = 2.2;
+export const XIAOYE_HUG_SECONDS = EMBRACE_SECONDS;
 export const xiaoyeHugText = "（软乎乎的大猫猫轻轻抱住了你。）";
 
 export const xiaoyeLanternOn = (phase: Phase) => phase === "dusk" || phase === "night";

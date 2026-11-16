@@ -64,6 +64,12 @@ export interface DepthLayer {
   draw: (context: CanvasRenderingContext2D) => void;
 }
 
+/** Temporary visual pose only; feet, movement and equipped layers stay intact. */
+export interface ActorPresentation {
+  facing?: Facing;
+  lean?: number;
+}
+
 export class World {
   canvas: HTMLCanvasElement;
   private inputRegion: HTMLElement;
@@ -157,6 +163,7 @@ export class World {
   onEffects: (context: CanvasRenderingContext2D) => void = () => {};
   onOverlay: (context: CanvasRenderingContext2D) => void = () => {};
   getDepthLayers: () => DepthLayer[] = () => [];
+  getActorPresentation: () => ActorPresentation | null = () => null;
   available: (spot: Hotspot) => boolean = () => true;
   canEnter: (scene: SceneId) => boolean = scene => scene !== "meadow";
   equipment: Equipped = emptyInventory().equipped;
@@ -771,12 +778,20 @@ export class World {
       if (this.actorHidden) return;
       const x = Math.round(this.player.x),
         y = Math.round(this.player.y);
+      // Read after update(), so starting to walk releases a presentation in the
+      // same frame, even though activity timers run before movement in onTick.
+      const presentation = !this.restState && !this.busy && !this.paused &&
+        !this.suspended && !this.stumble && !this.walking
+        ? this.getActorPresentation() : null;
+      const lean = presentation?.lean;
       c.fillStyle = "#53496045";
       c.beginPath();
       c.ellipse(x, y, 11, 3.5, 0, 0, Math.PI * 2);
       c.fill();
       c.save();
       c.translate(x, y);
+      if (typeof lean === "number" && Number.isFinite(lean))
+        c.rotate(Math.max(-0.12, Math.min(0.12, lean)));
       if (this.stumble) {
         const phase = Math.min(1, (this.time - this.stumble.started) / 0.45);
         c.globalAlpha = 1 - phase * 0.7;
@@ -787,7 +802,7 @@ export class World {
       drawAvatar(
         c,
         this.restState?.kind ?? "standing",
-        this.facing,
+        presentation?.facing ?? this.facing,
         this.walking ? 1 + (Math.floor(this.time * 7) % 2) : 0,
         this.equipment,
         this.avatarImages,
