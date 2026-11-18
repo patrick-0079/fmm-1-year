@@ -29,6 +29,19 @@ import { anniversary, collections } from "./content";
 import { EVENT_IDS } from "./core";
 import { icon } from "./icons";
 import { prepareTextureCache } from "./texture-cache";
+import roomUrl from "./assets/room-interactive.webp";
+import spriteUrl from "./assets/nemu-sprites.webp";
+
+// This module first runs when the invitation opens. Keep the waiting page
+// independent of the two large images needed for the first playable frame.
+for (const href of [roomUrl, spriteUrl]) {
+  const preload = document.createElement("link");
+  preload.rel = "preload";
+  preload.as = "image";
+  preload.href = href;
+  preload.fetchPriority = "high";
+  document.head.append(preload);
+}
 
 const tasks = [
   {

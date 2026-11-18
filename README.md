@@ -239,6 +239,24 @@ npm run preview
 
 ## 向 main 推送后自动构建发布
 
+### 周年开门时间与两种构建
+
+晚安小屋在 **北京时间 2026 年 12 月 1 日 22:00** 开放。全部时区使用同一时刻。以前打开的倒计时标签页也能等到开门，玩家可以继续使用原有存档。
+
+| 发布阶段 | 生产构建变量 | 同一网址的行为 |
+| --- | --- | --- |
+| 11 月 30 日之前 | `FULL_BUILD=false`、`VITE_WARDROBE_DEBUG=false` | 只发布独立的淡粉色周年邀请函，包中没有游戏和视频地址。 |
+| 11 月 30 日提前发布 | 改为 `FULL_BUILD=true`，保留 `VITE_WARDROBE_DEBUG=false`，重新构建并部署 | 到点前继续倒计时。此时全量静态资源已公开，首页到点才加载游戏。 |
+| 12 月 1 日 22:00 | 使用前一天已部署的全量版本 | 浏览器按设备时钟自动进入游戏首页。 |
+
+在 Cloudflare **Settings → Build** 中填写**构建变量**。修改后需要重新构建。省略 `FULL_BUILD` 或留空会构建全量版，其他非空值仅接受小写 `true` 和 `false`。查看站点的 `/release.json` 可核对上线的是 `lite` 还是 `full`。
+
+如果玩家打开的是旧精简页，归零后会看到「小屋正在准备开放」。页面每 30 秒检查一次，恢复联网或切回标签页也会检查。等到同源的 `release.json` 与首页都指向同一个全量版本，页面就会自动刷新。CDN 短暂返回旧首页时会继续等待并重试。首页与版本标记允许重新验证，带哈希的插画和脚本可长期缓存。以前已经公开过的资源和玩家已下载的副本不会随部署撤回。
+
+本机调试可在 `VITE_WARDROBE_DEBUG=true` 的页面右下角打开「调试 → 开放时间」，输入北京时间、选择「10 秒后开放」或「恢复正式时间」。调试只影响当前标签页，刷新保留；生产关闭调试后使用正式时间。全量调试版到点可进入小屋，在游戏调试面板把时间设到未来即可回到邀请函。精简调试版只能预览等待页面。
+
+在 PowerShell 中可用 `$env:FULL_BUILD='false'` 后执行 `npm run build`、`npm run preview` 验证精简产物。将变量改为 `true` 即可测试完整切换。运行 `node --experimental-strip-types --test tests/launch-build.integration.ts` 可验证在同一输出目录连续构建时的资源隔离。
+
 使用 Cloudflare 自带的 Git 构建，不需要额外写 GitHub Actions，也不需要把令牌放入仓库：
 
 1. 在 Cloudflare 的 **Workers & Pages** 里打开 `fmm-1-year`。
@@ -284,6 +302,7 @@ git push origin main
 | 高级设置 → API 令牌          | 保留“创建新令牌 / 将自动创建新令牌”，由 Cloudflare 自动管理部署凭据；不需要在网页代码里填写令牌。 |
 | 构建变量名称                 | `NODE_VERSION`                                                                                    |
 | 构建变量值                   | `24`                                                                                              |
+| 周年发布构建变量             | `FULL_BUILD=false` 发布倒计时包；11 月 30 日改为 `true` 并重新部署。 |
 | 调试面板构建变量             | `VITE_WARDROBE_DEBUG` 当前默认 `true`，正式上线设为 `false` 并重新构建。 |
 | 其他变量、Secrets 与存储绑定 | 留空。 |
 
@@ -301,6 +320,7 @@ git push origin main
 | 输出目录  | `dist`                     |
 | 根目录    | 留空（仓库根目录）         |
 | Node 版本 | 环境变量 `NODE_VERSION=24` |
+| 周年发布变量 | 与上表相同，提前发布的精简包设置 `FULL_BUILD=false`、`VITE_WARDROBE_DEBUG=false`。 |
 
 如显示预览构建则开启；公开纪念站的 Access 保护关闭。Pages 的预览 Access 开关仅保护预览部署，默认不会保护正式 `pages.dev` 或自定义域名。
 

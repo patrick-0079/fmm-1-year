@@ -6,6 +6,7 @@ import { rainbowFlowers } from "./rainbow-flowers";
 import { ARCADES } from "./town-data";
 import { phaseNames, type Phase } from "./day";
 import { reservedShortcut } from "./input";
+import { getDeadline, setDebugDeadline } from "./launch/time";
 
 const maps = {
   room: "晚安小屋",
@@ -22,7 +23,7 @@ type Travel = (
   id?: string,
   mode?: "open" | "near" | "trap",
 ) => Promise<boolean>;
-/** All preview switches are ephemeral. The HUD is omitted from release builds with debug disabled. */
+/** The launch preview persists for this tab. Game preview switches are ephemeral. */
 export function mountDebugPanel(
   world: World,
   bag: Inventory,
@@ -43,6 +44,7 @@ export function mountDebugPanel(
     <aside id="game-debug-panel" class="debug-panel" aria-label="游戏调试面板" hidden>
       <header><div><small>FUFU / PLAYTEST</small><h3>游戏调试台</h3></div><button type="button" class="debug-close" aria-label="关闭调试面板">关闭 ×</button></header>
       <p class="debug-note">试穿、花门和时段只在本次页面生效；亲手收集与通关仍会正常保存。</p>
+      <div class="debug-launch-time"></div>
       <section><h4>查看与试穿</h4><div>${button("wardrobe", "全饰品试穿")}${button("collision", "碰撞轮廓")}</div></section>
       <section><h4>时段预览</h4><div>${button("time:auto", "自然时间")}${(Object.entries(phaseNames) as [Phase, string][]).map(([id, name]) => button("time:" + id, name)).join("")}</div></section>
       <details open><summary>地图定位</summary><div>${Object.entries(maps)
@@ -74,6 +76,17 @@ export function mountDebugPanel(
   document.querySelector("#app")!.append(holder);
   const panel = holder.querySelector<HTMLElement>(".debug-panel")!,
     trigger = holder.querySelector<HTMLButtonElement>(".debug-trigger")!;
+  void import("./launch/debug").then(({ mountCountdownDebug }) => {
+    mountCountdownDebug(panel.querySelector<HTMLElement>(".debug-launch-time")!, {
+      mode: "game",
+      getDeadline: () => getDeadline(true),
+      changeDeadline: value => {
+        setDebugDeadline(value);
+        // The game's pagehide handler saves the current location before reload.
+        if (getDeadline(true) > Date.now()) window.location.reload();
+      },
+    });
+  }).catch(() => toast("开放时间调试控件未能加载，请刷新后重试。"));
   holder.querySelector(".debug-flowers")!.append(book);
   book.hidden = false;
   const eraseCheck = holder.querySelector<HTMLElement>(".debug-erase-check")!;
