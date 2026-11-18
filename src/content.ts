@@ -1,3 +1,5 @@
+export { anniversary } from "./launch/anniversary.ts";
+
 const morning = new URL("./assets/album-v36/morning.webp", import.meta.url).href;
 const morningThumb = new URL("./assets/album-v36/morning-thumb.webp", import.meta.url).href;
 const reading = new URL("./assets/album-v36/reading.webp", import.meta.url).href;
@@ -23,13 +25,6 @@ export interface Collection {
   kind: MediaKind;
   items: Memory[];
 }
-
-export const anniversary = {
-  name: "芙眠眠",
-  start: "2025.12.01",
-  end: "2026.12.01",
-  bilibili: "https://space.bilibili.com/3546844953054084",
-};
 
 export interface CreditStar {
   id: string;

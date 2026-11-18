@@ -1,3 +1,4 @@
+import { anniversary } from "./anniversary";
 import cottage from "./launch-cottage.webp";
 import fufu from "./launch-fufu.webp";
 import foxLetter from "./launch-fox-letter.webp";
@@ -52,7 +53,7 @@ export function createCountdownView(root: HTMLElement) {
         <img class="launch-landscape" src="${cottage}" width="1280" height="533"
           alt="月光下，晚安小屋亮起了暖灯。">
         <img class="launch-hostess" src="${fufu}" width="540" height="675"
-          alt="戴着白色荷叶边发箍的 Q 版芙芙在小屋前挥手，怀里抱着一封草莓印章邀请函。" fetchpriority="high">
+          alt="戴着白色荷叶边发箍的 Q 版芙芙在小屋前双手捧着一封草莓印章邀请函。" fetchpriority="high">
         <i class="launch-glimmer" aria-hidden="true"></i>
         <div class="launch-fireflies" aria-hidden="true"><i></i><i></i><i></i></div>
         <span class="launch-bow" aria-hidden="true"><i></i><b></b></span>
@@ -64,6 +65,8 @@ export function createCountdownView(root: HTMLElement) {
         </div>
         <p class="launch-waiting" role="status" hidden>小屋正在准备开放</p>
         <p class="launch-date"><span>北京时间</span><time></time></p>
+        <a class="launch-visit" href="${anniversary.bilibili}" target="_blank" rel="noopener noreferrer"
+          aria-label="去见芙芙（在新标签页打开哔哩哔哩）">去见芙芙 <span aria-hidden="true">↗</span></a>
       </div>
       <footer class="launch-keepsakes" aria-label="邀请人">
         <img class="launch-keepsake launch-fox-letter" src="${foxLetter}" alt="">
