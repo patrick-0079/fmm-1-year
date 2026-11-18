@@ -59,6 +59,7 @@ export interface Checkpoint {
 export interface Progress {
   visited: string[];
   completed: string[];
+  muted: boolean;
   sound: boolean;
   bassSound: boolean;
   bgm: boolean;
@@ -96,6 +97,7 @@ export function readProgress(raw: string | null): Progress {
   const clean: Progress = {
     visited: [],
     completed: [],
+    muted: false,
     sound: true,
     bassSound: true,
     bgm: true,
@@ -131,6 +133,7 @@ export function readProgress(raw: string | null): Progress {
     return {
       visited: valid(p.visited, EVENT_IDS),
       completed: valid(p.completed, GAME_IDS),
+      muted: p.muted === true,
       sound: p.sound === true,
       bassSound: p.bassSound !== false,
       bedNoteUnlocked: p.bedNoteUnlocked === true,

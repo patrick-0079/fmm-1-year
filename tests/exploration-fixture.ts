@@ -656,11 +656,34 @@ q("#check-sound").addEventListener("click",()=>void run(async()=>{
   meterContext ??= new AudioContext();
   await meterContext.resume();
   if(!q(".intro-screen").classList.contains("dismissed")) await start();
-  const saved=state();
-  if(saved.bgm) q(".music-toggle").click();
-  if(saved.sound) q(".sound-toggle").click();
+  const speaker=q<HTMLButtonElement>(".sound-toggle");
+  if(state().muted) speaker.click();
+  if(state().bgm) q(".music-toggle").click();
+  if(!state().sound) {
+    q(".help-button").click();
+    q(".effects-toggle").click();
+    q(".help-close").click();
+  }
+  const beforeMute=state();
+  speaker.click();
   world.switchScene("room",bassStand.spot.approach); world.interact();
-  if(!state().bassSound || state().volume===0) q(".bass-voice").click();
+  const voice=q<HTMLButtonElement>(".bass-voice");
+  const tip=q(".bass-muted-tip");
+  const tracks=[...document.querySelectorAll<HTMLAudioElement>(".bass-hud audio")];
+  const muted=state();
+  expect(muted.muted && !muted.bgm && muted.sound && muted.bassSound===beforeMute.bassSound &&
+    muted.volume===beforeMute.volume,"总静音改变了独立声音设置");
+  expect(tracks.some(t=>t.hasAttribute("data-bass-demo")) && tracks.some(t=>t.hasAttribute("data-bass-note")) &&
+    tracks.every(t=>t.muted),"总静音漏掉了实际琴弦或示范音轨");
+  expect(!tip.hidden && tip.textContent?.includes("右上角") && voice.disabled,"静音进琴谱时缺少恢复声音的提示");
+  for(const note of bassScore) q<HTMLButtonElement>(`[data-string="${note.string}"]`).click();
+  expect(state().bassSongPlayed && q(".bass-hud").dataset.mode==="complete" && tracks.every(t=>t.paused),"静音练习不能完成周年曲或仍在播放声音");
+  q(".bass-again").click();
+  speaker.click();
+  const restored=state();
+  expect(!restored.muted && restored.bgm===beforeMute.bgm && restored.sound===beforeMute.sound &&
+    restored.bassSound===beforeMute.bassSound && restored.volume===beforeMute.volume,"恢复喇叭后没有保留原混音");
+  if(!restored.bassSound || restored.volume===0) voice.click();
   const lower=q<HTMLButtonElement>(".volume-down");
   for(let step=0;step<11 && !lower.disabled;step++) lower.click();
   expect(!q(".bass-muted-tip").hidden && q(".bass-muted-tip").textContent?.includes("总音量为零"),"琴谱没有解释总音量为零");
@@ -687,10 +710,14 @@ q("#check-sound").addEventListener("click",()=>void run(async()=>{
   const demo=q<HTMLAudioElement>("[data-bass-demo]");
   await measure(demo,()=>q(".bass-listen").click(),"完整周年示范");
   await wait(()=>demo.currentTime>1.6 && q(".bass-phrase .current strong").textContent!=="窗");
+  speaker.click();
+  expect(state().muted && demo.muted && tracks.every(t=>t.muted) && !tip.hidden && voice.disabled,"播放示范时总静音未立即生效");
+  speaker.click();
+  expect(!state().muted && !demo.muted && tip.hidden && !voice.disabled,"解除总静音后琴谱没有恢复");
   q(".bass-voice").click(); expect(demo.muted && !q(".bass-muted-tip").hidden,"示范没有响应琴声静音");
   q(".bass-voice").click(); expect(!demo.muted,"示范没有恢复声音");
   q(".bass-leave").click(); expect(demo.paused,"离开琴谱后仍然播放");
-  log("背景音乐和游戏音效关闭时仍可弹琴，示范随音轨走谱；静音、恢复和离开均正常");
+  log("静音进琴谱可完成周年曲，播放示范时可随时静音与恢复，音符按钮和琴声偏好均保留");
 }));
 q("#check-market").addEventListener("click",()=>void run(async()=>{
   if(!q(".intro-screen").classList.contains("dismissed")) await start();
@@ -709,6 +736,7 @@ q("#check-market").addEventListener("click",()=>void run(async()=>{
   expect(state().rainbowFlowers.includes("prism-calendula"),"橙色金盏菊没有正常采集");
   const wreath=scenes.garden.spots.find(s=>s.id==="wreath")!;
   world.switchScene("garden",wreath.approach);world.interact();q(".activity-close").click();
+  if(!state().muted) q(".sound-toggle").click();
   const prefs=state(), bag=localStorage.getItem("fufu-souvenirs-v1");
   expect(bag?.includes("wreath") && !!landing(),"清档验收缺少真实收藏或位置存档");
   const debug=(cmd:string)=>q<HTMLButtonElement>('[data-debug="'+cmd+'"]');
@@ -718,7 +746,7 @@ q("#check-market").addEventListener("click",()=>void run(async()=>{
   debug("erase").click();debug("confirm-erase").click();
   expect(!landing() && !state().rainbowFlowers.length && !localStorage.getItem("fufu-souvenirs-v1"),"清档仍有收藏或旧位置");
   expect(world.scene==="room" && world.paused && !q(".intro-screen").classList.contains("dismissed"),"清档没有回到开始页");
-  const empty=state(); expect(empty.volume===prefs.volume && empty.bgm===prefs.bgm && empty.sound===prefs.sound && empty.bassSound===prefs.bassSound,"清档丢失声音设置");
+  const empty=state(); expect(empty.muted===prefs.muted && empty.volume===prefs.volume && empty.bgm===prefs.bgm && empty.sound===prefs.sound && empty.bassSound===prefs.bassSound,"清档丢失声音设置");
   log("取消保留金盏菊和背包；确认清空后开始页、收集、位置及音量设置均正确");
 }));
 q("#recheck").addEventListener("click",()=>{sessionStorage.setItem(space+"reload","1");location.reload();});

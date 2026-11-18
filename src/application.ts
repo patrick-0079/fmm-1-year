@@ -144,8 +144,8 @@ export function mountGame(tasks: Task[]) {
     }
   };
   function audio() {
-    setSound(progress.sound);
-    setMusic(started && progress.bgm);
+    setSound(!progress.muted && progress.sound);
+    setMusic(started && !progress.muted && progress.bgm);
     setVolume(progress.volume);
     bass.refreshSound();
   }
@@ -178,19 +178,20 @@ export function mountGame(tasks: Task[]) {
           ? "快乐正在一点点装满。继续去冒险吧。"
           : "第一份快乐，会藏在哪里呢？";
     const sound = document.querySelector<HTMLButtonElement>(".sound-toggle")!;
-    sound.innerHTML = icon(progress.sound ? "sound" : "mute");
-    sound.setAttribute(
-      "aria-label",
-      progress.sound ? "关闭游戏音效" : "开启游戏音效",
-    );
-    sound.setAttribute("aria-pressed", String(progress.sound));
+    sound.innerHTML = icon(progress.muted ? "mute" : "sound");
+    sound.title = progress.muted ? "恢复游戏声音" : "静音游戏声音";
+    sound.setAttribute("aria-pressed", String(!progress.muted));
+    const effects = document.querySelector<HTMLButtonElement>(".effects-toggle")!;
+    effects.textContent = progress.sound ? "互动音效：开" : "互动音效：关";
+    effects.setAttribute("aria-pressed", String(progress.sound));
     const music = document.querySelector<HTMLButtonElement>(".music-toggle")!;
     music.setAttribute(
       "aria-label",
       progress.bgm ? "关闭背景音乐" : "开启背景音乐",
     );
     music.setAttribute("aria-pressed", String(progress.bgm));
-    music.classList.toggle("muted", !progress.bgm);
+    music.title = progress.muted ? "背景音乐偏好（游戏已静音）" : "背景音乐";
+    music.classList.toggle("muted", progress.muted || !progress.bgm);
     document.querySelector(".volume-value")!.textContent =
       `${Math.round(progress.volume * 100)}%`;
     document.querySelector<HTMLButtonElement>(".volume-down")!.disabled =
@@ -280,7 +281,7 @@ export function mountGame(tasks: Task[]) {
   const elders = new Elders(world, activities, () => progress, save, () => starQuest.openNotebook());
   const bass = new RoomBass(world, () => progress.bassSongPlayed, () => {
     if (!progress.bassSongPlayed) { progress.bassSongPlayed = true; save(); }
-  }, () => ({ enabled:progress.bassSound, volume:progress.volume }), () => {
+  }, () => ({ enabled: progress.bassSound, volume: progress.volume, muted: progress.muted }), () => {
     if(progress.volume===0) { progress.volume=.45; progress.bassSound=true; }
     else progress.bassSound=!progress.bassSound;
     update(); save();
@@ -551,11 +552,13 @@ export function mountGame(tasks: Task[]) {
       bedNote.open();
     }
     audio();
-    try {
-      unlockAudio();
-      chime(true);
-    } catch {
-      toast("声音暂未能开启，仍可继续小冒险。");
+    if (!progress.muted) {
+      try {
+        unlockAudio();
+        chime(true);
+      } catch {
+        toast("声音暂未能开启，仍可继续小冒险。");
+      }
     }
     world.canvas.focus({ preventScroll: true });
   }
@@ -595,13 +598,15 @@ export function mountGame(tasks: Task[]) {
       enter.addEventListener("click", () => location.reload(), { once: true });
     });
   for (const [selector, key] of [
-    [".sound-toggle", "sound"],
+    [".sound-toggle", "muted"],
+    [".effects-toggle", "sound"],
     [".music-toggle", "bgm"],
   ] as const)
     document.querySelector(selector)!.addEventListener("click", () => {
       progress[key] = !progress[key];
       update();
       save();
+      if (progress.muted) return;
       try {
         unlockAudio();
         chime();
@@ -760,8 +765,8 @@ export function mountGame(tasks: Task[]) {
     }
     journey = null;
     try { localStorage.removeItem(JOURNEY_KEY); } catch { /* optional storage */ }
-    const { sound, bgm, bassSound, volume } = progress;
-    progress = { ...readProgress(null), sound, bgm, bassSound, volume };
+    const { muted, sound, bgm, bassSound, volume } = progress;
+    progress = { ...readProgress(null), muted, sound, bgm, bassSound, volume };
     selectedLetterId = undefined;
     elders.reset();
     xiaoye.reset();

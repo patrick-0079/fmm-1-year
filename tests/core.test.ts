@@ -9,6 +9,7 @@ test("corrupt or unexpected saved data cannot break a new visit", () => {
     assert.deepEqual(readProgress(value), {
       visited: [],
       completed: [],
+      muted: false,
       sound: true,
       bassSound: true,
       bgm: true,
@@ -37,6 +38,7 @@ test("corrupt or unexpected saved data cannot break a new visit", () => {
     {
       visited: ["cake", "danmaku"],
       completed: ["cake"],
+      muted: false,
       sound: false,
       bassSound: true,
       bgm: false,
@@ -54,6 +56,18 @@ test("corrupt or unexpected saved data cannot break a new visit", () => {
       arcadeBests: {},
     },
   );
+});
+
+test("master mute is remembered separately from legacy music, effects and bass choices", () => {
+  const oldMix = { sound: false, bgm: true, bassSound: false, volume: 0.35 };
+  const legacy = readProgress(JSON.stringify(oldMix));
+  assert.equal(legacy.muted, false);
+  assert.equal(readProgress(JSON.stringify({ ...oldMix, muted: "true" })).muted, false);
+  const muted = { ...legacy, muted: true };
+  assert.deepEqual(readProgress(JSON.stringify(muted)), muted);
+  for (const key of ["sound", "bgm", "bassSound", "volume"] as const) {
+    assert.equal(muted[key], oldMix[key]);
+  }
 });
 
 test("retired bedroom media visits are discarded without losing garden cinema or ruins radio progress", () => {

@@ -103,7 +103,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
       </section>
       <div class="adventure-layout">
         <section class="game-window" aria-label="芙芙的像素小世界">
-          <div class="window-bar"><div class="window-dots"><i></i><i></i><i></i></div><span>fufu’s little world / 周年特别篇</span><div class="window-tools"><button class="music-toggle icon-button" aria-label="关闭背景音乐" title="背景音乐">♫</button><button class="icon-button sound-toggle" aria-label="开启游戏音效" title="游戏音效">${icon("mute")}</button><button class="icon-button help-button" aria-label="查看操作说明" title="操作说明">?</button></div></div>
+          <div class="window-bar"><div class="window-dots"><i></i><i></i><i></i></div><span>fufu’s little world / 周年特别篇</span><div class="window-tools"><button class="music-toggle icon-button" aria-label="关闭背景音乐" title="背景音乐">♫</button><button class="icon-button sound-toggle" aria-label="游戏声音" title="静音游戏声音" aria-pressed="true">${icon("sound")}</button><button class="icon-button help-button" aria-label="查看操作说明" title="操作说明">?</button></div></div>
           <div class="game-stage-frame"><div class="game-stage"><div class="scene-wrap">
             <canvas id="world" tabindex="0" aria-label="像素探索场景。使用 WASD 或方向键移动，E、空格或鼠标右键互动；左键点击地面行走、物件或提示签互动。Tab 切换选项，Enter 确认。">浏览器需要支持 Canvas 才能游玩。</canvas>
             <div class="scene-top"><span class="location-pill">${icon("moon")} <span id="location-name">ROOM 01 · 晚安小屋</span></span><span class="time-pill" role="timer" aria-live="off">☀ 08:00 · 白昼</span></div>

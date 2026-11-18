@@ -33,6 +33,9 @@
 .bass-hud[hidden] {
   display: none;
 }
+.bass-hud:has(.bass-muted-tip:not([hidden])) {
+  grid-template-areas: "notice notice" "heading strings" "score strings" "feedback strings" "guide actions";
+}
 .bass-hud:focus {
   outline: none;
 }
@@ -42,7 +45,7 @@
 .bass-feedback { grid-area: feedback; }
 .bass-guide { grid-area: guide; }
 .bass-actions { grid-area: actions; }
-.bass-muted-tip { grid-column: 1 / -1; }
+.bass-muted-tip { grid-area: notice; }
 .bass-head,
 .bass-score-heading,
 .bass-bars,
@@ -293,11 +296,21 @@
   gap: 5px;
 }
 .bass-muted-tip {
-  border-left: 3px solid #bc7884;
-  padding-left: 7px;
-  margin: 4px 0 8px;
+  justify-self: start;
+  margin: 0 0 3px;
+  padding: 3px 9px;
+  border: 1px solid #d9a8ac;
+  border-radius: 6px;
+  background: #fff1ee;
   color: #793f54;
   font-size: 13px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bass-muted-tip:not([hidden]) { animation: bass-notice-in .18s ease-out; }
+  @keyframes bass-notice-in {
+    from { opacity: 0; transform: translateY(3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 }
 .bass-actions button {
   background: #fffaf0;
@@ -309,9 +322,10 @@
   font-size: 12px;
   font-weight: 650;
 }
-.bass-actions button:hover {
+.bass-actions button:not(:disabled):hover {
   background: #f6e2cf;
 }
+.bass-actions button:disabled { color: #775e67; background: #f0e4d9; }
 .bass-actions .bass-listen {
   background: #e1eddf;
   border-color: #a2b8a2;
@@ -336,6 +350,9 @@
     grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
     grid-template-areas: "heading score" "feedback score" "strings strings" "actions actions";
     gap: 3px 8px;
+  }
+  .bass-hud:has(.bass-muted-tip:not([hidden])) {
+    grid-template-areas: "notice notice" "heading score" "feedback score" "strings strings" "actions actions";
   }
   .bass-head, .bass-feedback, .bass-fretboard, .bass-muted-tip { margin: 0; }
   .bass-head h3 { font-size: clamp(15px, 4cqw, 20px); }

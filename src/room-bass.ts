@@ -30,7 +30,7 @@ export class RoomBass {
     private world: World,
     private hasPlayed: () => boolean,
     private dedicate: () => void,
-    private mix: () => BassMix,
+    private mix: () => BassMix & { muted: boolean },
     private toggleVoice: () => void,
   ) {
     this.panel.className = "bass-hud";
@@ -38,6 +38,7 @@ export class RoomBass {
     this.panel.setAttribute("aria-label", "窗边的贝斯演奏");
     this.panel.tabIndex = -1;
     this.panel.innerHTML = `
+      <p class="bass-muted-tip" role="status" aria-atomic="true" hidden></p>
       <header class="bass-head"><div><p class="bass-kicker">FUFU ♡　/　BASS SESSION 01</p><h3>${bassSongTitle}</h3></div><span class="bass-seal" aria-label="直播一周年">1<span>周年</span></span></header>
       <div class="bass-paper"><div class="bass-score-heading"><b>周年手写谱</b><span class="bass-count"></span></div>
         <ol class="bass-phrase" aria-label="当前乐句">${Array.from({ length: 4 }, () => "<li><strong></strong><span></span></li>").join("")}</ol>
@@ -47,7 +48,6 @@ export class RoomBass {
       </div>
       <p class="bass-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
       <p class="bass-guide">点琴弦，或按 <b>1–4</b> 跟弹。慢慢来，不用抢拍。</p>
-      <p class="bass-muted-tip" role="status" hidden></p>
       <div class="bass-actions"><button type="button" class="bass-listen">▷ 听示范</button><button type="button" class="bass-voice"></button><button type="button" class="bass-again">从头弹</button><button type="button" class="bass-leave">收起琴谱 <kbd>Esc</kbd></button></div>`;
     this.voice = new BassAudio(
       this.panel,
@@ -220,24 +220,30 @@ export class RoomBass {
     this.render();
   }
   refreshSound() {
-    const mix = this.mix();
-    this.voice.setMix(mix);
+    const { enabled, volume, muted } = this.mix();
+    this.voice.setMix({ enabled: enabled && !muted, volume });
+    if (this.panel.hidden) return;
     const button = this.panel.querySelector<HTMLButtonElement>(".bass-voice")!;
-    const audible = mix.enabled && mix.volume > 0;
     const hint = this.panel.querySelector<HTMLElement>(".bass-muted-tip")!;
-    hint.hidden = audible;
-    hint.textContent = audible ? "" : mix.volume === 0
-      ? "总音量为零，点「恢复总音量」就能听见琴声。"
-      : "琴声已关闭。点「开启琴声」后，可以再拨一次。";
-    button.textContent =
-      mix.volume === 0 ? "恢复总音量" : audible ? "琴声已开" : "开启琴声";
-    button.setAttribute("aria-pressed", String(audible));
-    button.title =
-      mix.volume === 0
-        ? "将总音量恢复到 45%，并开启琴声"
-        : audible
-          ? "关闭琴声"
-          : "开启琴声";
+    let notice = "", label = enabled ? "琴声已开" : "开启琴声";
+    let title = enabled ? "关闭琴声" : "开启琴声";
+    if (muted) {
+      notice = "游戏已静音，点右上角的小喇叭恢复声音。";
+      label = "游戏已静音";
+      title = notice;
+    } else if (volume === 0) {
+      notice = "总音量为零，点「恢复总音量」就能听见琴声。";
+      label = "恢复总音量";
+      title = "将总音量恢复到 45%，并开启琴声";
+    } else if (!enabled) {
+      notice = "琴声已关闭，点「开启琴声」就能听见演奏。";
+    }
+    hint.hidden = !notice;
+    if (hint.textContent !== notice) hint.textContent = notice;
+    button.disabled = muted;
+    button.textContent = label;
+    button.title = title;
+    button.setAttribute("aria-pressed", String(!notice));
   }
   private render() {
     const l = this.lesson;
