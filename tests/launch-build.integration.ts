@@ -43,13 +43,18 @@ test("switching full → invitation → full cleans the deployed directory", asy
   assert.equal(lite.marker.mode, "lite");
   assert.ok(lite.marker.version && lite.marker.version !== explicit.marker.version);
   for (const file of lite.files) {
-    assert.match(file, /^(?:assets|index\.html|release\.json|favicon\.svg|_headers|assets\/(?:[\w.-]+\.(?:js|css)|launch-(?:cottage|fufu|fox-letter|player)-[\w-]+\.webp))$/);
+    assert.match(file, /^(?:assets|index\.html|release\.json|favicon\.svg|_headers|assets\/(?:[\w.-]+\.(?:js|css)|launch-(?:cottage|fufu|fox-letter|player)-[\w-]+\.webp|fufu-cursor-(?:arrow|play)-[\w-]+\.(?:svg|png)))$/);
     if (/\.(?:js|css|html)$/.test(file)) {
       const body = await readFile(join(outDir, file), "utf8");
       assert.doesNotMatch(body, /room-interactive|nemu-sprites|texture-cache\.js|rabe-anniversary-letter|\.mp4\b/);
     }
   }
   assert.ok(lite.files.includes("favicon.svg") && lite.files.includes("_headers"));
+  for (const kind of ["arrow", "play"]) {
+    for (const format of ["svg", "png"]) {
+      assert.ok(lite.files.some(name => name.startsWith(`assets/fufu-cursor-${kind}-`) && name.endsWith(`.${format}`)));
+    }
+  }
   const implicit = await run();
   assert.deepEqual(implicit, explicit);
   await assert.rejects(run("flase"), /FULL_BUILD/);

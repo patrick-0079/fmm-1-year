@@ -3,6 +3,7 @@ import fufu from "./launch-fufu.webp";
 import foxLetter from "./launch-fox-letter.webp";
 import player from "./launch-player.webp";
 import "./invitation.css";
+import "./cursors.css";
 
 interface CountdownParts {
   days: number;
@@ -37,6 +38,11 @@ export function createCountdownView(root: HTMLElement) {
   page.className = "launch-invitation";
   page.setAttribute("aria-labelledby", "launch-title");
   page.innerHTML = `
+    <div class="launch-desk" aria-hidden="true">
+      <div class="launch-charms"><i class="launch-chain"><b></b></i><i class="launch-chain launch-chain-moon"><b></b></i></div>
+      <div class="launch-charms launch-charms-right"><i class="launch-chain"><b></b></i><i class="launch-chain launch-chain-moon"><b></b></i></div>
+      <div class="launch-mail-route"><i></i></div><div class="launch-mail-route launch-mail-route-right"><i></i></div>
+    </div>
     <article class="launch-card">
       <header class="launch-letterhead">
         <span class="launch-envelope" aria-hidden="true"></span>
@@ -46,8 +52,9 @@ export function createCountdownView(root: HTMLElement) {
         <img class="launch-landscape" src="${cottage}" width="1280" height="533"
           alt="月光下，晚安小屋亮起了暖灯。">
         <img class="launch-hostess" src="${fufu}" width="540" height="675"
-          alt="粉发的芙眠眠戴着爱心发夹和粉色耳机，抱着一封草莓印章邀请函。" fetchpriority="high">
+          alt="戴着白色荷叶边发箍的 Q 版芙芙在小屋前挥手，怀里抱着一封草莓印章邀请函。" fetchpriority="high">
         <i class="launch-glimmer" aria-hidden="true"></i>
+        <div class="launch-fireflies" aria-hidden="true"><i></i><i></i><i></i></div>
         <span class="launch-bow" aria-hidden="true"><i></i><b></b></span>
       </div></div>
       <div class="launch-message">

@@ -1,0 +1,27 @@
+/* Let the browser draw the original 32px game pointers at their native hot spot. */
+@media (any-hover: hover) and (any-pointer: fine) and (forced-colors: none) {
+  :root {
+    --fufu-arrow:
+      url("../assets/fufu-cursor-arrow.svg?no-inline") 2 2,
+      url("../assets/fufu-cursor-arrow.png?no-inline") 2 2, auto;
+    --fufu-play:
+      url("../assets/fufu-cursor-play.svg?no-inline") 2 2,
+      url("../assets/fufu-cursor-play.png?no-inline") 2 2, pointer;
+    cursor: var(--fufu-arrow);
+  }
+  #app {
+    cursor: var(--fufu-arrow);
+  }
+  #app :is(a[href], button:not(:disabled), summary, [role="button"]) {
+    cursor: var(--fufu-play);
+  }
+  #app :is(button:disabled, [aria-disabled="true"]) {
+    cursor: default;
+  }
+  .launch-debug-form input[type="datetime-local"] {
+    cursor: text;
+  }
+  .launch-debug-form input::-webkit-calendar-picker-indicator {
+    cursor: var(--fufu-play);
+  }
+}

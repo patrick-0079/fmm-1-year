@@ -40,7 +40,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 地图与物理通道 | `src/gate-layout.ts` 共用南门、北桥 / 石阶的路牌、碰撞和单向过线判定；`src/maps.ts` 的庭院边界沿两条实际石径。路线参考图及重建方式见 [v18 素材说明](doc/artwork/ARTWORK-v18.md) |
 | 月芽传送阵与白色贝斯 | `src/moon-circle.ts` 在草地层绘制阵纹，中心进入判定在 `src/meadow-map.ts`。琴的位置、琴架占地在 `src/room-props.ts`；琴声音轨与音符分别由 `src/bass-audio.ts`、`src/room-bass.ts` 处理 |
 | 窗边周年曲《把晚安弹给你》 | `src/bass-score.ts` 维护弦号、品位、节拍和每个音对应的歌词；示范与玩家练习各有自己的进度。`src/room-bass.ts` 和 `src/bass-stage.css` 控制场内乐谱。运行 `npm run audio:bass` 可重建九个音高的本地 WAV 和整曲示范。示范跟随音轨播放位置走谱，`bassSound` 保存独立的琴声开关。仅弹完整首后在原存档记下 `bassSongPlayed` |
-| 芙芙主题鼠标指针 | `scripts/build-cursors.mjs` 是两款指针的矢量母稿。`npm run art:cursors` 更新 `src/assets/fufu-cursor-*` 的 SVG 和 PNG。两种指针均为 32×32，尖端热点都是 (2, 2)。`src/fufu-cursors.css` 定义鼠标适用范围；地图悬停和点击共用 `World.spotAt` |
+| 芙芙主题鼠标指针 | `scripts/build-cursors.mjs` 是两款指针的矢量母稿。`npm run art:cursors` 更新 `src/assets/fufu-cursor-*` 的 SVG 和 PNG。两种指针均为 32×32，尖端热点都是 (2, 2)。倒计时与游戏共用 `src/launch/cursors.css`，地图交互与阅读区域另见 `src/fufu-cursors.css`。地图悬停和点击共用 `World.spotAt`。 |
 | 小镇道路与障碍 | `src/town-surfaces.ts` 定义街面，`src/post-streets.ts` 描出邮局上下两条岔路与石阶，`src/town-terraces.ts` 描出店前露台、码头与护栏。`src/town-scenery.ts` 维护树冠遮挡和庆典装饰 |
 | 溪水和树木 | `src/landscape.ts`、`src/landscape-renderer.ts`；溪水绘制与碰撞共享形状 |
 | 昼夜和采集 | `src/day.ts`、`src/nature.ts`；现实 600 秒一天，现实离线时间也计入时钟 |

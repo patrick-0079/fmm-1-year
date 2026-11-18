@@ -19,18 +19,16 @@ html.launch-present body {
   justify-items: center;
   min-height: 100vh;
   min-height: 100svh;
-  padding: clamp(28px, 4vh, 48px) max(20px, env(safe-area-inset-right)) clamp(34px, 5vh, 56px) max(20px, env(safe-area-inset-left));
+  padding: clamp(25px, 4vh, 48px) max(28px, env(safe-area-inset-right)) clamp(25px, 4vh, 48px) max(28px, env(safe-area-inset-left));
   color: var(--ink);
   font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   line-height: 1.5;
-  background-color: #f7dbe2;
+  background-color: #f9e3e7;
   background-image:
     radial-gradient(ellipse at 16% 14%, #fff1ecb3, transparent 55%),
-    radial-gradient(ellipse at 90% 92%, #ddacc391, transparent 60%),
-    radial-gradient(#cb879a36 1px, transparent 1.5px),
-    repeating-linear-gradient(0deg, transparent 0 23px, #fff4f133 23px 25px),
-    repeating-linear-gradient(90deg, transparent 0 23px, #fff4f133 23px 25px);
-  background-size: auto, auto, 8px 8px, auto, auto;
+    radial-gradient(ellipse at 90% 92%, #dcb6cc70, transparent 60%),
+    repeating-linear-gradient(0deg, transparent 0 16px, #db9bac24 16px 32px),
+    repeating-linear-gradient(90deg, transparent 0 16px, #db9bac24 16px 32px);
 }
 
 .launch-invitation *,
@@ -38,9 +36,120 @@ html.launch-present body {
 .launch-invitation *::after { box-sizing: border-box; }
 .launch-invitation [hidden] { display: none !important; }
 
+.launch-desk {
+  --lace: #fff5ef;
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.launch-desk::before, .launch-desk::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  height: 23px;
+  background:
+    repeating-linear-gradient(90deg, #d69caf 0 4px, transparent 4px 9px) center 6px / auto 1px repeat-x,
+    linear-gradient(var(--lace) 0 12px, transparent 12px),
+    radial-gradient(circle at 50% 7px, var(--lace) 8px, #e8bac4 8.5px 9px, transparent 9.5px) left top / 18px 21px repeat-x;
+}
+.launch-desk::after { bottom: 0; transform: rotate(180deg); }
+.launch-charms {
+  position: absolute;
+  inset-block-start: 10px;
+  inset-inline-start: clamp(21px, 3.4vw, 78px);
+  display: flex;
+  gap: clamp(20px, 3vw, 64px);
+}
+.launch-charms-right { inset-inline: auto clamp(21px, 3.4vw, 78px); flex-direction: row-reverse; }
+.launch-chain {
+  --drop: clamp(80px, 14vh, 160px);
+  --charm: clamp(19px, 2vw, 32px);
+  position: relative;
+  display: block;
+  width: 1px;
+  height: var(--drop);
+  border-left: 1px solid #c5918e;
+  transform-origin: center top;
+  animation: launch-sway 8s ease-in-out infinite alternate;
+}
+.launch-chain::before, .launch-chain::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  bottom: 20%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #fff3db;
+  box-shadow: 0 0 0 1px #c59c8b;
+}
+.launch-chain::after { bottom: -2px; }
+.launch-chain b {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: calc(var(--charm) / -2);
+  width: var(--charm);
+  aspect-ratio: 1;
+  background: linear-gradient(130deg, #ffdeac 25%, #eab974 67%, #c99670);
+  clip-path: polygon(50% 0, 65% 33%, 100% 40%, 75% 65%, 80% 100%, 50% 83%, 18% 99%, 24% 63%, 0 38%, 36% 32%);
+}
+.launch-chain-moon { --drop: clamp(42px, 7vh, 85px); animation-delay: -5s; }
+.launch-chain-moon b {
+  clip-path: none;
+  border-radius: 50%;
+  mask: radial-gradient(circle at 70% 28%, transparent 44%, #000 46%);
+}
+.launch-charms-right .launch-chain { animation-delay: -3s; }
+.launch-charms-right .launch-chain-moon { animation-delay: -6s; }
+@keyframes launch-sway { from { transform: rotate(-2deg); } to { transform: rotate(2deg); } }
+.launch-mail-route {
+  position: absolute;
+  left: -3%;
+  bottom: clamp(21px, 7vh, 95px);
+  width: clamp(96px, 14vw, 250px);
+  height: clamp(38px, 7vw, 100px);
+  color: #c98fa4;
+  border: 2px dashed currentColor;
+  border-inline-end-color: transparent;
+  border-block-start-color: transparent;
+  border-radius: 50%;
+  transform: rotate(-23deg);
+}
+.launch-mail-route-right { left: auto; right: -3%; transform: scaleX(-1) rotate(-23deg); }
+.launch-mail-route i {
+  position: absolute;
+  right: 2%;
+  top: 42%;
+  width: clamp(33px, 4.3vw, 68px);
+  aspect-ratio: 1.48;
+  overflow: hidden;
+  border: 1px solid #bd899b;
+  border-radius: 4px;
+  box-shadow: 0 2px 0 #cba5b6;
+  background: linear-gradient(32deg, transparent 48%, #e7c5bf 49% 51%, transparent 52%) left / 51% 100% no-repeat,
+    linear-gradient(-32deg, transparent 48%, #e7c5bf 49% 51%, transparent 52%) right / 51% 100% no-repeat, #fff3dc;
+}
+.launch-mail-route i::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #e9c1b6;
+  clip-path: polygon(0 0, 100% 0, 50% 64%);
+}
+.launch-mail-route i::after {
+  content: "";
+  position: absolute;
+  top: 45%; left: 42%;
+  width: 17%; aspect-ratio: 1;
+  border-radius: 50%;
+  background: #d78a9d;
+  box-shadow: inset 1px 1px 0 #efb8c3;
+}
 .launch-card {
   position: relative;
-  width: min(100%, 790px);
+  width: min(100%, clamp(840px, 77vw, 1100px));
   margin: 0;
   padding: 0 clamp(12px, 2.1vw, 24px);
   border: 1px solid #cf9daa;
@@ -130,33 +239,52 @@ html.launch-present body {
 .launch-landscape {
   display: block;
   width: 100%;
-  height: auto;
+  height: clamp(270px, min(33.5vw, 44svh), 440px);
+  object-fit: cover;
+  object-position: center 15%;
 }
 .launch-hostess {
   position: absolute;
-  bottom: -1%;
+  bottom: 4%;
   left: 4%;
   display: block;
   width: 40%;
-  height: 98%;
+  height: 92%;
   object-fit: contain;
   object-position: center bottom;
-  filter: drop-shadow(-2px 0 0 #ffedd7) drop-shadow(2px 0 0 #ffedd7) drop-shadow(3px 4px 5px #2d1b4a72);
+  pointer-events: none;
+  filter: drop-shadow(1px 3px 2px #38234e66);
 }
 .launch-glimmer {
   position: absolute;
   left: 81.7%;
-  top: 19%;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #ffdfa0;
-  box-shadow: 0 0 7px #ffd78b;
-  animation: launch-twinkle 5s ease-in-out infinite;
+  top: 14%;
+  width: 9px;
+  height: 12px;
+  background: #fff4c8;
+  clip-path: polygon(50% 0,64% 40%,100% 50%,64% 60%,50% 100%,36% 60%,0 50%,36% 40%);
+  animation: launch-twinkle 6s ease-in-out infinite;
 }
 @keyframes launch-twinkle {
-  0%, 45%, 100% { opacity: .15; }
-  62% { opacity: .9; }
+  0%, 45%, 100% { opacity: .25; transform: scale(.65); }
+  65% { opacity: .95; transform: scale(1); }
+}
+.launch-fireflies { position: absolute; inset: 0; pointer-events: none; }
+.launch-fireflies i {
+  position: absolute;
+  left: 47%; top: 76%;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: #ffedac;
+  box-shadow: 0 0 5px 2px #ffda766e;
+  animation: launch-firefly 6.5s ease-in-out infinite;
+}
+.launch-fireflies i:nth-child(2) { left: 83%; top: 82%; animation-delay: -2.8s; }
+.launch-fireflies i:nth-child(3) { left: 93%; top: 66%; animation-delay: -4.7s; }
+@keyframes launch-firefly {
+  0%, 100% { opacity: .1; transform: translate(0, 0); }
+  38% { opacity: .95; transform: translate(5px, -10px); }
+  72% { opacity: .6; transform: translate(14px, -5px); }
 }
 .launch-bow {
   position: absolute;
@@ -321,28 +449,37 @@ html.launch-present body {
   z-index: 2;
 }
 .launch-debug-host:empty { display: none; }
-@media (max-width: 970px) {
+@media (max-width: 1040px) {
+  .launch-card { width: min(91%, 840px); }
   .launch-fox-letter { left: 1.5%; bottom: 4%; }
   .launch-player { right: 1.7%; bottom: 5%; }
   .launch-keepsake { width: clamp(64px, 10vw, 102px); }
 }
 @media (max-width: 690px) {
+  .launch-card { width: 100%; }
+  .launch-charms { inset-inline-start: 5.5%; }
+  .launch-charms-right { inset-inline: auto 5.5%; }
   .launch-keepsakes { gap: 20px; min-height: 58px; padding: 2px 0 7px; }
   .launch-keepsake { position: static; width: auto; height: 46px; object-fit: contain; }
 }
 @media (max-width: 540px) {
   .launch-invitation {
-    padding: 22px max(12px, env(safe-area-inset-right)) 64px max(12px, env(safe-area-inset-left));
+    padding: max(30px, env(safe-area-inset-top)) max(13px, env(safe-area-inset-right)) max(32px, env(safe-area-inset-bottom)) max(13px, env(safe-area-inset-left));
   }
   .launch-card { padding-inline: 10px; }
   .launch-letterhead { min-height: 42px; font-size: 12px; gap: 5px; }
   .launch-message { padding: 19px 2px 0; }
-  .launch-landscape { height: clamp(165px, 47vw, 228px); object-fit: cover; object-position: 65% 50%; }
-  .launch-hostess { left: 0; bottom: -2%; width: 50%; height: 95%; object-position: left bottom; }
+  .launch-landscape { height: clamp(202px, min(68vw, 37svh), 300px); object-position: 64% 55%; }
+  .launch-hostess { left: 1%; bottom: 4%; width: 51%; height: 88%; object-position: left bottom; }
+  .launch-charms { gap: 24px; }
+  .launch-chain { --drop: clamp(20px, calc((100svh - 534px) / 4), 76px); --charm: 16px; }
+  .launch-chain-moon { --drop: clamp(12px, calc((100svh - 620px) / 4), 46px); }
+  .launch-mail-route { bottom: 25px; }
   .launch-clock { max-width: 330px; }
   .launch-unit { min-height: 58px; }
   .launch-bow { right: 6px; bottom: 6px; transform: rotate(-12deg) scale(.73); transform-origin: right bottom; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .launch-glimmer { animation: none; opacity: .6; }
+  .launch-glimmer, .launch-fireflies i, .launch-chain { animation: none; }
+  .launch-glimmer, .launch-fireflies i { opacity: .65; }
 }

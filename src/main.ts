@@ -10,6 +10,7 @@ import "./bass-stage.css";
 import "./debug-panel.css";
 import "./wardrobe.css";
 import "./ruin-journal.css";
+import "./launch/cursors.css";
 import "./fufu-cursors.css";
 import "./page-journal.css";
 import { helpMarkup } from "./help";
