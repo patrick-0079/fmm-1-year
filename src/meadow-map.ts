@@ -3,6 +3,7 @@ import type { Scene } from "./maps.ts";
 
 const points = (pairs: number[][]) => pairs.map(([x, y]) => ({x, y}));
 export const campfire = { x: 232, y: 156 };
+export const campSeat = { x: 252, y: 167 };
 export const starJar = { x: 198, y: 194 };
 export const meadowExit = { x: 58, y: 238 };
 export function enteredMoonCircle(before:{x:number;y:number},after:{x:number;y:number}) {

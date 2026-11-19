@@ -100,6 +100,19 @@ const scripts = {
   "snake-keeper": {
     start: { text: "回声遗迹的门终于开了，听说就在不远处。遗迹里有一条玉蛇，体长可至常人难以想象的地步，要我带你去看看吗？", choices: [["去看看，去玩苔纹贪吃蛇", "@game"], ["谢谢你哦，我还想到处逛逛。", "@decline"]] },
   },
+  xiaoyou: {
+    start: { text: "芙芙姐姐！小佑挑了篮子里最甜的一颗橘子，想送给你。", choices: [["收下橘子", "receive-orange"]] },
+    "receive-orange": { text: "（小佑把橘子递到芙芙手里。）", choices: [["尝一瓣", "taste-orange"]] },
+    "taste-orange": { text: "甜吗？我挑了好久呢。芙芙姐姐一周年快乐！" },
+  },
+  guli: {
+    start: { text: "老大，苹果派刚出炉！你看，我今天还别了一条粉色小鱼。", choices: [["看看小鱼", "show-fish"]] },
+    "show-fish": { text: "花海也落着一颗这样的小鱼星。哪天去散步，看看能不能认出它呀。" },
+  },
+  qianxiao: {
+    start: { text: "我给周年夜画了一副牌，有一张想翻给你看。", choices: [["翻开星星牌", "show-star-card"]] },
+    "show-star-card": { text: "这张叫『晚安星』。愿下次见面时，我们还有好多好事可以讲给彼此听。" },
+  },
 } satisfies Record<string, Record<string, TownPage>>;
 
 export type TownResidentId = keyof typeof scripts;

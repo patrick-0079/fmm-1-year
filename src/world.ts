@@ -388,7 +388,7 @@ export class World {
       this.onInteract(id);
     } else this.visit(id);
   }
-  private get cuesVisible() {
+  get cuesVisible() {
     return !this.paused && !this.suspended && !this.busy && !this.focus && !this.restState && this.canShowInteractionCues();
   }
   private refreshInteractionCue() {

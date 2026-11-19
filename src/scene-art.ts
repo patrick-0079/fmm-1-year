@@ -14,15 +14,17 @@ import xiaoyeUrl from "./assets/xiaoye-plush.webp";
 import xiaoyeEmbraceUrl from "./assets/xiaoye-embrace-v55.webp";
 import yeshenhuaUrl from "./assets/yeshenhua.webp";
 import suyanUrl from "./assets/suyan.webp";
+import townGuestsUrl from "./assets/town-guests.webp";
+import patrickCampUrl from "./assets/patrick-camp.webp";
 import type { SceneId } from "./maps";
 export { stallsUrl, keepsakesUrl, skiesUrl, relicsUrl };
 
-export const sceneArt = {stalls:new Image(), keepsakes:new Image(), skies:new Image(), gate:new Image(), bass:new Image(), relics:new Image(), astrolabeProps:new Image(), fox:new Image(), picnic:new Image(), peachWalk:new Image(), quarry:new Image(), elders:new Image(), xiaoye:new Image(), xiaoyeEmbrace:new Image(), yeshenhua:new Image(), suyan:new Image()};
+export const sceneArt = {stalls:new Image(), keepsakes:new Image(), skies:new Image(), gate:new Image(), bass:new Image(), relics:new Image(), astrolabeProps:new Image(), fox:new Image(), picnic:new Image(), peachWalk:new Image(), quarry:new Image(), elders:new Image(), xiaoye:new Image(), xiaoyeEmbrace:new Image(), yeshenhua:new Image(), suyan:new Image(), townGuests:new Image(), patrickCamp:new Image()};
 type Prop = keyof typeof sceneArt;
-const urls: Record<Prop,string> = {stalls:stallsUrl, keepsakes:keepsakesUrl, skies:skiesUrl, gate:gateUrl, bass:bassUrl, relics:relicsUrl, astrolabeProps:astrolabePropsUrl, fox:foxUrl, picnic:picnicUrl, peachWalk:peachWalkUrl, quarry:townQuarryUrl, elders:elderResidentsUrl, xiaoye:xiaoyeUrl, xiaoyeEmbrace:xiaoyeEmbraceUrl, yeshenhua:yeshenhuaUrl, suyan:suyanUrl};
+const urls: Record<Prop,string> = {stalls:stallsUrl, keepsakes:keepsakesUrl, skies:skiesUrl, gate:gateUrl, bass:bassUrl, relics:relicsUrl, astrolabeProps:astrolabePropsUrl, fox:foxUrl, picnic:picnicUrl, peachWalk:peachWalkUrl, quarry:townQuarryUrl, elders:elderResidentsUrl, xiaoye:xiaoyeUrl, xiaoyeEmbrace:xiaoyeEmbraceUrl, yeshenhua:yeshenhuaUrl, suyan:suyanUrl, townGuests:townGuestsUrl, patrickCamp:patrickCampUrl};
 const propsByScene: Record<SceneId,Prop[]> = {
   room:["skies","bass","fox"], garden:["keepsakes","gate","picnic","peachWalk","xiaoye","xiaoyeEmbrace","suyan"], challenge:["keepsakes","elders"],
-  town:["stalls","gate","quarry","yeshenhua"], meadow:[], ruins:["relics","astrolabeProps","elders"],
+  town:["stalls","gate","quarry","yeshenhua","townGuests"], meadow:["patrickCamp"], ruins:["relics","astrolabeProps","elders"],
 };
 const requests = new Map<Prop,Promise<void>>();
 export function prepareProp(key: Prop) {

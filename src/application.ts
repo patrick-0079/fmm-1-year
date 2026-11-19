@@ -26,7 +26,7 @@ import { FlowerTrail } from "./flower-trail";
 import { NightMeadow } from "./night-meadow";
 import { EchoRuins } from "./echo-ruins";
 import { Elders } from "./elders";
-import { mailboxLetters, postLetter, POST_LETTER_REVISION, postUnread } from "./resident-story";
+import { mailboxLetters, markLetterRead, patrickLetter, unreadLetterIds } from "./resident-story";
 import { AstrolabeQuest } from "./astrolabe-quest";
 import { RoomBass } from "./room-bass";
 import { bassStand, foxNook } from "./room-props";
@@ -78,8 +78,9 @@ export function mountGame(tasks: Task[]) {
   const mailCount = document.querySelector<HTMLElement>('[data-memory="letters"] small')!;
   function updateMailCount() {
     const story = progress.residents;
-    mailCount.textContent = mailboxLetters(story).length + " 封来信" + (postUnread(story) ? " · 1 封未读" : "");
-    mailCount.closest("button")?.classList.toggle("has-unread", postUnread(story));
+    const unread = unreadLetterIds(story).length;
+    mailCount.textContent = mailboxLetters(story).length + " 封来信" + (unread ? ` · ${unread} 封未读` : "");
+    mailCount.closest("button")?.classList.toggle("has-unread", unread > 0);
   }
   function readCollection(id: string, surface: CollectionSurface = reader) {
     if (id === "album") { openCollection(surface, id); return; }
@@ -87,13 +88,10 @@ export function mountGame(tasks: Task[]) {
     const story = progress.residents;
     openCollection(surface, id, {
       items: mailboxLetters(story), selectedId: selectedLetterId,
-      unreadId: postUnread(story) ? postLetter.id : undefined,
+      unreadIds: unreadLetterIds(story),
       onRead: letterId => {
         selectedLetterId = letterId;
-        if (letterId === postLetter.id && postUnread(story)) {
-          story.postReadRevision = POST_LETTER_REVISION;
-          save();
-        }
+        if (markLetterRead(story, letterId)) save();
       },
     });
   }
@@ -274,7 +272,20 @@ export function mountGame(tasks: Task[]) {
     readCollection("letters");
   });
   const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);
-  const meadow = new NightMeadow(world, () => progress.creditStars, save);
+  const campLetterButton = document.querySelector<HTMLButtonElement>(".camp-letter")!;
+  const refreshCampLetter = () => {
+    campLetterButton.hidden =
+      world.restState?.scene !== "meadow" || !progress.residents.patrickDelivered;
+  };
+  const meadow = new NightMeadow(world, () => progress.creditStars, save, () => {
+    if (progress.residents.patrickDelivered) return false;
+    progress.residents.patrickDelivered = true;
+    save();
+    refreshCampLetter();
+    sfx("starlight");
+    toast("派大星递来了一封信。");
+    return true;
+  });
   const starQuest = new AstrolabeQuest(world, activities, inventory, () => progress.astrolabe,
     () => progress.echoes.listened, save);
   const ruins = new EchoRuins(world, activities, () => progress.echoes, () => { save(); starQuest.refresh(); });
@@ -401,6 +412,8 @@ export function mountGame(tasks: Task[]) {
     if (state) saveLocation();
     const tools = document.querySelector<HTMLElement>(".rest-tools")!;
     tools.hidden = !state;
+    tools.classList.toggle("camp-rest-tools", state?.scene === "meadow");
+    refreshCampLetter();
     if (state)
       tools.querySelector("span")!.textContent =
         state.kind === "lying" ? "在小屋的床上休息" : state.scene === "meadow" ? "在营火边歇脚" : "坐在长椅上";
@@ -413,6 +426,12 @@ export function mountGame(tasks: Task[]) {
   document
     .querySelector(".stand-up")!
     .addEventListener("click", () => world.standUp());
+  campLetterButton.addEventListener("click", () => {
+    if (campLetterButton.hidden) return;
+    selectedLetterId = patrickLetter.id;
+    reader.inGame = true;
+    readCollection("letters");
+  });
   let encouragementIndex = 0;
   world.onRespawn = ({ trap }) => {
     closePanels();

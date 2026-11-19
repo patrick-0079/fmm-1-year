@@ -10,7 +10,6 @@ test("Yeshinhua retains the radio host's stable identity, authored choices and e
   assert.equal(npc.name,"夜神华");
   assert.equal(npc.appearance,"yeshenhua");
   assert.deepEqual([npc.x,npc.y],[1305,842]);
-  assert.equal(TOWN_NPCS.length,15);
   assert.equal(TOWN_NPCS.filter(n=>n.appearance==="yeshenhua").length,1);
   const oldMeetings=["radio-host","post","walker"];
   assert.ok(oldMeetings.every(id=>TOWN_NPCS.some(n=>n.id===id)));

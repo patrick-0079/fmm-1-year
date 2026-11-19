@@ -1,6 +1,7 @@
 import type { ItemId } from "./items";
 import type { TownResidentId } from "./town-dialogue";
 import type { GameId } from "./arcade-engines";
+import type { Point } from "./core";
 export const mineRules = [
   "6 × 5 块石砖里藏着 4 道裂隙。翻开全部 26 块安全砖就能过关，插旗多少不影响胜负。翻到裂隙则本局结束。",
   "第一次翻开的砖和周围最多八块都安全。数字表示周围八个方向（含斜角）共有几道裂隙。空白砖会连同相邻的安全区域一起展开。",
@@ -99,7 +100,8 @@ export interface TownNpc {
   x: number;
   y: number;
   sprite: number;
-  appearance?: "yeshenhua";
+  approach?: Point;
+  appearance?: "yeshenhua" | "guest";
   game?: GameId;
 }
 export const TOWN_NPCS: TownNpc[] = [
@@ -227,6 +229,36 @@ export const TOWN_NPCS: TownNpc[] = [
     x: 1092,
     y: 180,
     sprite: 14,
+  },
+  {
+    id: "xiaoyou",
+    name: "一橙橘小佑",
+    role: "提果篮的来宾",
+    x: 436,
+    y: 892,
+    approach: { x: 467, y: 916 },
+    sprite: 0,
+    appearance: "guest",
+  },
+  {
+    id: "guli",
+    name: "故里",
+    role: "烘焙跑腿员",
+    x: 862,
+    y: 324,
+    approach: { x: 830, y: 345 },
+    sprite: 1,
+    appearance: "guest",
+  },
+  {
+    id: "qianxiao",
+    name: "浅笑",
+    role: "卡牌爱好者",
+    x: 1220,
+    y: 514,
+    approach: { x: 1192, y: 539 },
+    sprite: 2,
+    appearance: "guest",
   },
 ];
 export const TOWN_FRAMES = [

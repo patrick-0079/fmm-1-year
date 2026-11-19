@@ -6,7 +6,7 @@ import { producers } from "../src/content.ts";
 import { BOTTLE_REFERENCE,bottleEntries,bottleGeometry,bottleScrollTop,nearestBottleStar } from "../src/star-bottle-layout.ts";
 
 test("one bottle holds every discovered star while new discoveries never shuffle old positions",()=>{
-  const old=producers.slice(0,8).map(person=>person.id);
+  const old=producers.slice(0,9).map(person=>person.id);
   assert.deepEqual(bottleEntries(producers,[]),[]);
   const known=bottleEntries(producers,[old[5],...old,old[0],"missing-id"]);
   assert.deepEqual(known.map(person=>person.id),old);
@@ -15,16 +15,17 @@ test("one bottle holds every discovered star while new discoveries never shuffle
   assert.equal(partial[1].shape,"cross","an already collected Zhenghao star should adopt the current cross artwork");
   assert.deepEqual(partial.map(person=>person.slot),[known[1].slot,known[6].slot]);
   const all=bottleEntries(producers,producers.map(person=>person.id));
-  assert.equal(all.length,9);assert.equal(all.at(-1)?.id,"star-rabe");
-  assert.deepEqual(all.slice(0,8),known);
+  assert.equal(all.length,12);
+  assert.deepEqual(all.slice(0,9),known);
+  assert.deepEqual(all.slice(9).map(({ slot, shape }) => [slot, shape]), [[9,"gold"],[10,"pink-fish"],[11,undefined]]);
 });
 
-test("all nine scattered star images fit the glass at phone and desktop sizes, with unambiguous direct taps",async()=>{
+test("all twelve scattered star images fit the glass at phone and desktop sizes, with unambiguous direct taps",async()=>{
   const {data,info}=await sharp(fileURLToPath(new URL("../src/assets/star-bottle-closeup.webp",import.meta.url))).ensureAlpha().raw().toBuffer({resolveWithObject:true});
   assert.equal(info.width,BOTTLE_REFERENCE.width);assert.equal(info.height,BOTTLE_REFERENCE.height);
   for(const [width,height,compact] of [[290,298/1.5-8,true],[352,360/1.5-8,true],[266.8,330,false],[440,590,false]] as const){
     const fit=bottleGeometry(width,height,compact);assert.ok(fit.width<=width&&fit.height<=height);
-    assert.equal(fit.slots.length,9);
+    assert.equal(fit.slots.length,12);
     const targets=fit.slots.map((point,slot)=>({slot,...point}));
     for(const [i,p] of fit.slots.entries()){
       assert.equal(nearestBottleStar(targets,p.x,p.y),i,"direct tap picked another star");

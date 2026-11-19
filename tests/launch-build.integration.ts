@@ -38,6 +38,8 @@ test("switching full → invitation → full cleans the deployed directory", asy
   assert.ok(explicit.files.includes("texture-cache.js"));
   assert.ok(explicit.files.includes("future-game-asset.txt"));
   assert.ok(explicit.files.some(name => name.includes("room-interactive")));
+  assert.ok(explicit.files.some(name => name.startsWith("assets/town-guests-")));
+  assert.ok(explicit.files.some(name => name.startsWith("assets/patrick-camp-")));
 
   const lite = await run("false");
   assert.equal(lite.marker.mode, "lite");
@@ -46,7 +48,7 @@ test("switching full → invitation → full cleans the deployed directory", asy
     assert.match(file, /^(?:assets|index\.html|release\.json|favicon\.svg|_headers|assets\/(?:[\w.-]+\.(?:js|css)|launch-(?:cottage|fufu|fox-letter|player)-[\w-]+\.webp|fufu-cursor-(?:arrow|play)-[\w-]+\.(?:svg|png)))$/);
     if (/\.(?:js|css|html)$/.test(file)) {
       const body = await readFile(join(outDir, file), "utf8");
-      assert.doesNotMatch(body, /room-interactive|nemu-sprites|texture-cache\.js|rabe-anniversary-letter|\.mp4\b/);
+      assert.doesNotMatch(body, /room-interactive|nemu-sprites|town-guests|patrick-camp|texture-cache\.js|rabe-anniversary-letter|patrick-anniversary-letter|\.mp4\b/);
     }
   }
   assert.ok(lite.files.includes("favicon.svg") && lite.files.includes("_headers"));

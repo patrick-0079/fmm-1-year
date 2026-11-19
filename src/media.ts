@@ -13,7 +13,7 @@ export interface CollectionSurface {
 interface LetterList {
   items: Memory[];
   selectedId?: string;
-  unreadId?: string;
+  unreadIds?: readonly string[];
   onRead: (id: string) => void;
 }
 export function openCollection(modal: CollectionSurface, id: string, letters?: LetterList) {
@@ -163,10 +163,11 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
   };
   items.forEach((item, i) => {
     const button = document.createElement("button");
+    const unread = letters?.unreadIds?.includes(item.id) ?? false;
     button.className = "collection-item";
     button.dataset.memoryId = item.id;
-    button.setAttribute("aria-label", item.title + (letters?.unreadId === item.id ? "，未读" : ""));
-    button.classList.toggle("unread", letters?.unreadId === item.id);
+    button.setAttribute("aria-label", item.title + (unread ? "，未读" : ""));
+    button.classList.toggle("unread", unread);
     if (collection.kind === "image" && item.thumbnail) {
       const thumbnail = new Image();
       thumbnail.src = item.thumbnail;
@@ -178,7 +179,7 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     }
     const title = document.createElement("span");
     title.className = "collection-item-title";
-    title.textContent = item.title + (letters?.unreadId === item.id ? " · 未读" : "");
+    title.textContent = item.title + (unread ? " · 未读" : "");
     button.append(title);
     if (collection.kind === "text") {
       const short = document.createElement("span");

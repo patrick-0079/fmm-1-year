@@ -18,9 +18,8 @@
 
 ## 晚安信箱
 
-以下四封来信尚待提供，暂不生成空信封。收到后加入 `src/content.ts` 的 `collections.letters.items`。
+以下三封来信尚待提供。收到后加入 `src/content.ts` 的 `collections.letters.items`。
 
-- [ ] 派大星的来信：标题、展示署名与完整正文。
 - [ ] 卿取之于蓝的来信：标题、展示署名与完整正文。
 - [ ] 正号的来信：标题、展示署名与完整正文。
 - [ ] 千羽的来信：标题、展示署名与完整正文。
@@ -32,7 +31,7 @@
 | 庭院小电视 | 正式影片的 CDN 直链和片名 | `src/cinema-config.ts` 的 `gardenFilm` |
 | 回忆相册（可选扩充） | 新的正式图片原件、标题及配文或署名 | `src/content.ts` 的 `collections.album.items` |
 | 床边便签（可选扩充） | 后续复活鼓励，每条一段，署名可写在文末 | `src/content.ts` 的 `encouragements` |
-| 晚安信箱（可选扩充） | 除上述四封待收来信外，可继续提供新来信正文、标题和展示署名 | `collections.letters.items` |
+| 晚安信箱（可选扩充） | 其他新来信的正文、标题和展示署名 | `collections.letters.items` |
 
 ## 正式上线时
 

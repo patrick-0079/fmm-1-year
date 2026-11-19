@@ -20,8 +20,11 @@
    duration rule. A transitional zero-size bottle offsets every hit target. */
 .star-bottle-vessel,.star-bottle-page .star-bottle-star { transition-property:none; }
 .star-bottle-page .star-bottle-star { position:absolute; display:grid; place-items:center; width:max(24px,var(--star-size)); height:max(24px,var(--star-size)); min-width:24px; min-height:24px; padding:0; transform:translate(-50%,-50%); border:0; border-radius:50%; background:transparent; }
-.star-bottle-star-art { display:block; width:var(--star-size); height:var(--star-size); transform:rotate(var(--star-angle)); background:var(--bottle-star-atlas) 0 100%/200% 200% no-repeat; image-rendering:pixelated; filter:drop-shadow(0 0 3px #fff1b761); pointer-events:none; animation:bottle-star-light 5s ease-in-out infinite; animation-delay:var(--star-phase); }
-.star-bottle-star:hover .star-bottle-star-art,.star-bottle-star[aria-pressed="true"] .star-bottle-star-art { filter:drop-shadow(0 0 5px #fff1b7); }
+.star-bottle-star-art { display:block; width:var(--star-size); height:var(--star-size); transform:rotate(var(--star-angle)); background:var(--bottle-star-atlas) 0 100%/200% 200% no-repeat; image-rendering:pixelated; filter:drop-shadow(0 0 3px var(--star-halo,#fff1b761)); pointer-events:none; animation:bottle-star-light 5s ease-in-out infinite; animation-delay:var(--star-phase); }
+.star-bottle-star-art[data-shape] { background-position:center; background-size:100% 100%; }
+.star-bottle-star-art[data-shape="gold"] { --star-halo:#ffd36b9e; --star-focus:#ffe290; }
+.star-bottle-star-art[data-shape="pink-fish"] { --star-halo:#ff9dbf82; --star-focus:#ffc2da; }
+.star-bottle-star:hover .star-bottle-star-art,.star-bottle-star[aria-pressed="true"] .star-bottle-star-art { filter:drop-shadow(0 0 5px var(--star-focus,#fff1b7)); }
 .star-bottle-star[aria-pressed="true"]::after { content:""; position:absolute; inset:-3px; border:1px solid #f7e9b3b3; border-radius:50%; box-shadow:0 0 5px #f7e9b340; pointer-events:none; }
 .star-bottle-page button:focus-visible,.star-bottle-message:focus-visible { outline:2px solid #f5e2a3; outline-offset:-2px; }
 .star-bottle-pick-previous,.star-bottle-pick-next { display:none; position:absolute; bottom:6px; width:48px; height:55px; padding:2px; border:1px solid #b5c8bd80; border-radius:3px; background:#17333ed9; font:24px/1 sans-serif; }

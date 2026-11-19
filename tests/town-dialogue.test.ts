@@ -2,13 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { TOWN_NPCS } from "../src/town-data.ts";
 import { residentOpening, townDialogues } from "../src/town-dialogue.ts";
-import { POST_LETTER_REVISION, type ResidentStory } from "../src/resident-story.ts";
+import { POST_LETTER_REVISION, readResidentStory } from "../src/resident-story.ts";
 import { scenes } from "../src/maps.ts";
-import { findPath } from "../src/core.ts";
+import { canStand, findPath } from "../src/core.ts";
+import { clickedInteraction } from "../src/interaction.ts";
 
-const fresh: ResidentStory = {
-  postDelivered: false, postReadRevision: 0, welcomeReceived: false, cake: "new", guardianInvited: false,
-};
+const fresh = readResidentStory();
 
 test("every town dialogue and its timed pages resolve to real pages or available controls", () => {
   assert.deepEqual(Object.keys(townDialogues).sort(), TOWN_NPCS.map(n => n.id).sort());
@@ -52,6 +51,26 @@ test("E talks to the intended resident from every approach, even before picking 
     })).filter(({spot, distance}) => distance < (spot.radius ?? 48)).sort((a,b) => a.distance - b.distance)[0];
     assert.equal(nearest.spot.id, spot.id);
     assert.deepEqual(findPath(map.spawn, spot.approach, map)?.at(-1), spot.approach);
+  }
+});
+
+test("the three anniversary guests are reachable from town entrances and only offer replayable scenes", () => {
+  const map = scenes.town;
+  const entrances = [map.spawn, ...map.spots.filter(spot => spot.portal).map(spot => spot.approach)];
+  for (const [id, x, y, approach] of [
+    ["xiaoyou", 436, 892, {x: 467, y: 916}],
+    ["guli", 862, 324, {x: 830, y: 345}],
+    ["qianxiao", 1220, 514, {x: 1192, y: 539}],
+  ] as const) {
+    const spot = map.spots.find(s => s.id === "npc-" + id)!;
+    assert.deepEqual([spot.x, spot.y], [x, y]);
+    assert.deepEqual(spot.approach, approach);
+    assert.equal(canStand(spot, map.walls, map.bounds, map.floor, map.surfaces), false);
+    assert.equal(clickedInteraction({x, y: y - 17}, map.spots), spot);
+    for (const start of entrances) {
+      assert.deepEqual(findPath(start, spot.approach, map)?.at(-1), spot.approach);
+    }
+    for (const page of Object.values(townDialogues[id])) assert.equal(page.effect, undefined);
   }
 });
 

@@ -154,12 +154,14 @@ test("souvenir rewards are unique, equipment slots persist and legacy wreaths mi
   assert.equal(new Set(rewards).size, 7);
   for (const id of rewards) assert.ok(ITEMS[id]);
 });
-test("the anniversary town has fifteen distinct configurable NPCs and complete sprite crops", () => {
-  assert.equal(TOWN_NPCS.length, 15);
-  assert.equal(new Set(TOWN_NPCS.map((n) => n.id)).size, 15);
+test("the anniversary town has eighteen distinct residents and complete sprite crops", () => {
+  assert.equal(TOWN_NPCS.length, 18);
+  assert.equal(new Set(TOWN_NPCS.map((n) => n.id)).size, 18);
   assert.equal(TOWN_FRAMES.length, 15);
+  assert.deepEqual(TOWN_NPCS.filter(n => n.appearance === "guest").map(n => n.sprite), [0, 1, 2]);
   for (const npc of TOWN_NPCS) {
     assert.ok(townDialogues[npc.id].start.text);
+    if (npc.appearance === "guest") continue;
     const f = TOWN_FRAMES[npc.sprite];
     assert.ok(f.x >= 0 && f.y >= 0 && f.x + f.w <= 1536 && f.y + f.h <= 1024);
   }

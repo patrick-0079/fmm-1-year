@@ -3,11 +3,12 @@ import assert from "node:assert/strict";
 import { collections, producers } from "../src/content.ts";
 import { postLetter } from "../src/resident-story.ts";
 
-test("the nine stars retain the approved names, order and two authored messages", () => {
+test("all twelve stars retain the approved names, order and two authored messages", () => {
   assert.deepEqual(producers.map(person => [person.id, person.name]), [
     ["star-xiaoye", "小叶子"], ["star-yeshenhua", "夜神华"], ["star-patrick", "派大星"],
     ["star-kerry", "Kerry"], ["star-suyan", "苏颜"], ["star-qing", "卿取之于蓝"],
     ["star-zhenghao", "正号"], ["star-qianyu", "千羽"], ["star-rabe", "Rabe"],
+    ["star-xiaoyou", "一橙橘小佑"], ["star-guli", "故里"], ["star-qianxiao", "浅笑"],
   ]);
   assert.deepEqual(producers.slice(0, 2).map(({ x, y }) => ({ x, y })), [{ x: 485, y: 335 }, { x: 685, y: 270 }]);
   const leaf = producers[0].message;
@@ -25,6 +26,7 @@ test("public letters keep their approved order, paragraph boundaries and supplie
   assert.deepEqual(collections.letters.items.map(letter => [letter.id, letter.author]), [
     ["xiaoye-anniversary-letter", "小叶子"], ["yeshenhua-anniversary-letter", "夜神华"], ["kerry-anniversary-letter", "Kerry"],
     ["suyan-anniversary-letter", "苏颜"], ["rabe-anniversary-letter", "Rabe"],
+    ["xiaoyou-anniversary-letter", "一橙橘小佑"], ["guli-anniversary-letter", "故里"],
   ]);
   const leaf = collections.letters.items[0].text!;
   assert.equal(leaf.split(/\r?\n\s*\r?\n/).length, 6);
@@ -35,6 +37,23 @@ test("public letters keep their approved order, paragraph boundaries and supplie
   assert.ok(leaf.endsWith("周年快乐！以后的周年，小叶子都会在你的身边。"));
   assert.equal(collections.letters.items[1].text,
     "今天是芙芙的周年，周年快乐！！！！！上芙芙的船也有三个月了哦，呜呜呜，好像芙芙生日的时候要说的都说完了，虽然不知道说什么，但是夜神华会一直陪着芙芙，期待芙芙越来越好，越来越鬼脑（），喜欢芙芙，因为芙芙每晚有芙芙睡的非常安心，嘿嘿嘿");
+});
+
+test("the new stars use the approved shapes and both new letters preserve the supplied wording", () => {
+  const [xiaoyou, guli, qianxiao] = producers.slice(9);
+  assert.deepEqual([xiaoyou, guli, qianxiao].map(({ x, y, shape }) => [x, y, shape]), [
+    [301, 414, "gold"], [615, 187, "pink-fish"], [797, 468, undefined],
+  ]);
+  assert.deepEqual(collections.letters.items.slice(-2), [
+    {
+      id: "xiaoyou-anniversary-letter", title: "一橙橘小佑的周年来信", author: "一橙橘小佑",
+      text: "❤️❤️❤️小佑喜欢芙芙姐姐，小佑要当一辈子芙妮宝！芙芙姐姐一周年快乐！❤️❤️❤️",
+    },
+    {
+      id: "guli-anniversary-letter", title: "故里的周年来信", author: "故里",
+      text: "老大老大我要磨🐟",
+    },
+  ]);
 });
 
 test("Rabe's supplied wording is a public letter, not a star message", () => {

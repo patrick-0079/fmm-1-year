@@ -119,6 +119,8 @@ export class Town {
     this.act = act;
     if (npc.id === "photo-visitor" && pageId === "move") this.world.facing = this.world.facing === 2 ? 1 : 2;
     if (npc.id === "baker" && pageId === "eat") this.world.facing = 0;
+    if (npc.id === "xiaoyou" && (pageId === "receive-orange" || pageId === "taste-orange"))
+      this.world.facing = 0;
     if (page.effect) this.applyEffect(page.effect);
   }
 

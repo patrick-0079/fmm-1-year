@@ -1,3 +1,5 @@
+import type { CreditStarShape } from "./credit-star-art.ts";
+
 export { anniversary } from "./launch/anniversary.ts";
 
 const morning = new URL("./assets/album-v36/morning.webp", import.meta.url).href;
@@ -32,7 +34,7 @@ export interface CreditStar {
   message: string;
   x: number;
   y: number;
-  shape?: "cross";
+  shape?: CreditStarShape;
 }
 // id 也是落星的存档键。改署名、寄语或外形时保留 id；新增成员选一处空草地。
 export const producers: CreditStar[] = [
@@ -55,6 +57,9 @@ export const producers: CreditStar[] = [
   { id: "star-zhenghao", name: "正号", message: "", shape: "cross", x: 754, y: 378 },
   { id: "star-qianyu", name: "千羽", message: "", x: 578, y: 502 },
   { id: "star-rabe", name: "Rabe", message: "", x: 605, y: 390 },
+  { id: "star-xiaoyou", name: "一橙橘小佑", message: "", shape: "gold", x: 301, y: 414 },
+  { id: "star-guli", name: "故里", message: "", shape: "pink-fish", x: 615, y: 187 },
+  { id: "star-qianxiao", name: "浅笑", message: "", x: 797, y: 468 },
 ];
 
 export interface Encouragement {
@@ -117,6 +122,18 @@ export const collections: Record<string, Collection> = {
 一周年这天，我还是不太擅长表述这些，只想把最老实的一句话放在这里：
 
 愿你的直播间永远有人等，也永远有我们。明年今天，我准时到。`,
+      },
+      {
+        id: "xiaoyou-anniversary-letter",
+        title: "一橙橘小佑的周年来信",
+        author: "一橙橘小佑",
+        text: "❤️❤️❤️小佑喜欢芙芙姐姐，小佑要当一辈子芙妮宝！芙芙姐姐一周年快乐！❤️❤️❤️",
+      },
+      {
+        id: "guli-anniversary-letter",
+        title: "故里的周年来信",
+        author: "故里",
+        text: "老大老大我要磨🐟",
       },
     ],
   },

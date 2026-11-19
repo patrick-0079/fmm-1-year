@@ -26,6 +26,8 @@ import meadowCover from "./assets/night-meadow-v16.webp";
 import residentsUrl from "./assets/town-npcs.webp";
 import yeshenhuaUrl from "./assets/yeshenhua.webp";
 import { drawYeshenhuaGuide } from "./yeshenhua-art";
+import { drawTownGuest } from "./town-guest-art";
+import { prepareProp, sceneArt } from "./scene-art";
 import { anniversary, collections } from "./content";
 import { EVENT_IDS } from "./core";
 import { icon } from "./icons";
@@ -107,7 +109,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
           <div class="game-stage-frame"><div class="game-stage"><div class="scene-wrap">
             <canvas id="world" tabindex="0" aria-label="像素探索场景。使用 WASD 或方向键移动，E、空格或鼠标右键互动；左键点击地面行走、物件或提示签互动。Tab 切换选项，Enter 确认。">浏览器需要支持 Canvas 才能游玩。</canvas>
             <div class="scene-top"><span class="location-pill">${icon("moon")} <span id="location-name">ROOM 01 · 晚安小屋</span></span><span class="time-pill" role="timer" aria-live="off">☀ 08:00 · 白昼</span></div>
-            <section class="cinema-hud" aria-label="花园小电视放映控制" hidden></section><div class="activity-hud" hidden><div class="activity-heading"><span class="activity-status" role="status" aria-live="polite"></span><button class="activity-close" aria-label="结束当前互动，回到地图">收起 ×</button></div><div class="activity-actions"></div></div><div class="rest-tools" hidden><span></span><button class="stand-up map-action">起身 <kbd>E</kbd></button></div><button class="bed-note-pin map-tool" hidden>♡ 床边便签</button><article class="bed-note" aria-label="小叶子的床边便签" hidden></article>
+            <section class="cinema-hud" aria-label="花园小电视放映控制" hidden></section><div class="activity-hud" hidden><div class="activity-heading"><span class="activity-status" role="status" aria-live="polite"></span><button class="activity-close" aria-label="结束当前互动，回到地图">收起 ×</button></div><div class="activity-actions"></div></div><div class="rest-tools" hidden><span></span><button class="camp-letter map-action" type="button" aria-label="读派大星的来信" hidden>读来信</button><button class="stand-up map-action">起身 <kbd>E</kbd></button></div><button class="bed-note-pin map-tool" hidden>♡ 床边便签</button><article class="bed-note" aria-label="小叶子的床边便签" hidden></article>
             <div class="ruin-stamp-flash" role="status" aria-live="polite" aria-atomic="true" hidden></div>
             <div class="intro-screen"><div class="intro-stars">✧ <span>✦</span> ✧</div><span class="intro-pill">芙眠眠 · 直播一周年纪念</span><h2>今晚的快乐，<br>等你来发现。</h2><p>一间温暖小屋，两座缤纷花园，<br>还有东北山洞深处的回声遗迹。<br>和藏在街角的，一点点喜欢。</p><button class="button primary enter-button" disabled>正在点亮小世界…</button><small>点击开始会播放轻柔音乐 · 可随时关闭 ♡</small></div>
             <section class="game-letter-reader" aria-label="在游戏中阅读晚安信箱" hidden></section><div class="scene-transition" aria-hidden="true"></div>
@@ -158,7 +160,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
             <details class="page-games"><summary><span>${icon("star")} 遗迹游园券 <small>3 个小游戏</small></span><span class="details-action">展开</span></summary><div class="page-game-tickets">${gameTickets("ruins")}</div></details>
           </article>
         </div>
-        <details class="town-guide page-residents"><summary><span>认识小镇居民 <strong id="town-npc-count">0 / 15</strong><small>镇民为游戏角色</small></span><span class="details-action">展开导览</span></summary><div>${TOWN_NPCS.map((npc) => `<button data-town-npc="${npc.id}"><span class="resident-portrait"><canvas data-page-npc="${npc.sprite}" data-page-resident="${npc.id}" width="80" height="88" aria-hidden="true"></canvas></span><span><strong>${npc.name}</strong><small>${npc.role}</small></span><span class="resident-arrow" aria-hidden="true">↗</span></button>`).join("")}</div></details>
+        <details class="town-guide page-residents"><summary><span>认识小镇居民 <strong id="town-npc-count">0 / ${TOWN_NPCS.length}</strong><small>镇民为游戏角色</small></span><span class="details-action">展开导览</span></summary><div>${TOWN_NPCS.map((npc) => `<button data-town-npc="${npc.id}"><span class="resident-portrait"><canvas data-page-npc="${npc.sprite}" data-page-resident="${npc.id}" width="80" height="88" aria-hidden="true"></canvas></span><span><strong>${npc.name}</strong><small>${npc.role}</small></span><span class="resident-arrow" aria-hidden="true">↗</span></button>`).join("")}</div></details>
       </section>
       <section class="credits page-meadow-note" aria-labelledby="credits-title"><img src="${meadowCover}" alt="" loading="lazy"/><div class="credits-heading"><span class="eyebrow">还有一些喜欢，藏在星星里</span><h2 id="credits-title">草地上的署名</h2><p>集齐七色花，去夜里的花海走走。<br>拾起一颗落星，就能遇见一位制作人。</p><span class="meadow-note-sign" aria-hidden="true">✧ 愿每一份晚安，都被温柔珍藏</span></div></section>
     </main>
@@ -175,21 +177,31 @@ const paintGuideArt = () => {
   const residents = new Image(), yeshenhua = new Image(), rewards = new Image();
   const paintResidents = () => {
     for (const canvas of document.querySelectorAll<HTMLCanvasElement>("canvas[data-page-npc]")) {
-      const npc=TOWN_NPCS.find(n=>n.id===canvas.dataset.pageResident);
-      if (npc?.appearance === "yeshenhua") {
-        drawYeshenhuaGuide(canvas.getContext("2d")!,yeshenhua);
+      const npc = TOWN_NPCS.find(n => n.id === canvas.dataset.pageResident);
+      if (!npc) continue;
+      const c = canvas.getContext("2d")!;
+      if (npc.appearance === "yeshenhua") {
+        drawYeshenhuaGuide(c, yeshenhua);
+        continue;
+      }
+      if (npc.appearance === "guest") {
+        c.clearRect(0, 0, 80, 88);
+        c.imageSmoothingEnabled = false;
+        drawTownGuest(c, sceneArt.townGuests, npc.sprite, 40, 84, 80);
         continue;
       }
       if (!residents.complete || !residents.naturalWidth) continue;
-      const frame = TOWN_FRAMES[Number(canvas.dataset.pageNpc)], c = canvas.getContext("2d")!;
+      const frame = TOWN_FRAMES[npc.sprite];
       const cropHeight = Math.min(frame.h, frame.w * 1.1);
       const scale = Math.min(72 / frame.w, 80 / cropHeight);
+      c.clearRect(0, 0, 80, 88);
       c.imageSmoothingEnabled = true;
       c.drawImage(residents, frame.x, frame.y, frame.w, cropHeight, (80-frame.w*scale)/2, 4, frame.w*scale, cropHeight*scale);
     }
   };
   residents.onload = paintResidents;
   yeshenhua.onload = paintResidents;
+  void prepareProp("townGuests").then(paintResidents, () => {});
   const paintRewards = () => {
     for (const canvas of document.querySelectorAll<HTMLCanvasElement>("canvas[data-page-reward]")) {
       const c = canvas.getContext("2d")!;

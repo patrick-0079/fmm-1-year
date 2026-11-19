@@ -1,7 +1,9 @@
+import type { CreditStar } from "./content.ts";
+
 /** The trimmed conical sprite and the click targets share this exact rectangle. */
 export const BOTTLE_REFERENCE = { width: 801, height: 1204 } as const;
 export const BOTTLE_COMPACT_WIDTH = 600;
-export interface BottlePerson { id: string; name: string; message: string; shape?: "cross" }
+export type BottlePerson = Pick<CreditStar, "id" | "name" | "message" | "shape">;
 export interface BottleEntry extends BottlePerson { slot: number }
 
 export function bottleEntries(people: readonly BottlePerson[], found: readonly string[]): BottleEntry[] {
@@ -14,9 +16,10 @@ const restingStars = [
   [.49,.48,-12,1.04], [.36,.60,17,.87], [.63,.57,-20,.94],
   [.51,.71,9,1.08], [.24,.77,-8,.91], [.76,.73,22,.83],
   [.39,.89,-18,.97], [.64,.90,12,1.02], [.80,.87,-7,.86],
+  [.52,.82,4,1], [.17,.89,-8,.95], [.51,.35,-5,.84],
 ];
 
-export function bottleGeometry(availableWidth: number,availableHeight: number,compact: boolean,count=9) {
+export function bottleGeometry(availableWidth: number,availableHeight: number,compact: boolean,count=restingStars.length) {
   const ratio=BOTTLE_REFERENCE.width/BOTTLE_REFERENCE.height;
   const height=Math.max(0,Math.min(availableHeight,availableWidth/ratio,compact?400:620));
   const width=height*ratio,base=Math.min(44,Math.max(compact?16:22,height*.075));

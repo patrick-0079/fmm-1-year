@@ -8,6 +8,7 @@ import cakeUrl from "./assets/cake-slice-v11.webp";
 import gesturesUrl from "./assets/town-gestures.webp";
 import { sceneArt } from "./scene-art";
 import { drawYeshenhua, yeshenhuaPose } from "./yeshenhua-art";
+import { drawTownGuest, townGuestPose } from "./town-guest-art";
 
 export interface TownAct {
   npcId: string;
@@ -313,6 +314,53 @@ function drawBouquet(c: Brush, x: number, y: number) {
   if (flowers.naturalWidth)
     c.drawImage(flowers, x - 8, y - 12, 16, (16 * flowers.naturalHeight) / flowers.naturalWidth);
 }
+
+const orangeOfferSeconds = 0.42;
+function orangeLayer(npc: TownNpc, page: string, t: number, world: World, still: boolean, reverse: boolean): DepthLayer | undefined {
+  const tasting = page === "taste-orange";
+  const receiving = page === "receive-orange";
+  if (!tasting && !receiving) return;
+  if (receiving && !still && t < orangeOfferSeconds) return;
+  if (tasting && t >= 1.2) return;
+
+  const progress = receiving && !still ? ease((t - orangeOfferSeconds) / 0.32) : 1;
+  if (progress === 1 && world.facing === 3) return;
+  const lift = tasting ? (still ? 7 : 7 * ease(t / 0.65)) : 0;
+  const leftHand = world.facing === 1 || (world.facing === 0 && reverse);
+  const palm = { x: world.player.x + (leftHand ? -7 : 7), y: world.player.y - 14 - lift };
+  const x = between(npc.x + (reverse ? 11 : -11), palm.x, progress);
+  const y = between(npc.y - 20, palm.y, progress);
+  return {
+    y: between(npc.y, world.player.y, progress) + 0.2,
+    draw(c) {
+      c.save();
+      if (tasting && !still) c.globalAlpha *= 1 - ease((t - 0.82) / 0.38);
+      if (progress === 1) {
+        disk(c, "#ae7e80", x + 1.2, y + 3.5, 2.4, 1.6);
+        disk(c, "#ffe0c8", x + 1.2, y + 3.2, 1.9, 1.2);
+      }
+      if (tasting) {
+        c.fillStyle = "#b5663e";
+        c.beginPath();
+        c.arc(x, y, 3.8, 0, Math.PI);
+        c.fill();
+        c.fillStyle = "#ffbe68";
+        c.beginPath();
+        c.arc(x, y, 2.9, 0, Math.PI);
+        c.fill();
+        rect(c, "#fff0ab", x - 2.8, y - 0.2, 5.6, 0.7);
+        rect(c, "#ffe1a0", x - 0.4, y, 0.8, 2.1);
+      } else {
+        disk(c, "#a75938", x, y, 4, 3.6);
+        disk(c, "#f3a24b", x, y - 0.25, 3.35, 2.95);
+        rect(c, "#ffd07a", x - 1.9, y - 1.6, 1.6, 0.9);
+        stroke(c, "#72824b", [x - 0.9, y - 3.2, x, y - 4.1, x + 1.9, y - 4.5], 1.1);
+      }
+      c.restore();
+    },
+  };
+}
+
 function presentLayer(
   n: TownNpc,
   page: string,
@@ -391,6 +439,10 @@ export function drawResidentPortrait(c: Brush, npc: TownNpc, sprites: HTMLImageE
     drawYeshenhua(c,sceneArt.yeshenhua,24,52,47,yeshenhuaPose(page));
     return;
   }
+  if (npc.appearance === "guest") {
+    drawTownGuest(c, sceneArt.townGuests, npc.sprite, 24, 52, 47, townGuestPose(page));
+    return;
+  }
   const special =
     npc.id === "baker"
       ? bakerPose(page)
@@ -420,7 +472,7 @@ export function residentPlacement(npc: TownNpc, player: Point, act?: TownAct) {
     still = motion.matches;
   let foot: Point = npc,
     cell: number | undefined,
-    reverse = false,
+    reverse = npc.id === "xiaoyou" && !!page && player.x > npc.x,
     lean = 0;
   if (npc.id === "baker") cell = bakerPose(page);
   if ((npc.id === "bunny" && page) || (npc.id === "cat" && page === "rub")) {
@@ -463,11 +515,12 @@ export function townResidentLayers(
     t = performance?.elapsed ?? 0;
   const still = motion.matches,
     f = TOWN_FRAMES[npc.sprite];
+  const guest = npc.appearance === "guest";
   const height = npc.appearance === "yeshenhua" ? 43 : (f.h * 43) / 337,
     width = (f.w * 43) / 337;
   const { foot, cell, reverse } = placement;
   let lean = placement.lean;
-  const bob = still ? 0 : Math.sin(time * 1.7 + npc.sprite) * 0.5;
+  const bob = still || guest ? 0 : Math.sin(time * 1.7 + npc.sprite) * 0.5;
   if (page === "decline" || page === "silent" || page === "blush" || page === "joke")
     lean += still ? 0.04 : Math.sin(Math.min(t, 1) * Math.PI) * 0.085;
   if (page === "start" && npc.id === "welcome") lean = 0.07;
@@ -482,12 +535,22 @@ export function townResidentLayers(
     {
       y: foot.y + 0.05,
       draw(c) {
-        if (npc.appearance === "yeshenhua" ? !sceneArt.yeshenhua.naturalWidth : !sprites.naturalWidth) return;
+        const sheet = guest ? sceneArt.townGuests : npc.appearance === "yeshenhua" ? sceneArt.yeshenhua : sprites;
+        if (!sheet.naturalWidth) return;
         c.save();
         disk(c, "#3f51432e", foot.x, foot.y, 9, 3);
         c.translate(foot.x, foot.y + bob);
         c.rotate(lean);
-        if (npc.appearance === "yeshenhua") {
+        if (guest) {
+          const pose = townGuestPose(page) &&
+            (page !== "receive-orange" || (!still && t < orangeOfferSeconds));
+          if (reverse) c.scale(-1, 1);
+          drawTownGuest(c, sheet, npc.sprite, 0, 0, 44, pose);
+          if (page === "show-star-card" && (still || t < 0.9)) {
+            c.globalAlpha *= still ? 0.85 : 1 - ease(t / 0.9);
+            twinkle(c, -11, -22.5, 2.2);
+          }
+        } else if (npc.appearance === "yeshenhua") {
           drawYeshenhua(c,sceneArt.yeshenhua,0,0,height,yeshenhuaPose(page));
         } else if (cell === undefined || !gestureCell(c, cell, height, reverse)) {
           if (lowered > 0) {
@@ -518,7 +581,7 @@ export function townResidentLayers(
           } else c.drawImage(sprites, f.x, f.y, f.w, f.h, -width / 2, -height, width, height);
         }
         if (npc.id === "post") postbox(c, -height * 0.28);
-        if (page) actorProps(c, npc, page, still ? 1 : t, still);
+        if (page && !guest) actorProps(c, npc, page, still ? 1 : t, still);
         c.restore();
         if (!page && world.activeCueId !== "npc-" + npc.id && Math.hypot(world.player.x - foot.x, world.player.y - foot.y) < 100) {
           c.save();
@@ -528,7 +591,9 @@ export function townResidentLayers(
       },
     },
   ];
-  const gift = presentLayer(npc, page, t, world.player, still);
+  const gift = npc.id === "xiaoyou"
+    ? orangeLayer(npc, page, t, world, still, reverse)
+    : presentLayer(npc, page, t, world.player, still);
   if (gift) layers.push(gift);
   if (npc.id === "baker" && (page === "finished" || (page === "eat" && t > 2.3)) && world.facing === 0) {
     const { x, y } = world.player;

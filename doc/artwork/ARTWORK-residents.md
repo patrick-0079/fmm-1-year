@@ -1,5 +1,32 @@
 # 居民角色与剧情动作
 
+## 花海营火来宾
+
+派大星的四帧像素美术沿用第一次根据用户提供的形象图制作的较大头型。母图 `src/assets/patrick-camp.png` 为透明 256 × 256 图集，左上招手迈步、右上第二步、左下坐姿、右下递信。每格 128 × 128，脚点为 `(64,126)`。运行 `node scripts/build-community-art.mjs` 生成对应的无损 WebP。
+
+游戏在首次绘制时将头尖与两眼中线对齐。从尖顶到眉眼上方的交界逐行放宽，接上原轮廓后缓存到绘制图集，四帧共用同一脚底锚点。派大星从 `(164,184)` 走至 `(216,179)` 坐下。减少动态效果使用原地坐姿和递信姿势。
+
+图集由内置 imagegen 生成，用户提供的图片用于形象参考，小镇来宾图集用于像素画风参考。四帧统一使用同一头身比例，粉色尖头、两侧手臂和绿底紫花短裤清晰可辨。递信帧在右手画一封带红色封口的小信，坐姿帧的两只手自然放在腿边。
+
+## 小镇三位来宾
+
+内置 imagegen 使用定稿的三人概念图作形象参考，以 `town-npcs.png` 的俯视角度、像素描边和 Q 版比例作风格参考。生成图按真实透明轮廓裁切，清除边缘低于 24 的 Alpha 噪点，等比缩小后统一到同一脚底线。
+
+母图是 `src/assets/town-guests.png`，格式为 384 × 256 像素、三列两行。每格 128 × 128 像素，脚点在格内 `(64,126)`。列顺序为小佑、故里、浅笑。上排是站姿，下排对应递橘子、扶围巾和举星牌。运行 `node scripts/build-community-art.mjs` 从母图生成无损 WebP。地图、对白头像和网页居民导览用同一图集，首次进入小镇或展开导览时载入。
+
+### 三位来宾图集提示词
+
+> Use case: stylized-concept. Create one production sprite sheet of six isolated original pixel-art NPC sprites on true TRANSPARENT alpha, a landscape 3:2 image, precisely three evenly spaced columns and two evenly spaced rows, wide transparent gutters around each figure. First attached image is the approved identity and clothing reference where left is Xiaoyou with round spectacles and an orange basket, center is Guli the apple mascot, right is Qianxiao the friendly card boy. Second image gives ONLY game sprite style, slight top-down front camera, fine crunchy pixel clusters, warm dark-brown outlines, compact oversized head and very short legs of existing sprites. Render the approved original identities in this exact chibi RPG scale instead of the long legs in the concept. Cohesive consistent palette and depth, strong readable outlines at about 46 pixels tall, pinprick face highlights and sprite shadows inside colors. Feet and props sharp, no ground shadow. No text, border, background, floor, translucent edge glow, graph, or decorative elements. The two poses of each identity must closely match head size, coat shapes, palette and exact foot position within their cells. Each cell is a single fully visible figure with its prop, nothing cut off.
+>
+> TOP ROW from left to right: idle full-body standing, arms relaxed near bag or basket.
+> BOTTOM ROW from left to right: the exact same figures at the same scale, shown in small readable interaction poses, feet planted. Place all feet on a common line within each row (top around 45 percent image height, bottom around 95 percent). The apple mascot is around 68 percent of boys’ standing height, feet on that same baseline.
+>
+> LEFT COLUMN in both rows: kind boy with round spectacles, curly chestnut bangs, cream shirt under a golden-orange quilted vest, very short russet pants and boots. A small woven basket of leafy oranges supported on his viewer-right arm. Idle his viewer-left hand hangs relaxed or holds an orange near waist; action his viewer-left arm gently reaches forward holding one bright orange on the palm, shows it completely, visible orange clearly separate from chest and hand silhouette. Two feet, two arms. Retain glasses, basket and full body in action.
+>
+> CENTER COLUMN: a friendly coral red round apple as the body, tiny mitten hands and stubby brown boots, dark seed-bead eyes and small stitched smile, curled brown stem and one sage leaf, rosy cheeks. Cream kerchief clearly marked with one pastel pink fish brooch with triangular tail and an eye. Carries one small cream bakery carton with handle at viewer-right side. Idle facing front showing whole face and fish. Action gently lifts viewer-left mitten to hold the edge of the kerchief while turning only a little, showing fish clearly the whole time and carrying the bakery carton at side. Maintain compact red apple contour and leaf, no humanoid head.
+>
+> RIGHT COLUMN: kind shy boy, round warm violet-brown eyes, deep plum-black wine hair with curled tufts and one small honey-blond forelock. Short navy-purple knit cardigan, cream shirt, short plum pants, russet boots, teal crescent-stitch card satchel with one strap. Idle holds a small deck low near his waist. Action raises ONE navy card near viewer-left shoulder so the simple golden four-point star on the face is clearly visible with a small pale diamond center. Keep the other hand and satchel. Maintain feet in exact same place. Our original costume, motifs and original hair silhouette. No additional glow or sparks in the sheet (the game will add them).
+
 ## 勇气花园与回声遗迹的长者
 
 内置 imagegen 参照镇民图集 `src/assets/town-npcs.png` 生成透明母图 `src/assets/elder-residents.png`。生产资源 `src/assets/elder-residents.webp` 在首次进入勇气花园或回声遗迹时随地图预载，由两张地图共用。运行 `npm run optimize:art` 可从母图重新生成 WebP。

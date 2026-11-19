@@ -3,6 +3,8 @@ import { collections, type Memory } from "./content.ts";
 export interface ResidentStory {
   postDelivered: boolean;
   postReadRevision: number;
+  patrickDelivered: boolean;
+  patrickRead: boolean;
   welcomeReceived: boolean;
   cake: "new" | "reserved" | "eaten";
   // The keeper gives her journal when she welcomes the player to the quest.
@@ -33,12 +35,30 @@ export const postLetter: Memory = {
 下一次路过邮局，不用带信，也欢迎你来坐坐。`,
 };
 
+export const patrickLetter: Memory = {
+  id: "patrick-anniversary-letter",
+  title: "派大星的周年来信",
+  author: "派大星",
+  text: `芙芙，晚上好！
+
+展信佳！
+
+谢谢你这一年来的陪伴。想留住那些一起度过的晚安，我做了这个小小的游戏，送给你当作一周年礼物。希望走到这片花海时，你也能在火边安心歇一会儿。
+
+一周年快乐！愿接下来的日子里，开心的事多一点，累了也能好好休息。期待下一年继续和芙芙一起，度过更多温暖的夜晚。
+
+派大星
+2026年11月20日`,
+};
+
 export function readResidentStory(value?: Partial<ResidentStory> | null): ResidentStory {
   const revision = value?.postReadRevision;
   return {
     postDelivered: value?.postDelivered === true,
     postReadRevision: value?.postDelivered === true && typeof revision === "number" &&
       Number.isSafeInteger(revision) && revision > 0 ? revision : 0,
+    patrickDelivered: value?.patrickDelivered === true,
+    patrickRead: value?.patrickDelivered === true && value.patrickRead === true,
     welcomeReceived: value?.welcomeReceived === true,
     cake: value?.cake === "reserved" || value?.cake === "eaten" ? value.cake : "new",
     guardianInvited: value?.guardianInvited === true,
@@ -46,9 +66,32 @@ export function readResidentStory(value?: Partial<ResidentStory> | null): Reside
 }
 
 export function mailboxLetters(story: ResidentStory) {
-  return story.postDelivered ? [...collections.letters.items, postLetter] : collections.letters.items;
+  return [
+    ...collections.letters.items,
+    ...(story.postDelivered ? [postLetter] : []),
+    ...(story.patrickDelivered ? [patrickLetter] : []),
+  ];
 }
 
 export function postUnread(story: ResidentStory, revision = POST_LETTER_REVISION) {
   return story.postDelivered && story.postReadRevision < revision;
+}
+
+export function unreadLetterIds(story: ResidentStory) {
+  const ids: string[] = [];
+  if (postUnread(story)) ids.push(postLetter.id);
+  if (story.patrickDelivered && !story.patrickRead) ids.push(patrickLetter.id);
+  return ids;
+}
+
+export function markLetterRead(story: ResidentStory, id: string) {
+  if (id === postLetter.id && postUnread(story)) {
+    story.postReadRevision = POST_LETTER_REVISION;
+    return true;
+  }
+  if (id === patrickLetter.id && story.patrickDelivered && !story.patrickRead) {
+    story.patrickRead = true;
+    return true;
+  }
+  return false;
 }

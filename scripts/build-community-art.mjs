@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 
 // Preserve the generated alpha and every source pixel. Sprite bounds and foot
 // anchors are measured against these unchanged dimensions in the renderers.
-for (const name of ["xiaoye-plush", "yeshenhua", "xiaoye-embrace-v55", "suyan"]) {
+for (const name of ["xiaoye-plush", "yeshenhua", "xiaoye-embrace-v55", "suyan", "town-guests", "patrick-camp"]) {
   const source = fileURLToPath(new URL(`../src/assets/${name}.png`, import.meta.url));
   const output = fileURLToPath(new URL(`../src/assets/${name}.webp`, import.meta.url));
   const metadata = await sharp(source).metadata();

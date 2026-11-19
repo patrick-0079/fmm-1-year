@@ -1,6 +1,6 @@
 import { producers } from "./content";
 import type { Point } from "./core";
-import { campfire, meadowExit, starJar, tentRoof } from "./meadow-map";
+import { campfire, campSeat, meadowExit, starJar, tentRoof } from "./meadow-map";
 import { sfx } from "./sound";
 import { drawWildSprite } from "./wild-art";
 import type { DepthLayer, World } from "./world";
@@ -9,7 +9,9 @@ import { drawFirefly, fireflyDrift } from "./firefly-art";
 import { MeadowStarReader } from "./meadow-star-reader";
 import { StarBottleView } from "./star-bottle";
 import { showQuietStarEffect } from "./quiet-star-effect";
-import { drawCrossStar } from "./credit-star-art";
+import { creditStarTexture } from "./credit-star-art";
+import { CampGuest } from "./camp-guest";
+import { sceneArt } from "./scene-art";
 
 type Credit = typeof producers[number];
 const flock = [
@@ -18,6 +20,12 @@ const flock = [
   {x: 590, y: 312, size: 33, phase: 15},
 ];
 const sparkColors = ["#ffe6a0", "#f5d4bc", "#cee8cf", "#dae0ef"];
+const meadowStarLight = { halo: "#ffda80", glint: "#fff3c5", radius: 22 };
+const starLights = {
+  cross: meadowStarLight,
+  gold: { halo: "#ffd36b", glint: "#fff0b0", radius: 24 },
+  "pink-fish": { halo: "#ff9dbf", glint: "#ffdeeb", radius: 22 },
+};
 
 function glow(c: CanvasRenderingContext2D, x: number, y: number, radius: number, color: string) {
   const light = c.createRadialGradient(x, y, 0, x, y, radius);
@@ -40,10 +48,12 @@ export class NightMeadow {
   private memory?: {origin: Point; age: number; duration: number; burst: boolean};
   private reader: MeadowStarReader;
   private bottle: StarBottleView;
+  private campGuest: CampGuest;
 
-  constructor(private world: World, private found: () => string[], private save: () => void) {
+  constructor(private world: World, private found: () => string[], private save: () => void, deliverCampLetter: () => boolean) {
     this.reader = new MeadowStarReader(world);
     this.bottle = new StarBottleView(world, found);
+    this.campGuest = new CampGuest(world, deliverCampLetter);
     this.caption.className = "star-whisper";
     this.caption.hidden = true;
     this.caption.setAttribute("role", "status");
@@ -61,6 +71,7 @@ export class NightMeadow {
     world.onTick = (dt, t) => {
       tick(dt, t);
       if (world.scene !== "meadow") return;
+      this.campGuest.tick(dt, t);
       this.time += dt;
       this.caption.style.setProperty("--quiet-star-play", dt === 0 ? "paused" : "running");
       if (this.memory && (this.memory.age += dt) >= this.memory.duration) this.clearCaption();
@@ -72,6 +83,7 @@ export class NightMeadow {
     };
   }
   leave() {
+    this.campGuest.reset();
     this.closeBottle();
     this.closeReader();
     this.clearCaption();
@@ -84,7 +96,7 @@ export class NightMeadow {
     if (this.world.scene !== "meadow") return false;
     if (id === "meadow-camp") {
       const spot = this.world.config.spots.find(s => s.id === id)!;
-      this.world.sit({x: 252, y: 167}, spot.approach);
+      this.world.sit(campSeat, spot.approach);
       return true;
     }
     if (id === "meadow-jar") {
@@ -152,6 +164,7 @@ export class NightMeadow {
     const layers: DepthLayer[] = [
       {y: 168, draw: c => this.world.drawMapFragment(c, tentRoof)},
       {y: starJar.y, draw: c => drawWildSprite(c, atlas, 3, starJar.x, starJar.y, 17)},
+      ...this.campGuest.layers(sceneArt.patrickCamp, this.reduced.matches),
     ];
     for (const sheep of flock) {
       const phase = (t + sheep.phase) % 24;
@@ -170,13 +183,18 @@ export class NightMeadow {
     }
     for (const [i, person] of producers.entries()) {
       if (this.found().includes(person.id)) continue;
-      const {x, y} = person;
+      const {x, y, shape} = person;
+      const light = shape ? starLights[shape] : meadowStarLight;
       layers.push({y, draw: c => {
         const pulse = (1 + Math.sin(t * 1.5 + i)) / 2;
-        glow(c, x, y - 8, 22 + pulse * 3, "#ffda80");
-        if (person.shape === "cross") drawCrossStar(c, x, y - 1 - pulse, 19);
-        else drawWildSprite(c, atlas, 2, x, y - 1 - pulse, 19);
-        glint(c, x + 10, y - 15 - pulse * 2, 1.5, "#fff3c5");
+        const size = 19;
+        const foot = y - 1 - pulse;
+        glow(c, x, y - 8, light.radius + pulse * 3, light.halo);
+        if (shape) {
+          const sprite = creditStarTexture(shape);
+          c.drawImage(sprite, Math.round(x - size / 2), Math.round(foot - size), size, size);
+        } else drawWildSprite(c, atlas, 2, x, foot, size);
+        glint(c, x + 10, y - 15 - pulse * 2, 1.5, light.glint);
       }});
     }
     return layers;

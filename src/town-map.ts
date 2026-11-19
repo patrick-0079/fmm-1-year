@@ -145,10 +145,13 @@ export const townScene: Scene = {
       title: n.name + " · " + n.role,
       x: n.x,
       y: n.y,
-      // Stand beside the blue mailbox for the photographer and clear of the cosmos for the host.
-      approach: { x: n.x + (n.id === "photo-visitor" ? 17 : 0), y: n.y + (n.id === "hop-keeper" ? 18 : 26) },
+      // The gifts and card stay visible when the player approaches from the side.
+      approach: n.approach ?? {
+        x: n.x + (n.id === "photo-visitor" ? 17 : 0),
+        y: n.y + (n.id === "hop-keeper" ? 18 : 26),
+      },
       radius: 56,
-      markerOffset: 53,
+      markerOffset: n.appearance === "guest" ? (n.id === "guli" ? 34 : 44) : 53,
       color: "#ceab63",
     })),
     ...arcadesIn("town").map(([id, g]) => ({

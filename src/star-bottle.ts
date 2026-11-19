@@ -7,7 +7,7 @@ import bottleUrl from "./assets/star-bottle-closeup.webp";
 import { BOTTLE_COMPACT_WIDTH,bottleEntries,bottleGeometry,bottleScrollTop,nearestBottleStar,type BottleEntry } from "./star-bottle-layout";
 import type { World } from "./world";
 import { clearQuietStarEffect, showQuietStarEffect } from "./quiet-star-effect";
-import { crossStarUrl } from "./credit-star-art";
+import { creditStarTexture } from "./credit-star-art";
 
 export class StarBottleView {
   readonly element=document.createElement("section");
@@ -119,15 +119,31 @@ export class StarBottleView {
   }
   private renderStars() {
     this.stars.replaceChildren();
-    for(const person of this.known){
-      const button=document.createElement("button"),art=document.createElement("span");button.type="button";button.className="star-bottle-star";button.dataset.starId=person.id;button.dataset.slot=String(person.slot);
-      button.setAttribute("aria-label",`查看${person.name}的星星`);button.setAttribute("aria-pressed",String(this.selected===person.id));art.className="star-bottle-star-art";art.setAttribute("aria-hidden","true");art.style.setProperty("--star-phase",`${person.slot*-.73}s`);
-      if(person.shape==="cross"){
-        art.dataset.shape="cross";art.style.backgroundImage=`url("${crossStarUrl}")`;art.style.backgroundSize="100% 100%";art.style.backgroundPosition="center";
+    for (const person of this.known) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "star-bottle-star";
+      button.dataset.starId = person.id;
+      button.dataset.slot = String(person.slot);
+      button.setAttribute("aria-label", `查看${person.name}的星星`);
+      button.setAttribute("aria-pressed", String(this.selected === person.id));
+
+      const art = document.createElement("span");
+      art.className = "star-bottle-star-art";
+      art.setAttribute("aria-hidden", "true");
+      art.style.setProperty("--star-phase", `${person.slot * -.73}s`);
+      if (person.shape) {
+        art.dataset.shape = person.shape;
+        art.style.backgroundImage = `url("${creditStarTexture(person.shape).toDataURL()}")`;
       }
-      button.append(art);button.addEventListener("click",event=>{if(!event.detail)this.select(person);});this.stars.append(button);
+      button.append(art);
+      button.addEventListener("click", event => {
+        if (!event.detail) this.select(person);
+      });
+      this.stars.append(button);
     }
-    this.previous.hidden=this.next.hidden=this.known.length<2;this.positionStars();
+    this.previous.hidden = this.next.hidden = this.known.length < 2;
+    this.positionStars();
   }
   private chooseAdjacent(delta:number) {
     if(!this.known.length)return;

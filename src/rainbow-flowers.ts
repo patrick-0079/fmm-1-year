@@ -11,6 +11,15 @@ export const rainbowFlowers = [
 ] as const;
 export const rainbowIds: readonly string[] = rainbowFlowers.map(f => f.id);
 export const meadowOpen = (found: readonly string[]) => rainbowIds.every(id => found.includes(id));
+
+export function rainbowReminderStrength(elapsed: number, reducedMotion: boolean) {
+  const interval = 30, duration = 3;
+  if (elapsed < interval) return 0;
+  const phase = elapsed % interval;
+  if (phase >= duration) return 0;
+  return reducedMotion ? 1 : Math.min(1, phase / .4, (duration - phase) / .6);
+}
+
 export function pickRainbow(found: string[], scene: SceneId, id: string) {
   const flower = rainbowFlowers.find(f => f.id === id && f.scene === scene);
   if (!flower || found.includes(id)) return;
