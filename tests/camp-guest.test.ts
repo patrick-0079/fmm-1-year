@@ -9,19 +9,19 @@ const camp = meadowScene.spots.find(spot => spot.id === "meadow-camp")!;
 const sheet = {naturalWidth: 256} as HTMLImageElement;
 const sitting = () => benchRest("meadow", campSeat, camp.approach);
 
-test("one uninterrupted minute of sitting brings the guest and standing clears the scene", () => {
+test("30 uninterrupted seconds of sitting brings the guest and standing clears the scene", () => {
   const world: ConstructorParameters<typeof CampGuest>[0] = {scene: "meadow", restState: sitting(), paused: false};
   let visits = 0;
   const guest = new CampGuest(world, () => ++visits === 1);
   guest.tick(.016, 10);
-  guest.tick(.016, 69.9);
+  guest.tick(.016, 39.999);
   assert.equal(visits, 0);
   assert.deepEqual(guest.layers(sheet, false), []);
   world.restState = sitting();
-  guest.tick(.016, 70);
-  guest.tick(.016, 129.999);
+  guest.tick(.016, 40);
+  guest.tick(.016, 69.999);
   assert.equal(visits, 0, "sitting again starts a new visit");
-  guest.tick(.016, 130);
+  guest.tick(.016, 70);
   assert.equal(visits, 1);
   assert.equal(guest.layers(sheet, true)[0].y, campGuestSeat.y);
   guest.tick(.016, 200);
@@ -39,15 +39,15 @@ test("the guest waits for an active camp view and walks along clear ground", () 
   let visits = 0;
   const guest = new CampGuest(world, () => { visits++; return true; });
   guest.tick(.016, 1);
-  guest.tick(0, 61);
+  guest.tick(0, 31);
   world.paused = true;
-  guest.tick(.016, 62);
+  guest.tick(.016, 32);
   assert.equal(visits, 0);
   world.paused = false;
-  guest.tick(.016, 63);
+  guest.tick(.016, 33);
   assert.equal(visits, 1);
   assert.equal(guest.layers(sheet, false)[0].y, campGuestStart.y);
-  guest.tick(1, 64);
+  guest.tick(1, 34);
   assert.equal(guest.layers(sheet, false)[0].y, campGuestSeat.y);
   guest.reset();
   assert.deepEqual(guest.layers(sheet, false), []);

@@ -326,7 +326,7 @@ R2 CORS 完整示例在 [README](README.md#花园小电视cdn-周年放映)。`C
 
 公开来信来自 `src/content.ts` 的 `collections.letters.items`，当前有小叶子、夜神华、Kerry、苏颜、Rabe、一橙橘小佑和故里七封可直接阅读。待收来信登记在 `todo.md`。Rabe 使用 `rabe-anniversary-letter`，正文保留原稿中不同样式的引号。苏颜使用 `suyan-anniversary-letter`，与花园 NPC 对话共用同一段正文。红笺与派大星的来信都在 `src/resident-story.ts`，按剧情追加，共可收齐九封。`POST_LETTER_REVISION` 为 2，后续修改红笺正文时保留 ID 并递增版本。投递、已读状态、银铃赠礼、栗栗留蛋糕和守护者邀请都保存在主存档的 `residents`。两个信箱入口共用这些记录。洋桔梗属于背包存档的 `bouquet` 字段，由青芽的收花选项领取。
 
-花海营火的坐姿由 `CampGuest` 按本次坐下的状态和单调时钟计时。连续坐满 60 秒后，派大星从草地走到火边，首次递信时写入 `patrickDelivered`。站起来、切图或刷新会结束本次陪坐。下次可再等他来，来信按 `patrickRead` 独立记录已读状态。营火的「读来信」复用游戏内信箱，收起后继续坐着。图片和动作见[营火来宾美术记录](doc/artwork/ARTWORK-residents.md#花海营火来宾)。
+花海营火的坐姿由 `CampGuest` 按本次坐下的状态和单调时钟计时。连续坐满 30 秒后，派大星从草地走到火边，首次递信时写入 `patrickDelivered`。站起来、切图或刷新会结束本次陪坐。下次可再等他来，来信按 `patrickRead` 独立记录已读状态。营火的「读来信」复用游戏内信箱，收起后继续坐着。图片和动作见[营火来宾美术记录](doc/artwork/ARTWORK-residents.md#花海营火来宾)。
 
 苏颜是周年花园来宾，站在放映草坪北侧 `(650,181)`，靠近点 `(650,205)`。`src/suyan-data.ts` 维护脚底碰撞、头像本体点击范围和动作提示。`src/suyan.ts` 使用 `drawSuyan` 在地图和对白中绘制同一个角色，按脚底深度排序。她沿用 `Activities.dialogue` 的 72px 离开收起规则。选择「阅读苏颜的来信」会先收起对白，再通过游戏阅读器选择同一封公开来信。`src/assets/suyan.webp` 纳入花园资源预载和现有内容哈希缓存。替换素材时应同步校准 `src/suyan-art.ts` 的裁切与脚底锚点，保持大帽子的头顶到双脚等比高度。
 

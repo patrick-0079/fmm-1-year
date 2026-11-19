@@ -3,7 +3,7 @@ import type { DepthLayer, World } from "./world";
 
 export const campGuestStart = { x: 164, y: 184 };
 export const campGuestSeat = { x: 216, y: 179 };
-const waitSeconds = 60;
+const waitSeconds = 30;
 const walkSeconds = 1;
 const offerUntil = 1.75;
 const handoffUntil = 2.2;
