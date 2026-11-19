@@ -324,10 +324,10 @@ R2 CORS 完整示例在 [README](README.md#花园小电视cdn-周年放映)。`C
 
 拥抱不发奖励、不记入小镇居民计数、不新增存档字段。随时走开或收起、切图、复活、清档与打开其他面板都应结束演出；连续操作不能叠加计时或残留控制锁。减少动态效果时使用静态环抱。见 [v54 角色记录](doc/artwork/ARTWORK-v54.md) 与 [v55 动画素材、提示词及验证](doc/artwork/ARTWORK-v55.md)。
 
-公开来信来自 `src/content.ts` 的 `collections.letters.items`，当前有小叶子、夜神华、Kerry、苏颜、Rabe、一橙橘小佑和故里七封可直接阅读。待收来信登记在 `todo.md`。Rabe 使用 `rabe-anniversary-letter`，正文保留原稿中不同样式的引号。苏颜使用 `suyan-anniversary-letter`，与花园 NPC 对话共用同一段正文。红笺与派大星的来信都在 `src/resident-story.ts`，按剧情追加，共可收齐九封。`POST_LETTER_REVISION` 为 2，后续修改红笺正文时保留 ID 并递增版本。投递、已读状态、银铃赠礼、栗栗留蛋糕和守护者邀请都保存在主存档的 `residents`。两个信箱入口共用这些记录。洋桔梗属于背包存档的 `bouquet` 字段，由青芽的收花选项领取。
+信件正文保存在 `src/content.ts` 的 `collections.letters.items`，红笺、派大星的正文在 `src/resident-story.ts`。新档可直接读 Kerry 和 Rabe 两封。`handedLetters` 用稳定来信 ID 绑定小叶子、苏颜、夜神华、小佑和故里的递信对白，以及派大星的地面信封。前五封由玩家选择「收下信」写入 `residents.npcLetters`，对应值为 `unread` 或 `read`。红笺继续用 `postDelivered` 与 `postReadRevision`，正文更换时递增 `POST_LETTER_REVISION`。信箱统一通过 `mailboxLetters` 过滤可读列表，通过 `markLetterRead` 更新两个入口的未读提示。全部可收齐九封。
 
-花海营火的坐姿由 `CampGuest` 按本次坐下的状态和单调时钟计时。连续坐满 30 秒后，派大星从草地走到火边，首次递信时写入 `patrickDelivered`。站起来、切图或刷新会结束本次陪坐。下次可再等他来，来信按 `patrickRead` 独立记录已读状态。营火的「读来信」复用游戏内信箱，收起后继续坐着。图片和动作见[营火来宾美术记录](doc/artwork/ARTWORK-residents.md#花海营火来宾)。
+花海的 `CampGuest` 按本次坐下的状态计时。坐满 30 秒写入 `patrickArrived`，派大星无对白入场，把信放在 `(232,187)`。每档仅入场一次。入场后切图或刷新，未拾取的信仍会出现在原位置。拾取信封后写入 `patrickDelivered`，打开正文时更新 `patrickRead`。营火的「读来信」复用游戏内信箱，收起后继续坐着。图片和动作见[营火来宾美术记录](doc/artwork/ARTWORK-residents.md#花海营火来宾)。
 
-苏颜是周年花园来宾，站在放映草坪北侧 `(650,181)`，靠近点 `(650,205)`。`src/suyan-data.ts` 维护脚底碰撞、头像本体点击范围和动作提示。`src/suyan.ts` 使用 `drawSuyan` 在地图和对白中绘制同一个角色，按脚底深度排序。她沿用 `Activities.dialogue` 的 72px 离开收起规则。选择「阅读苏颜的来信」会先收起对白，再通过游戏阅读器选择同一封公开来信。`src/assets/suyan.webp` 纳入花园资源预载和现有内容哈希缓存。替换素材时应同步校准 `src/suyan-art.ts` 的裁切与脚底锚点，保持大帽子的头顶到双脚等比高度。
+苏颜是周年花园来宾，站在放映草坪北侧 `(650,181)`，靠近点 `(650,205)`。`src/suyan-data.ts` 维护脚底碰撞、头像本体点击范围和动作提示。`src/suyan.ts` 使用 `drawSuyan` 在地图和对白中绘制同一个角色，按脚底深度排序。她沿用 `Activities.dialogue` 的 72px 离开收起规则。「你在等我吗？」进入递信对白，「收下信」入箱，随后可选「现在读信」。`src/assets/suyan.webp` 纳入花园资源预载和现有内容哈希缓存。替换素材时应同步校准 `src/suyan-art.ts` 的裁切与脚底锚点，保持大帽子的头顶到双脚等比高度。
 
 信箱继续共用 `MapReader` 的游戏内和页面阅读入口，由 `src/mailbox.css` 统一左列来信标签与右侧正文的布局。`.collection-list` 与 `.memory-detail` 各自滚动，正文焦点、滚动检查和滚到底提示应定位到 `.memory-detail`，不要再滚整个 `.reader-body`。手机左列显示简短署名，正文保留完整标题与作者；游戏内阅读器固定在原画幅内，不恢复相对定位样式撑大 `.scene-wrap`。长信应保留换行、清晰字体和可选择的正文，来回切换阅读方式时仍读取同一封信和同一份未读状态。

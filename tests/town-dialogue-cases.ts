@@ -120,7 +120,7 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
     choose("收下橘子");
     assert(status() === "（小佑把橘子递到芙芙手里。）", "缺少递橘子的旁白");
     choose("尝一瓣");
-    assert(status() === "甜吗？我挑了好久呢。芙芙姐姐一周年快乐！", "品尝对白有误");
+    assert(status() === "甜吗？我挑了好久呢！", "品尝对白有误");
     close();
     assert(count() === "16 / 18", "重访同一来宾时重复计数");
   }

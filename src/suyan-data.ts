@@ -21,4 +21,3 @@ export const suyanSpot: Hotspot = {
 export const suyanFootprint: Obstacle = {
   label: "来宾 · 苏颜", x: suyanSpot.x - 5, y: suyanSpot.y - 5, w: 10, h: 8,
 };
-export const SUYAN_LETTER_ID = "suyan-anniversary-letter";

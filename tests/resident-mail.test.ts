@@ -3,19 +3,16 @@ import assert from "node:assert/strict";
 import { readProgress } from "../src/core.ts";
 import { readInventory } from "../src/items.ts";
 import { readResidentStory, mailboxLetters, postLetter, postUnread, POST_LETTER_REVISION,
-  markLetterRead, patrickLetter, unreadLetterIds } from "../src/resident-story.ts";
+  collectHandedLetter, handedLetters, letterChoice, markLetterRead, patrickLetter, unreadLetterIds } from "../src/resident-story.ts";
 
-test("seven public letters remain available and the postman adds exactly one delivered letter", () => {
+test("a new adventurer can read Kerry and Rabe, and the postman adds one delivered letter", () => {
   const old = readProgress('{"visited":["letters"],"decoratorMet":true}').residents;
-  assert.equal(mailboxLetters(old).length, 7);
   assert.deepEqual(mailboxLetters(old).map(letter => letter.title), [
-    "小叶子的周年来信", "夜神华的周年来信", "Kerry 的周年来信", "苏颜的周年来信", "Rabe 的周年来信",
-    "一橙橘小佑的周年来信", "故里的周年来信",
+    "Kerry 的周年来信", "Rabe 的周年来信",
   ]);
-  assert.equal(mailboxLetters(old).some(letter => letter.id === postLetter.id), false);
-  assert.ok(mailboxLetters(old).some(letter => letter.id === "kerry-anniversary-letter"));
+  assert.deepEqual(unreadLetterIds(old), []);
   const delivered = readResidentStory({...old, postDelivered: true});
-  assert.equal(mailboxLetters(delivered).length, 8);
+  assert.equal(mailboxLetters(delivered).length, 3);
   assert.equal(mailboxLetters(delivered).filter(letter => letter.id === postLetter.id).length, 1);
   assert.equal(postUnread(delivered), true);
   delivered.postReadRevision = POST_LETTER_REVISION;
@@ -23,6 +20,52 @@ test("seven public letters remain available and the postman adds exactly one del
   assert.equal(postUnread(restored), false);
   assert.equal(postUnread(restored, POST_LETTER_REVISION + 1), true);
   assert.equal(mailboxLetters(old).length + 1, mailboxLetters(delivered).length);
+});
+
+test("each NPC letter is added once, remains unread until opened, and survives a save round trip", () => {
+  const state = readResidentStory();
+  const npcIds = [handedLetters.xiaoye, handedLetters["radio-host"], handedLetters.suyan,
+    handedLetters.xiaoyou, handedLetters.guli];
+  for (const id of [...npcIds].reverse()) {
+    assert.equal(markLetterRead(state, id), false);
+    assert.equal(collectHandedLetter(state, id)?.id, id);
+    assert.equal(collectHandedLetter(state, id), undefined);
+  }
+  assert.equal(mailboxLetters(state).length, 7);
+  assert.deepEqual(unreadLetterIds(state), npcIds);
+  assert.equal(markLetterRead(state, handedLetters.suyan), true);
+  assert.equal(markLetterRead(state, handedLetters.suyan), false);
+  const restored = readProgress(JSON.stringify({ residents: state })).residents;
+  assert.deepEqual(mailboxLetters(restored), mailboxLetters(state));
+  assert.deepEqual(unreadLetterIds(restored), npcIds.filter(id => id !== handedLetters.suyan));
+  restored.postDelivered = true;
+  restored.patrickArrived = true;
+  assert.equal(collectHandedLetter(restored, handedLetters.patrick)?.id, patrickLetter.id);
+  assert.equal(new Set(mailboxLetters(restored).map(letter => letter.id)).size, 9);
+  assert.equal(mailboxLetters(readProgress(null).residents).length, 2);
+});
+
+test("showing a choice does not collect or read its letter", () => {
+  const story = readResidentStory();
+  let refreshes = 0, reads = 0;
+  const id = handedLetters.suyan;
+  const showChoice = () => letterChoice({
+    received: () => story.npcLetters[id] !== undefined,
+    collect: letter => !!collectHandedLetter(story, letter),
+    read: letter => { reads++; markLetterRead(story, letter); },
+  }, id, () => { refreshes++; });
+  const take = showChoice();
+  assert.equal(take.title, "收下信");
+  assert.deepEqual(unreadLetterIds(story), []);
+  take.run(); take.run();
+  assert.deepEqual(unreadLetterIds(story), [id]);
+  assert.equal(refreshes, 1);
+  const read = showChoice();
+  assert.equal(read.title, "现在读信");
+  assert.equal(reads, 0);
+  read.run();
+  assert.equal(reads, 1);
+  assert.deepEqual(unreadLetterIds(story), []);
 });
 
 test("the finished post letter upgrades the old placeholder receipt once without changing its save ID", () => {
@@ -43,11 +86,15 @@ test("the finished post letter upgrades the old placeholder receipt once without
 test("the camp letter is gated, saved once and read independently of the postman's letter", () => {
   const old = readResidentStory({postDelivered: true, patrickRead: true});
   assert.equal(old.patrickRead, false);
+  assert.equal(collectHandedLetter(old, handedLetters.patrick), undefined);
   assert.equal(markLetterRead(old, patrickLetter.id), false);
   assert.deepEqual(unreadLetterIds(old), [postLetter.id]);
-  const delivered = readProgress(JSON.stringify({residents: {...old, patrickDelivered: true}})).residents;
+  const delivered = readProgress(JSON.stringify({residents: {...old, patrickArrived: true}})).residents;
+  assert.equal(mailboxLetters(delivered).length, 3);
+  assert.equal(collectHandedLetter(delivered, handedLetters.patrick), patrickLetter);
+  assert.equal(collectHandedLetter(delivered, handedLetters.patrick), undefined);
   assert.deepEqual(mailboxLetters(delivered).slice(-2).map(letter=>letter.id), [postLetter.id,patrickLetter.id]);
-  assert.equal(mailboxLetters(delivered).length, 9);
+  assert.equal(mailboxLetters(delivered).length, 4);
   assert.deepEqual(unreadLetterIds(delivered), [postLetter.id,patrickLetter.id]);
   assert.equal(patrickLetter.author, "派大星");
   assert.ok(patrickLetter.text?.endsWith("派大星\n2026年11月20日"));

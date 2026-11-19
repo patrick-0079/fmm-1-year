@@ -27,7 +27,9 @@ test("Yeshinhua retains the radio host's stable identity, authored choices and e
   ]);
   assert.equal(host["cow-horns"].text,"嘿嘿，谢谢！我给它们系了紫色的小丝带。走路时会先看看树枝，免得把丝带挂住。");
   assert.equal(host["cow-stroll"].text,"去草地上散一小会儿步，听听风吹过叶子的声音。再把麦克风摆正，给大家送一声软软的晚安。");
-  for(const id of ["cow-horns","cow-stroll"])assert.deepEqual(host[id].choices,[["再聊聊电台","start"]]);
+  for (const id of ["cow-horns", "cow-stroll"]) {
+    assert.deepEqual(host[id].choices, [["看看节目单", "offer-letter"], ["再聊聊电台", "start"]]);
+  }
   assert.ok(scenes.town.spots.find(s=>s.id==="npc-radio-host")?.title.startsWith("夜神华"));
   assert.ok(scenes.town.walls.some(w=>w.label==="镇民 · 夜神华"));
 });

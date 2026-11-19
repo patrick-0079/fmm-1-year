@@ -1,8 +1,25 @@
 import { collections, type Memory } from "./content.ts";
 
+export const handedLetters = {
+  xiaoye: "xiaoye-anniversary-letter",
+  suyan: "suyan-anniversary-letter",
+  "radio-host": "yeshenhua-anniversary-letter",
+  xiaoyou: "xiaoyou-anniversary-letter",
+  guli: "guli-anniversary-letter",
+  patrick: "patrick-anniversary-letter",
+} as const;
+export type HandedLetterId = typeof handedLetters[keyof typeof handedLetters];
+type NpcLetterId = Exclude<HandedLetterId, typeof handedLetters.patrick>;
+const handedLetterIds: readonly string[] = Object.values(handedLetters);
+function isNpcLetter(id: string): id is NpcLetterId {
+  return id !== handedLetters.patrick && handedLetterIds.includes(id);
+}
+
 export interface ResidentStory {
+  npcLetters: Partial<Record<NpcLetterId, "unread" | "read">>;
   postDelivered: boolean;
   postReadRevision: number;
+  patrickArrived: boolean;
   patrickDelivered: boolean;
   patrickRead: boolean;
   welcomeReceived: boolean;
@@ -36,7 +53,7 @@ export const postLetter: Memory = {
 };
 
 export const patrickLetter: Memory = {
-  id: "patrick-anniversary-letter",
+  id: handedLetters.patrick,
   title: "派大星的周年来信",
   author: "派大星",
   text: `芙芙，晚上好！
@@ -53,10 +70,18 @@ export const patrickLetter: Memory = {
 
 export function readResidentStory(value?: Partial<ResidentStory> | null): ResidentStory {
   const revision = value?.postReadRevision;
+  const npcLetters: ResidentStory["npcLetters"] = {};
+  for (const id of handedLetterIds) {
+    if (!isNpcLetter(id)) continue;
+    const status = value?.npcLetters?.[id];
+    if (status === "unread" || status === "read") npcLetters[id] = status;
+  }
   return {
+    npcLetters,
     postDelivered: value?.postDelivered === true,
     postReadRevision: value?.postDelivered === true && typeof revision === "number" &&
       Number.isSafeInteger(revision) && revision > 0 ? revision : 0,
+    patrickArrived: value?.patrickArrived === true || value?.patrickDelivered === true,
     patrickDelivered: value?.patrickDelivered === true,
     patrickRead: value?.patrickDelivered === true && value.patrickRead === true,
     welcomeReceived: value?.welcomeReceived === true,
@@ -67,10 +92,39 @@ export function readResidentStory(value?: Partial<ResidentStory> | null): Reside
 
 export function mailboxLetters(story: ResidentStory) {
   return [
-    ...collections.letters.items,
+    ...collections.letters.items.filter(({ id }) => !isNpcLetter(id) || story.npcLetters[id]),
     ...(story.postDelivered ? [postLetter] : []),
     ...(story.patrickDelivered ? [patrickLetter] : []),
   ];
+}
+
+export function hasHandedLetter(story: ResidentStory, id: HandedLetterId) {
+  return id === handedLetters.patrick ? story.patrickDelivered : !!story.npcLetters[id];
+}
+
+export function collectHandedLetter(story: ResidentStory, id: HandedLetterId): Memory | undefined {
+  if (hasHandedLetter(story, id)) return;
+  if (id === handedLetters.patrick) {
+    if (!story.patrickArrived) return;
+    story.patrickDelivered = true;
+    return patrickLetter;
+  }
+  if (!isNpcLetter(id)) return;
+  const letter = collections.letters.items.find(item => item.id === id);
+  if (letter) story.npcLetters[id] = "unread";
+  return letter;
+}
+
+export interface LetterHandoff {
+  received: (id: HandedLetterId) => boolean;
+  collect: (id: HandedLetterId) => boolean;
+  read: (id: HandedLetterId) => void;
+}
+
+export function letterChoice(mail: LetterHandoff, id: HandedLetterId, refresh: () => void) {
+  return mail.received(id)
+    ? { title: "现在读信", run: () => mail.read(id) }
+    : { title: "收下信", run: () => { if (mail.collect(id)) refresh(); } };
 }
 
 export function postUnread(story: ResidentStory, revision = POST_LETTER_REVISION) {
@@ -78,13 +132,18 @@ export function postUnread(story: ResidentStory, revision = POST_LETTER_REVISION
 }
 
 export function unreadLetterIds(story: ResidentStory) {
-  const ids: string[] = [];
+  const ids = collections.letters.items.map(letter => letter.id)
+    .filter(id => isNpcLetter(id) && story.npcLetters[id] === "unread");
   if (postUnread(story)) ids.push(postLetter.id);
   if (story.patrickDelivered && !story.patrickRead) ids.push(patrickLetter.id);
   return ids;
 }
 
 export function markLetterRead(story: ResidentStory, id: string) {
+  if (isNpcLetter(id) && story.npcLetters[id] === "unread") {
+    story.npcLetters[id] = "read";
+    return true;
+  }
   if (id === postLetter.id && postUnread(story)) {
     story.postReadRevision = POST_LETTER_REVISION;
     return true;

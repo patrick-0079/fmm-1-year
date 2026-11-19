@@ -18,7 +18,7 @@ interface LetterList {
 }
 export function openCollection(modal: CollectionSurface, id: string, letters?: LetterList) {
   const collection = collections[id];
-  if (!collection) return;
+  if (!collection || (id === "letters" && !letters)) return;
   const items = letters?.items ?? collection.items;
   const body = modal.open(
     collection.title,

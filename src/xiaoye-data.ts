@@ -74,14 +74,15 @@ export class XiaoyeHug {
   }
   cancel() { this.remaining = 0; }
   tick(dt: number, player: Point, available: boolean) {
-    if (!this.active) return;
+    if (!this.active) return false;
     // A player can leave immediately. Never move their feet, clear held keys,
     // or keep embracing empty space after another panel takes over.
     if (!available || !Number.isFinite(player.x) || !Number.isFinite(player.y) ||
       Math.hypot(player.x - this.start.x, player.y - this.start.y) > 7) {
       this.cancel();
-      return;
+      return false;
     }
     if (Number.isFinite(dt)) this.remaining = Math.max(0, this.remaining - Math.max(0, dt));
+    return !this.active;
   }
 }

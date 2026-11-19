@@ -1,6 +1,6 @@
 import { producers } from "./content";
 import type { Point } from "./core";
-import { campfire, campSeat, meadowExit, starJar, tentRoof } from "./meadow-map";
+import { campfire, campLetterSpot, campSeat, meadowExit, starJar, tentRoof } from "./meadow-map";
 import { sfx } from "./sound";
 import { drawWildSprite } from "./wild-art";
 import type { DepthLayer, World } from "./world";
@@ -12,6 +12,7 @@ import { showQuietStarEffect } from "./quiet-star-effect";
 import { creditStarTexture } from "./credit-star-art";
 import { CampGuest } from "./camp-guest";
 import { sceneArt } from "./scene-art";
+import type { ResidentStory } from "./resident-story";
 
 type Credit = typeof producers[number];
 const flock = [
@@ -50,10 +51,11 @@ export class NightMeadow {
   private bottle: StarBottleView;
   private campGuest: CampGuest;
 
-  constructor(private world: World, private found: () => string[], private save: () => void, deliverCampLetter: () => boolean) {
+  constructor(private world: World, private found: () => string[], private save: () => void,
+    campStory: () => ResidentStory, private collectCampLetter: () => void) {
     this.reader = new MeadowStarReader(world);
     this.bottle = new StarBottleView(world, found);
-    this.campGuest = new CampGuest(world, deliverCampLetter);
+    this.campGuest = new CampGuest(world, campStory, save);
     this.caption.className = "star-whisper";
     this.caption.hidden = true;
     this.caption.setAttribute("role", "status");
@@ -67,7 +69,9 @@ export class NightMeadow {
         drawMoonCircle(c,meadowExit.x,meadowExit.y,this.reduced.matches ? 0 : this.time,near);
       }
     };
-    world.available = spot => available(spot) && !(world.scene === "meadow" && this.found().includes(spot.id));
+    world.available = spot => available(spot) && (spot.id === campLetterSpot.id
+      ? this.campGuest.letterOnGround
+      : !(world.scene === "meadow" && this.found().includes(spot.id)));
     world.onTick = (dt, t) => {
       tick(dt, t);
       if (world.scene !== "meadow") return;
@@ -94,6 +98,10 @@ export class NightMeadow {
   closeBottle() { this.bottle.close(); }
   interact(id: string) {
     if (this.world.scene !== "meadow") return false;
+    if (id === campLetterSpot.id) {
+      if (this.campGuest.letterOnGround) this.collectCampLetter();
+      return true;
+    }
     if (id === "meadow-camp") {
       const spot = this.world.config.spots.find(s => s.id === id)!;
       this.world.sit(campSeat, spot.approach);

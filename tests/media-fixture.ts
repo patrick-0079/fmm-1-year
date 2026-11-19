@@ -101,7 +101,8 @@ document.querySelectorAll<HTMLButtonElement>("[data-test]").forEach((button) =>
       document.querySelector("#fixture-status")!.textContent =
         "测试片段已准备好";
     }
-    openCollection(modal, button.dataset.test!);
+    const id = button.dataset.test!;
+    openCollection(modal, id, id === "letters" ? { items: collections.letters.items, onRead: () => {} } : undefined);
   }),
 );
 window.addEventListener("pagehide", () =>

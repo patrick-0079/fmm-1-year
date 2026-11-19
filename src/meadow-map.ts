@@ -1,9 +1,18 @@
 import { producers } from "./content.ts";
-import type { Scene } from "./maps.ts";
+import type { Hotspot, Scene } from "./maps.ts";
 
 const points = (pairs: number[][]) => pairs.map(([x, y]) => ({x, y}));
 export const campfire = { x: 232, y: 156 };
 export const campSeat = { x: 252, y: 167 };
+export const campLetterSpot: Hotspot = {
+  id: "meadow-camp-letter", title: "营火旁的信", x: 232, y: 187,
+  approach: { x: 232, y: 201 }, radius: 26,
+  hitAreas: [{ x: 225, y: 178, w: 15, h: 12 }],
+  cue: {
+    kind: "collect", action: "拾起营火旁的信", verb: "拾起", natural: false,
+    anchor: { x: 4, y: -6 }, objectBox: { x: -6, y: -8, w: 12, h: 9 },
+  },
+};
 export const starJar = { x: 198, y: 194 };
 export const meadowExit = { x: 58, y: 238 };
 export function enteredMoonCircle(before:{x:number;y:number},after:{x:number;y:number}) {
@@ -49,6 +58,7 @@ export const meadowScene: Scene = {
       approach: {x: 87, y: 239}, radius: 39, markerOffset: 0, selfMarked: true},
     {id: "meadow-camp", title: "在营火边坐坐", ...campfire,
       approach: {x: 247, y: 184}, radius: 40, selfMarked: true},
+    campLetterSpot,
     {id: "meadow-jar", title: "看看星光瓶", ...starJar,
       approach: {x: 186, y: 210}, radius: 34, selfMarked: true},
     ...producers.map(({id, x, y}) => ({id, x, y, title: "拾起草间的落星",

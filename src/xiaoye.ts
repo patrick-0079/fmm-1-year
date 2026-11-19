@@ -8,6 +8,7 @@ import { XiaoyeHug, xiaoyeFrame, xiaoyeFrames, xiaoyeHugText, xiaoyeLanternOn,
   xiaoyeLanternPoint, xiaoyeScale, xiaoyeSpot } from "./xiaoye-data";
 import { embracePose, boundedEmbraceFoot, isEmbraceApproach, EMBRACE_BODY_GAP, EMBRACE_SHOULDER_Y } from "./xiaoye-embrace";
 import { embraceFrames, EMBRACE_ART_SCALE } from "./xiaoye-embrace-art";
+import { handedLetters, letterChoice, type LetterHandoff } from "./resident-story";
 
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
 const HEIGHT = 60;
@@ -24,7 +25,7 @@ export class Xiaoye {
   private panels: HTMLElement[];
 
   constructor(private world: World, private activities: Activities,
-    private phase: () => Phase = () => "day") {
+    private mail: LetterHandoff, private phase: () => Phase) {
     this.panels = Array.from(document.querySelectorAll<HTMLElement>(
       ".inventory-panel,.map-reader,.game-letter-reader,.page-memory-reader,.inline-help",
     ));
@@ -34,8 +35,12 @@ export class Xiaoye {
       tick(dt, time);
       this.time = time;
       const wasHugging=this.hug.active, mirrored=this.hug.mirrored;
-      this.hug.tick(dt, world.player, this.available() && this.ownsDialogue);
-      if(wasHugging && !this.hug.active)this.idleMirrored=mirrored;
+      const finished = this.hug.tick(dt, world.player, this.available() && this.ownsDialogue);
+      if (wasHugging && !this.hug.active) {
+        this.idleMirrored = mirrored;
+        if (!finished) this.activities.dismissDialogue(xiaoyeSpot);
+        else if (!this.mail.received(handedLetters.xiaoye)) this.offerLetter();
+      }
       if (world.scene !== "garden") this.reset();
     };
     world.getActorPresentation = () => {
@@ -80,11 +85,21 @@ export class Xiaoye {
     this.lampStart=lampStart;
     // The plush takes a small, validated step. Never move the player's real feet.
     this.contactFoot=contact;
-    this.activities.dialogue("小叶子 · 大猫猫玩偶", xiaoyeHugText, [], c => {
+    this.dialogue(xiaoyeHugText, []);
+    return true;
+  }
+
+  private offerLetter() {
+    this.dialogue("（小叶子用绒爪托起一封信，信角上盖着一枚小爪印。）", [
+      letterChoice(this.mail, handedLetters.xiaoye, () => this.offerLetter()),
+    ]);
+  }
+
+  private dialogue(text: string, options: { title: string; run: () => void }[]) {
+    this.activities.dialogue(xiaoyeSpot.title, text, options, c => {
       this.drawEmbrace(c,2,{x:24,y:53},false,0,false,54/HEIGHT);
     }, xiaoyeSpot, () => this.reset());
     this.ownsDialogue = true;
-    return true;
   }
 
   private visual() {

@@ -15,7 +15,6 @@ import { GardenCinema } from "./cinema";
 import { GardenLife } from "./garden-life";
 import { Xiaoye } from "./xiaoye";
 import { Suyan } from "./suyan";
-import { SUYAN_LETTER_ID } from "./suyan-data";
 import { worldTime } from "./day";
 import { ARCADES } from "./town-data";
 import { reservedShortcut } from "./input";
@@ -26,7 +25,8 @@ import { FlowerTrail } from "./flower-trail";
 import { NightMeadow } from "./night-meadow";
 import { EchoRuins } from "./echo-ruins";
 import { Elders } from "./elders";
-import { mailboxLetters, markLetterRead, patrickLetter, unreadLetterIds } from "./resident-story";
+import { collectHandedLetter, handedLetters, hasHandedLetter, mailboxLetters, markLetterRead,
+  unreadLetterIds, type LetterHandoff } from "./resident-story";
 import { AstrolabeQuest } from "./astrolabe-quest";
 import { RoomBass } from "./room-bass";
 import { bassStand, foxNook } from "./room-props";
@@ -253,6 +253,24 @@ export function mountGame(tasks: Task[]) {
     toast,
     reward: (id) => inventory.grant(id),
   });
+  const mail: LetterHandoff = {
+    received: id => hasHandedLetter(progress.residents, id),
+    collect: id => {
+      const letter = collectHandedLetter(progress.residents, id);
+      if (!letter) return false;
+      save();
+      sfx("starlight");
+      toast(`收到${letter.author}的来信`);
+      return true;
+    },
+    read: id => {
+      if (!mail.received(id)) return;
+      activities.close();
+      selectedLetterId = id;
+      reader.inGame = true;
+      readCollection("letters");
+    },
+  };
   inventory.onEquip = () => activities.finishEquipmentChoice();
   const nature = new Nature(world, activities, toast, inventory);
   const arcade = new Arcade(world, activities, inventory, (id, score) => {
@@ -263,29 +281,18 @@ export function mountGame(tasks: Task[]) {
     return score;
   });
   const town = new Town(world, activities, inventory, id => visit(ARCADES[id].scene, "arcade-"+id),
-    { story: () => progress.residents, save, notify: toast });
+    { story: () => progress.residents, mail, save, notify: toast });
   const gardenLife = new GardenLife(world, activities, inventory, () => progress, save);
-  const xiaoye = new Xiaoye(world, activities, () => nature.timePreview ?? worldTime(nature.elapsed).phase);
-  const suyan = new Suyan(world, activities, () => {
-    selectedLetterId = SUYAN_LETTER_ID;
-    reader.inGame = true;
-    readCollection("letters");
-  });
+  const xiaoye = new Xiaoye(world, activities, mail, () => nature.timePreview ?? worldTime(nature.elapsed).phase);
+  const suyan = new Suyan(world, activities, mail);
   const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);
   const campLetterButton = document.querySelector<HTMLButtonElement>(".camp-letter")!;
   const refreshCampLetter = () => {
     campLetterButton.hidden =
-      world.restState?.scene !== "meadow" || !progress.residents.patrickDelivered;
+      world.restState?.scene !== "meadow" || !mail.received(handedLetters.patrick);
   };
-  const meadow = new NightMeadow(world, () => progress.creditStars, save, () => {
-    if (progress.residents.patrickDelivered) return false;
-    progress.residents.patrickDelivered = true;
-    save();
-    refreshCampLetter();
-    sfx("starlight");
-    toast("派大星递来了一封信。");
-    return true;
-  });
+  const meadow = new NightMeadow(world, () => progress.creditStars, save, () => progress.residents,
+    () => { mail.collect(handedLetters.patrick); refreshCampLetter(); });
   const starQuest = new AstrolabeQuest(world, activities, inventory, () => progress.astrolabe,
     () => progress.echoes.listened, save);
   const ruins = new EchoRuins(world, activities, () => progress.echoes, () => { save(); starQuest.refresh(); });
@@ -427,10 +434,7 @@ export function mountGame(tasks: Task[]) {
     .querySelector(".stand-up")!
     .addEventListener("click", () => world.standUp());
   campLetterButton.addEventListener("click", () => {
-    if (campLetterButton.hidden) return;
-    selectedLetterId = patrickLetter.id;
-    reader.inGame = true;
-    readCollection("letters");
+    if (!campLetterButton.hidden) mail.read(handedLetters.patrick);
   });
   let encouragementIndex = 0;
   world.onRespawn = ({ trap }) => {

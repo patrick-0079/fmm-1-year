@@ -187,6 +187,9 @@ export class Activities {
     this.hidePanel();
     return true;
   }
+  dismissDialogue(at: Point) {
+    if (this.dialogueAt?.point === at) this.hidePanel();
+  }
   private positionDialogue() {
     if (!this.dialogueAt || !narrowDialogue.matches) return;
     // Work in the 600 × 400 logical viewport, independently of phone size or DPR.

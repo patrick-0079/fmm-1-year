@@ -1,12 +1,14 @@
 import type { RestState } from "./rest.ts";
 import type { DepthLayer, World } from "./world";
+import { campLetterSpot } from "./meadow-map.ts";
+import type { ResidentStory } from "./resident-story.ts";
 
 export const campGuestStart = { x: 164, y: 184 };
 export const campGuestSeat = { x: 216, y: 179 };
 const waitSeconds = 30;
 const walkSeconds = 1;
 const offerUntil = 1.75;
-const handoffUntil = 2.2;
+const placedAt = 2.2;
 const cell = 128, baseline = 126;
 
 // The narrow part of the head ends just above the brows. Align the tip to the
@@ -59,20 +61,42 @@ function alignedCampSheet(sheet: HTMLImageElement) {
   return output;
 }
 
+type CampWorld = Pick<World, "scene" | "restState" | "paused">;
 interface CampVisit {
   seat: RestState;
   satAt: number;
-  arrival?: { age: number; hasLetter: boolean };
+  arrivalAge?: number;
+}
+
+function drawEnvelope(c: CanvasRenderingContext2D, x: number, y: number) {
+  c.fillStyle = "#8f6958";
+  c.fillRect(x - 6, y - 8, 12, 9);
+  c.fillStyle = "#fff0cf";
+  c.fillRect(x - 5, y - 7, 10, 7);
+  c.fillStyle = "#c29874";
+  c.fillRect(x - 5, y - 6, 2, 1);
+  c.fillRect(x + 3, y - 6, 2, 1);
+  c.fillRect(x - 3, y - 5, 6, 1);
+  c.fillStyle = "#c36e79";
+  c.fillRect(x - 1, y - 4, 3, 2);
 }
 
 export class CampGuest {
   private visit?: CampVisit;
-  private world: Pick<World, "scene" | "restState" | "paused">;
-  private deliver: () => boolean;
+  private world: CampWorld;
+  private story: () => ResidentStory;
+  private save: () => void;
 
-  constructor(world: Pick<World, "scene" | "restState" | "paused">, deliver: () => boolean) {
+  constructor(world: CampWorld, story: () => ResidentStory, save: () => void) {
     this.world = world;
-    this.deliver = deliver;
+    this.story = story;
+    this.save = save;
+  }
+
+  get letterOnGround() {
+    const state = this.story();
+    return this.world.scene === "meadow" && state.patrickArrived && !state.patrickDelivered &&
+      (this.visit?.arrivalAge ?? placedAt) >= placedAt;
   }
 
   reset() {
@@ -81,31 +105,55 @@ export class CampGuest {
 
   tick(dt: number, time: number) {
     const seat = this.world.restState;
-    if (this.world.scene !== "meadow" || seat?.kind !== "sitting") {
+    const visit = this.visit;
+    if (this.world.scene !== "meadow") {
       this.reset();
       return;
     }
-    if (this.visit?.seat !== seat) this.visit = { seat, satAt: time };
-    if (this.world.paused || dt === 0) return;
-    if (this.visit.arrival) {
-      this.visit.arrival.age = Math.min(handoffUntil, this.visit.arrival.age + dt);
-    } else if (time - this.visit.satAt >= waitSeconds) {
-      this.visit.arrival = { age: 0, hasLetter: this.deliver() };
+    if (visit?.arrivalAge !== undefined) {
+      if (!this.world.paused) visit.arrivalAge = Math.min(placedAt, visit.arrivalAge + dt);
+      if (visit.arrivalAge >= placedAt && seat !== visit.seat) this.reset();
+      return;
     }
+    if (seat?.kind !== "sitting" || seat.scene !== "meadow") {
+      this.reset();
+      return;
+    }
+    const waiting = this.visit = visit?.seat === seat ? visit : { seat, satAt: time };
+    if (this.world.paused || dt === 0 || time - waiting.satAt < waitSeconds) return;
+    const state = this.story();
+    if (state.patrickArrived) return;
+    waiting.arrivalAge = 0;
+    state.patrickArrived = true;
+    this.save();
   }
 
   layers(sheet: HTMLImageElement, still: boolean): DepthLayer[] {
-    const visit = this.visit;
-    if (this.world.scene !== "meadow" || !visit?.arrival ||
-        this.world.restState !== visit.seat || !sheet.naturalWidth) return [];
-    const { age, hasLetter } = visit.arrival;
+    if (this.world.scene !== "meadow") return [];
+    const age = this.visit?.arrivalAge;
+    const layers: DepthLayer[] = [];
+    if (age !== undefined && sheet.naturalWidth) layers.push(this.guestLayer(sheet, age, still));
+    const { x, y } = campLetterSpot;
+    if (this.letterOnGround) {
+      layers.push({ y, draw: c => drawEnvelope(c, x, y) });
+    } else if (!still && age !== undefined && age >= offerUntil && age < placedAt) {
+      const mix = (age - offerUntil) / (placedAt - offerUntil);
+      const fromX = campGuestSeat.x + 13, fromY = campGuestSeat.y - 11;
+      const px = Math.round(fromX + (x - fromX) * mix);
+      const py = Math.round(fromY + (y - fromY) * mix - 2 * Math.sin(mix * Math.PI));
+      layers.push({ y, draw: c => drawEnvelope(c, px, py) });
+    }
+    return layers;
+  }
+
+  private guestLayer(sheet: HTMLImageElement, age: number, still: boolean): DepthLayer {
     const walking = !still && age < walkSeconds;
     const step = walking ? Math.min(1, age / walkSeconds) : 1;
     const x = Math.round(campGuestStart.x + (campGuestSeat.x - campGuestStart.x) * step);
     const y = Math.round(campGuestStart.y + (campGuestSeat.y - campGuestStart.y) * step);
-    const frame = walking ? Math.floor(age * 6) % 2 : hasLetter && age < offerUntil ? 3 : 2;
+    const frame = walking ? Math.floor(age * 6) % 2 : age < offerUntil ? 3 : 2;
     const size = 36;
-    const layers: DepthLayer[] = [{
+    return {
       y,
       draw(c) {
         c.save();
@@ -118,28 +166,6 @@ export class CampGuest {
           x - size / 2, y - baseline * size / cell, size, size);
         c.restore();
       },
-    }];
-    if (!still && hasLetter && age >= offerUntil && age < handoffUntil) {
-      const mix = (age - offerUntil) / (handoffUntil - offerUntil);
-      const fromX = campGuestSeat.x + 13, fromY = campGuestSeat.y - 16;
-      const to = visit.seat.anchor;
-      const px = Math.round(fromX + (to.x - 8 - fromX) * mix);
-      const py = Math.round(fromY + (to.y - 12 - fromY) * mix - 4 * Math.sin(mix * Math.PI));
-      layers.push({
-        y: Math.max(campGuestSeat.y, to.y) + .1,
-        draw(c) {
-          c.fillStyle = "#8f6958";
-          c.fillRect(px - 5, py - 3, 10, 7);
-          c.fillStyle = "#fff0cf";
-          c.fillRect(px - 4, py - 2, 8, 5);
-          c.fillStyle = "#c29874";
-          c.fillRect(px - 4, py - 1, 2, 1);
-          c.fillRect(px + 2, py - 1, 2, 1);
-          c.fillStyle = "#c36e79";
-          c.fillRect(px - 1, py + 1, 2, 1);
-        },
-      });
-    }
-    return layers;
+    };
   }
 }

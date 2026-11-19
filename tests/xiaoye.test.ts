@@ -42,13 +42,13 @@ test("an embrace does not restart on repeated activation, and movement or panel 
   const progress = hug.progress;
   assert.equal(hug.begin(player), false);
   assert.equal(hug.progress, progress);
-  hug.tick(0, { x: player.x + 8, y: player.y }, true);
+  assert.equal(hug.tick(0, { x: player.x + 8, y: player.y }, true), false);
   assert.equal(hug.active, false);
   assert.equal(hug.begin(player), true);
-  hug.tick(0, player, false);
+  assert.equal(hug.tick(0, player, false), false);
   assert.equal(hug.active, false);
   assert.equal(hug.begin(player), true);
-  hug.tick(XIAOYE_HUG_SECONDS, player, true);
+  assert.equal(hug.tick(XIAOYE_HUG_SECONDS, player, true), true);
   assert.equal(hug.active, false);
   assert.deepEqual(player, xiaoyeSpot.approach);
 });

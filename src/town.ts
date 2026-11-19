@@ -3,7 +3,7 @@ import type { Inventory } from "./inventory";
 import type { Activities } from "./activities";
 import { arcadesIn, TOWN_NPCS, type TownNpc } from "./town-data";
 import { residentOpening, townDialogues, type TownPage } from "./town-dialogue";
-import type { ResidentStory } from "./resident-story";
+import { letterChoice, type LetterHandoff, type ResidentStory } from "./resident-story";
 import { townResidentLayers, residentPlacement, drawResidentPortrait, type TownAct } from "./town-acting";
 import { TownResidentMap } from "./town-resident-map";
 import { townForeground } from "./town-foreground";
@@ -21,6 +21,7 @@ import {
 export const TOWN_TALKED_KEY = "fufu-town-talked-v1";
 interface StoryHooks {
   story: () => ResidentStory;
+  mail: LetterHandoff;
   save: () => void;
   notify: (text: string) => void;
 }
@@ -102,15 +103,18 @@ export class Town {
   }
 
   private showPage(npc: TownNpc, pageId: string) {
-    const page = townDialogues[npc.id][pageId];
+    const pages = townDialogues[npc.id], page = pages[pageId];
     const act = { npc, npcId: npc.id, pageId, elapsed: 0, after: page.after };
+    const options = page.letter
+      ? [letterChoice(this.hooks.mail, page.letter, () => this.showPage(npc, pageId))]
+      : (page.choices ?? []).flatMap(([title, target]) => {
+        const letter = pages[target]?.letter;
+        return letter && this.hooks.mail.received(letter) ? [] : [{ title, run: () => this.answer(npc, target) }];
+      });
     this.activities.dialogue(
       page.speaker ?? `${npc.name} · ${npc.role}`,
       page.text,
-      (page.choices ?? []).map(([title, target]) => ({
-        title,
-        run: () => this.answer(npc, target),
-      })),
+      options,
       page.speaker ? null : c => drawResidentPortrait(c, npc, this.sprites, pageId),
       this.residents.anchor(npc.id),
       () => { if (this.act === act) this.act = undefined; },

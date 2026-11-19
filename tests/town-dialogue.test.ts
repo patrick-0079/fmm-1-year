@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { TOWN_NPCS } from "../src/town-data.ts";
 import { residentOpening, townDialogues } from "../src/town-dialogue.ts";
-import { POST_LETTER_REVISION, readResidentStory } from "../src/resident-story.ts";
+import { handedLetters, POST_LETTER_REVISION, readResidentStory } from "../src/resident-story.ts";
 import { scenes } from "../src/maps.ts";
 import { canStand, findPath } from "../src/core.ts";
 import { clickedInteraction } from "../src/interaction.ts";
@@ -54,7 +54,7 @@ test("E talks to the intended resident from every approach, even before picking 
   }
 });
 
-test("the three anniversary guests are reachable from town entrances and only offer replayable scenes", () => {
+test("the three anniversary guests are reachable from town entrances and do not grant automatic rewards", () => {
   const map = scenes.town;
   const entrances = [map.spawn, ...map.spots.filter(spot => spot.portal).map(spot => spot.approach)];
   for (const [id, x, y, approach] of [
@@ -72,6 +72,19 @@ test("the three anniversary guests are reachable from town entrances and only of
     }
     for (const page of Object.values(townDialogues[id])) assert.equal(page.effect, undefined);
   }
+});
+
+test("the town residents offer their own letters only after the intended dialogue", () => {
+  const radio = townDialogues["radio-host"];
+  for (const [, next] of radio.start.choices!) {
+    assert.deepEqual(radio[next].choices?.[0], ["看看节目单", "offer-letter"]);
+    assert.equal(radio[next].letter, undefined);
+  }
+  assert.equal(radio["offer-letter"].letter, handedLetters["radio-host"]);
+  assert.deepEqual(townDialogues.xiaoyou["taste-orange"].choices, [["看看果篮", "offer-letter"]]);
+  assert.equal(townDialogues.xiaoyou["offer-letter"].letter, handedLetters.xiaoyou);
+  assert.deepEqual(townDialogues.guli["show-fish"].choices, [["你手里的是什么？", "offer-letter"]]);
+  assert.equal(townDialogues.guli["offer-letter"].letter, handedLetters.guli);
 });
 
 test("revisits depend on story completion, letter revision, reserved cakes and real bouquets", () => {

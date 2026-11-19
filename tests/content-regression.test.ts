@@ -22,7 +22,7 @@ test("all twelve stars retain the approved names, order and two authored message
   for (const person of producers) assert.doesNotMatch(person.message, /xxx|占位|待补充/i);
 });
 
-test("public letters keep their approved order, paragraph boundaries and supplied wording", () => {
+test("the letter catalogue keeps its approved order, paragraph boundaries and supplied wording", () => {
   assert.deepEqual(collections.letters.items.map(letter => [letter.id, letter.author]), [
     ["xiaoye-anniversary-letter", "小叶子"], ["yeshenhua-anniversary-letter", "夜神华"], ["kerry-anniversary-letter", "Kerry"],
     ["suyan-anniversary-letter", "苏颜"], ["rabe-anniversary-letter", "Rabe"],
