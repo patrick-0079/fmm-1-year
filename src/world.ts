@@ -32,6 +32,7 @@ import { drawDoorRug } from "./door-rug";
 import {
   advancePath,
   canStand,
+  facingFromMovement,
   findPath,
   movePlayer,
   crossedHazard,
@@ -688,9 +689,7 @@ export class World {
       this.stepDistance = 0;
       this.onStep();
     }
-    if (this.walking)
-      this.facing =
-        Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 2 : 1) : dy > 0 ? 0 : 3;
+    if (this.walking) this.facing = facingFromMovement(this.facing, dx, dy);
     if (this.walking && !this.targetEvent) {
       const crossing = this.scene === "meadow" && enteredMoonCircle(before,this.player)
         ? "meadow-exit" : crossedEchoGate(this.scene,before,this.player) ?? crossedTownGate(this.scene,before,this.player)?.id;

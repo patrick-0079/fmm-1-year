@@ -28,7 +28,13 @@ test("the lower postal lane follows the illustrated turn around the island and u
     const path = findPath(from,to,town);
     assert.ok(path);
     assert.deepEqual(path.at(-1),to);
-    assert.ok(path.some(p => p.x > 375 && p.x < 420 && p.y > 780), "take the lower fork");
+    const route = [from, ...path];
+    assert.ok(path.some((end, i) => {
+      const start = route[i];
+      if (start.x === end.x) return false;
+      const at = (400 - start.x) / (end.x - start.x);
+      return at >= 0 && at <= 1 && start.y + at * (end.y - start.y) > 780;
+    }), "take the lower fork");
     assert.ok(path.every(p => p.y >= 690), "no detour around the north side");
   }
 });

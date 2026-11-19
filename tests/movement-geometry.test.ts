@@ -5,6 +5,7 @@ import {
   canStand,
   canTravelBetween,
   crossedHazard,
+  facingFromMovement,
   findPath,
   movePlayer,
   touchingHazard,
@@ -64,10 +65,31 @@ test("a single courtyard click reaches the same ground as the two-click turn", (
     via,
   );
   assert.ok(canTravelBetween(via, goal, scene, scene.hazards));
-  assert.deepEqual(
-    findPath(scene.spawn, goal, scene, scene.hazards)?.at(-1),
-    goal,
-  );
+  const path = findPath(scene.spawn, goal, scene, scene.hazards);
+  assert.ok(path);
+  assert.deepEqual(path.at(-1), goal);
+  const route = [scene.spawn, ...path];
+  for (let i = 1; i < route.length; i++) {
+    assert.ok(canTravelBetween(route[i - 1], route[i], scene, scene.hazards));
+    if (i + 1 < route.length) {
+      assert.equal(canTravelBetween(route[i - 1], route[i + 1], scene, scene.hazards), false,
+        "a turn should remain only when it is needed for clearance");
+    }
+  }
+});
+
+test("near-diagonal steps keep the sprite facing until the player makes a clear turn", () => {
+  for (const [dx, dy] of [[1, -1.02], [1.02, -1], [1, -1.000001], [1.000001, -1]]) {
+    assert.equal(facingFromMovement(2, dx, dy), 2);
+    assert.equal(facingFromMovement(3, dx, dy), 3);
+    assert.equal(facingFromMovement(1, -dx, -dy), 1);
+    assert.equal(facingFromMovement(0, -dx, -dy), 0);
+  }
+  assert.equal(facingFromMovement(2, 1, -1.25), 3);
+  assert.equal(facingFromMovement(3, 1.25, -1), 2);
+  assert.equal(facingFromMovement(3, 0, 1), 0);
+  assert.equal(facingFromMovement(1, 1, 0), 2);
+  assert.equal(facingFromMovement(1, 0, 0), 1);
 });
 
 test("directional controls and click routes can follow the same narrow diagonal passage", () => {

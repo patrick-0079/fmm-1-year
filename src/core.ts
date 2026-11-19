@@ -12,6 +12,7 @@ import { readResidentStory, type ResidentStory } from "./resident-story.ts";
 import { producers } from "./content.ts";
 import { ARCADES } from "./town-data.ts";
 import type { GameId } from "./arcade-engines.ts";
+import type { Facing } from "./equipment.ts";
 
 export {
   canStand,
@@ -161,6 +162,18 @@ export function readProgress(raw: string | null): Progress {
   }
 }
 const clampedDelta = (delta: number) => Math.min(Math.max(delta, 0), 0.05);
+
+export function facingFromMovement(current: Facing, dx: number, dy: number): Facing {
+  const x = Math.abs(dx), y = Math.abs(dy);
+  if (!x && !y) return current;
+  const side = dx < 0 ? 1 : 2, vertical = dy < 0 ? 3 : 0;
+  // Near a diagonal, keep facing the same way until the other axis clearly leads.
+  const turnRatio = 1.18;
+  if ((current === side && y <= x * turnRatio) ||
+      (current === vertical && x <= y * turnRatio)) return current;
+  return x > y ? side : vertical;
+}
+
 export function movePlayer(
   point: Point,
   input: Point,
@@ -240,6 +253,21 @@ function connectOffGrid(
   return null;
 }
 
+function shortenPath(start: Point, path: Point[], travel: (a: Point, b: Point) => boolean) {
+  const shortened: Point[] = [];
+  let from = start;
+  for (let first = 0; first < path.length;) {
+    // The original adjacent segment is already checked. Skip as many grid points
+    // as the same foot collision and trap clearance allow.
+    let next = path.length - 1;
+    while (next > first && !travel(from, path[next])) next--;
+    from = path[next];
+    shortened.push(from);
+    first = next + 1;
+  }
+  return shortened;
+}
+
 /** Routes and their connecting segments use the same foot collision as keyboard movement. */
 export function findPath(
   start: Point,
@@ -309,7 +337,7 @@ export function findPath(
     const initial = goalIsClear && link(start, () => true, goal);
     if (!initial) return null;
     prefix = initial.route.reverse().slice(1);
-    if (initial.anchor === directGoal) return [...prefix, { ...goal }];
+    if (initial.anchor === directGoal) return shortenPath(start, [...prefix, { ...goal }], travel);
     previous[initial.anchor] = -1;
     queue.push(initial.anchor);
   } else {
@@ -370,7 +398,7 @@ export function findPath(
   if (!suffix.length && bestDistance > 36) return null;
   const path: Point[] = [];
   for (let id = best; id !== -1; id = previous[id]) path.unshift(center(id));
-  return [...prefix, ...path, ...suffix];
+  return shortenPath(start, [...prefix, ...path, ...suffix], travel);
 }
 /** Spend the movement budget without snapping through blocked grid corners. */
 export function advancePath(
