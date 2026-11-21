@@ -88,12 +88,7 @@
 .achievement-stamp canvas,.achievement-stamp i { display: block; width: 78%; height: 78%; }
 .achievement-stamp canvas { image-rendering: pixelated; }
 .achievement-stamp i { background: var(--mail-seal-image) center/contain no-repeat; }
-.achievement-stamp.stamp-pending { filter: saturate(.65); }
-.achievement-stamp.stamp-earned::after {
-  content: ""; position: absolute; width: 7px; height: 4px; right: -2px; bottom: 1px;
-  border-left: 2px solid #577651; border-bottom: 2px solid #577651; transform: rotate(-45deg);
-  filter: drop-shadow(1px -1px 0 #fff9e8);
-}
+.achievement-stamp.stamp-pending { filter: grayscale(1); }
 .achievement-stamp.stamp-secret { --stamp-paper: #ece5de; --stamp-rim: #b9aaa0; }
 .stamp-row {
   align-items: center; gap: 10px; width: 100%; text-align: left; min-height: 57px;
