@@ -15,6 +15,8 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 ## 常改的内容在哪里
 
+在启用 `VITE_WARDROBE_DEBUG=true` 的游戏中，右下角「调试 → 快捷收信」可领取单封或一键收齐。选项来自扫描生成的来信目录，只列出尚未收到的信。新信写入本机存档并保留蜡封，已经读过的信保留阅读记录。提前领取派大星的信后，仍可坐在营火边等他来陪坐。
+
 更新照片、信件或制作人星星后，从仓库根目录运行 `npm run scan`，核对改动并运行 `npm run check`。也可单独执行 `npm run scan:album`、`npm run scan:letters` 或 `npm run scan:stars`。修改与扫描产生的目录、预览或索引一起进入版本管理。新增文件、示例 JSON 与原图上传步骤见 [README 内容维护](README.md#更新相册来信与花海落星)。
 
 | 内容 | 文件与维护要点 |

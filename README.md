@@ -185,7 +185,7 @@ npm run check
 2. 运行扫描。新照片追加到 [album.json](ref/相册/album.json)，得到稳定的 `id`、`title`、`originalUrl`、尺寸和内容版本。普通文件名用作默认标题，CharaStudio 的时间戳文件名会转为拍摄日期和时间。
 3. 想给照片起名时，直接改该条的 `title`。可选的 `text` 是配文，`alt` 是图片描述。整个相册使用 `photos` 数组的顺序。新照片的默认原图地址由 `originalBaseUrl` 与文件名组成，使用其他对象路径时填写这张的 `originalUrl`。
 
-游戏与网页共用 [previews/](ref/相册/previews) 中的两档 WebP。书页图长边最多 640px，缩略图最多 240px，均由本地扫描生成。点开单张后才从 CDN 取原图。提交更新后的 `album.json` 与预览即可发布新照片。四张开篇插画的原画与制作记录见 [v36 美术说明](doc/artwork/ARTWORK-v36.md)。
+游戏与网页共用 [previews/](ref/相册/previews) 中的两档 WebP。书页图长边最多 640px，缩略图最多 240px，均由本地扫描生成。进入游戏首页后，浏览器在空闲时分批预载这两档图片，每次最多准备两张。翻页或选图时优先准备当前与相邻照片，点开单张后才从 CDN 取原图。提交更新后的 `album.json` 与预览即可发布新照片。四张开篇插画的原画与制作记录见 [v36 美术说明](doc/artwork/ARTWORK-v36.md)。
 
 ### 新增一封来信
 

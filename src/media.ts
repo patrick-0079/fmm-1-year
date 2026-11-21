@@ -3,7 +3,8 @@ import { escapeHtml, icon } from "./icons";
 import { duckMusic } from "./sound";
 import { FilmPreloader, downloadLabel } from "./film-preloader";
 import { attachPhotoOriginalViewer, renderPhotoBook } from "./game-photo-album";
-import { renderGameMailDesk } from "./game-mail-desk";
+import { albumPreviewQueue } from "./album-preload";
+import { renderGameMailDesk, renderMailboxList, type LetterList } from "./game-mail-desk";
 import "./album.css";
 import "./mailbox.css";
 export interface CollectionSurface {
@@ -13,12 +14,6 @@ export interface CollectionSurface {
   onCleanup(cleanup: () => void): void;
 }
 
-interface LetterList {
-  items: Memory[];
-  selectedId?: string;
-  unreadIds?: readonly string[];
-  onRead: (id: string) => void;
-}
 export function openCollection(modal: CollectionSurface, id: string, letters?: LetterList) {
   const collection = collections[id];
   if (!collection || (id === "letters" && !letters)) return;
@@ -69,15 +64,15 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     }
     if (filmUrl) { URL.revokeObjectURL(filmUrl); filmUrl = undefined; }
   };
-  const select = (index: number) => {
+  const select = (item: Memory) => {
     stop();
     body.scrollTop = 0;
     detail.scrollTop = 0;
-    const item = items[index];
-    list.querySelectorAll("button").forEach((button, i) => {
-      button.classList.toggle("selected", i === index);
-      button.setAttribute("aria-pressed", String(i === index));
-      if (i === index) {
+    list.querySelectorAll("button").forEach(button => {
+      const selected = button.dataset.memoryId === item.id;
+      button.classList.toggle("selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+      if (selected) {
         button.querySelector(".collection-item-title")!.textContent = item.title;
         button.classList.remove("unread");
         button.setAttribute("aria-label", item.title);
@@ -100,6 +95,7 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     } else {
       let element: HTMLImageElement | HTMLMediaElement;
       if (collection.kind === "image") {
+        if (id === "album") albumPreviewQueue.prioritize(items, items.indexOf(item));
         element = new Image();
         element.alt = item.alt || item.title;
         element.className = "memory-image";
@@ -185,11 +181,11 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
       else if (tab.bottom > bottom) list.scrollTop += tab.bottom - bottom;
     }
   };
-  items.forEach((item, i) => {
+  const makeButton = (item: Memory, unread: boolean) => {
     const button = document.createElement("button");
-    const unread = letters?.unreadIds?.includes(item.id) ?? false;
     button.className = "collection-item";
     button.dataset.memoryId = item.id;
+    button.setAttribute("aria-pressed", "false");
     button.setAttribute("aria-label", item.title + (unread ? "，未读" : ""));
     button.classList.toggle("unread", unread);
     if (collection.kind === "image" && item.thumbnail) {
@@ -213,9 +209,11 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
       short.textContent = item.author || item.title;
       button.append(short);
     }
-    button.addEventListener("click", () => select(i));
-    list.append(button);
-  });
+    button.addEventListener("click", () => select(item));
+    return button;
+  };
+  if (letters) renderMailboxList(list, letters, makeButton, cleanup => modal.onCleanup(cleanup));
+  else for (const item of items) list.append(makeButton(item, false));
   const visibility = () => {
     if (document.hidden) media?.pause();
   };
@@ -229,7 +227,7 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     detail.innerHTML = '<p class="mail-select-prompt">选一封来信，读读写给芙芙的话。</p>';
     list.querySelector("button")?.focus({ preventScroll: true });
   } else {
-    select(Math.max(0, initial));
+    select(items[Math.max(0, initial)]);
     if (collection.kind === "text" || collection.kind === "image") (detail as HTMLElement).focus({ preventScroll: true });
   }
 }

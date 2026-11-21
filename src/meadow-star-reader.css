@@ -65,7 +65,7 @@
   scroll-behavior: auto;
 }
 .meadow-reading > .interaction-prompt { display: none !important; }
-body:has(.meadow-star-reader:not([hidden]), .game-letter-reader:not([hidden])) .debug-trigger {
+body:has(.meadow-star-reader:not([hidden]), .game-letter-reader:not([hidden]) .reader-body:not(.mail-desk-body)) .debug-trigger {
   visibility: hidden;
   pointer-events: none;
 }

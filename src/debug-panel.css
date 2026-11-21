@@ -85,6 +85,17 @@
 .debug-panel button:disabled {
   opacity: 0.55;
 }
+.debug-mail select {
+  width: 100%;
+  min-height: 36px;
+  margin: 4px 0 8px;
+  padding: 4px 6px;
+  font: inherit;
+  color: inherit;
+  background: #fffdf6;
+  border: 1px solid #b8a69d;
+  border-radius: 6px;
+}
 .debug-panel .flower-book {
   margin-top: 7px;
   padding: 5px;

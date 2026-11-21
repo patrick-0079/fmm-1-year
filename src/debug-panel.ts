@@ -7,6 +7,7 @@ import { ARCADES } from "./town-data";
 import { phaseNames, type Phase } from "./day";
 import { reservedShortcut } from "./input";
 import { getDeadline, setDebugDeadline } from "./launch/time";
+import { allLetters } from "./letters";
 
 const maps = {
   room: "晚安小屋",
@@ -32,6 +33,7 @@ export function mountDebugPanel(
   go: Travel,
   toast: (s: string) => void,
   eraseProgress: () => boolean,
+  mailbox: { received: () => Set<string>; receive: (id?: string) => void },
 ) {
   const book = document.querySelector<HTMLElement>(".flower-book")!;
   if (import.meta.env.VITE_WARDROBE_DEBUG !== "true") {
@@ -46,6 +48,13 @@ export function mountDebugPanel(
       <p class="debug-note">试穿、花门和时段只在本次页面生效；亲手收集与通关仍会正常保存。</p>
       <div class="debug-launch-time"></div>
       <section><h4>查看与试穿</h4><div>${button("wardrobe", "全饰品试穿")}${button("collision", "碰撞轮廓")}</div></section>
+      <details class="debug-mail"><summary>快捷收信</summary>
+        <p>领取的信会保存到本机，拆封后才会标为已读。</p>
+        <label for="debug-mail-choice">待领取的来信</label>
+        <select id="debug-mail-choice"></select>
+        <div>${button("mail-one", "领取所选来信")}${button("mail-all", "一键收齐来信")}</div>
+        <p class="debug-mail-count" role="status"></p>
+      </details>
       <section><h4>时段预览</h4><div>${button("time:auto", "自然时间")}${(Object.entries(phaseNames) as [Phase, string][]).map(([id, name]) => button("time:" + id, name)).join("")}</div></section>
       <details open><summary>地图定位</summary><div>${Object.entries(maps)
         .map(([id, name]) => button("map:" + id, name))
@@ -99,6 +108,20 @@ export function mountDebugPanel(
     if (focus) resetButton.focus({ preventScroll: true });
   };
   let travelling = false;
+  const mailChoice = panel.querySelector<HTMLSelectElement>("#debug-mail-choice")!;
+  const receiveOne = panel.querySelector<HTMLButtonElement>('[data-debug="mail-one"]')!;
+  const receiveAll = panel.querySelector<HTMLButtonElement>('[data-debug="mail-all"]')!;
+  const mailCount = panel.querySelector<HTMLElement>(".debug-mail-count")!;
+  const refreshMail = () => {
+    const received = mailbox.received();
+    const pending = allLetters.filter(letter => !received.has(letter.id));
+    const selection = mailChoice.value;
+    mailChoice.replaceChildren(...pending.map(letter => new Option(letter.title, letter.id)));
+    if (pending.some(letter => letter.id === selection)) mailChoice.value = selection;
+    if (!pending.length) mailChoice.add(new Option("已收齐所有来信", ""));
+    mailChoice.disabled = receiveOne.disabled = receiveAll.disabled = pending.length === 0;
+    mailCount.textContent = `已收到 ${received.size} / ${allLetters.length} 封来信`;
+  };
   const refresh = () => {
     const flags: Record<string, boolean> = {
       wardrobe: bag.fitting,
@@ -136,6 +159,7 @@ export function mountDebugPanel(
     bag.close(false);
     world.suspend("debug", true);
     panel.hidden = false;
+    refreshMail();
     refresh();
     trigger.setAttribute("aria-expanded", "true");
     holder
@@ -184,7 +208,12 @@ export function mountDebugPanel(
       ?.dataset.debug;
     if (!cmd) return;
     const [type, key, id] = cmd.split(":");
-    if (type === "erase") {
+    if (type === "mail-one" || type === "mail-all") {
+      if (mailChoice.disabled) return;
+      mailbox.receive(type === "mail-one" ? mailChoice.value : undefined);
+      refreshMail();
+      if (mailChoice.disabled) panel.querySelector<HTMLElement>(".debug-mail summary")!.focus({preventScroll: true});
+    } else if (type === "erase") {
       resetButton.hidden = true;
       eraseCheck.hidden = false;
       eraseCheck

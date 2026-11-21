@@ -136,7 +136,7 @@ export class CampGuest {
     const { x, y } = campLetterSpot;
     if (this.letterOnGround) {
       layers.push({ y, draw: c => drawEnvelope(c, x, y) });
-    } else if (!still && age !== undefined && age >= offerUntil && age < placedAt) {
+    } else if (!this.story().patrickDelivered && !still && age !== undefined && age >= offerUntil && age < placedAt) {
       const mix = (age - offerUntil) / (placedAt - offerUntil);
       const fromX = campGuestSeat.x + 13, fromY = campGuestSeat.y - 11;
       const px = Math.round(fromX + (x - fromX) * mix);
@@ -151,7 +151,7 @@ export class CampGuest {
     const step = walking ? Math.min(1, age / walkSeconds) : 1;
     const x = Math.round(campGuestStart.x + (campGuestSeat.x - campGuestStart.x) * step);
     const y = Math.round(campGuestStart.y + (campGuestSeat.y - campGuestStart.y) * step);
-    const frame = walking ? Math.floor(age * 6) % 2 : age < offerUntil ? 3 : 2;
+    const frame = walking ? Math.floor(age * 6) % 2 : age < offerUntil && !this.story().patrickDelivered ? 3 : 2;
     const size = 36;
     return {
       y,

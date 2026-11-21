@@ -2,17 +2,38 @@ import type { Memory } from "./content";
 import { escapeHtml } from "./icons";
 import "./game-mail-desk.css";
 
-interface DeskLetters {
-  items: Memory[];
+export interface LetterList {
+  items: readonly Memory[];
   selectedId?: string;
   unreadIds?: readonly string[];
   onRead: (id: string) => void;
+  subscribe?: (listener: (items: readonly Memory[], unreadIds: readonly string[]) => void) => () => void;
+}
+
+/** Deliveries keep the catalogue order. Insert missing envelopes around the existing buttons. */
+export function renderMailboxList(
+  list: Element,
+  letters: LetterList,
+  makeButton: (item: Memory, unread: boolean) => HTMLButtonElement,
+  onCleanup: (callback: () => void) => void,
+) {
+  const insertDeliveries = (items: readonly Memory[], unreadIds: readonly string[]) => {
+    const scrollTop = list.scrollTop;
+    items.forEach((item, index) => {
+      const next = list.children.item(index);
+      if (next?.getAttribute("data-memory-id") !== item.id)
+        list.insertBefore(makeButton(item, unreadIds.includes(item.id)), next);
+    });
+    list.scrollTop = scrollTop;
+  };
+  insertDeliveries(letters.items, letters.unreadIds ?? []);
+  if (letters.subscribe) onCleanup(letters.subscribe(insertDeliveries));
 }
 
 /** The desk itself never opens the first envelope or creates a read receipt. */
 export function renderGameMailDesk(
   body: HTMLElement,
-  letters: DeskLetters,
+  letters: LetterList,
   onCleanup: (callback: () => void) => void,
 ) {
   body.classList.add("mail-desk-body");
@@ -30,8 +51,6 @@ export function renderGameMailDesk(
   const title = sheet.querySelector("h4")!;
   const signature = sheet.querySelector<HTMLElement>(".mail-signature")!;
   const text = sheet.querySelector<HTMLElement>(".letter-text")!;
-  const unread = new Set(letters.unreadIds);
-  pile.dataset.count = String(letters.items.length);
   let activeButton: HTMLButtonElement | undefined;
   let opening: HTMLButtonElement | undefined;
   let timer: number | undefined;
@@ -54,7 +73,6 @@ export function renderGameMailDesk(
     body.dataset.openLetterId = item.id;
     page.scrollTop = 0;
     page.focus({ preventScroll: true });
-    unread.delete(item.id);
     button.dataset.sealed = "false";
     button.setAttribute("aria-label", `${item.title}，已读`);
     letters.onRead(item.id);
@@ -72,13 +90,11 @@ export function renderGameMailDesk(
       else if (card.bottom > bounds.bottom) pile.scrollTop += card.bottom - bounds.bottom;
     }
   });
-  let direct: { item: Memory; button: HTMLButtonElement } | undefined;
-  for (const item of letters.items) {
+  renderMailboxList(pile, letters, (item, sealed) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "mail-envelope";
     button.dataset.memoryId = item.id;
-    const sealed = unread.has(item.id);
     button.dataset.sealed = String(sealed);
     button.setAttribute("aria-label", `${item.title}，${sealed ? "未读" : "已读"}`);
     const sender = item.author || item.title;
@@ -86,7 +102,7 @@ export function renderGameMailDesk(
     button.addEventListener("click", () => {
       if (opening === button) return;
       cancelOpening();
-      if (unread.has(item.id) && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      if (button.dataset.sealed === "true" && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
         opening = button;
         button.classList.add("opening");
         timer = window.setTimeout(() => {
@@ -95,13 +111,14 @@ export function renderGameMailDesk(
         }, 280);
       } else showSheet(item, button);
     });
-    pile.append(button);
-    if (letters.selectedId === item.id) direct = { item, button };
-  }
+    pile.dataset.count = String(pile.childElementCount + 1);
+    return button;
+  }, onCleanup);
   onCleanup(() => {
     cancelOpening();
     delete body.dataset.openLetterId;
   });
-  if (direct) showSheet(direct.item, direct.button);
+  const selected = letters.items.find(item => item.id === letters.selectedId);
+  if (selected) showSheet(selected, pile.querySelector<HTMLButtonElement>(`[data-memory-id="${CSS.escape(selected.id)}"]`)!);
   else pile.querySelector("button")?.focus({ preventScroll: true });
 }

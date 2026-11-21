@@ -1,5 +1,6 @@
 import type { Memory } from "./content";
 import { reservedShortcut } from "./input";
+import { albumPreviewQueue } from "./album-preload";
 import "./game-album.css";
 
 /** Use the same on-demand original viewer from the paper album and the webpage. */
@@ -143,6 +144,7 @@ export function renderPhotoBook(body: HTMLElement, items: readonly Memory[]) {
   let page = 0;
   const pages = Math.ceil(items.length / 2);
   const draw = () => {
+    albumPreviewQueue.prioritize(items, page * 2, 2);
     spread.replaceChildren();
     for (const photo of items.slice(page * 2, page * 2 + 2)) {
       const button = document.createElement("button");

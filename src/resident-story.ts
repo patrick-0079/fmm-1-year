@@ -45,7 +45,8 @@ export function readResidentStory(value?: Partial<ResidentStory> | null): Reside
     postDelivered: value?.postDelivered === true,
     postReadRevision: value?.postDelivered === true && typeof revision === "number" &&
       Number.isSafeInteger(revision) && revision > 0 ? revision : 0,
-    patrickArrived: value?.patrickArrived === true || value?.patrickDelivered === true,
+    // Older saves only recorded delivery. Debug delivery can now precede the visit.
+    patrickArrived: value?.patrickArrived === true || (value?.patrickArrived === undefined && value?.patrickDelivered === true),
     patrickDelivered: value?.patrickDelivered === true,
     patrickRead: value?.patrickDelivered === true && value.patrickRead === true,
     welcomeReceived: value?.welcomeReceived === true,
@@ -77,6 +78,20 @@ export function collectHandedLetter(story: ResidentStory, id: HandedLetterId): M
   const letter = letterById.get(id);
   if (letter) story.npcLetters[id] = "unread";
   return letter;
+}
+
+/** Add only missing envelopes, keeping read receipts and the camp visit independent. */
+export function grantDebugLetters(story: ResidentStory, selectedId?: string): number {
+  const received = new Set(mailboxLetters(story).map(letter => letter.id));
+  let added = 0;
+  for (const { id } of allLetters) {
+    if (received.has(id) || (selectedId !== undefined && selectedId !== id)) continue;
+    if (id === postLetter.id) story.postDelivered = true;
+    else if (id === patrickLetter.id) story.patrickDelivered = true;
+    else if (!isNpcLetter(id) || !collectHandedLetter(story, id)) continue;
+    added++;
+  }
+  return added;
 }
 
 export interface LetterHandoff {

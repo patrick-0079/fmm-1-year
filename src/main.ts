@@ -18,6 +18,7 @@ import { ARCADES, TOWN_NPCS, TOWN_FRAMES } from "./town-data";
 import { ITEMS, type ItemId } from "./items";
 import { drawItem, rewardsUrl, whenWardrobeReady } from "./item-art";
 import { albumCoverPhoto, albumStampPhoto } from "./album-catalog";
+import { scheduleAlbumPreviews } from "./album-preload";
 import cinemaCover from "./assets/arcade-postcard-v14.webp";
 import townCover from "./assets/anniversary-town-v13.webp";
 import ruinsCover from "./assets/echo-ruins.webp";
@@ -234,6 +235,7 @@ document.querySelector("#app")!.setAttribute("aria-busy", "true");
 void prepareTextureCache().then(() => import("./application")).then(({mountGame}) => {
   for (const button of startupButtons) button.disabled = false;
   mountGame(tasks);
+  scheduleAlbumPreviews(collections.album.items);
   document.querySelector("#app")!.removeAttribute("aria-busy");
 })
   .catch(() => {

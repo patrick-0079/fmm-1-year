@@ -1,4 +1,4 @@
-import { anniversary, encouragements } from "./content";
+import { anniversary, encouragements, type Memory } from "./content";
 import { EVENT_IDS, GAME_IDS, SAVE_KEY, readProgress } from "./core";
 import { icon } from "./icons";
 import { World, scenes, type SceneId } from "./world";
@@ -25,7 +25,7 @@ import { FlowerTrail } from "./flower-trail";
 import { NightMeadow } from "./night-meadow";
 import { EchoRuins } from "./echo-ruins";
 import { Elders } from "./elders";
-import { collectHandedLetter, handedLetters, hasHandedLetter, mailboxLetters, markLetterRead,
+import { collectHandedLetter, grantDebugLetters, handedLetters, hasHandedLetter, mailboxLetters, markLetterRead,
   unreadLetterIds, type LetterHandoff } from "./resident-story";
 import { AstrolabeQuest } from "./astrolabe-quest";
 import { RoomBass } from "./room-bass";
@@ -74,6 +74,7 @@ export function mountGame(tasks: Task[]) {
   };
   const reader = new MapReader(world);
   const pageReader = new PageMemoryReader(world);
+  const mailboxListeners = new Set<(items: readonly Memory[], unreadIds: readonly string[]) => void>();
   const mailCount = document.querySelector<HTMLElement>('[data-memory="letters"] small')!;
   function updateMailCount() {
     const story = progress.residents;
@@ -88,6 +89,10 @@ export function mountGame(tasks: Task[]) {
     openCollection(surface, id, {
       items: mailboxLetters(story), selectedId: letterId,
       unreadIds: unreadLetterIds(story),
+      subscribe: listener => {
+        mailboxListeners.add(listener);
+        return () => mailboxListeners.delete(listener);
+      },
       onRead: letterId => {
         if (markLetterRead(story, letterId)) save();
       },
@@ -868,7 +873,17 @@ export function mountGame(tasks: Task[]) {
         revealMapIfOffscreen();
       }
     }
-  }, toast, () => resetAdventure(true));
+  }, toast, () => resetAdventure(true), {
+    received: () => new Set(mailboxLetters(progress.residents).map(letter => letter.id)),
+    receive: id => {
+      const story = progress.residents;
+      if (!grantDebugLetters(story, id)) return;
+      save();
+      refreshCampLetter();
+      const items = mailboxLetters(story), unread = unreadLetterIds(story);
+      for (const listener of mailboxListeners) listener(items, unread);
+    },
+  });
   for (const id of GAME_IDS)
     if (!Object.values(scenes).some((s) => s.spots.some((p) => p.id === id)))
       throw new Error(`Missing activity: ${id}`);

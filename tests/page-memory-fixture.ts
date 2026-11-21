@@ -19,9 +19,13 @@ const letters = [
   { id: "qa-long", title: "一封需要慢慢读完的长信", author: "小叶子", text: "你好，芙芙。\n\n" + "这一封信留给耐心读到最后的你。把温暖的事情记下来，明天依然可以翻开。\n\n".repeat(70) + "已经读到了信的最后。" },
   { id: "qa-short", title: "另一封信", author: "夜神华", text: "<script>这里只是文字，不会执行。</script>\n晚安，祝你好梦。" },
 ];
+const deliveries = new Set<(items: typeof letters, unreadIds: readonly string[]) => void>();
 const openLetters = () => {
   reader.setTrigger(q("#letters"));
-  openCollection(reader, "letters", { items: letters, onRead: () => {} });
+  openCollection(reader, "letters", { items: letters, onRead: () => {}, subscribe: listener => {
+    deliveries.add(listener);
+    return () => deliveries.delete(listener);
+  } });
 };
 const openAlbum = () => { reader.setTrigger(q("#album")); openCollection(reader, "album"); };
 q("#letters").addEventListener("click", openLetters);
@@ -54,7 +58,16 @@ async function verify() {
     await settle();
     assert(detail.scrollTop + detail.clientHeight >= detail.scrollHeight - 2, "End 未能读到信件末尾");
     assert(Math.abs(window.scrollY - pageY) < 1, "读信按键滚动了整页");
-    list.querySelectorAll<HTMLButtonElement>("button")[1].click(); await settle();
+    const scrollBeforeDelivery = detail.scrollTop;
+    const currentTab = list.querySelector(".selected");
+    const incoming = { ...letters[1], id: "qa-delivery", title: "新送到的信" };
+    for (const deliver of deliveries) deliver([incoming, ...letters], [incoming.id]);
+    await settle();
+    assert(list.firstElementChild?.getAttribute("data-memory-id") === incoming.id &&
+      list.firstElementChild.classList.contains("unread"), "新来信未按原顺序加入或被自动标为已读");
+    assert(list.querySelector(".selected") === currentTab && document.activeElement === detail &&
+      detail.scrollTop === scrollBeforeDelivery, "收信打断了当前正文、阅读位置或焦点");
+    list.querySelector<HTMLButtonElement>('[data-memory-id="qa-short"]')!.click(); await settle();
     assert(detail.scrollTop === 0 && detail.textContent?.includes("<script>"), "切信没有回到正文开头或转义错误");
     assert(!detail.querySelector("script") && Math.abs(window.scrollY - pageY) < 1, "切信执行了内容或引发整页跳动");
     log("未开局即可读信；游戏状态与尺寸不变，长信可读至末尾，切信不跳页。");
@@ -63,6 +76,7 @@ async function verify() {
     worldState.suspend("qa-other-panel", true);
     q(".page-reader-close").click();
     assert(!reader.opened && !reasons.has("page-memory") && reasons.has("qa-other-panel"), "收起释放了其他面板的暂停");
+    assert(deliveries.size === 0, "收起阅读区后仍在接收新信");
     assert(document.activeElement === q("#letters") && cleanups === 1, "收起没有回到来源卡片或没有清理资源");
     reader.close(); assert(cleanups === 1, "重复收起重复清理资源");
     worldState.suspend("qa-other-panel", false);
@@ -74,10 +88,14 @@ async function verify() {
     const displayed = Array.from(albumList.querySelectorAll<HTMLButtonElement>("button"), tab => tab.dataset.memoryId);
     assert(JSON.stringify(displayed) === JSON.stringify(expected), "照片目录与相册清单的顺序或数量不一致");
     await albumList.querySelector("img")!.decode();
-    assert(albumList.querySelectorAll('img[loading="lazy"]').length === expected.length, "网页提前请求了整本相册");
+    assert(albumList.querySelectorAll('img[loading="lazy"]').length === expected.length, "相册目录中的缩略图应全部使用懒加载");
     assert(albumList.getBoundingClientRect().right <= albumDetail.getBoundingClientRect().left, "相册缩略图在窄屏变成了顶部横栏");
     assert(albumDetail.querySelector(".memory-image"), "相册正文没有图片");
-    if (innerWidth <= 650) assert(albumList.clientWidth >= 64 && albumList.clientWidth <= 72, "手机相册左列宽度不在 64–72px");
+    if (innerWidth <= 650) {
+      const width = albumList.getBoundingClientRect().width;
+      assert(width >= 64 && width <= 72, "窄屏相册的目录列宽度不在 64–72px");
+      assert(albumList.scrollWidth <= albumList.clientWidth + 1, "窄屏相册目录出现横向溢出");
+    }
     const returnBefore = returned;
     q(".page-reader-return").click();
     assert(returned === returnBefore + 1 && !reader.opened && document.activeElement === worldState.canvas, "回到游戏没有关闭阅读区并调用返回入口");

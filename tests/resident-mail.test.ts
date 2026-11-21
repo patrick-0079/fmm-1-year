@@ -3,9 +3,36 @@ import assert from "node:assert/strict";
 import { readProgress } from "../src/core.ts";
 import { readInventory } from "../src/items.ts";
 import { readResidentStory, mailboxLetters, postLetter, postUnread, POST_LETTER_REVISION,
-  collectHandedLetter, handedLetters, letterChoice, markLetterRead, patrickLetter, unreadLetterIds } from "../src/resident-story.ts";
+  collectHandedLetter, grantDebugLetters, handedLetters, letterChoice, markLetterRead, patrickLetter, unreadLetterIds } from "../src/resident-story.ts";
+import { allLetters } from "../src/letters.ts";
 
 const legacyPublic = ["kerry-anniversary-letter", "rabe-anniversary-letter"];
+
+test("debug receipt grants a chosen letter or fills the mailbox while preserving existing read receipts", () => {
+  const story = readResidentStory();
+  const publicMail = mailboxLetters(story);
+  const opened = publicMail[0].id;
+  markLetterRead(story, opened);
+  assert.equal(grantDebugLetters(story, opened), 0);
+  assert.equal(grantDebugLetters(story, "unknown-letter"), 0);
+  assert.equal(grantDebugLetters(story, handedLetters.suyan), 1);
+  assert.equal(grantDebugLetters(story, handedLetters.suyan), 0);
+  assert.ok(markLetterRead(story, handedLetters.suyan));
+  assert.ok(!collectHandedLetter(story, handedLetters.suyan));
+  assert.equal(grantDebugLetters(story), allLetters.length - publicMail.length - 1);
+  assert.deepEqual(mailboxLetters(story), allLetters);
+  assert.deepEqual(unreadLetterIds(story), allLetters.map(letter => letter.id).filter(id => id !== opened && id !== handedLetters.suyan));
+  const restored = readProgress(JSON.stringify({residents: story})).residents;
+  assert.deepEqual(restored, story);
+  assert.equal(restored.patrickArrived, false);
+  assert.equal(restored.postReadRevision, 0);
+  assert.equal(grantDebugLetters(restored), 0);
+  markLetterRead(restored, postLetter.id);
+  markLetterRead(restored, patrickLetter.id);
+  assert.equal(grantDebugLetters(restored), 0);
+  assert.equal(restored.postReadRevision, POST_LETTER_REVISION);
+  assert.equal(restored.patrickRead, true);
+});
 
 test("public letters arrive sealed; reading and migration only open the expected envelopes", () => {
   const fresh = readProgress(null).residents;

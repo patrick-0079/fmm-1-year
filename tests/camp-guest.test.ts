@@ -4,12 +4,34 @@ import { CampGuest, campGuestStart, campGuestSeat } from "../src/camp-guest.ts";
 import { canTravelBetween } from "../src/core.ts";
 import { clickedInteraction, nearbyInteraction } from "../src/interaction.ts";
 import { campLetterSpot, campSeat, meadowScene } from "../src/meadow-map.ts";
-import { collectHandedLetter, handedLetters, mailboxLetters, readResidentStory } from "../src/resident-story.ts";
+import { collectHandedLetter, grantDebugLetters, handedLetters, mailboxLetters, readResidentStory } from "../src/resident-story.ts";
 import { benchRest } from "../src/rest.ts";
 
 const camp = meadowScene.spots.find(spot => spot.id === "meadow-camp")!;
 const sheet = {naturalWidth: 256} as HTMLImageElement;
 const sitting = () => benchRest("meadow", campSeat, camp.approach);
+
+test("receiving the camp letter in debug still allows the one visit without dropping a second envelope", () => {
+  const fresh = readResidentStory();
+  grantDebugLetters(fresh, handedLetters.patrick);
+  const story = readResidentStory(fresh);
+  assert.equal(story.patrickArrived, false);
+  assert.equal(readResidentStory({patrickDelivered: true}).patrickArrived, true);
+  const world: ConstructorParameters<typeof CampGuest>[0] = {scene: "meadow", restState: sitting(), paused: false};
+  let visits = 0;
+  const guest = new CampGuest(world, () => story, () => visits++);
+  guest.tick(.1, 0);
+  guest.tick(.1, 30);
+  guest.tick(2, 32);
+  assert.equal(guest.layers(sheet, false).length, 1);
+  assert.equal(guest.letterOnGround, false);
+  guest.tick(1, 33);
+  assert.equal(guest.layers(sheet, false).length, 1);
+  guest.reset();
+  guest.tick(.1, 34);
+  guest.tick(.1, 64);
+  assert.equal(visits, 1);
+});
 
 test("30 uninterrupted seconds of sitting bring the guest, who leaves an uncollected letter on the ground", () => {
   const world: ConstructorParameters<typeof CampGuest>[0] = {scene: "meadow", restState: sitting(), paused: false};
