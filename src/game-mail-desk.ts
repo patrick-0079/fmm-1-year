@@ -232,6 +232,9 @@ export function renderGameMailDesk(
     const opening = direction === "open";
     const sealed = button.dataset.sealed === "true";
     const duration = opening ? (sealed ? 800 : 500) : 450;
+    // Restore the desk toolbar before measuring the landing point on phones.
+    const readingRect = opening ? undefined : sheet.getBoundingClientRect();
+    if (readingRect) sheet.inert = true;
     stack.hidden = false;
     button.classList.add("is-travelling");
     flight.style.setProperty("--flight-duration", `${duration}ms`);
@@ -246,11 +249,11 @@ export function renderGameMailDesk(
     const path: Keyframe[] = opening
       ? [{ transform: resting }, { transform: lift, offset: .15 }, { transform: "none", offset: .48 }, { transform: "none" }]
       : [{ transform: "none" }, { transform: "none", offset: .42 }, { transform: lift, offset: .85 }, { transform: resting }];
-    if (!opening) {
-      sheet.inert = true;
+    if (readingRect) {
+      const sheetRect = sheet.getBoundingClientRect();
       paperMotion = sheet.animate([
-        { transform: "none", opacity: 1 },
-        { transform: transformTo(sheet.getBoundingClientRect(), flightPaper.getBoundingClientRect()), opacity: 0 },
+        { transform: transformTo(sheetRect, readingRect), opacity: 1 },
+        { transform: transformTo(sheetRect, flightPaper.getBoundingClientRect()), opacity: 0 },
       ], { duration: 185, easing: "ease-in", fill: "forwards" });
     }
     motion = flight.animate(path, { duration, easing: "ease-in-out", fill: "both" });

@@ -52,6 +52,13 @@ async function verifyLongLetterStack(reader: HTMLElement) {
     key("ArrowRight"); await select("letter-2");
     key("ArrowLeft"); await select("letter-1");
     if (receipts.length || front().dataset.sealed !== "true") throw new Error("挑选信件时误拆了蜡封");
+    const boundsOnDesk = (selector: string) => {
+      const rect = front().querySelector<HTMLElement>(selector)!.getBoundingClientRect();
+      const desk = sample.getBoundingClientRect();
+      return new DOMRect(rect.left - desk.left, rect.top - desk.top, rect.width, rect.height);
+    };
+    const sealed = boundsOnDesk(".mail-pocket");
+    if (!sealed.width || !sealed.height) throw new Error("未拆信封的袋身不可见");
     front().click();
     await waitForReading(() => body.dataset.openLetterId === "letter-1", "未读信无法打开");
     if (receipts.join() !== "letter-1") throw new Error("读一封信改变了其他信的状态");
@@ -79,6 +86,14 @@ async function verifyLongLetterStack(reader: HTMLElement) {
     await select("letter-1");
     if (document.activeElement !== front() || front().dataset.sealed !== "false")
       throw new Error("放回后没有回到原来选中的已拆信封");
+    const opened = boundsOnDesk(".mail-pocket");
+    for (const edge of ["width", "height", "left", "bottom"] as const) {
+      if (Math.abs(opened[edge] - sealed[edge]) > .5)
+        throw new Error(`同一封信放回后袋身的 ${edge} 变化了：${sealed[edge]} → ${opened[edge]}`);
+    }
+    const flap = boundsOnDesk(".mail-flap");
+    if (flap.top >= opened.top || Math.abs(flap.bottom - opened.top) > .5)
+      throw new Error("已拆信封的封舌没有从袋口向上翻开");
     if (!body.querySelector(".mail-stack-position")?.textContent?.includes("101"))
       throw new Error("信摞没有收录阅读期间送到的新信");
   } finally {

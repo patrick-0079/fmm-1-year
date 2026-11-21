@@ -65,6 +65,10 @@
   white-space: nowrap;
 }
 .game-letter-reader > .reader-body.mail-desk-body {
+  /* Both the pile and the moving envelope use the same pocket. Its open flap
+     needs up to 70% of the pocket height above the top seam. */
+  --mail-envelope-width: min(55cqw, 84cqh, 440px);
+  container-type: size;
   flex: 1 1 auto;
   position: relative;
   isolation: isolate;
@@ -80,9 +84,9 @@
   position: absolute;
   z-index: 3;
   left: 50%;
-  top: 57%;
-  translate: -50% -50%;
-  width: min(46%, 312px);
+  top: 50%;
+  translate: -50% -15%;
+  width: var(--mail-envelope-width);
   aspect-ratio: 520 / 353;
   pointer-events: none;
 }
@@ -224,15 +228,15 @@
   .game-letter-reader .mail-sheet .letter-text { font-size: 14px; line-height: 1.55; }
   .mail-page-next { right: -9px; }
   .mail-page-prev { left: -9px; }
-  .game-letter-reader:has(.mail-sheet:not([hidden])) > header {
+  .game-letter-reader:has(.mail-sheet:not([hidden],[inert])) > header {
     position: absolute;
     top: 1.5%;
     right: 2.2%;
     padding: 0;
   }
-  .game-letter-reader:has(.mail-sheet:not([hidden])) > header > div:first-child { display: none; }
-  .game-letter-reader:has(.mail-sheet:not([hidden])) .reader-tools { gap: 2px; }
-  .game-letter-reader:has(.mail-sheet:not([hidden])) .reader-tools button { padding-inline: 5px; }
+  .game-letter-reader:has(.mail-sheet:not([hidden],[inert])) > header > div:first-child { display: none; }
+  .game-letter-reader:has(.mail-sheet:not([hidden],[inert])) .reader-tools { gap: 2px; }
+  .game-letter-reader:has(.mail-sheet:not([hidden],[inert])) .reader-tools button { padding-inline: 5px; }
   .game-letter-reader .mail-sheet {
     width: 96%;
     margin-block: 1.2cqw 1.6cqw;
