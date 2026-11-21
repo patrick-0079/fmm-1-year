@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readProgress, canStand, findPath } from "../src/core.ts";
 import { readEchoMemory, playEcho, melody } from "../src/echoes.ts";
-import { crossedEchoGate, townEchoGate, ruinsExit, echoPool } from "../src/ruins-map.ts";
+import { crossedEchoGate, townEchoGate, ruinsExit, echoPool, stairLintel, southNotebook, southNotebookArt } from "../src/ruins-map.ts";
+import { clickedInteraction, nearbyInteraction } from "../src/interaction.ts";
 import { arcadesIn } from "../src/town-data.ts";
 import { scenes } from "../src/maps.ts";
 import { readJourney } from "../src/journey.ts";
@@ -31,6 +32,14 @@ test("runes accept only a complete set and the correct notes, including after re
   assert.ok(playEcho(saved,"bell")); assert.ok(playEcho(saved,"star")); assert.equal(playEcho(saved,"star"),false);
   saved.listened=true;
   assert.deepEqual(readEchoMemory(saved),{found:[...melody],played:3,listened:true});
+});
+test("the south landing book stays clear of the ivy arch and can be read from the entrance aisle",()=>{
+  const map = scenes.ruins, art = southNotebookArt;
+  assert.ok(art.y + art.h < Math.min(...stairLintel.map(p => p.y)), "the arch must not cover the book or its stand");
+  assert.equal(clickedInteraction({x:art.x + art.w/2, y:art.y + art.h/3}, map.spots)?.id, southNotebook.id);
+  assert.equal(nearbyInteraction(southNotebook.approach, map.spots)?.id, southNotebook.id);
+  assert.ok(!canStand(southNotebook,map.walls,map.bounds,map.floor,map.surfaces));
+  assert.deepEqual(findPath(ruinsExit.approach,southNotebook.approach,map)?.at(-1),southNotebook.approach);
 });
 test("walk through each gate outwards only, with both landings safe",()=>{
   const town=townEchoGate, exit=ruinsExit;

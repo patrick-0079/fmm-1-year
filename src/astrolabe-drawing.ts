@@ -1,5 +1,5 @@
 import { lightBoard, mirrorCells, targetCell, plateAligned, rings, starLit, traceMoonlight, type AstrolabeState, type RingId } from "./astrolabe";
-import { moonPlate, southNotebook } from "./ruins-map";
+import { moonPlate, southNotebookArt } from "./ruins-map";
 import { drawRelic } from "./relic-icons";
 import { sceneArt } from "./scene-art";
 
@@ -27,7 +27,7 @@ export function drawGroundRing(c:Ctx, id:RingId, x:number, y:number, near:boolea
   c.restore();
 }
 export function drawSouthNotebook(c:Ctx) {
-  tool(c,"book",southNotebook.x-15,southNotebook.y-26,30);
+  tool(c,"book",southNotebookArt.x,southNotebookArt.y,southNotebookArt.w);
 }
 export function drawMoonPlate(c:Ctx, s:AstrolabeState) {
   const {x,y}=moonPlate, solved=plateAligned(s);

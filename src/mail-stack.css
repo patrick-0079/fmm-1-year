@@ -32,15 +32,13 @@
   left: 1%;
   bottom: 0;
   pointer-events: none;
-  border-radius: 2%;
-  background: url("./assets/stationery-ivory-flap.webp") top center / 100% 70% no-repeat,
-    url("./assets/stationery-lily-pocket.webp") center / 100% 100% no-repeat,
-    #dfc4ad;
-  box-shadow: 0 1px 1px #693c4166, 1px 4px 5px #452d2766;
+  background: url("./assets/stationery-ivory-flap.webp") top center / 100% 69.69% no-repeat,
+    url("./assets/stationery-lily-pocket.webp") center / 100% 100% no-repeat;
+  filter: brightness(var(--paper-shade)) drop-shadow(1px 2px 2px #452d2766);
   transform-origin: 47% 67%;
 }
-.mail-deck::before { transform: translate(-1%, 3%) rotate(-5deg); filter: sepia(.18) brightness(.9); }
-.mail-deck::after { z-index: -2; transform: translate(2%, 1%) rotate(6deg); filter: sepia(.28) brightness(.83); }
+.mail-deck::before { transform: translate(-1%, 3%) rotate(-5deg); --paper-shade: .90; }
+.mail-deck::after { z-index: -2; transform: translate(2%, 1%) rotate(6deg); --paper-shade: .83; }
 .mail-deck[data-depth="1"]::before, .mail-deck[data-depth="1"]::after, .mail-deck[data-depth="2"]::after { display: none; }
 .mail-deck .mail-envelope, .mail-deck-leaf {
   display: block;
@@ -62,8 +60,15 @@
   -webkit-tap-highlight-color: transparent;
 }
 .mail-deck .mail-envelope:focus-visible {
-  outline: 2px dashed #874359;
-  outline-offset: 5px;
+  outline: none;
+}
+.mail-deck .mail-envelope:focus-visible .mail-sender {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: .18em;
+}
+@media (forced-colors: active) {
+  .mail-deck .mail-envelope:focus-visible { outline: 2px solid Highlight; outline-offset: 4px; }
 }
 .mail-deck :is(.mail-envelope, .mail-deck-leaf) > .mail-envelope-art {
   position: absolute;

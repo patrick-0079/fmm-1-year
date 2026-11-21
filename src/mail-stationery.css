@@ -27,6 +27,9 @@
   background-position: center bottom;
   background-size: 100% 169.69%;
 }
+[data-sealed="true"] .mail-envelope-object::before {
+  opacity: 0;
+}
 .mail-envelope-object .mail-paper {
   z-index: 1;
   inset: 5.5% 5.5% 4%;
@@ -96,6 +99,9 @@
 }
 .mail-flight[data-direction="open"][data-sealed="true"] .mail-seal { animation-name: mail-peel-seal; }
 .mail-flight[data-direction="open"][data-sealed="true"] .mail-flap { animation-name: mail-unfold-flap; }
+.mail-flight[data-direction="open"][data-sealed="true"] .mail-envelope-object::before {
+  animation: mail-reveal-lining var(--flight-duration) linear both;
+}
 .mail-flight[data-direction="open"][data-sealed="true"] .mail-paper { animation-name: mail-take-sealed-card; }
 .mail-flight[data-direction="open"][data-sealed="false"] .mail-flap { animation-name: mail-lift-open-flap; }
 .mail-flight[data-direction="open"][data-sealed="false"] .mail-paper { animation-name: mail-take-open-card; }
@@ -111,6 +117,11 @@
   54% { z-index: 3; transform: rotateX(-89deg); }
   55% { z-index: 0; transform: rotateX(-91deg); }
   72%, 100% { z-index: 0; transform: rotateX(-180deg); }
+}
+/* At the hinge the closed flap still covers the lining's straight cut edge. */
+@keyframes mail-reveal-lining {
+  0%, 52% { opacity: 0; }
+  56%, 100% { opacity: 1; }
 }
 @keyframes mail-take-sealed-card {
   0%, 61% { transform: none; }
@@ -133,7 +144,8 @@
   100% { transform: rotateX(-115deg); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .mail-flight[data-direction] :is(.mail-seal,.mail-flap,.mail-paper) {
+  .mail-flight[data-direction] :is(.mail-seal,.mail-flap,.mail-paper),
+  .mail-flight[data-direction="open"][data-sealed="true"] .mail-envelope-object::before {
     animation: none;
   }
 }

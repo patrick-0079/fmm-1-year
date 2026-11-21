@@ -65,10 +65,13 @@ export function crossedEchoGate(scene: string, from: Point, to: Point) {
       from.y < ruinsExit.y && to.y >= ruinsExit.y) return ruinsExit.id;
 }
 const trials = arcadesIn("ruins");
+// The left side of the landing keeps the whole book above the arch and the central aisle clear.
+const bookFoot = {x:430,y:403};
+export const southNotebookArt = {x:bookFoot.x-15,y:bookFoot.y-26,w:30,h:30};
 export const southNotebook: Hotspot = {
-  id: "star-notebook", title: "南阶 · 查阅寻环线索", x: 475, y: 477,
-  approach: {x:463,y:486}, radius: 25, selfMarked: true,
-  hitAreas: [{x:461,y:456,w:30,h:26}],
+  id: "star-notebook", title: "南阶 · 查阅寻环线索", ...bookFoot,
+  approach: {x:bookFoot.x+20,y:bookFoot.y+6}, radius: 25, selfMarked: true,
+  hitAreas: [southNotebookArt],
 };
 export const moonPlate: Hotspot = {
   id: "star-plate", title: "月相星盘", x: 330, y: 258, approach: {x:361,y:267},

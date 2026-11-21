@@ -26,6 +26,11 @@ async function verifyLongLetterStack(reader: HTMLElement) {
   const receipts: string[] = [];
   let deliver: ((entries: typeof items, unreadIds: string[]) => void) | undefined;
   const front = () => body.querySelector<HTMLButtonElement>(".mail-stack button.mail-envelope")!;
+  const liningIsVisible = () => {
+    const lining = getComputedStyle(front().querySelector(".mail-envelope-object")!, "::before");
+    return lining.display !== "none" && lining.visibility === "visible" && Number(lining.opacity) > 0 &&
+      lining.content !== "none" && lining.backgroundImage !== "none";
+  };
   const select = async (id: string) => {
     await waitForReading(() => front()?.dataset.memoryId === id, "选中的信封不正确：" + id);
   };
@@ -59,6 +64,13 @@ async function verifyLongLetterStack(reader: HTMLElement) {
     };
     const sealed = boundsOnDesk(".mail-pocket");
     if (!sealed.width || !sealed.height) throw new Error("未拆信封的袋身不可见");
+    if (liningIsVisible()) throw new Error("闭合封舌的上沿露出了内衬");
+    const deck = body.querySelector(".mail-deck")!;
+    for (const leaf of ["::before", "::after"]) {
+      const style = getComputedStyle(deck, leaf);
+      if (style.backgroundColor !== "rgba(0, 0, 0, 0)" || style.boxShadow !== "none")
+        throw new Error("底层信封的透明纸边绘制了矩形底色或阴影");
+    }
     front().click();
     await waitForReading(() => body.dataset.openLetterId === "letter-1", "未读信无法打开");
     if (receipts.join() !== "letter-1") throw new Error("读一封信改变了其他信的状态");
@@ -87,6 +99,7 @@ async function verifyLongLetterStack(reader: HTMLElement) {
     if (document.activeElement !== front() || front().dataset.sealed !== "false")
       throw new Error("放回后没有回到原来选中的已拆信封");
     const opened = boundsOnDesk(".mail-pocket");
+    if (!liningIsVisible()) throw new Error("已拆信放回后没有露出内衬");
     for (const edge of ["width", "height", "left", "bottom"] as const) {
       if (Math.abs(opened[edge] - sealed[edge]) > .5)
         throw new Error(`同一封信放回后袋身的 ${edge} 变化了：${sealed[edge]} → ${opened[edge]}`);
