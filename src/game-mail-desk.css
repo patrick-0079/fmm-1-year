@@ -1,4 +1,5 @@
-/* The reader occupies the existing camera frame. Only the pile or paper scrolls. */
+/* The box, flight and sheet share the camera frame. The hit targets stay still
+   when their illustrated envelopes lift out of the two felt-lined bays. */
 .game-letter-reader:has(.mail-desk-body) {
   inset: 0;
   width: auto;
@@ -7,28 +8,32 @@
   padding: 0;
   border: 0;
   border-radius: inherit;
+  overflow: hidden;
   background: #ad754e url("./assets/stationery-desk.webp") center / cover;
-  box-shadow: inset 0 0 28px #58352440;
   container: mail-desk / inline-size;
 }
 .reading-letter:has(.mail-desk-body) :is(.bag-toggle,.time-pill,.scene-top) { visibility: hidden; }
 .game-letter-reader:has(.mail-desk-body) > header {
-  flex-wrap: nowrap;
+  position: relative;
+  z-index: 5;
   align-items: center;
-  padding: clamp(4px, 1.3cqw, 14px) clamp(7px, 2cqw, 20px) 1px;
-  border: none;
+  flex-wrap: nowrap;
+  gap: 4px;
+  padding: clamp(3px, 1.2cqw, 11px) clamp(5px, 2cqw, 20px) 0;
+  border: 0;
   background: transparent;
 }
 .game-letter-reader:has(.mail-desk-body) > header :is(small, p) { display: none; }
 .game-letter-reader:has(.mail-desk-body) > header h3 {
   margin: 0;
-  padding: .24em .74em .3em;
-  border: 1px solid #ab7857;
-  border-radius: 3px 7px 5px 2px;
-  color: #513329;
-  background: linear-gradient(110deg, #fcebd0, #fff5da 60%, #f1d8b5);
-  box-shadow: inset 0 0 0 2px #fff3d7, inset 0 0 0 3px #c79979, 1px 3px 2px #4e2f2747;
-  font: 700 clamp(16px, 3cqw, 28px)/1.4 system-ui, sans-serif;
+  padding: .18em .7em;
+  border: 1px solid #a86348;
+  border-left: .28em solid #bc7281;
+  border-radius: 2px 6px 4px 2px;
+  box-shadow: 1px 2px 4px #60332267, inset 0 0 0 2px #fff2db;
+  background: #f6e6c9;
+  color: #552f32;
+  font: 700 clamp(15px, 2.7cqw, 25px)/1.45 system-ui, sans-serif;
 }
 .game-letter-reader:has(.mail-desk-body) .reader-tools {
   display: flex;
@@ -40,146 +45,275 @@
   padding: 3px clamp(6px, 1.3cqw, 14px);
   border: 1px solid #a3795c;
   border-radius: 4px;
-  background: #fff2d8;
   color: #593c37;
+  background: #fff2d8;
   box-shadow: inset 0 0 0 2px #ffe8c6, 1px 2px 0 #6b463c56;
   font: 600 clamp(12px, 1.6cqw, 15px)/1.2 system-ui, sans-serif;
   white-space: nowrap;
 }
 .game-letter-reader > .reader-body.mail-desk-body {
   flex: 1 1 auto;
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template: minmax(0, 1fr) / minmax(0, 1fr);
   overflow: hidden;
   min-width: 0;
   min-height: 0;
-}
-.game-letter-reader .mail-desk-pile.collection-list {
-  display: flex;
-  flex-flow: row wrap;
-  align-content: safe center;
-  justify-content: center;
-  align-items: center;
-  gap: 1.1cqw 1.8cqw;
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  min-width: 0;
-  margin: 0;
-  padding: 2.2cqw 5cqw 3cqw;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: #b79773 #543a2a35;
-  touch-action: pan-y;
-}
-.mail-desk-pile .mail-envelope {
-  --tilt: -3deg;
-  --side: 0%;
-  --rise: 0%;
-  --tint: 0deg;
-  --name-y: 27%;
-  position: relative;
-  flex: 0 0 29%;
-  aspect-ratio: 520 / 353;
-  min-width: 44px;
-  min-height: 44px;
-  border: none;
   padding: 0;
-  margin: 0;
-  overflow: visible;
-  background: transparent;
-  color: #3f2b30;
-  box-shadow: none;
-  transform: translate(var(--side), var(--rise)) rotate(var(--tilt));
-  transition: transform 120ms ease;
-  touch-action: pan-y;
 }
-.mail-desk-pile[data-count="2"] .mail-envelope { flex-basis: 39%; }
-.mail-envelope:nth-child(3n + 2) { --tilt: 3deg; --rise: -1.5%; }
-.mail-envelope:nth-child(3n) { --tilt: -2deg; --side: -1%; --rise: 2%; }
-.mail-envelope:nth-child(4n + 1) { --side: 2%; --rise: 2%; }
-.mail-envelope:nth-child(4n) { --tilt: -4deg; --side: -2.5%; }
-.mail-envelope:nth-child(5n + 2) { --tint: -27deg; }
-.mail-envelope:nth-child(5n + 3) { --tint: 34deg; }
-.mail-envelope:nth-child(5n + 4) { --tint: 165deg; }
-.mail-envelope:nth-child(5n) { --tint: -52deg; }
-.mail-envelope[data-sealed="false"] {
-  --name-y: 75%;
-  aspect-ratio: 520 / 536;
+
+/* Keep both hit lists in the painted wells. Draw the wooden lip in front of
+   them from the same image so its contour still matches the cherrywood box. */
+.mail-chest {
+  --front-height: 35.6%;
+  --case-art: url("./assets/stationery-cherrywood-box.webp");
+  grid-area: 1 / 1;
+  place-self: center;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6%;
+  box-sizing: border-box;
+  width: min(87%, 710px);
+  height: min(92%, 44.5cqw, 363px);
+  padding-inline: 8.4%;
+  background: var(--case-art) center / 100% 100% no-repeat;
+  filter: drop-shadow(0 2px 1px #563128b8) drop-shadow(1px 1.2cqw .8cqw #53302180);
 }
-.mail-envelope-art {
-  position: absolute;
-  inset: 0;
-  filter: drop-shadow(0 2px 2px #4b2c285e);
-  pointer-events: none;
-}
-.mail-envelope-art::before, .mail-envelope[data-sealed="true"] .mail-envelope-art::after {
+.mail-chest::after {
   content: "";
   position: absolute;
+  z-index: 2;
   inset: 0;
-  background: url("./assets/stationery-sealed.webp") center / 100% 100% no-repeat;
+  pointer-events: none;
+  background: var(--case-art) center / 100% 100% no-repeat;
+  clip-path: polygon(0 67%, 6.6% 65%, 9% 64.1%, 91% 64.1%, 94% 65%, 100% 67%, 100% 100%, 0 100%);
 }
-.mail-envelope-art::before { filter: hue-rotate(var(--tint)) saturate(.72); }
-/* Keep wax its original red, separately from the dyed paper and moving flap. */
-.mail-envelope[data-sealed="true"] .mail-envelope-art::before {
-  mask-image: radial-gradient(ellipse 11.4% 16.4% at 50.4% 64.2%, transparent 94%, #000 99%);
+.mail-bay {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
 }
-.mail-envelope[data-sealed="true"] .mail-envelope-art::after {
-  clip-path: ellipse(11.7% 16.8% at 50.4% 64.2%);
-}
-.mail-envelope[data-sealed="false"] .mail-envelope-art::before {
-  background-image: url("./assets/stationery-open.webp");
-}
-.mail-envelope .envelope-name {
+.game-letter-reader .mail-bay-list.collection-list {
   position: absolute;
-  top: var(--name-y);
+  inset: 4.3% 0 calc(var(--front-height) - 1px);
+  box-sizing: border-box;
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 0;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: clamp(7px, 1.4cqw, 13px) clamp(3px, .65cqw, 8px) 0;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  scrollbar-color: #8a5d61 #d6a5a04a;
+  scrollbar-width: thin;
+  touch-action: pan-y;
+}
+.mail-bay-label {
+  position: absolute;
+  z-index: 3;
+  bottom: calc(var(--front-height) * .37);
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 84%;
-  font: 650 clamp(12px, 2.4cqw, 26px)/1.2 system-ui, sans-serif;
-  text-shadow: 0 1px 1px #ffefcc;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  text-wrap: balance;
-  text-align: center;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: .13em 1.22em;
+  border: 1px solid #835936;
+  border-radius: 4px;
+  color: #523721;
+  background: linear-gradient(114deg, #bc8d55, #ffe8ac 24%, #ddba7f 57%, #f4d8a0 81%, #bc925d);
+  text-shadow: 0 1px #fff1bdb8;
+  box-shadow: inset 0 0 0 1px #fae1acba, 0 1px 1px #3e2629b8;
+  font: 650 clamp(12px, 2cqw, 19px)/1.35 system-ui, sans-serif;
+  letter-spacing: .05em;
+  white-space: nowrap;
   pointer-events: none;
 }
-.mail-envelope:focus-visible, .mail-fold:focus-visible {
-  outline: 3px solid #fffde3;
-  outline-offset: 1px;
-  box-shadow: 0 0 0 5px #9b5770;
-  border-radius: 5px;
-}
-@media (hover: hover) {
-  .mail-desk-pile .mail-envelope:hover {
-    transform: translate(var(--side), calc(var(--rise) - 3px)) rotate(0);
-  }
-}
-.mail-envelope.opening { z-index: 1; }
-.mail-envelope.opening .mail-envelope-art::before { animation: unseal-paper 280ms both ease-out; }
-.mail-envelope.opening .mail-envelope-art::after { animation: unseal-wax 280ms both ease-out; }
-.mail-envelope.opening .envelope-name { animation: unseal-paper 170ms both; }
-.mail-envelope.opening .mail-lifted-flap {
+.mail-bay-label::before, .mail-bay-label::after {
+  content: "";
   position: absolute;
-  inset: auto 0 0;
-  height: 151.84%;
-  background: url("./assets/stationery-open.webp") center / 100% 100% no-repeat;
-  filter: hue-rotate(var(--tint)) saturate(.72);
-  animation: unseal-flap 280ms both ease-out;
+  width: .23em;
+  height: .23em;
+  top: 42%;
+  border-radius: 50%;
+  background: #7e583e;
+  box-shadow: 0 1px #ffebaf, inset 0 1px #4c3128;
 }
-@keyframes unseal-wax {
-  0% { transform: none; }
-  70%, 100% { transform: translate(4%, -17%) rotate(9deg); opacity: 0; }
+.mail-bay-label::before { left: .36em; }
+.mail-bay-label::after { right: .36em; }
+
+.mail-bay .mail-envelope {
+  flex: 0 0 auto;
+  position: relative;
+  width: 100%;
+  height: clamp(44px, 6.9cqw, 62px);
+  min-height: 44px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  color: #542f39;
+  box-shadow: none;
+  touch-action: pan-y;
 }
-@keyframes unseal-paper { 0%, 22% { opacity: 1; } 76%, 100% { opacity: 0; } }
-@keyframes unseal-flap {
-  0%, 22% { clip-path: inset(37% 0 0); opacity: 0; }
-  52% { opacity: 1; }
-  100% { clip-path: inset(0); opacity: 1; }
+.mail-envelope:first-child { margin-top: auto; }
+.mail-envelope:nth-child(3n + 1) { --incline: -1deg; }
+.mail-envelope:nth-child(3n + 2) { --incline: .8deg; }
+.mail-envelope:nth-child(3n) { --incline: -.4deg; }
+/* The mask has a fixed bottom edge and a little headroom. Lifting the art
+   can't grow the list's scrollable area or move the pointer's hit row. */
+.mail-slot-mask {
+  position: absolute;
+  inset: -12px 0 0;
+  overflow: clip;
+  contain: paint;
+  pointer-events: none;
+}
+.mail-slot-mask > .mail-envelope-art { top: 12px; }
+.mail-envelope-art {
+  position: absolute;
+  inset: 0 1% auto;
+  aspect-ratio: 1.85;
+  border-radius: 3px;
+  background: #dbbfa1;
+  transform-origin: center 70%;
+  transform: rotate(var(--incline, 0deg));
+  filter: drop-shadow(0 1px 2px #59343988);
+  pointer-events: none;
+}
+.mail-envelope .mail-envelope-art {
+  transition: transform 165ms ease-out;
+}
+.mail-envelope.is-lifted .mail-envelope-art {
+  transform: translateY(clamp(-9px, -1cqw, -5px)) rotate(0);
+}
+.mail-envelope.is-travelling .mail-envelope-art { visibility: hidden; }
+.mail-envelope:focus-visible { outline: 0; }
+.mail-envelope:focus-visible .envelope-name { outline: 2px solid #98526b; outline-offset: 2px; border-radius: 2px; }
+.mail-paper, .mail-pocket, .mail-flap, .mail-seal, .envelope-name {
+  position: absolute;
+  display: block;
+}
+.mail-paper {
+  z-index: 1;
+  inset: 4% 5% 5%;
+  border: 1px solid #cda786;
+  border-radius: 3px;
+  background: linear-gradient(#fff6df 13%, transparent 13%) top / 100% 100%,
+    repeating-linear-gradient(to bottom, #fff7e7 0 13%, #e0cbb1 13.2% 13.8%, #fff7e7 14% 15%);
+  box-shadow: inset 0 0 0 3px #f4dfbd;
+}
+.mail-pocket {
+  z-index: 2;
+  inset: 0;
+  border: 1px solid #bd9578;
+  border-radius: 3px 4px 5px 3px;
+  background: linear-gradient(29deg, transparent 41.7%, #c7a17d52 42.1%, transparent 42.9%),
+    linear-gradient(-28deg, transparent 35%, #b3937250 35.4%, transparent 36.4%),
+    linear-gradient(150deg, #fff9df 2%, #fce7ca 62%, #ebc8a9);
+  box-shadow: inset 0 0 0 2px #fff1d0;
+  clip-path: polygon(0 0, 77% 27%, 100% 0, 100% 100%, 0 100%);
+}
+.mail-pocket::after {
+  content: "";
+  position: absolute;
+  right: .9%;
+  bottom: .9%;
+  width: 36%;
+  height: 49%;
+  background: url("./assets/stationery-open.webp") 100% 100% / 282% 295% no-repeat;
+  mask-image: radial-gradient(ellipse 100% 100% at 97% 94%, #000 46%, transparent 99%);
+}
+.mail-flap {
+  z-index: 3;
+  inset: 0;
+  clip-path: polygon(0 0, 100% 0, 77% 30%);
+  background: linear-gradient(165deg, #fff8e233, #f1dfca22 36%, #dfb994b3 89%),
+    url("./assets/stationery-sealed.webp") 33% 13% / 190% 360%;
+  transform-origin: center top;
+}
+.mail-seal {
+  z-index: 4;
+  width: 17%;
+  max-width: 63px;
+  aspect-ratio: 1;
+  left: 77%;
+  top: 27%;
+  transform: translate(-50%, -50%) rotate(-6deg);
+  background: url("./assets/stationery-sealed.webp") 50.5% 69.5% / 448% 338% no-repeat;
+  clip-path: ellipse(49% 49% at 50% 50%);
+}
+.envelope-name {
+  z-index: 4;
+  top: 6%;
+  left: 4.5%;
+  max-width: 62%;
+  padding: 1px .28em;
+  color: #613842;
+  border-bottom: 1px solid #c69f89;
+  text-shadow: 0 1px #fff3d9;
+  font: 600 clamp(12px, 1.95cqw, 19px)/1.35 system-ui, sans-serif;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+[data-sealed="false"] .mail-envelope-art { background: #c89d8e; }
+[data-sealed="false"] .mail-envelope-art .mail-paper { transform: translateY(-8%); }
+[data-sealed="false"] .mail-envelope-art .mail-flap {
+  z-index: 0;
+  transform: perspective(360px) rotateX(151deg);
+  background: #d7a996;
+}
+[data-sealed="false"] .mail-envelope-art .mail-seal { display: none; }
+.mail-fold:focus-visible { outline: 2px solid #87506a; outline-offset: 2px; }
+
+/* JS flies the envelope between its actual slot and the centre. The paper,
+   flap, wax and lettering move independently inside that same silhouette. */
+.mail-flight {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 55%;
+  translate: -50% -50%;
+  width: min(50%, 346px);
+  aspect-ratio: 1.85;
+  pointer-events: none;
+}
+.mail-flight > .mail-envelope-art { inset: 0; aspect-ratio: auto; }
+.mail-flight[data-direction="open"] .mail-paper { animation: chest-pull-paper var(--flight-duration) both; }
+.mail-flight[data-direction="open"] .envelope-name { animation: chest-reveal-writing var(--flight-duration) both; }
+.mail-flight[data-direction="open"][data-sealed="true"] .mail-seal { animation: chest-peel-seal var(--flight-duration) both; }
+.mail-flight[data-direction="open"][data-sealed="true"] .mail-flap { animation: chest-unfold-flap var(--flight-duration) both; }
+.mail-flight[data-direction="return"] .mail-paper { animation: chest-tuck-paper var(--flight-duration) both; }
+@keyframes chest-peel-seal {
+  0%, 34% { transform: translate(-50%, -50%) rotate(-6deg); }
+  55% { transform: translate(-15%, -114%) rotate(16deg); opacity: 1; }
+  65%, 100% { transform: translate(20%, -133%) rotate(23deg); opacity: 0; }
+}
+@keyframes chest-unfold-flap {
+  0%, 51% { transform: perspective(360px) rotateX(0); }
+  72%, 100% { transform: perspective(360px) rotateX(151deg); z-index: 0; }
+}
+@keyframes chest-pull-paper {
+  0%, 54% { transform: translateY(0) scale(1); }
+  77% { transform: translateY(-28%) scale(1.02); }
+  100% { transform: translateY(-47%) scale(1.13); }
+}
+@keyframes chest-tuck-paper {
+  from { transform: translateY(-47%) scale(1.13); }
+  60%, 100% { transform: translateY(-8%) scale(1); }
+}
+@keyframes chest-reveal-writing {
+  0%, 58% { opacity: 1; }
+  82%, 100% { opacity: 0; }
 }
 .game-letter-reader .mail-sheet {
+  grid-area: 1 / 1;
+  position: relative;
+  z-index: 4;
   display: flex;
   flex-direction: column;
   align-self: stretch;
@@ -194,9 +328,7 @@
   background: linear-gradient(120deg, #faedd8, #fff9eb 19%, #fff7e7 72%, #f1e2cd);
   color: #513c38;
   box-shadow: 2px 3px 0 #dbbda1, 3px 6px 9px #48302649, inset 0 0 0 4px #faedda;
-  animation: mail-sheet-in 160ms ease-out;
 }
-@keyframes mail-sheet-in { from { transform: translateY(6px); } }
 .mail-sheet-heading {
   flex: 0 0 auto;
   display: flex;
@@ -239,14 +371,13 @@
   font: 400 clamp(15px, 1.9cqw, 18px)/1.85 system-ui, sans-serif;
 }
 @container mail-desk (max-width: 540px) {
-  .game-letter-reader .mail-desk-pile.collection-list { padding: 2cqw 4cqw 4cqw; gap: 1cqw 2cqw; }
-  .mail-desk-pile .mail-envelope, .mail-desk-pile[data-count="2"] .mail-envelope { flex-basis: 44%; }
-  .game-letter-reader .mail-sheet { width: 95%; margin: 1cqw auto 2cqw; padding: 3px 9px 5px; }
+  .mail-chest { width: 98%; height: 94%; padding-inline: 6.8%; gap: 6.2%; }
+  .game-letter-reader .mail-bay-list.collection-list { padding-inline: 3px; }
+  .game-letter-reader .mail-sheet { width: 96%; margin: 1cqw auto 2cqw; padding: 3px 9px 5px; }
   .mail-sheet-heading h4 { font-size: 14px; }
   .mail-sheet .mail-signature { margin-bottom: 4px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .mail-desk-pile .mail-envelope { transition: none; }
-  .mail-envelope.opening *, .mail-envelope.opening .mail-envelope-art::before,
-  .mail-envelope.opening .mail-envelope-art::after, .game-letter-reader .mail-sheet { animation: none; }
+  .mail-envelope .mail-envelope-art { transition: none; }
+  .mail-flight * { animation: none !important; }
 }

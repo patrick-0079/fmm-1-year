@@ -1,4 +1,36 @@
 import type { World } from "../src/world";
+import { renderGameMailDesk } from "../src/game-mail-desk";
+
+/** At the bottom of a full bay, lifting the art must not shrink its scroll range and move the hit target. */
+async function verifyFullLetterBay(reader: HTMLElement) {
+  const sample = reader.cloneNode(false) as HTMLElement;
+  const body = document.createElement("div");
+  body.className = "reader-body";
+  sample.hidden = false;
+  sample.append(body);
+  reader.after(sample);
+  const cleanups: (() => void)[] = [];
+  const items = Array.from({ length: 20 }, (_, i) => ({id: `letter-${i}`, title: `第 ${i + 1} 封来信`}));
+  try {
+    renderGameMailDesk(body, { items, onRead() { throw new Error("悬停信封不应打开正文"); } }, cb => cleanups.push(cb));
+    const list = body.querySelector<HTMLElement>('[data-compartment="read"] .collection-list')!;
+    const last = list.lastElementChild as HTMLElement;
+    if (list.children.length !== 20 || list.scrollHeight <= list.clientHeight) throw new Error("满箱的已读格不支持翻找");
+    list.scrollTop = list.scrollHeight;
+    const rowTop = () => last.getBoundingClientRect().top - list.getBoundingClientRect().top;
+    const start = rowTop();
+    const scroll = list.scrollTop;
+    for (const type of ["pointerenter", "pointerleave"]) {
+      last.dispatchEvent(new PointerEvent(type, {pointerType: "mouse"}));
+      await Promise.all(last.getAnimations({subtree: true}).map(animation => animation.finished));
+      if (Math.abs(rowTop() - start) > 1 || Math.abs(list.scrollTop - scroll) > 1)
+        throw new Error("悬停或离开最底端的信封改变了滚动位置或点击区域");
+    }
+  } finally {
+    cleanups.forEach(cleanup => cleanup());
+    sample.remove();
+  }
+}
 
 /** Exercise the real application's stacked panels and media-error input path. */
 export async function verifyReadingControls(world: World, log: (text: string) => void) {
@@ -8,20 +40,33 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
     for (const type of ["keydown", "keyup"])
       target.dispatchEvent(new KeyboardEvent(type, {key: name, bubbles: true, cancelable: true}));
   };
+  async function waitForReading(check: () => boolean, message: string) {
+    const deadline = performance.now() + 3000;
+    while (!check()) {
+      if (performance.now() >= deadline) throw new Error(message);
+      await new Promise(resolve => setTimeout(resolve, 16));
+    }
+  }
   await world.prepareScene("room");
   const reader = q(".game-letter-reader");
   world.switchScene("room", {x:121,y:240});
   {
     world.onInteract("letters");
+    const unreadSelector = '.game-letter-reader [data-compartment="unread"] .mail-envelope';
+    const unopened = document.querySelector<HTMLButtonElement>(unreadSelector);
+    if (unopened && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const id = unopened.dataset.memoryId;
+      unopened.click();
+      q(".game-letter-reader .reader-close").click();
+      world.onInteract("letters");
+      expect([...reader.querySelectorAll<HTMLElement>(unreadSelector)].some(b => b.dataset.memoryId === id),
+        "拆信中途退出消耗了蜡封");
+    }
     const envelope = q<HTMLButtonElement>(".game-letter-reader .mail-envelope");
-    expect(envelope && !reader.hidden && world.paused, "没有打开桌上的信堆");
+    expect(envelope && !reader.hidden && world.paused, "没有打开书桌上的双格信匣");
     expect(!reader.querySelector(".mail-sheet:not([hidden])"), "进信箱时自动拆开了信");
     envelope.click();
-    const deadline = performance.now() + 3000;
-    while (!reader.querySelector(".mail-sheet:not([hidden])")) {
-      if (performance.now() >= deadline) throw new Error("拆封后没有出现信纸");
-      await new Promise(resolve => setTimeout(resolve, 16));
-    }
+    await waitForReading(() => !!reader.querySelector('[data-mail-state="reading"]'), "抽信后没有展开正文");
     const detail = q(".mail-sheet:not([hidden]) .memory-detail");
     detail.scrollTop = 25;
     detail.focus({preventScroll:true});
@@ -34,12 +79,16 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
     key("End", detail);
     expect(detail.scrollTop + detail.clientHeight >= detail.scrollHeight - 2, "说明返回后键盘不能读到末尾");
     q(".mail-fold").click();
-    expect(document.activeElement === envelope, "放回信封没有恢复原焦点");
+    await waitForReading(() => !!reader.querySelector('[data-mail-state="box"]'), "信封没有放回信匣");
+    expect(document.activeElement === envelope && envelope.closest('[data-compartment="read"]'),
+      "放回信匣后焦点没有跟随原信进入已读格");
     q(".help-button").click(); q(".help-close").click();
     expect(document.activeElement === envelope, "关闭说明没有保留选信焦点");
     key("Escape", envelope);
     expect(reader.hidden && !world.paused && document.activeElement === world.canvas, "收起阅读器未恢复探索");
-    log("信堆和信纸均保留帮助前的焦点，放回信封与退出探索正常。");
+    await verifyFullLetterBay(reader);
+    world.canvas.focus({ preventScroll: true });
+    log("中途收起保留蜡封，读信后原信回到右格，说明与阅读切换保留焦点。");
   }
   {
     world.onInteract("album");

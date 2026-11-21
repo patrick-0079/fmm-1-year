@@ -1,10 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { copyFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { scanLetters } from "../scripts/scan-letters.mjs";
+import { letterRecords } from "../src/letters.generated.ts";
 
 test("letter discovery preserves file and record order, punctuation in names, and rejects duplicate IDs", async t => {
   const root = await mkdtemp(join(tmpdir(), "fufu-letter-scan-"));
@@ -38,7 +39,11 @@ test("scanning a new public letter makes it readable and independently sealed ac
   const root = await mkdtemp(join(tmpdir(), "fufu-new-letter-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const sources = join(root, "来信");
-  await cp(new URL("../ref/来信/", import.meta.url), sources, { recursive: true });
+  // Keep room for the new public letter even when the real game box is full.
+  const baseline = letterRecords.filter(letter => (letter.delivery && letter.delivery !== "public")
+    || ["kerry-anniversary-letter", "rabe-anniversary-letter"].includes(letter.id));
+  await mkdir(sources);
+  await writeFile(join(sources, "letters.json"), JSON.stringify(baseline));
   for (const name of ["resident-story.ts", "letters.ts"]) {
     await copyFile(new URL("../src/" + name, import.meta.url), join(root, name));
   }
@@ -55,4 +60,20 @@ test("scanning a new public letter makes it readable and independently sealed ac
     assert.ok(!api.unreadLetterIds(resumed).includes(letter.id));
     assert.equal(api.markLetterRead(resumed, letter.id), false);
   }
+});
+
+test("a full letter box scans, but overflowing the box leaves the last manifest intact", async t => {
+  const root = await mkdtemp(join(tmpdir(), "fufu-letter-capacity-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const sources = join(root, "来信");
+  const manifest = join(root, "letters.generated.ts");
+  await mkdir(sources);
+  const letter = (id: number) => ({ id: String(id), title: "来信", author: "作者", text: "晚安" });
+  await writeFile(join(sources, "letters.json"), JSON.stringify(Array.from({ length: 19 }, (_, i) => letter(i))));
+  await writeFile(join(sources, "last.json"), JSON.stringify(letter(19)));
+  assert.equal((await scanLetters(sources, manifest)).count, 20);
+  const lastValid = await readFile(manifest);
+  await writeFile(join(sources, "more.json"), JSON.stringify([letter(20), letter(21)]));
+  await assert.rejects(scanLetters(sources, manifest), /共有 22 封来信，当前设计最多容纳 20 封。请重新设计收纳箱后再构建。/);
+  assert.deepEqual(await readFile(manifest), lastValid);
 });

@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, loadEnv, normalizePath, type Plugin } from "vite";
+import { readLetterPacks } from "./scripts/scan-letters.mjs";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const referenceRoot = normalizePath(fileURLToPath(new URL("./ref/", import.meta.url)));
@@ -85,12 +87,20 @@ const textureCache: Plugin = {
   },
 };
 
+const letterCapacity: Plugin = {
+  name: "fufu-letter-capacity",
+  apply: "build",
+  async buildStart() {
+    await readLetterPacks(join(this.environment.config.root, "ref", "来信"));
+  },
+};
+
 export default defineConfig(({ mode }) => {
   const releaseMode = buildMode(loadEnv(mode, root, "FULL_BUILD").FULL_BUILD);
   return {
     server: { watch: { ignored: ["**/artifacts/**"] } },
     // The default dist/ is inside the Vite root and is emptied on every build.
     build: { copyPublicDir: releaseMode === "full" },
-    plugins: [releaseEntry(releaseMode), releaseMode === "full" && textureCache],
+    plugins: [letterCapacity, releaseEntry(releaseMode), releaseMode === "full" && textureCache],
   };
 });

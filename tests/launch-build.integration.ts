@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { copyFile, mkdtemp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { build } from "vite";
 
 // Runs separately from npm test: a pre-release CI build should not have to
@@ -41,10 +42,12 @@ test("switching full → invitation → full cleans the deployed directory", asy
   assert.ok(explicit.files.some(name => name.startsWith("assets/town-guests-")));
   assert.ok(explicit.files.some(name => name.startsWith("assets/patrick-camp-")));
   assert.ok(explicit.files.some(name => name.startsWith("assets/stationery-desk-")));
+  assert.ok(explicit.files.some(name => name.startsWith("assets/stationery-cherrywood-box-")));
   assert.ok(!explicit.files.some(name => /CharaStudio.*\.png$/i.test(name)));
 
   const lite = await run("false");
   assert.equal(lite.marker.mode, "lite");
+  assert.ok(!lite.files.some(name => name.includes("stationery-cherrywood-box")));
   assert.ok(lite.marker.version && lite.marker.version !== explicit.marker.version);
   for (const file of lite.files) {
     assert.match(file, /^(?:assets|index\.html|release\.json|favicon\.svg|_headers|assets\/(?:[\w.-]+\.(?:js|css)|launch-(?:cottage|fufu|fox-letter|player)-[\w-]+\.webp|fufu-cursor-(?:arrow|play)-[\w-]+\.(?:svg|png)))$/);
@@ -62,4 +65,41 @@ test("switching full → invitation → full cleans the deployed directory", asy
   const implicit = await run();
   assert.deepEqual(implicit, explicit);
   await assert.rejects(run("flase"), /FULL_BUILD/);
+});
+
+test("both builds check the twenty-letter limit directly on disk before producing an artifact", async t => {
+  const root = await mkdtemp(join(tmpdir(), "fufu-mail-build-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const oldMode = process.env.FULL_BUILD;
+  t.after(() => {
+    if (oldMode === undefined) delete process.env.FULL_BUILD;
+    else process.env.FULL_BUILD = oldMode;
+  });
+  const launch = join(root, "src", "launch");
+  const source = join(root, "ref", "来信");
+  await mkdir(launch, { recursive: true });
+  await mkdir(source, { recursive: true });
+  await writeFile(join(root, "index.html"), '<script type="module" src="/src/launch/lite.ts"></script>');
+  await writeFile(join(launch, "lite.ts"), 'document.body.textContent = "邀请函"');
+  await writeFile(join(launch, "full.ts"), 'import mail from "../../ref/来信/letters.json"; document.body.textContent = mail[0].text;');
+  const letter = (n: number) => ({ id: `letter-${n}`, title: "来信", author: "作者", text: "仅完整游戏的来信正文" });
+  await writeFile(join(source, "letters.json"), JSON.stringify(Array.from({ length: 19 }, (_, i) => letter(i))));
+  await writeFile(join(source, "last.json"), JSON.stringify(letter(19)));
+  const run = async (full: boolean) => {
+    process.env.FULL_BUILD = String(full);
+    const outDir = join(root, full ? "full" : "lite");
+    await build({ root, configFile: fileURLToPath(new URL("../vite.config.ts", import.meta.url)),
+      logLevel: "silent", build: { outDir } });
+    const assets = join(outDir, "assets");
+    const modules = (await readdir(assets)).filter(name => name.endsWith(".js"));
+    const scripts = await Promise.all(modules.map(name => readFile(join(assets, name), "utf8")));
+    return scripts.join("\n");
+  };
+  assert.match(await run(true), /仅完整游戏的来信正文/);
+  assert.doesNotMatch(await run(false), /仅完整游戏的来信正文|letter-19/);
+  // Neither the entry points nor a generated index import this extra file.
+  await writeFile(join(source, "not-yet-scanned.json"), JSON.stringify(letter(20)));
+  const error = /晚安信匣共有 21 封来信，当前设计最多容纳 20 封。请重新设计收纳箱后再构建。/;
+  await assert.rejects(run(true), error);
+  await assert.rejects(run(false), error);
 });

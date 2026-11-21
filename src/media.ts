@@ -25,6 +25,10 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
   );
   const symbols = { text: "mail", image: "book", audio: "sound", video: "tv" };
   const nouns = { text: "留言", image: "图片", audio: "录音", video: "视频" };
+  if (modal.inGame && id === "letters" && letters) {
+    renderGameMailDesk(body, letters, cleanup => modal.onCleanup(cleanup));
+    return;
+  }
   if (!items.length) {
     body.innerHTML = `<div class="empty-memory"><div class="empty-icon">${icon(symbols[collection.kind])}<span>${icon("heart")}</span></div><span class="empty-tag">COMING SOON</span><h3>这里，留给未来的一份心意</h3><p>${nouns[collection.kind]}正在慢慢集合。<br>先去吹蜡烛、拆礼物，或者到花园放一朵烟花吧。</p><button class="button secondary">继续小冒险 ${icon("arrow")}</button></div>`;
     body
@@ -34,10 +38,6 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
   }
   if (modal.inGame && id === "album") {
     modal.onCleanup(renderPhotoBook(body, items));
-    return;
-  }
-  if (modal.inGame && id === "letters" && letters) {
-    renderGameMailDesk(body, letters, cleanup => modal.onCleanup(cleanup));
     return;
   }
   body.innerHTML = `<div class="collection-layout"><nav class="collection-list" aria-label="${escapeHtml(collection.title)}列表"></nav><section class="memory-detail" aria-live="polite"></section></div>`;
