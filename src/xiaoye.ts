@@ -39,7 +39,10 @@ export class Xiaoye {
       if (wasHugging && !this.hug.active) {
         this.idleMirrored = mirrored;
         if (!finished) this.activities.dismissDialogue(xiaoyeSpot);
-        else if (!this.mail.received(handedLetters.xiaoye)) this.offerLetter();
+        else {
+          if (!this.mail.received(handedLetters.xiaoye)) this.offerLetter();
+          world.onAchievementEvent("xiaoye-plush");
+        }
       }
       if (world.scene !== "garden") this.reset();
     };

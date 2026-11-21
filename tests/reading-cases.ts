@@ -1,4 +1,5 @@
 import type { World } from "../src/world";
+import { SAVE_KEY, readProgress } from "../src/core";
 import { renderGameMailDesk } from "../src/game-mail-desk";
 
 async function waitForReading(check: () => boolean, message: string) {
@@ -142,6 +143,7 @@ async function verifyLongLetterStack(reader: HTMLElement) {
 
 /** Exercise the real application's stacked panels and media-error input path. */
 export async function verifyReadingControls(world: World, log: (text: string) => void) {
+  const book = () => readProgress(localStorage.getItem(SAVE_KEY)).achievements;
   const q = <T extends HTMLElement = HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
   const expect = (ok: unknown, message: string) => { if (!ok) throw new Error(message); };
   const key = (name: string, target: HTMLElement = world.canvas) => {
@@ -194,12 +196,15 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
     log("百封来信支持循环挑选，拆信中途退出保留蜡封，放回后原信和键盘焦点都在摞顶。");
   }
   {
+    const previouslyOpened = book().facts.includes("photo-opened");
     world.onInteract("album");
     q(".photo-book-next").click();
+    expect(book().facts.includes("photo-opened") === previouslyOpened, "单纯翻页错误地记作打开单张照片");
     const photo = q<HTMLButtonElement>(".photo-book-photo");
     const current = photo.dataset.memoryId;
     photo.click();
     expect(!reader.hidden && world.paused && !!reader.querySelector(".photo-original"), "翻开照片没有在原画幅查看");
+    expect(book().facts.includes("photo-opened"), "打开单张照片后没有保存相册记录");
     key("Escape", q(".photo-original-back"));
     const restored = q<HTMLButtonElement>(".photo-book-photo");
     expect(restored.dataset.memoryId === current && document.activeElement === restored, "返回相册没有保留跨页与选片焦点");
@@ -236,6 +241,7 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
   await world.prepareScene("garden");
   world.switchScene("garden", {x:710,y:347});
   world.onInteract("danmaku");
+  expect(book().earned.includes("memories"), "真实打开单张照片与花园大屏后没有盖章");
   const video = q<HTMLVideoElement>('video[data-garden-video]'), hud = q(".cinema-hud");
   for (const shortcut of ["e", " "]) {
     video.pause();

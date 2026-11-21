@@ -1,0 +1,25 @@
+.achievement-flash {
+  position: absolute;
+  z-index: 48;
+  inset: 54px auto auto 9px;
+  max-width: min(22em, 78%);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px 5px 6px;
+  pointer-events: none;
+  border: 1px solid #b9a181;
+  border-radius: 5px 9px 8px 5px;
+  background: #fff7e9;
+  color: #5c4242;
+  box-shadow: 1px 3px 6px #52423345;
+  font: 600 clamp(12px, 1.3vw, 15px)/1.4 system-ui, sans-serif;
+}
+.achievement-flash[hidden] { display: none; }
+.achievement-flash > .achievement-stamp { width: 36px; height: 36px; flex: none; }
+.achievement-flash small, .achievement-flash strong { display: block; }
+.achievement-flash small { font-size: 11px; color: #795956; }
+@media (prefers-reduced-motion: no-preference) {
+  .achievement-flash > .achievement-stamp { animation: anniversary-stamp .24s ease-out; }
+  @keyframes anniversary-stamp { from { transform: scale(1.25) rotate(-10deg); opacity: .4; } }
+}

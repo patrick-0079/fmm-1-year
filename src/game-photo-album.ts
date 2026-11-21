@@ -5,7 +5,7 @@ import "./game-album.css";
 
 /** Use the same on-demand original viewer from the paper album and the webpage. */
 export function attachPhotoOriginalViewer(
-  body: HTMLElement, onCleanup: (cleanup: () => void) => void,
+  body: HTMLElement, onCleanup: (cleanup: () => void) => void, onPhotoOpen?: () => void,
 ) {
   let dismiss: ((restoreFocus: boolean) => void) | undefined;
   onCleanup(() => dismiss?.(false));
@@ -39,6 +39,7 @@ export function attachPhotoOriginalViewer(
     body.classList.add("has-photo-original");
     body.append(view);
     back.focus({ preventScroll: true });
+    onPhotoOpen?.();
 
     let request: HTMLImageElement | undefined;
     let zoomed = false;
@@ -125,7 +126,7 @@ export function attachPhotoOriginalViewer(
   };
 }
 
-export function renderPhotoBook(body: HTMLElement, items: readonly Memory[]) {
+export function renderPhotoBook(body: HTMLElement, items: readonly Memory[], onPhotoOpen?: () => void) {
   const book = document.createElement("section");
   book.className = "photo-book";
   book.setAttribute("aria-label", "回忆相册书页");
@@ -140,7 +141,7 @@ export function renderPhotoBook(body: HTMLElement, items: readonly Memory[]) {
   const prev = book.querySelector<HTMLButtonElement>(".photo-book-prev")!;
   const next = book.querySelector<HTMLButtonElement>(".photo-book-next")!;
   let disposeOriginal: () => void = () => {};
-  const openOriginal = attachPhotoOriginalViewer(body, cleanup => { disposeOriginal = cleanup; });
+  const openOriginal = attachPhotoOriginalViewer(body, cleanup => { disposeOriginal = cleanup; }, onPhotoOpen);
   let page = 0;
   const pages = Math.ceil(items.length / 2);
   const draw = () => {

@@ -8,6 +8,7 @@ import { rainbowIds } from "./rainbow-flowers.ts";
 import { readEchoMemory, type EchoMemory } from "./echoes.ts";
 import { readAstrolabe, type AstrolabeState } from "./astrolabe.ts";
 import { readFoxMemory, type FoxMemory } from "./fox-memory.ts";
+import { readAchievementMemory, type AchievementMemory } from "./achievements.ts";
 import { readResidentStory, type ResidentStory } from "./resident-story.ts";
 import { producers } from "./content.ts";
 import { ARCADES } from "./town-data.ts";
@@ -58,6 +59,7 @@ export interface Checkpoint {
   y: number;
 }
 export interface Progress {
+  achievements: AchievementMemory;
   visited: string[];
   completed: string[];
   muted: boolean;
@@ -96,6 +98,7 @@ export const EVENT_IDS = [
 
 export function readProgress(raw: string | null): Progress {
   const clean: Progress = {
+    achievements: readAchievementMemory(),
     visited: [],
     completed: [],
     muted: false,
@@ -132,6 +135,7 @@ export function readProgress(raw: string | null): Progress {
           ]
         : [];
     return {
+      achievements: readAchievementMemory(p.achievements, true),
       visited: valid(p.visited, EVENT_IDS),
       completed: valid(p.completed, GAME_IDS),
       muted: p.muted === true,

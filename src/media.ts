@@ -15,7 +15,7 @@ export interface CollectionSurface {
   onCleanup(cleanup: () => void): void;
 }
 
-export function openCollection(modal: CollectionSurface, id: string, letters?: LetterList) {
+export function openCollection(modal: CollectionSurface, id: string, letters?: LetterList, onPhotoOpen?: () => void) {
   const collection = collections[id];
   if (!collection || (id === "letters" && !letters)) return;
   const items = letters?.items ?? collection.items;
@@ -38,11 +38,11 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     return;
   }
   if (modal.inGame && id === "album") {
-    modal.onCleanup(renderPhotoBook(body, items));
+    modal.onCleanup(renderPhotoBook(body, items, onPhotoOpen));
     return;
   }
   body.innerHTML = `<div class="collection-layout"><nav class="collection-list" aria-label="${escapeHtml(collection.title)}列表"></nav><section class="memory-detail" aria-live="polite"></section></div>`;
-  const openOriginal = id === "album" ? attachPhotoOriginalViewer(body, cleanup => modal.onCleanup(cleanup)) : undefined;
+  const openOriginal = id === "album" ? attachPhotoOriginalViewer(body, cleanup => modal.onCleanup(cleanup), onPhotoOpen) : undefined;
   body.querySelector(".collection-layout")!.classList.toggle("album-layout", collection.kind === "image");
   body.querySelector(".collection-layout")!.classList.toggle("mailbox-layout", collection.kind === "text");
   body.classList.toggle("mailbox-reader-body", collection.kind === "text");

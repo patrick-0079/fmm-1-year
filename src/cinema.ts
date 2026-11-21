@@ -162,6 +162,7 @@ export class GardenCinema {
     this.ensureVideo();
     if (this.video!.readyState >= 3) this.session.ready();
     this.hud.hidden = false;
+    this.world.onAchievementEvent("cinema-opened");
     this.lastStage = "";
     this.world.standUp();
     this.world.clearInput();

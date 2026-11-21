@@ -2,7 +2,8 @@ import { World } from "../src/world";
 import { Activities } from "../src/activities";
 import { Inventory } from "../src/inventory";
 import { Arcade } from "../src/arcade";
-import type { MinesGame } from "../src/arcade-bonus";
+import type { LinkGame, MinesGame } from "../src/arcade-bonus";
+import type { AchievementEvent } from "../src/achievement-events";
 import { whenWardrobeReady } from "../src/item-art";
 import type { Engine, BlocksGame, HopGame } from "../src/arcade-engines";
 import { ARCADES } from "../src/town-data";
@@ -13,6 +14,8 @@ import type { GiftUnwrapping } from "../src/gift-unwrapping";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#world")!;
 const world = new World(canvas);
+const actions: AchievementEvent[] = [];
+world.onAchievementEvent = event => { actions.push(event); };
 const saves = new Map<string, string>();
 const inventory = new Inventory(world, () => {}, {
   getItem: (id) => saves.get(id) ?? null,
@@ -26,7 +29,12 @@ const activities = new Activities(world, {
   isComplete: id => completedActivities.has(id),
 });
 inventory.onEquip = () => activities.finishEquipmentChoice();
-const arcade = new Arcade(world, activities, inventory);
+const bests = new Map<GameId, number>();
+const arcade = new Arcade(world, activities, inventory, (id, score) => {
+  const best = Math.max(bests.get(id) ?? 0, score);
+  bests.set(id, best);
+  return best;
+});
 const gardenMemory = {decoratorMet:false,rabbitIntroduced:false};
 const guests = new GardenLife(world, activities, inventory, () => gardenMemory, () => {});
 world.scene = "town";
@@ -120,6 +128,7 @@ await check("从放大的星盘互动开包换装，结束互动后衣橱仍开�
 
 await check("试穿的猫仍需正式领取，邀请会保存真实伙伴位，拒绝不会覆盖原有兔子", () => {
   inventory.reset(); inventory.setFitting(true);
+  actions.length = 0;
   inventory.setCompanion("petBunny",true);
   inventory.toggle("petCat");
   assert(world.equipment.pet==="petCat" && !inventory.has("petCat"),"试穿不应颁发桃桃");
@@ -128,12 +137,41 @@ await check("试穿的猫仍需正式领取，邀请会保存真实伙伴位，�
   const talk=()=>guests.interact("garden-guest-balloon-friend");
   talk();select("轻轻抚摸奶油猫");select("不带上奶油猫");activities.close();
   assert(inventory.followingPet==="petBunny" && !inventory.has("petCat"),"拒绝覆盖了真实搭配");
+  assert(actions.includes("garden-guest-balloon-friend") && !actions.includes("petCat"),"来宾与同行成就把试穿或拒绝算作邀请");
   talk();select("轻轻抚摸奶油猫");select("带上奶油猫");
   const stored=JSON.parse(saves.get(INVENTORY_KEY)!);
   assert(stored.equipped.pet==="petCat" && stored.owned.includes("petBunny"),"邀请没有进入真实存档");
+  assert(actions.includes("petCat") && actions.includes("petBunny"), "正式同行没有登记");
   inventory.setFitting(false);
   assert(world.equipment.pet==="petCat","关闭试穿后没有继续同行");
   activities.close();inventory.reset();
+});
+
+await check("花环只有正式戴上才记入成就，脱下或调试试穿均不算", () => {
+  actions.length = 0;
+  inventory.grant("wreath", false);
+  inventory.setFitting(true);
+  inventory.toggle("wreath");
+  assert(!inventory.wearingWreath && actions.length === 0, "试穿盖了花环章");
+  inventory.setFitting(false);
+  inventory.toggle("wreath");
+  inventory.toggle("wreath");
+  assert(!inventory.wearingWreath && actions.join() === "wreath-worn", "真实佩戴、脱下没有正确区分");
+  inventory.reset();
+});
+
+await check("连连看键盘完成最后一对后立即离开，最高分和奖励仍然登记", () => {
+  arcade.open("link"); world.onAction(true);
+  const game = engine() as LinkGame;
+  for (let pair = 0; pair < 8; pair++) {
+    game.hint();
+    const [a, b] = game.suggested;
+    assert(a !== undefined && b !== undefined, "帮助未给出可连的图案");
+    game.cursor = a; world.onAction(true);
+    game.cursor = b; world.onAction(true);
+  }
+  arcade.close();
+  assert(bests.get("link") === 8 && inventory.has(ARCADES.link.reward), "同帧离开时丢失了分数或奖励");
 });
 
 await check("查看说明时背包入口、B 和 NPC 不会在锁定的地图里打开衣橱", () => {

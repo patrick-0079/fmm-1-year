@@ -41,6 +41,7 @@ export class GardenLife {
     if (npc.id === "balloon-friend") this.cat(npc);
     if (npc.id === "decorator") this.decorator(npc);
     if (npc.id === "picnic-friend") this.picnic(npc);
+    this.world.onAchievementEvent(`garden-guest-${npc.id}`);
     return true;
   }
   private say(npc: GardenGuest, text: string, choices: Choice[] = [], pose: Pose = "idle") {

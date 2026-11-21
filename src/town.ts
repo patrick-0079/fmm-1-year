@@ -70,6 +70,8 @@ export class Town {
     };
     this.updateJournal();
   }
+  get talkedIds(): ReadonlySet<string> { return this.visited; }
+
   reset() {
     this.act = undefined;
     this.visited.clear();

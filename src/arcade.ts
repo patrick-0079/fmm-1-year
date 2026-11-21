@@ -210,27 +210,15 @@ export class Arcade {
     }
     this.engine.input(action, pressed);
     if (pressed && action === "primary") sfx("flip");
+    this.refreshScore();
   }
   private tick(dt: number) {
     if (!this.engine || this.world.suspended || this.paused) return;
     this.engine.update(dt);
-    if (this.engine.achieved && !this.awarded) {
-      this.awarded = true;
-      this.inventory.grant(ARCADES[this.id].reward);
-      sfx("complete");
-    }
-    if (
-      this.engine.achieved &&
-      this.engine.score >= this.engine.goal * 2 &&
-      !this.inventory.has("rabbitSatchel")
-    )
-      this.inventory.grant("rabbitSatchel");
-    if (
-      this.previousStatus !== this.engine.status ||
-      this.previousScore !== this.engine.score
-    ) {
-      this.previousStatus = this.engine.status;
-      this.previousScore = this.engine.score;
+    this.refreshScore();
+  }
+  private refreshScore() {
+    if (this.engine && (this.previousStatus !== this.engine.status || this.previousScore !== this.engine.score)) {
       this.render();
     }
   }
@@ -256,6 +244,15 @@ export class Arcade {
     this.previousScore = this.engine.score;
     const game = ARCADES[this.id],
       e = this.engine;
+    // Keyboard, touch and hint buttons can finish a round before the next animation frame.
+    if (e.achieved && !this.awarded) {
+      this.awarded = true;
+      this.inventory.grant(game.reward);
+      sfx("complete");
+    }
+    if (e.achieved && e.score >= e.goal * 2 && !this.inventory.has("rabbitSatchel")) {
+      this.inventory.grant("rabbitSatchel");
+    }
     const message = this.paused
       ? "暂停休息中 · 按 P / E 或点击「继续挑战」回到这一局"
       : e.status === "ready"

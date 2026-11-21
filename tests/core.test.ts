@@ -7,6 +7,7 @@ import { readResidentStory } from "../src/resident-story.ts";
 test("corrupt or unexpected saved data cannot break a new visit", () => {
   for (const value of [null, "{", "null", "42", "[]", '"oops"']) {
     assert.deepEqual(readProgress(value), {
+      achievements: { facts: [], earned: [], legacyPending: false },
       visited: [],
       completed: [],
       muted: false,
@@ -37,6 +38,7 @@ test("corrupt or unexpected saved data cannot break a new visit", () => {
     ),
     {
       visited: ["cake", "danmaku"],
+      achievements: { facts: [], earned: [], legacyPending: true },
       completed: ["cake"],
       muted: false,
       sound: false,

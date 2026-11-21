@@ -563,7 +563,7 @@ for (const id of ["garden", "challenge"] as const) {
       title: "星夜彩蛋 · 萤火心愿",
       x: 375,
       y: 285,
-      approach: { x: id === "garden" ? 385 : 375, y: 308 },
+      approach: id === "garden" ? {x: 385, y: 308} : {x: 385, y: 300},
       radius: 48,
       color: "#e8dd8f",
     },

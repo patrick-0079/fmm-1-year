@@ -1,5 +1,10 @@
 import { anniversary, encouragements, type Memory } from "./content";
 import { EVENT_IDS, GAME_IDS, SAVE_KEY, readProgress } from "./core";
+import { mergeAchievementProgress, migrateAchievementFacts, reconcileAchievements, recordAchievementFact } from "./achievements";
+import { mountAchievementBook, achievementStampMarkup } from "./achievement-book";
+import { paintAchievementArt } from "./achievement-art";
+import "./achievement-flash.css";
+import { ForegroundPlayClock } from "./playtime";
 import { icon } from "./icons";
 import { World, scenes, type SceneId } from "./world";
 import { InteractionPrompt } from "./interaction-prompt";
@@ -45,12 +50,7 @@ import {
   sfx,
 } from "./sound";
 
-interface Task {
-  id: string;
-  title: string;
-  scene: string;
-}
-export function mountGame(tasks: Task[]) {
+export function mountGame() {
   let saved: string | null = null;
   try {
     saved = localStorage.getItem(SAVE_KEY);
@@ -63,6 +63,10 @@ export function mountGame(tasks: Task[]) {
   let journey: Journey | null = null;
   try { journey = readJourney(localStorage.getItem(JOURNEY_KEY), progress.rainbowFlowers); } catch { /* optional storage */ }
   let worldReady = false, resetInProgress = false, lastPositionCheck = 0;
+  let refreshAchievements: ((announce?: boolean) => boolean) | undefined;
+  const playClock = new ForegroundPlayClock(() => {
+    if (!resetInProgress && refreshAchievements?.()) persistBookOnly();
+  }, () => location.reload());
   // The guide stays clickable during the brief gate fade. Honor its latest
   // destination as soon as the current crossing has finished.
   let afterCrossing: (() => void) | undefined;
@@ -83,7 +87,10 @@ export function mountGame(tasks: Task[]) {
     mailCount.closest("button")?.classList.toggle("has-unread", unread > 0);
   }
   function readCollection(id: string, surface: CollectionSurface = reader, letterId?: string) {
-    if (id === "album") { openCollection(surface, id); return; }
+    if (id === "album") {
+      openCollection(surface, id, undefined, () => world.onAchievementEvent("photo-opened"));
+      return;
+    }
     if (id !== "letters") return;
     const story = progress.residents;
     openCollection(surface, id, {
@@ -136,14 +143,32 @@ export function mountGame(tasks: Task[]) {
       3800,
     );
   };
-  const save = () => {
-    updateMailCount();
+  function persist() {
     try {
+      if (!resetInProgress) {
+        const other = localStorage.getItem(SAVE_KEY);
+        if (other) mergeAchievementProgress(progress, readProgress(other));
+      }
       localStorage.setItem(SAVE_KEY, JSON.stringify(progress));
     } catch {
       /* playable without storage */
     }
-  };
+  }
+  // A second window can earn a time stamp while this one is reading a letter.
+  // A clock tick must never replace another window's newer story or inventory.
+  function persistBookOnly() {
+    try {
+      const saved = readProgress(localStorage.getItem(SAVE_KEY));
+      mergeAchievementProgress(saved, progress);
+      saved.achievements.legacyPending = progress.achievements.legacyPending;
+      localStorage.setItem(SAVE_KEY, JSON.stringify(saved));
+    } catch { /* Source records remain playable in memory. */ }
+  }
+  function save() {
+    updateMailCount();
+    if (!resetInProgress) refreshAchievements?.();
+    persist();
+  }
   function audio() {
     setSound(!progress.muted && progress.sound);
     setMusic(started && !progress.muted && progress.bgm);
@@ -157,27 +182,6 @@ export function mountGame(tasks: Task[]) {
     );
     document.querySelector(".exploration-count")!.lastChild!.textContent =
       `/${EVENT_IDS.length} 个角落`;
-    document.querySelector("#completed")!.textContent =
-      `${progress.completed.length} / ${GAME_IDS.length}`;
-    document.querySelector<HTMLElement>(".progress-track span")!.style.width =
-      `${(progress.completed.length / GAME_IDS.length) * 100}%`;
-    for (const task of tasks) {
-      const button = document.querySelector<HTMLButtonElement>(
-        `[data-task="${task.id}"]`,
-      )!;
-      const done = progress.completed.includes(task.id);
-      button.classList.toggle("done", done);
-      button.setAttribute(
-        "aria-label",
-        `${task.title}${done ? "，已完成，可以重玩" : "，前往探索"}`,
-      );
-    }
-    document.querySelector("#progress-note")!.textContent =
-      progress.completed.length === GAME_IDS.length
-        ? "心愿集齐啦！愿往后的每一天都甜甜的。"
-        : progress.completed.length
-          ? "快乐正在一点点装满。继续去冒险吧。"
-          : "第一份快乐，会藏在哪里呢？";
     const sound = document.querySelector<HTMLButtonElement>(".sound-toggle")!;
     sound.innerHTML = icon(progress.muted ? "mute" : "sound");
     sound.title = progress.muted ? "恢复游戏声音" : "静音游戏声音";
@@ -447,12 +451,12 @@ export function mountGame(tasks: Task[]) {
     reader.close();
     sfx("revive");
     const first = !progress.bedNoteUnlocked;
+    const entry = !first && encouragements.length ? encouragements[encouragementIndex++ % encouragements.length] : undefined;
+    bedNote.open(entry?.message);
     if (first) {
       progress.bedNoteUnlocked = true;
       save();
     }
-    const entry = !first && encouragements.length ? encouragements[encouragementIndex++ % encouragements.length] : undefined;
-    bedNote.open(entry?.message);
     fox.arrive(true);
     world.canvas.focus({ preventScroll: true });
     world.canvas.setAttribute(
@@ -523,7 +527,10 @@ export function mountGame(tasks: Task[]) {
       return;
     }
     if (suyan.interact(id) || xiaoye.interact(id) || gardenLife.interact(id) || elders.interact(id)) return;
-    if (town.interact(id)) return;
+    if (town.interact(id)) {
+      if (refreshAchievements?.()) persist();
+      return;
+    }
     if (nature.interact(id)) return;
     if (EVENT_IDS.includes(id) && !progress.visited.includes(id)) {
       progress.visited.push(id);
@@ -568,6 +575,7 @@ export function mountGame(tasks: Task[]) {
   function begin() {
     if (!worldReady || enter.disabled || started) return;
     started = true;
+    playClock.start();
     saveNow.disabled = false;
     saveLocation();
     document.querySelector(".intro-screen")!.classList.add("dismissed");
@@ -694,14 +702,48 @@ export function mountGame(tasks: Task[]) {
     world.canvas.focus({ preventScroll: true });
     revealMapIfOffscreen();
   };
-  document
-    .querySelectorAll<HTMLButtonElement>("[data-task]")
-    .forEach((button) =>
-      button.addEventListener("click", () => {
-        const task = tasks.find((t) => t.id === button.dataset.task)!;
-        visit(task.scene as SceneId, task.id);
-      }),
-    );
+  const achievementBook = mountAchievementBook(({scene, spot}) => visit(scene, spot));
+  const flash = document.createElement("div");
+  flash.className = "achievement-flash";
+  flash.hidden = true;
+  flash.setAttribute("role", "status");
+  flash.setAttribute("aria-live", "polite");
+  sceneWrap.append(flash);
+  let flashTimer: ReturnType<typeof setTimeout> | undefined;
+  const achievementContext = () => ({
+    townTalked: town.talkedIds,
+    owned: (["wreath", "petCat", "petBunny"] as const).filter(id => inventory.has(id)),
+    wearingWreath: inventory.wearingWreath,
+    pickedEggs: nature.pickedEggs,
+    playSeconds: playClock.seconds,
+  });
+  refreshAchievements = (announce = true) => {
+    const {entries, fresh} = reconcileAchievements(progress, achievementContext());
+    achievementBook.update(entries, progress.achievements.earned.at(-1));
+    // The ruins already stamp their journal in the corner of the map.
+    const notices = fresh.filter(id => !id.startsWith("ruin-"));
+    const recent = announce && notices.length ? entries.find(entry => entry.id === notices.at(-1)) : undefined;
+    if (recent) {
+      clearTimeout(flashTimer);
+      flash.innerHTML = achievementStampMarkup(recent) + "<span><small></small><strong></strong></span>";
+      flash.querySelector("small")!.textContent = notices.length === 1 ? "周年成就册 · 新图章" : `周年成就册 · ${notices.length} 枚新图章`;
+      flash.querySelector("strong")!.textContent = recent.name;
+      flash.hidden = false;
+      paintAchievementArt(flash);
+      flashTimer = setTimeout(() => { flash.hidden = true; }, 2700);
+    }
+    return fresh.length > 0;
+  };
+  world.onAchievementEvent = event => {
+    if (!resetInProgress && recordAchievementFact(progress, event)) save();
+  };
+  const migratedBook = migrateAchievementFacts(progress, achievementContext());
+  if (refreshAchievements(false) || migratedBook) persist();
+  window.addEventListener("storage", event => {
+    if (event.key !== SAVE_KEY || !event.newValue || resetInProgress) return;
+    mergeAchievementProgress(progress, readProgress(event.newValue));
+    refreshAchievements?.(false);
+  });
   document.querySelectorAll<HTMLButtonElement>("[data-arcade]").forEach((b) =>
     b.addEventListener("click", () => {
       const id = b.dataset.arcade as GameId;
@@ -792,6 +834,9 @@ export function mountGame(tasks: Task[]) {
     journey = null;
     try { localStorage.removeItem(JOURNEY_KEY); } catch { /* optional storage */ }
     const { muted, sound, bgm, bassSound, volume } = progress;
+    achievementBook.reset();
+    clearTimeout(flashTimer);
+    flash.hidden = true;
     progress = { ...readProgress(null), muted, sound, bgm, bassSound, volume };
     elders.reset();
     xiaoye.reset();
@@ -815,9 +860,11 @@ export function mountGame(tasks: Task[]) {
       }
     }
     save();
+    playClock.reset(started);
     update();
     world.switchScene("room");
     resetInProgress = false;
+    refreshAchievements?.(false);
     if (started) saveLocation(true);
     else {
       showJourney();

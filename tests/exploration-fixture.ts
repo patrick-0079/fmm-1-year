@@ -11,7 +11,10 @@ import { southNotebook, ringSpots, moonPlate, mirrorSpots } from "../src/ruins-m
 import { INVENTORY_KEY, readInventory } from "../src/items";
 import { elderPlaces } from "../src/elders-data";
 import { ARCADES } from "../src/town-data";
-import { verifyGuests } from "./guest-cases";
+import { verifyGuests, verifyGardenDiscovery } from "./guest-cases";
+import { verifyAchievementBook } from "./achievement-book-cases";
+import { verifyArcadeStamps } from "./achievement-arcade-route";
+import { verifyLetterAndMeadowStamps } from "./achievement-mail-route";
 import { verifyFieldTrip } from "./field-trip-cases";
 import { verifyTownResidents } from "./town-dialogue-cases";
 import { verifyWardrobe, verifyJournalInput } from "./wardrobe-cases";
@@ -305,6 +308,16 @@ async function run(check:()=>Promise<void>) {
   finally {q<HTMLButtonElement>("#verify").disabled=false;}
 }
 q("#verify").addEventListener("click",()=>void run(checkAll));
+for (const [selector,check] of [["#check-arcade-stamps",verifyArcadeStamps],["#check-mail-stamps",verifyLetterAndMeadowStamps]] as const) {
+  q(selector).addEventListener("click",()=>void run(async()=>{
+    if (!q(".intro-screen").classList.contains("dismissed")) await start();
+    await check(world,log);
+  }));
+}
+q("#check-achievements").addEventListener("click",()=>void run(async()=>{
+  if (!q(".intro-screen").classList.contains("dismissed")) await start();
+  await verifyAchievementBook(world,log);
+}));
 q("#check-reading").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();
   await verifyReadingControls(world,log);
@@ -334,6 +347,8 @@ q("#check-guests").addEventListener("click",()=>void run(async()=>{
   await world.prepareScene("garden");
   verifyGuests(world);
   log("星星的拒绝、领取、重访、送别，霉霉的两个答案与棉棉，晴糖的三段台词逐字通过");
+  await verifyGardenDiscovery(world);
+  log("首次遇见两位长者、完整拥抱与中断拥抱，以及跨天拾取三个时段彩蛋的图章均通过");
 }));
 q("#check-fox").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();
@@ -354,6 +369,7 @@ q("#check-fox").addEventListener("click",()=>void run(async()=>{
   await world.prepareScene("challenge");
   world.switchScene("challenge",scenes.challenge.hazards[0]);
   await wait(()=>world.scene==="room" && !q(".bed-note").hidden);
+  expect(state().achievements.earned.includes("bed-note"),"陷阱复活便签展开后没有盖章");
   expect(bubble.hidden && state().roomFox.waitingForNote,"小狐狸抢在便签之前问候");
   q(".note-close").click();
   await wait(()=>words("嗷呜！") && !state().roomFox.waitingForNote);
@@ -361,9 +377,11 @@ q("#check-fox").addEventListener("click",()=>void run(async()=>{
   await go("garden");expect(state().roomFox.missed===3,"复活重复计数");
   await go("room");expect(bubble.hidden,"第四次仍主动欢迎");
   world.visit(foxNook.id);await wait(()=>words("嗷呜！！呜呜！！") && state().roomFox.rebuffed);
+  expect(!state().achievements.earned.includes("fox-peace") && !state().achievements.earned.includes("fox"),"狐狸拒摸时过早盖章");
   await go("garden");await go("room");expect(!state().roomFox.rebuffed,"出门没有中断安抚");
   world.visit(foxNook.id);await wait(()=>state().roomFox.rebuffed);
   key("e",true);key("e",false);expect(words("嗷～嗷呜") && state().roomFox.missed===0,"第二次安抚没有和好");
+  expect(["fox", "fox-peace"].every(id=>state().achievements.earned.includes(id)),"两次独立安抚后没有盖上狐狸图章");
   const before=JSON.stringify(state().roomFox), prepare=world.prepareScene.bind(world);
   world.prepareScene=()=>Promise.reject(Error("fixture: map unavailable"));
   try {
@@ -373,6 +391,7 @@ q("#check-fox").addEventListener("click",()=>void run(async()=>{
   } finally {world.prepareScene=prepare;}
   q(".reset-button").click();q(".reset-confirm").click();
   expect(state().roomFox.visit==="none" && state().roomFox.missed===0,"清档残留情绪");
+  expect(!state().achievements.earned.length && !state().achievements.facts.length,"清档保留了旧狐狸或便签图章");
   log("门口送别、三次漏摸、复活延迟问候、第四次沉默、两次安抚、失败切图和清档均通过");
 }));
 q("#check-arcade-frame").addEventListener("click",()=>void run(async()=>{

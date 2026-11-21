@@ -20,6 +20,7 @@ export class Suyan {
     this.dialogue("刚才一阵风把信封吹到了脚边，我赶紧用帽子压住了。芙芙，你来得正好。", [
       { title: "你在等我吗？", run: () => this.offerLetter() },
     ]);
+    this.world.onAchievementEvent("garden-guest-suyan");
     return true;
   }
 

@@ -153,12 +153,14 @@ export class Inventory {
     else this.changeTab("wardrobe");
   }
   get followingPet() { return this.earned.equipped.pet; }
+  get wearingWreath() { return this.earned.equipped.head === "wreath"; }
   setCompanion(id: "petCat" | "petBunny", follow: boolean) {
     const first = follow && grantItem(this.earned,id);
     for (const outfit of [this.earned, this.fittingRoom]) {
       if (outfit && (follow || outfit.equipped.pet === id)) outfit.equipped.pet = follow ? id : null;
     }
     this.save();
+    if (follow) this.world.onAchievementEvent(id);
     this.sync();
     this.render();
     return first;
@@ -215,7 +217,10 @@ export class Inventory {
       this.toast("先收集这件纪念品吧。");
       return;
     }
-    if (!this.fittingRoom) this.save();
+    if (!this.fittingRoom) {
+      this.save();
+      if (id === "wreath" && this.wearingWreath) this.world.onAchievementEvent("wreath-worn");
+    }
     this.trying = false;
     if (this.tab === "equipped" && this.state.equipped[ITEMS[id].slot] !== id) this.selected = null;
     this.sync();

@@ -1,3 +1,4 @@
+import type { AchievementEvent } from "./achievement-events";
 import roomUrl from "./assets/room-interactive.webp";
 import gardenUrl from "./assets/garden-lanes-v18.webp";
 import challengeUrl from "./assets/courage-garden.webp";
@@ -142,6 +143,7 @@ export class World {
   onInputCancel: () => void = () => {};
   visited: string[] = [];
   onInteract: (id: string) => void = () => {};
+  onAchievementEvent: (event: AchievementEvent) => void = () => {};
   onNearby: (spot: Hotspot | null) => void = () => {};
   canShowInteractionCues: () => boolean = () => true;
   retainCueHover: (point: Point) => boolean = () => false;

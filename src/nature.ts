@@ -145,6 +145,12 @@ export class Nature {
   }
   setPreviewPhase(phase:Phase|null) { this.previewPhase=phase; this.refreshClock(); }
   get timePreview() { return this.previewPhase; }
+  get pickedEggs() {
+    const recorded = new Set(Object.entries(this.state.picked)
+      .filter(([, count]) => count > 0)
+      .map(([key]) => key.split(":").at(-1)));
+    return (["dew", "sunset", "firefly"] as const).filter(id => recorded.has(id));
+  }
   private key(id: string) {
     return `${this.clock.day}:${this.world.scene}:${id}`;
   }
@@ -258,6 +264,7 @@ export class Nature {
     this.mark(id);
     this.state.star++;
     this.save();
+    if (id === "dew" || id === "sunset" || id === "firefly") this.world.onAchievementEvent(id);
     sfx("match");
     const words: Record<string, string> = {
       drop: "捡到了一颗掉落的星屑 · 地上的闪光已经收进小口袋啦",

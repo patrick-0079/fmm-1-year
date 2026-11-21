@@ -13,6 +13,7 @@ import "./ruin-journal.css";
 import "./launch/cursors.css";
 import "./fufu-cursors.css";
 import "./page-journal.css";
+import { achievementBookMarkup } from "./achievement-book";
 import { helpMarkup } from "./help";
 import { ARCADES, TOWN_NPCS, TOWN_FRAMES } from "./town-data";
 import { ITEMS, type ItemId } from "./items";
@@ -46,43 +47,6 @@ for (const href of [roomUrl, spriteUrl]) {
   document.head.append(preload);
 }
 
-const tasks = [
-  {
-    id: "courage",
-    title: "带着勇气出发",
-    subtitle: "带着勇气，摘一朵花",
-    icon: "heart",
-    scene: "challenge",
-  },
-  {
-    id: "cake",
-    title: "分一口甜甜",
-    subtitle: "吹蜡烛，再尝一口蛋糕",
-    icon: "cake",
-    scene: "room",
-  },
-  {
-    id: "gifts",
-    title: "拆一份心意",
-    subtitle: "解开缎带，收下心意",
-    icon: "gift",
-    scene: "room",
-  },
-  {
-    id: "balloons",
-    title: "放飞小心愿",
-    subtitle: "让气球装满快乐",
-    icon: "balloon",
-    scene: "garden",
-  },
-  {
-    id: "fireworks",
-    title: "点亮这片夜空",
-    subtitle: "送芙芙三朵烟花",
-    icon: "star",
-    scene: "garden",
-  },
-];
 function gameTickets(scene: "town" | "ruins") {
   return Object.entries(ARCADES).filter(([, game]) => game.scene === scene).map(([id, game]) => `
     <button class="page-game-ticket" data-arcade="${id}">
@@ -129,11 +93,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
           <p class="journey-legend">${icon("star")} 遇到小挫折，回小屋的床休息一下 <span>·</span> 勇气花园里藏着小挫折，小屋与周年花园安心玩</p>
           <div class="touch-controls"><div class="dpad" aria-label="移动方向键"><button data-direction="0,-1" class="dpad-up" aria-label="向上移动">↑</button><button data-direction="-1,0" class="dpad-left" aria-label="向左移动">←</button><span>${icon("heart")}</span><button data-direction="1,0" class="dpad-right" aria-label="向右移动">→</button><button data-direction="0,1" class="dpad-down" aria-label="向下移动">↓</button></div><div class="touch-hint">走近发光的小物件<br><span>也可轻触物件或提示签</span></div><button class="touch-interact">${icon("star")}<span>互动</span></button></div>
         </section>
-        <aside class="journal" aria-label="庆典手账" data-page-ui>
-          <div class="journal-heading"><span class="eyebrow">给今晚留一点甜</span><h2>今晚的小心愿 ${icon("heart")}</h2><p class="wish-count">已收集 <strong id="completed">0 / 5</strong> 份快乐</p><p>做一点小事，收集一点快乐。</p></div>
-          <div class="task-list">${tasks.map((task, i) => `<button class="task" data-task="${task.id}"><span class="task-icon task-color-${i}">${icon(task.icon)}</span><span class="task-label"><strong>${task.title}</strong><small>${task.subtitle}</small></span><span class="task-check" aria-hidden="true"></span></button>`).join("")}</div>
-          <div class="journal-progress"><div class="progress-track"><span></span></div><p id="progress-note">第一份快乐，会藏在哪里呢？</p><div class="local-save"><small class="save-status">开始冒险后自动保存</small><button class="save-now map-action" disabled>保存进度</button></div></div>
-        </aside>
+        ${achievementBookMarkup}
       </div>
       <section class="page-memory-section" aria-labelledby="page-memory-title" data-page-ui>
         <div class="page-section-heading"><div><span class="eyebrow">把喜欢，妥帖收藏</span><h2 id="page-memory-title">留一格，给回忆</h2></div><p>一些写下的话，一些平常的日子。</p></div>
@@ -234,7 +194,7 @@ for (const button of startupButtons) button.disabled = true;
 document.querySelector("#app")!.setAttribute("aria-busy", "true");
 void prepareTextureCache().then(() => import("./application")).then(({mountGame}) => {
   for (const button of startupButtons) button.disabled = false;
-  mountGame(tasks);
+  mountGame();
   scheduleAlbumPreviews(collections.album.items);
   document.querySelector("#app")!.removeAttribute("aria-busy");
 })

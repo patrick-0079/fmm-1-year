@@ -78,6 +78,7 @@ export class Elders {
     const state = this.progress();
     const page = scene === "challenge" ? "gardenWelcome" : guardianGreeting(state.astrolabe, state.residents.guardianInvited);
     this.say(scene, page);
+    this.world.onAchievementEvent(scene === "challenge" ? "elder-gardener" : "elder-guardian");
     return true;
   }
 

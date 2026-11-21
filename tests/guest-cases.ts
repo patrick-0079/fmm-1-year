@@ -1,6 +1,7 @@
 import type { World } from "../src/world";
 import { SAVE_KEY, readProgress } from "../src/core";
 import { INVENTORY_KEY, readInventory } from "../src/items";
+import type { SceneId } from "../src/maps";
 
 export function verifyGuests(world:World) {
   const buttons=()=>[...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")];
@@ -10,6 +11,7 @@ export function verifyGuests(world:World) {
   const choose=(title:string)=>{const b=buttons().find(b=>b.textContent===title);assert(b,"缺少选项："+title);b!.click();};
   const close=()=>document.querySelector<HTMLButtonElement>(".activity-close")!.click();
   const bag=()=>readInventory(localStorage.getItem(INVENTORY_KEY));
+  const book=()=>readProgress(localStorage.getItem(SAVE_KEY)).achievements;
   const talk=(id:string)=>{
     const s=world.config.spots.find(s=>s.id==="garden-guest-"+id)!;
     world.switchScene("garden",s.approach);world.interact();
@@ -18,6 +20,7 @@ export function verifyGuests(world:World) {
   const pet="轻轻抚摸奶油猫", invite="带上奶油猫", decline="不带上奶油猫";
   const care="那好吧，我会帮你照顾好它，下次再来找它玩吧。";
   talk("balloon-friend");line("快看呀，那里有只可爱的奶油猫！它的肚皮看起来软乎乎的。你想摸摸它吗？");
+  assert(book().facts.includes("garden-guest-balloon-friend") && !book().facts.includes("petCat"),"初次问候和邀请同行没有分别记录");
   options(pet);choose(pet);line("它看起来很喜欢你！听说奶油猫可以为你带来好运，你要带它一起旅行吗？");
   options(invite,decline);choose(decline);line(care);assert(!bag().owned.includes("petCat"),"拒绝也领取了猫");close();
   talk("balloon-friend");choose(pet);choose(invite);line("（获得奶油猫桃桃）");
@@ -40,11 +43,56 @@ export function verifyGuests(world:World) {
   talk("decorator");choose("先让棉棉陪你");line("好呀，那我们在这里等你。逛累了就回来坐坐吧。");close();
   talk("decorator");choose("邀请棉棉同行");line("那就拜托你啦。棉棉，跟好芙芙哦！\n（获得垂耳兔棉棉）");close();
   assert(bag().equipped.pet==="petBunny" && bag().owned.includes("petCat"),"棉棉覆盖了桃桃的收藏");
+  assert(book().earned.includes("companions"),"分别邀请猫和兔后未收录旅伴图章");
   talk("decorator");options("让棉棉歇一会儿","再聊聊庆典");choose("让棉棉歇一会儿");line("回来啦，棉棉。就在我旁边歇一会儿吧。");close();
   talk("picnic-friend");line("你…你好，芙芙大人…");options("没关系，不用紧张");choose("没关系，不用紧张");
   line("谢…谢谢你。（从一旁的篮子中拿出一个蛋糕）请务必…收下这个。吃甜食会让心情变好！");
   const share="如果可以的话，请和我们一起享用这个蛋糕";options(share);choose(share);
   line("真…真的吗？（眼睛闪过不易察觉的欣喜）我…一定会去的…谢谢你！");options();close();
   talk("picnic-friend");line("你…你好，芙芙大人…");close();
+  assert(book().facts.filter(id=>id.startsWith("garden-guest-")).length===3,"重复交谈或邀请使花园会面数失真");
   assert(!world.suspended && !world.paused,"收起后不能移动");
+}
+
+export async function verifyGardenDiscovery(world: World) {
+  const state = () => readProgress(localStorage.getItem(SAVE_KEY));
+  const assert = (ok: unknown, message: string) => { if (!ok) throw Error(message); };
+  const enter = async (scene: SceneId, id: string) => {
+    await world.prepareScene(scene);
+    world.switchScene(scene);
+    const spot = world.config.spots.find(s => s.id === id)!;
+    world.switchScene(scene, spot.approach);
+    world.interact();
+  };
+  const close = () => document.querySelector<HTMLButtonElement>(".activity-close")!.click();
+  for (const [scene, id] of [["challenge","elder-gardener"],["ruins","elder-guardian"]] as const) {
+    await enter(scene, id);
+    assert(state().achievements.facts.includes(id), "长者在说第一句对白时未计入会面：" + id);
+    close();
+  }
+  await enter("garden", "xiaoye-plush");
+  close();
+  assert(!state().achievements.facts.includes("xiaoye-plush"), "拥抱中断时过早计入小叶子会面");
+  await enter("garden", "xiaoye-plush");
+  const until = performance.now() + 10000;
+  while (!state().achievements.facts.includes("xiaoye-plush")) {
+    if (performance.now() > until) throw Error("完整拥抱后没有计入小叶子会面");
+    await new Promise(done => setTimeout(done, 50));
+  }
+  close();
+  // This fresh adventure starts in daytime. Dusk and night arrive before midnight;
+  // dawn (on the next day) must still complete the same three-discoveries stamp.
+  for (const egg of ["sunset","firefly","dew"] as const) {
+    await enter("challenge", "rest");
+    const skip = Array.from(document.querySelectorAll<HTMLButtonElement>(".activity-actions button"))
+      .find(b => b.textContent === "坐着等到下一时段");
+    assert(skip, "无法在长椅上切换时段");
+    skip!.click();
+    world.standUp();
+    close();
+    await enter("challenge", egg);
+    assert(state().achievements.facts.includes(egg), "时段彩蛋没有计入成就：" + egg);
+    close();
+  }
+  assert(state().achievements.earned.includes("day-secrets"), "跨天发现三种彩蛋后未获得图章");
 }

@@ -52,9 +52,15 @@ export class RoomFox {
     this.clear();
   }
   pet() {
-    const call = petFox(this.memory());
+    const state = this.memory();
+    const wasRebuffed = state.missed === 3 && state.rebuffed;
+    const call = petFox(state);
     this.save();
     this.speak(call);
+    if (call === "content") {
+      this.world.onAchievementEvent("fox-content");
+      if (wasRebuffed) this.world.onAchievementEvent("fox-reconciled");
+    }
   }
   async farewell() {
     this.farewellAt = performance.now();

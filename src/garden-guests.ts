@@ -14,7 +14,7 @@ export const gardenGuests = [
     role: "气球客",
     x: 265,
     y: 310,
-    approach: {x:304,y:318},
+    approach: {x:277,y:331},
     sprite: 9,
   },
   {
