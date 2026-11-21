@@ -1,8 +1,16 @@
 import type { World } from "../src/world";
 import { renderGameMailDesk } from "../src/game-mail-desk";
 
-/** At the bottom of a full bay, lifting the art must not shrink its scroll range and move the hit target. */
-async function verifyFullLetterBay(reader: HTMLElement) {
+async function waitForReading(check: () => boolean, message: string) {
+  const deadline = performance.now() + 3000;
+  while (!check()) {
+    if (performance.now() >= deadline) throw new Error(message);
+    await new Promise(resolve => setTimeout(resolve, 16));
+  }
+}
+
+/** Exercise an entire stack, including wraparound, deliveries during reading and putting a letter back. */
+async function verifyLongLetterStack(reader: HTMLElement) {
   const sample = reader.cloneNode(false) as HTMLElement;
   const body = document.createElement("div");
   body.className = "reader-body";
@@ -10,22 +18,69 @@ async function verifyFullLetterBay(reader: HTMLElement) {
   sample.append(body);
   reader.after(sample);
   const cleanups: (() => void)[] = [];
-  const items = Array.from({ length: 20 }, (_, i) => ({id: `letter-${i}`, title: `第 ${i + 1} 封来信`}));
+  const items = Array.from({ length: 100 }, (_, i) => ({
+    id: `letter-${i}`, title: `第 ${i + 1} 封来信`, author: `来信人 ${i + 1}`,
+    text: i === 1 ? "今天的花也开了。\n".repeat(40) + "写到这里，晚安。" : "今晚也送你一个好梦。",
+  }));
+  const unread = new Set(items.slice(1, 91).map(item => item.id));
+  const receipts: string[] = [];
+  let deliver: ((entries: typeof items, unreadIds: string[]) => void) | undefined;
+  const front = () => body.querySelector<HTMLButtonElement>(".mail-stack button.mail-envelope")!;
+  const select = async (id: string) => {
+    await waitForReading(() => front()?.dataset.memoryId === id, "选中的信封不正确：" + id);
+  };
+  function key(name: string) {
+    front().dispatchEvent(new KeyboardEvent("keydown", {key: name, bubbles: true, cancelable: true}));
+  }
   try {
-    renderGameMailDesk(body, { items, onRead() { throw new Error("悬停信封不应打开正文"); } }, cb => cleanups.push(cb));
-    const list = body.querySelector<HTMLElement>('[data-compartment="read"] .collection-list')!;
-    const last = list.lastElementChild as HTMLElement;
-    if (list.children.length !== 20 || list.scrollHeight <= list.clientHeight) throw new Error("满箱的已读格不支持翻找");
-    list.scrollTop = list.scrollHeight;
-    const rowTop = () => last.getBoundingClientRect().top - list.getBoundingClientRect().top;
-    const start = rowTop();
-    const scroll = list.scrollTop;
-    for (const type of ["pointerenter", "pointerleave"]) {
-      last.dispatchEvent(new PointerEvent(type, {pointerType: "mouse"}));
-      await Promise.all(last.getAnimations({subtree: true}).map(animation => animation.finished));
-      if (Math.abs(rowTop() - start) > 1 || Math.abs(list.scrollTop - scroll) > 1)
-        throw new Error("悬停或离开最底端的信封改变了滚动位置或点击区域");
-    }
+    renderGameMailDesk(body, {
+      items, unreadIds: [...unread],
+      onRead(id) { unread.delete(id); receipts.push(id); },
+      subscribe(listener) { deliver = listener; return () => { deliver = undefined; }; },
+    }, cb => cleanups.push(cb));
+    await select("letter-1");
+    if (body.querySelectorAll(".mail-stack button.mail-envelope").length !== 1 ||
+        front().querySelector(".mail-sender")?.textContent !== items[1].author)
+      throw new Error("最前面的信封应该可以拆开，并能看到对应署名");
+    body.querySelector<HTMLButtonElement>(".mail-stack-prev")!.click();
+    await select("letter-99");
+    if (front().dataset.sealed !== "false") throw new Error("已读信仍带有蜡封");
+    body.querySelector<HTMLButtonElement>(".mail-stack-next")!.click();
+    await select("letter-1");
+    key("End"); await select("letter-99");
+    key("Home"); await select("letter-1");
+    key("ArrowRight"); await select("letter-2");
+    key("ArrowLeft"); await select("letter-1");
+    if (receipts.length || front().dataset.sealed !== "true") throw new Error("挑选信件时误拆了蜡封");
+    front().click();
+    await waitForReading(() => body.dataset.openLetterId === "letter-1", "未读信无法打开");
+    if (receipts.join() !== "letter-1") throw new Error("读一封信改变了其他信的状态");
+    const viewport = body.querySelector<HTMLElement>(".mail-sheet .memory-detail")!;
+    viewport.dispatchEvent(new KeyboardEvent("keydown", {key: "End", bubbles: true, cancelable: true}));
+    const text = viewport.querySelector(".letter-text")!.firstChild as Text;
+    const finalCharacter = document.createRange();
+    finalCharacter.setStart(text, text.length - 1);
+    finalCharacter.setEnd(text, text.length);
+    await waitForReading(() => {
+      const glyph = finalCharacter.getBoundingClientRect(), page = viewport.getBoundingClientRect();
+      return glyph.width > 0 && glyph.left >= page.left - 1 && glyph.right <= page.right + 1 &&
+        glyph.top >= page.top - 1 && glyph.bottom <= page.bottom + 1;
+    }, "翻到长信末页后最后一个字仍在纸面之外");
+    const pageNumber = body.querySelector(".mail-page-count")!;
+    const lastPage = pageNumber.textContent;
+    const active = document.activeElement;
+    const extra = {id: "new-arrival", title: "新来信", author: "新来宾", text: "晚安。"};
+    unread.add(extra.id);
+    deliver?.([extra, ...items], [...unread]);
+    if (body.dataset.openLetterId !== "letter-1" || document.activeElement !== active || pageNumber.textContent !== lastPage)
+      throw new Error("阅读期间收到新信打断了原信");
+    body.querySelector<HTMLButtonElement>(".mail-fold")!.click();
+    await waitForReading(() => body.dataset.mailState === "box", "无法把信放回信摞");
+    await select("letter-1");
+    if (document.activeElement !== front() || front().dataset.sealed !== "false")
+      throw new Error("放回后没有回到原来选中的已拆信封");
+    if (!body.querySelector(".mail-stack-position")?.textContent?.includes("101"))
+      throw new Error("信摞没有收录阅读期间送到的新信");
   } finally {
     cleanups.forEach(cleanup => cleanup());
     sample.remove();
@@ -40,55 +95,50 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
     for (const type of ["keydown", "keyup"])
       target.dispatchEvent(new KeyboardEvent(type, {key: name, bubbles: true, cancelable: true}));
   };
-  async function waitForReading(check: () => boolean, message: string) {
-    const deadline = performance.now() + 3000;
-    while (!check()) {
-      if (performance.now() >= deadline) throw new Error(message);
-      await new Promise(resolve => setTimeout(resolve, 16));
-    }
-  }
   await world.prepareScene("room");
   const reader = q(".game-letter-reader");
   world.switchScene("room", {x:121,y:240});
   {
     world.onInteract("letters");
-    const unreadSelector = '.game-letter-reader [data-compartment="unread"] .mail-envelope';
-    const unopened = document.querySelector<HTMLButtonElement>(unreadSelector);
-    if (unopened && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const front = () => q<HTMLButtonElement>(".game-letter-reader .mail-stack button.mail-envelope");
+    const unopened = front();
+    if (unopened?.dataset.sealed === "true" && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
       const id = unopened.dataset.memoryId;
       unopened.click();
       q(".game-letter-reader .reader-close").click();
       world.onInteract("letters");
-      expect([...reader.querySelectorAll<HTMLElement>(unreadSelector)].some(b => b.dataset.memoryId === id),
-        "拆信中途退出消耗了蜡封");
+      expect(front()?.dataset.memoryId === id && front().dataset.sealed === "true", "拆信中途退出消耗了蜡封");
     }
-    const envelope = q<HTMLButtonElement>(".game-letter-reader .mail-envelope");
-    expect(envelope && !reader.hidden && world.paused, "没有打开书桌上的双格信匣");
+    const envelope = front();
+    const id = envelope?.dataset.memoryId;
+    expect(envelope && !reader.hidden && world.paused, "没有打开书桌上的来信");
     expect(!reader.querySelector(".mail-sheet:not([hidden])"), "进信箱时自动拆开了信");
     envelope.click();
-    await waitForReading(() => !!reader.querySelector('[data-mail-state="reading"]'), "抽信后没有展开正文");
+    await waitForReading(() => !!reader.querySelector('[data-mail-state="reading"]'), "拆信后没有展开正文");
     const detail = q(".mail-sheet:not([hidden]) .memory-detail");
-    detail.scrollTop = 25;
     detail.focus({preventScroll:true});
-    const previousScroll = detail.scrollTop;
+    key("PageDown", detail);
+    const pageBeforeHelp = q(".mail-sheet .mail-page-count").textContent;
     q(".help-button").click();
     expect(world.suspended && !q(".inline-help").hidden, "说明没有暂停底层阅读");
     key("Escape", q(".help-close"));
     expect(!reader.hidden && world.paused && !world.suspended, "关闭说明错误地关闭或恢复了底层阅读");
-    expect(document.activeElement === detail && detail.scrollTop === previousScroll, "关闭说明没有返回原阅读焦点与位置");
+    expect(document.activeElement === detail && q(".mail-sheet .mail-page-count").textContent === pageBeforeHelp,
+      "关闭说明没有返回原阅读焦点与页码");
     key("End", detail);
-    expect(detail.scrollTop + detail.clientHeight >= detail.scrollHeight - 2, "说明返回后键盘不能读到末尾");
+    expect(q(".mail-sheet .mail-page-next").getAttribute("aria-disabled") === "true",
+      "说明返回后键盘不能读到末页");
     q(".mail-fold").click();
-    await waitForReading(() => !!reader.querySelector('[data-mail-state="box"]'), "信封没有放回信匣");
-    expect(document.activeElement === envelope && envelope.closest('[data-compartment="read"]'),
-      "放回信匣后焦点没有跟随原信进入已读格");
+    await waitForReading(() => !!reader.querySelector('[data-mail-state="box"]'), "信封没有放回信摞");
+    expect(document.activeElement === front() && front().dataset.memoryId === id && front().dataset.sealed === "false",
+      "退信后没有回到原来选中的已拆信封");
     q(".help-button").click(); q(".help-close").click();
-    expect(document.activeElement === envelope, "关闭说明没有保留选信焦点");
-    key("Escape", envelope);
+    expect(document.activeElement === front(), "关闭说明没有保留选信焦点");
+    key("Escape", front());
     expect(reader.hidden && !world.paused && document.activeElement === world.canvas, "收起阅读器未恢复探索");
-    await verifyFullLetterBay(reader);
+    await verifyLongLetterStack(reader);
     world.canvas.focus({ preventScroll: true });
-    log("中途收起保留蜡封，读信后原信回到右格，说明与阅读切换保留焦点。");
+    log("百封来信支持循环挑选，拆信中途退出保留蜡封，放回后原信和键盘焦点都在摞顶。");
   }
   {
     world.onInteract("album");

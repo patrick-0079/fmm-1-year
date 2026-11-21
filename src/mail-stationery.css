@@ -1,0 +1,153 @@
+/* Each piece uses the same hinge and the same 520 × 353 envelope body.
+   The two faces of the flap meet at the top seam of the real paper pocket. */
+.mail-envelope-art {
+  position: relative;
+  display: block;
+  aspect-ratio: 520 / 353;
+  pointer-events: none;
+}
+.mail-envelope-object {
+  position: absolute;
+  inset: 0;
+  isolation: isolate;
+  transform-origin: 50% 100%;
+}
+.mail-envelope-object > i,
+.mail-envelope-object::before,
+.mail-flap::before,
+.mail-flap::after {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  background-repeat: no-repeat;
+}
+.mail-envelope-object::before {
+  content: "";
+  inset: 0;
+  background-image: url("./assets/stationery-rose-lining.webp");
+  background-position: center bottom;
+  background-size: 100% 169.69%;
+}
+.mail-envelope-object .mail-paper {
+  z-index: 1;
+  inset: 5.5% 5.5% 4%;
+  background: url("./assets/stationery-fox-letter.webp") center / 100% 100% no-repeat;
+  border-radius: 1.2%;
+  box-shadow: 0 1px 3px #5a362973;
+  transform-origin: center;
+}
+.mail-envelope-object .mail-pocket {
+  z-index: 2;
+  inset: 0;
+  background-image: url("./assets/stationery-lily-pocket.webp");
+  background-size: 100% 100%;
+}
+.mail-envelope-object .mail-flap {
+  z-index: 3;
+  inset: 0 0 auto;
+  height: 69.69%;
+  transform-origin: 50% 0;
+  transform-style: preserve-3d;
+}
+.mail-flap::before, .mail-flap::after {
+  content: "";
+  inset: 0;
+  backface-visibility: hidden;
+}
+.mail-flap::before {
+  background-image: url("./assets/stationery-ivory-flap.webp");
+  background-size: 100% 100%;
+}
+.mail-flap::after {
+  background-image: url("./assets/stationery-rose-lining.webp");
+  background-position: center top;
+  background-size: 100% 243.5%;
+  transform: rotateX(180deg);
+}
+.mail-envelope-object .mail-seal {
+  z-index: 4;
+  left: 50.2%;
+  top: 64.7%;
+  width: 24.62%;
+  aspect-ratio: 128 / 125;
+  translate: -50% -50%;
+  transform-origin: 28% 80%;
+  background-image: url("./assets/stationery-berry-wax.webp");
+  background-size: 100% 100%;
+  filter: drop-shadow(0 1px 1px #71372173);
+}
+[data-sealed="false"] .mail-envelope-object {
+  transform: scale(.77);
+}
+[data-sealed="false"] .mail-envelope-object .mail-flap {
+  z-index: 0;
+  transform: rotateX(-115deg);
+}
+[data-sealed="false"] .mail-envelope-object .mail-seal {
+  visibility: hidden;
+}
+[data-sealed="false"] .mail-envelope-object .mail-paper {
+  transform: translateY(-18%);
+}
+.mail-flight > .mail-envelope-art {
+  position: absolute;
+  inset: 0;
+}
+.mail-flight[data-direction] :is(.mail-envelope-object,.mail-seal,.mail-flap,.mail-paper) {
+  animation-duration: var(--flight-duration);
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: both;
+}
+.mail-flight[data-direction="open"][data-sealed="true"] .mail-seal { animation-name: mail-peel-seal; }
+.mail-flight[data-direction="open"][data-sealed="true"] .mail-flap { animation-name: mail-unfold-flap; }
+.mail-flight[data-direction="open"][data-sealed="true"] .mail-paper { animation-name: mail-take-sealed-card; }
+.mail-flight[data-direction="open"][data-sealed="false"] .mail-envelope-object { animation-name: mail-lift-open-sleeve; }
+.mail-flight[data-direction="open"][data-sealed="false"] .mail-flap { animation-name: mail-lift-open-flap; }
+.mail-flight[data-direction="open"][data-sealed="false"] .mail-paper { animation-name: mail-take-open-card; }
+.mail-flight[data-direction="return"] .mail-envelope-object { animation-name: mail-set-open-sleeve; }
+.mail-flight[data-direction="return"] .mail-flap { animation-name: mail-set-open-flap; }
+.mail-flight[data-direction="return"] .mail-paper { animation-name: mail-put-back-card; }
+@keyframes mail-peel-seal {
+  0%, 25% { transform: none; opacity: 1; }
+  40% { transform: translate(-5%,-12%) rotate(-14deg) scale(.99,.9); opacity: 1; }
+  55%, 100% { transform: translate(-75%,-40%) rotate(-34deg) scale(.95,.78); opacity: 0; }
+}
+@keyframes mail-unfold-flap {
+  0%, 40% { z-index: 3; transform: rotateX(0); }
+  54% { z-index: 3; transform: rotateX(-89deg); }
+  55% { z-index: 0; transform: rotateX(-91deg); }
+  72%, 100% { z-index: 0; transform: rotateX(-180deg); }
+}
+@keyframes mail-take-sealed-card {
+  0%, 61% { transform: none; }
+  100% { transform: translateY(-72%) scale(1.06); }
+}
+@keyframes mail-lift-open-sleeve {
+  0%, 8% { transform: scale(.77); }
+  56%, 100% { transform: scale(1); }
+}
+@keyframes mail-lift-open-flap {
+  0%, 8% { transform: rotateX(-115deg); }
+  56%, 100% { transform: rotateX(-180deg); }
+}
+@keyframes mail-take-open-card {
+  0%, 34% { transform: translateY(-18%); }
+  100% { transform: translateY(-72%) scale(1.06); }
+}
+@keyframes mail-put-back-card {
+  0%, 12% { transform: translateY(-72%) scale(1.06); }
+  68%, 100% { transform: translateY(-18%); }
+}
+@keyframes mail-set-open-sleeve {
+  0%, 38% { transform: scale(1); }
+  100% { transform: scale(.77); }
+}
+@keyframes mail-set-open-flap {
+  0%, 38% { transform: rotateX(-180deg); }
+  100% { transform: rotateX(-115deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mail-flight[data-direction] :is(.mail-envelope-object,.mail-seal,.mail-flap,.mail-paper) {
+    animation: none;
+  }
+}

@@ -874,6 +874,7 @@ export function mountGame(tasks: Task[]) {
       }
     }
   }, toast, () => resetAdventure(true), {
+    restoreReadingFocus: () => reader.inGame && reader.restoreFocus(),
     received: () => new Set(mailboxLetters(progress.residents).map(letter => letter.id)),
     receive: id => {
       const story = progress.residents;

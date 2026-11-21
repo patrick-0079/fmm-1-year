@@ -4,10 +4,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const gates = ["xiaoye", "suyan", "radio-host", "xiaoyou", "guli", "post", "patrick"];
 const fields = new Set(["id", "title", "author", "text", "delivery", "revision"]);
-const boxCapacity = 20;
 
-/** Read the source directory even when the generated game manifest is older. */
-export async function readLetterPacks(sourceDir) {
+export async function scanLetters(sourceDir, manifestPath, { requireStoryLetters = false } = {}) {
   const files = (await readdir(sourceDir, { withFileTypes: true }))
     .filter(file => file.isFile() && /\.json$/i.test(file.name))
     .map(file => file.name)
@@ -16,9 +14,11 @@ export async function readLetterPacks(sourceDir) {
   const primary = files.indexOf("letters.json");
   if (primary > 0) files.unshift(...files.splice(primary, 1));
 
-  const packs = [];
-  let count = 0;
-  for (const name of files) {
+  const ids = new Set();
+  const deliveryIds = {};
+  const imports = [];
+  const sources = [];
+  for (const [index, name] of files.entries()) {
     if (/[#%?]/.test(name)) throw new Error(`${name}: 文件名不能含 #、% 或 ?；署名和标题请填写在 JSON 中。`);
     const path = join(sourceDir, name);
     let pack;
@@ -27,25 +27,7 @@ export async function readLetterPacks(sourceDir) {
     } catch (error) {
       throw new Error(`${name}: ${error.message}`, { cause: error });
     }
-    const isArray = Array.isArray(pack);
-    const letters = isArray ? pack : [pack];
-    count += letters.length;
-    packs.push({ name, letters, isArray });
-  }
-  if (count > boxCapacity) {
-    throw new Error(`晚安信匣共有 ${count} 封来信，当前设计最多容纳 ${boxCapacity} 封。请重新设计收纳箱后再构建。`);
-  }
-  return packs;
-}
-
-export async function scanLetters(sourceDir, manifestPath, { requireStoryLetters = false } = {}) {
-  const packs = await readLetterPacks(sourceDir);
-  const ids = new Set();
-  const deliveryIds = {};
-  const imports = [];
-  const sources = [];
-  for (const [index, { name, letters, isArray }] of packs.entries()) {
-    for (const [row, letter] of letters.entries()) {
+    for (const [row, letter] of (Array.isArray(pack) ? pack : [pack]).entries()) {
       const at = `${name} [${row + 1}]`;
       if (!letter || typeof letter !== "object" || Array.isArray(letter)) throw new Error(`${at}: 请填写一封信的对象。`);
       for (const key of ["id", "title", "author", "text"]) {
@@ -67,10 +49,10 @@ export async function scanLetters(sourceDir, manifestPath, { requireStoryLetters
         }
       }
     }
-    const specifier = relative(dirname(manifestPath), join(sourceDir, name)).split(sep).join("/");
+    const specifier = relative(dirname(manifestPath), path).split(sep).join("/");
     const local = `source${index}`;
     imports.push(`import ${local} from ${JSON.stringify(specifier.startsWith("../") ? specifier : "./" + specifier)} with { type: "json" };`);
-    sources.push(isArray ? `...${local}` : local);
+    sources.push(Array.isArray(pack) ? `...${local}` : local);
   }
   if (requireStoryLetters) {
     const missing = gates.filter(gate => !Object.hasOwn(deliveryIds, gate));
@@ -91,7 +73,7 @@ export async function scanLetters(sourceDir, manifestPath, { requireStoryLetters
     await mkdir(dirname(manifestPath), { recursive: true });
     await writeFile(manifestPath, manifest);
   }
-  return { files: packs.map(pack => pack.name), count: ids.size };
+  return { files, count: ids.size };
 }
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {

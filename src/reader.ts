@@ -78,7 +78,7 @@ export class MapReader {
     const target = this.readingFocus && this.root.contains(this.readingFocus) &&
       !this.readingFocus.closest("[hidden],[inert]") && !this.readingFocus.matches(".reader-body:not([tabindex])")
       ? this.readingFocus
-      : this.root.querySelector<HTMLElement>('.mail-chest:not([hidden]) [aria-current="true"]') ??
+      : this.root.querySelector<HTMLElement>('.mail-stack:not([hidden]) .mail-envelope:not([hidden])') ??
         this.root.querySelector<HTMLElement>(".memory-detail,.reader-body");
     target?.focus({ preventScroll: true });
     return true;

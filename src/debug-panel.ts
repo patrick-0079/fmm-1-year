@@ -33,7 +33,7 @@ export function mountDebugPanel(
   go: Travel,
   toast: (s: string) => void,
   eraseProgress: () => boolean,
-  mailbox: { received: () => Set<string>; receive: (id?: string) => void },
+  mailbox: { received: () => Set<string>; receive: (id?: string) => void; restoreReadingFocus: () => boolean },
 ) {
   const book = document.querySelector<HTMLElement>(".flower-book")!;
   if (import.meta.env.VITE_WARDROBE_DEBUG !== "true") {
@@ -149,7 +149,7 @@ export function mountDebugPanel(
     cancelErase();
     trigger.setAttribute("aria-expanded", "false");
     world.suspend("debug", false);
-    if (focus) trigger.focus({ preventScroll: true });
+    if (focus && !mailbox.restoreReadingFocus()) trigger.focus({ preventScroll: true });
   };
   trigger.onclick = () => {
     if (!panel.hidden) {

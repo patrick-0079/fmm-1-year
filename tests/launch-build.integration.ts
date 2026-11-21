@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "vite";
+import { scanLetters } from "../scripts/scan-letters.mjs";
 
 // Runs separately from npm test: a pre-release CI build should not have to
 // produce the full game even temporarily. All outputs here live in one temp dir.
@@ -41,19 +42,21 @@ test("switching full → invitation → full cleans the deployed directory", asy
   assert.ok(explicit.files.some(name => name.includes("room-interactive")));
   assert.ok(explicit.files.some(name => name.startsWith("assets/town-guests-")));
   assert.ok(explicit.files.some(name => name.startsWith("assets/patrick-camp-")));
-  assert.ok(explicit.files.some(name => name.startsWith("assets/stationery-desk-")));
-  assert.ok(explicit.files.some(name => name.startsWith("assets/stationery-cherrywood-box-")));
+  for (const artwork of ["desk", "fox-letter", "berry-wax", "ivory-flap", "lily-pocket", "rose-lining"]) {
+    assert.ok(explicit.files.some(name => name.startsWith(`assets/stationery-${artwork}-`)), artwork);
+  }
+  assert.ok(!explicit.files.some(name => name.includes("stationery-cherrywood-box")));
   assert.ok(!explicit.files.some(name => /CharaStudio.*\.png$/i.test(name)));
 
   const lite = await run("false");
   assert.equal(lite.marker.mode, "lite");
-  assert.ok(!lite.files.some(name => name.includes("stationery-cherrywood-box")));
+  assert.ok(!lite.files.some(name => name.startsWith("assets/stationery-")));
   assert.ok(lite.marker.version && lite.marker.version !== explicit.marker.version);
   for (const file of lite.files) {
     assert.match(file, /^(?:assets|index\.html|release\.json|favicon\.svg|_headers|assets\/(?:[\w.-]+\.(?:js|css)|launch-(?:cottage|fufu|fox-letter|player)-[\w-]+\.webp|fufu-cursor-(?:arrow|play)-[\w-]+\.(?:svg|png)))$/);
     if (/\.(?:js|css|html)$/.test(file)) {
       const body = await readFile(join(outDir, file), "utf8");
-      assert.doesNotMatch(body, /room-interactive|nemu-sprites|town-guests|patrick-camp|texture-cache\.js|rabe-anniversary-letter|patrick-anniversary-letter|star-xiaoye|star-zhenghao|成为了芙妮宝星|CharaStudio|stationery-desk|1-year\/picture\/|\.mp4\b/);
+      assert.doesNotMatch(body, /room-interactive|nemu-sprites|town-guests|patrick-camp|texture-cache\.js|rabe-anniversary-letter|patrick-anniversary-letter|star-xiaoye|star-zhenghao|成为了芙妮宝星|CharaStudio|stationery-|1-year\/picture\/|\.mp4\b/);
     }
   }
   assert.ok(lite.files.includes("favicon.svg") && lite.files.includes("_headers"));
@@ -67,7 +70,7 @@ test("switching full → invitation → full cleans the deployed directory", asy
   await assert.rejects(run("flase"), /FULL_BUILD/);
 });
 
-test("both builds check the twenty-letter limit directly on disk before producing an artifact", async t => {
+test("a large scanned catalogue is available in the game and excluded from the invitation", async t => {
   const root = await mkdtemp(join(tmpdir(), "fufu-mail-build-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const oldMode = process.env.FULL_BUILD;
@@ -81,10 +84,13 @@ test("both builds check the twenty-letter limit directly on disk before producin
   await mkdir(source, { recursive: true });
   await writeFile(join(root, "index.html"), '<script type="module" src="/src/launch/lite.ts"></script>');
   await writeFile(join(launch, "lite.ts"), 'document.body.textContent = "邀请函"');
-  await writeFile(join(launch, "full.ts"), 'import mail from "../../ref/来信/letters.json"; document.body.textContent = mail[0].text;');
-  const letter = (n: number) => ({ id: `letter-${n}`, title: "来信", author: "作者", text: "仅完整游戏的来信正文" });
-  await writeFile(join(source, "letters.json"), JSON.stringify(Array.from({ length: 19 }, (_, i) => letter(i))));
-  await writeFile(join(source, "last.json"), JSON.stringify(letter(19)));
+  await writeFile(join(launch, "full.ts"), 'import { letterRecords } from "../letters.generated"; document.body.textContent = letterRecords.map(letter => letter.text).join(" ");');
+  const letters = Array.from({ length: 64 }, (_, n) => ({
+    id: `letter-${n}`, title: "来信", author: "作者", text: `来自第 ${n + 1} 封测试信的问候。`,
+  }));
+  await writeFile(join(source, "letters.json"), JSON.stringify(letters.slice(0, 32)));
+  await writeFile(join(source, "more.json"), JSON.stringify(letters.slice(32)));
+  await scanLetters(source, join(root, "src", "letters.generated.ts"));
   const run = async (full: boolean) => {
     process.env.FULL_BUILD = String(full);
     const outDir = join(root, full ? "full" : "lite");
@@ -95,11 +101,7 @@ test("both builds check the twenty-letter limit directly on disk before producin
     const scripts = await Promise.all(modules.map(name => readFile(join(assets, name), "utf8")));
     return scripts.join("\n");
   };
-  assert.match(await run(true), /仅完整游戏的来信正文/);
-  assert.doesNotMatch(await run(false), /仅完整游戏的来信正文|letter-19/);
-  // Neither the entry points nor a generated index import this extra file.
-  await writeFile(join(source, "not-yet-scanned.json"), JSON.stringify(letter(20)));
-  const error = /晚安信匣共有 21 封来信，当前设计最多容纳 20 封。请重新设计收纳箱后再构建。/;
-  await assert.rejects(run(true), error);
-  await assert.rejects(run(false), error);
+  const full = await run(true);
+  for (const letter of letters) assert.ok(full.includes(letter.text), letter.id);
+  assert.doesNotMatch(await run(false), /封测试信的问候|letter-\d+/);
 });

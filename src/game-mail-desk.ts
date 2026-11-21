@@ -1,4 +1,5 @@
 import type { Memory } from "./content";
+import { mountMailPages } from "./mail-letter-pages";
 import "./game-mail-desk.css";
 
 export interface LetterList {
@@ -29,24 +30,19 @@ export function renderMailboxList(
   if (letters.subscribe) onCleanup(letters.subscribe(insertDeliveries));
 }
 
-/** Reveal an envelope without scrolling the desk or the surrounding page. */
-function revealEnvelope(button: HTMLButtonElement) {
-  const list = button.parentElement!;
-  const bounds = list.getBoundingClientRect(), card = button.getBoundingClientRect();
-  if (card.top < bounds.top) list.scrollTop += card.top - bounds.top;
-  else if (card.bottom > bounds.bottom) list.scrollTop += card.bottom - bounds.bottom;
+const envelopeArt = `<span class="mail-envelope-art" aria-hidden="true"><span class="mail-envelope-object">
+  <i class="mail-paper"></i><i class="mail-pocket"></i><i class="mail-flap"></i><i class="mail-seal"></i>
+</span></span>`;
+
+/** The ink stays on the paper it was printed on as the flap turns or the sheet slides out. */
+function inscribe(envelope: HTMLElement, item: Memory, sealed: boolean) {
+  const ink = envelope.querySelector<HTMLElement>(".mail-sender") ?? document.createElement("span");
+  ink.className = "mail-sender";
+  ink.textContent = item.author || item.title;
+  const surface = envelope.querySelector(sealed ? ".mail-flap" : ".mail-pocket")!;
+  if (ink.parentElement !== surface) surface.append(ink);
 }
 
-const envelopeArt = '<span class="mail-envelope-art" aria-hidden="true"><i class="mail-paper"></i><i class="mail-pocket"></i><i class="mail-flap"></i><i class="mail-seal"></i><span class="envelope-name"></span></span>';
-
-function bayMarkup(group: "unread" | "read", label: string) {
-  return `<section class="mail-bay" data-compartment="${group}" aria-label="${label}来信">
-    <div class="mail-bay-list collection-list" role="group" aria-label="${label}信封"></div>
-    <h4 class="mail-bay-label">${label} · 0</h4>
-  </section>`;
-}
-
-/** Fit a centered element onto the selected envelope elsewhere on the desk. */
 function transformTo(from: DOMRect, to: DOMRect) {
   const dx = to.left + to.width / 2 - from.left - from.width / 2;
   const dy = to.top + to.height / 2 - from.top - from.height / 2;
@@ -60,73 +56,127 @@ export function renderGameMailDesk(
 ) {
   body.classList.add("mail-desk-body");
   body.removeAttribute("tabindex");
+  body.setAttribute("aria-label", "晚安信箱，可用左右键挑信和翻页");
+  body.setAttribute("aria-label", "晚安信箱");
   body.dataset.mailState = "box";
-  body.innerHTML = `<div class="mail-chest">${bayMarkup("unread", "未读")}${bayMarkup("read", "已读")}</div>
+  body.innerHTML = `<section class="mail-stack" aria-label="桌上的来信">
+      <button class="mail-stack-prev" type="button" aria-label="上一封" title="上一封 · ←"></button>
+      <div class="mail-deck">
+        <button type="button" class="mail-envelope">${envelopeArt}</button>
+        <div class="mail-deck-leaf" aria-hidden="true" hidden>${envelopeArt}</div>
+      </div>
+      <button class="mail-stack-next" type="button" aria-label="下一封" title="下一封 · →"></button>
+      <div class="mail-stack-caption" aria-live="polite" aria-atomic="true">
+        <span class="mail-stack-position"></span>
+      </div>
+      <p class="mail-stack-empty" tabindex="-1" hidden>桌上还没有来信。</p>
+    </section>
     <div hidden class="mail-flight" aria-hidden="true">${envelopeArt}</div>
     <article class="mail-sheet" hidden>
-      <div class="mail-sheet-heading"><h4></h4><button type="button" class="mail-fold">放回信匣</button></div>
-      <div tabindex="0" class="memory-detail" role="region" aria-label="信件正文，可滚动阅读">
-        <p class="mail-signature"></p><p class="letter-text"></p>
-      </div>
+      <div class="mail-sheet-heading"><div class="mail-sheet-caption"><h4></h4><p class="mail-signature"></p></div>
+        <button type="button" class="mail-fold">放回信摞</button></div>
+      <div tabindex="0" class="memory-detail" role="region" aria-label="信件正文"><p class="letter-text"></p></div>
     </article>`;
-  const chest = body.querySelector<HTMLElement>(".mail-chest")!;
-  const bays = [...chest.querySelectorAll<HTMLElement>(".mail-bay")].map(bay => ({
-    unread: bay.dataset.compartment === "unread",
-    list: bay.querySelector<HTMLElement>(".mail-bay-list")!,
-    label: bay.querySelector<HTMLElement>("h4")!,
-  }));
+  const stack = body.querySelector<HTMLElement>(".mail-stack")!;
+  const deck = stack.querySelector<HTMLElement>(".mail-deck")!;
+  const button = deck.querySelector<HTMLButtonElement>(".mail-envelope")!;
+  const leaf = deck.querySelector<HTMLElement>(".mail-deck-leaf")!;
+  const previous = stack.querySelector<HTMLButtonElement>(".mail-stack-prev")!;
+  const next = stack.querySelector<HTMLButtonElement>(".mail-stack-next")!;
+  const caption = stack.querySelector<HTMLElement>(".mail-stack-caption")!;
+  const position = caption.querySelector<HTMLElement>(".mail-stack-position")!;
+  const empty = stack.querySelector<HTMLElement>(".mail-stack-empty")!;
   const flight = body.querySelector<HTMLElement>(".mail-flight")!;
   const flightPaper = flight.querySelector<HTMLElement>(".mail-paper")!;
   const sheet = body.querySelector<HTMLElement>(".mail-sheet")!;
   const page = sheet.querySelector<HTMLElement>(".memory-detail")!;
+  const pages = mountMailPages(sheet);
+  onCleanup(pages.dispose);
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
-  const buttons = new Map<string, HTMLButtonElement>();
-  let items = letters.items;
-  let unread = new Set(letters.unreadIds);
+  let items: readonly Memory[] = [];
+  let index = 0;
+  let unread = new Set<string>();
+  // Preserve this pickup's ordering while seals are opened. Picking up the stack anew
+  // creates a new snapshot of unread letters; incoming mail gets its own initial status.
+  const initiallyUnread = new Set<string>();
   let active: Memory | undefined;
-  let lifted: HTMLButtonElement | undefined;
   let motion: Animation | undefined;
   let paperMotion: Animation | undefined;
+  let turnMotion: Animation | undefined;
 
-  function lift(button?: HTMLButtonElement) {
-    if (lifted === button) return;
-    lifted?.classList.remove("is-lifted");
-    lifted = button;
-    button?.classList.add("is-lifted");
-  }
-
-  function makeButton(item: Memory) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "mail-envelope";
+  function showFront() {
+    const item = items[index];
+    button.hidden = deck.hidden = caption.hidden = !item;
+    previous.hidden = next.hidden = items.length <= 1;
+    empty.hidden = Boolean(item);
+    deck.dataset.depth = String(Math.min(3, items.length));
+    if (!item) return;
     button.dataset.memoryId = item.id;
-    button.innerHTML = `<span class="mail-slot-mask">${envelopeArt}</span>`;
-    button.querySelector(".envelope-name")!.textContent = item.author || item.title;
-    button.addEventListener("pointerenter", event => {
-      if (event.pointerType !== "touch" && body.dataset.mailState === "box") lift(button);
-    });
-    button.addEventListener("pointerleave", () => { if (lifted === button) lift(); });
-    button.addEventListener("focus", () => { if (button.matches(":focus-visible")) lift(button); });
-    button.addEventListener("blur", () => { if (lifted === button) lift(); });
-    button.addEventListener("click", () => openEnvelope(item));
-    buttons.set(item.id, button);
-    return button;
+    button.dataset.sealed = String(unread.has(item.id));
+    button.setAttribute("aria-label", `${item.title}，${unread.has(item.id) ? "未读" : "已读"}，打开来信`);
+    inscribe(button, item, unread.has(item.id));
+    position.textContent = `${index + 1} / ${items.length}`;
+    position.setAttribute("aria-label", `${item.author || item.title}，第 ${index + 1} 封，共 ${items.length} 封`);
   }
 
-  function arrange() {
-    for (const bay of bays) {
-      const group = items.filter(item => unread.has(item.id) === bay.unread);
-      const scroll = bay.list.scrollTop;
-      group.forEach((item, index) => {
-        const button = buttons.get(item.id) ?? makeButton(item);
-        button.dataset.sealed = String(bay.unread);
-        button.setAttribute("aria-label", `${item.title}，${bay.unread ? "未读" : "已读"}`);
-        if (button !== bay.list.children[index]) bay.list.insertBefore(button, bay.list.children.item(index));
-      });
-      bay.list.scrollTop = scroll;
-      bay.label.textContent = `${bay.unread ? "未读" : "已读"} · ${group.length}`;
+  function arrange(entries: readonly Memory[], unreadIds: readonly string[]) {
+    const selectedId = items[index]?.id;
+    const previousIds = new Set(items.map(item => item.id));
+    unread = new Set(unreadIds);
+    for (const item of entries) {
+      if (!previousIds.has(item.id)) {
+        if (unread.has(item.id)) initiallyUnread.add(item.id);
+        else initiallyUnread.delete(item.id);
+      }
     }
+    items = [...entries.filter(item => initiallyUnread.has(item.id)), ...entries.filter(item => !initiallyUnread.has(item.id))];
+    index = Math.max(0, items.findIndex(item => item.id === selectedId));
+    showFront();
   }
+
+  function clearTurn() {
+    if (turnMotion) {
+      turnMotion.onfinish = null;
+      turnMotion.cancel();
+      turnMotion = undefined;
+    }
+    leaf.hidden = true;
+  }
+
+  function turn(to: number, direction: number) {
+    if (body.dataset.mailState !== "box" || items.length < 2) return;
+    const newIndex = (to + items.length) % items.length;
+    if (index === newIndex) return;
+    clearTurn();
+    leaf.dataset.sealed = button.dataset.sealed;
+    inscribe(leaf, items[index], unread.has(items[index].id));
+    index = newIndex;
+    showFront();
+    if (reducedMotion.matches) return;
+    leaf.hidden = false;
+    turnMotion = leaf.animate([
+      { transform: "none", zIndex: 1 },
+      { transform: `translate(${direction * 24}%, -7%) rotate(${direction * 6}deg)`, zIndex: 1, offset: .46 },
+      { transform: `translate(${direction * 24}%, -7%) rotate(${direction * 6}deg)`, zIndex: -1, offset: .47 },
+      { transform: `translate(${direction * 2}%, 2%) rotate(${direction * 3}deg)`, zIndex: -1 },
+    ], { duration: 235, easing: "ease-out" });
+    turnMotion.onfinish = clearTurn;
+  }
+
+  previous.addEventListener("click", () => turn(index - 1, -1));
+  next.addEventListener("click", () => turn(index + 1, 1));
+  stack.addEventListener("keydown", event => {
+    if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+    switch (event.key) {
+      case "ArrowLeft": turn(index - 1, -1); break;
+      case "ArrowRight": turn(index + 1, 1); break;
+      case "Home": turn(0, -1); break;
+      case "End": turn(items.length - 1, 1); break;
+      default: return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+  });
 
   function clearMotion() {
     if (motion) {
@@ -138,24 +188,20 @@ export function renderGameMailDesk(
     paperMotion = undefined;
     flight.hidden = true;
     delete flight.dataset.direction;
-    if (active) buttons.get(active.id)?.classList.remove("is-travelling");
+    button.classList.remove("is-travelling");
   }
 
-  function returnToBox(focus: boolean) {
+  function returnToStack(focus: boolean) {
     clearMotion();
     body.dataset.mailState = "box";
     delete body.dataset.openLetterId;
     delete sheet.dataset.memoryId;
     sheet.hidden = true;
     sheet.inert = false;
-    chest.hidden = false;
-    chest.inert = false;
-    const button = active && buttons.get(active.id);
+    stack.hidden = false;
+    stack.inert = false;
     active = undefined;
-    if (button && focus) {
-      revealEnvelope(button);
-      button.focus({ preventScroll: true });
-    }
+    if (focus && items.length) button.focus({ preventScroll: true });
   }
 
   function showLetter(item: Memory) {
@@ -166,11 +212,10 @@ export function renderGameMailDesk(
     const signature = sheet.querySelector<HTMLElement>(".mail-signature")!;
     signature.textContent = item.author ? `来自 ${item.author}` : "";
     signature.hidden = !item.author;
-    sheet.querySelector(".letter-text")!.textContent = item.text ?? "";
-    chest.hidden = true;
+    stack.hidden = true;
     sheet.hidden = false;
     sheet.dataset.memoryId = body.dataset.openLetterId = item.id;
-    page.scrollTop = 0;
+    pages.open(item.text ?? "");
     if (fromPaper?.width && fromPaper.height && !reducedMotion.matches) {
       paperMotion = sheet.animate([
         { transform: transformTo(sheet.getBoundingClientRect(), fromPaper) }, { transform: "none" },
@@ -178,76 +223,65 @@ export function renderGameMailDesk(
     }
     page.focus({ preventScroll: true });
     if (unread.delete(item.id)) {
-      arrange();
+      showFront();
       letters.onRead(item.id);
     }
   }
 
   function travel(item: Memory, direction: "open" | "return") {
     const opening = direction === "open";
-    const button = buttons.get(item.id)!;
     const sealed = button.dataset.sealed === "true";
     const duration = opening ? (sealed ? 800 : 500) : 450;
-    chest.hidden = false;
-    revealEnvelope(button);
+    stack.hidden = false;
     button.classList.add("is-travelling");
-    flight.querySelector(".envelope-name")!.textContent = item.author || item.title;
     flight.style.setProperty("--flight-duration", `${duration}ms`);
     flight.dataset.sealed = String(sealed);
+    inscribe(flight, item, sealed);
     flight.dataset.direction = direction;
     flight.hidden = false;
     const center = flight.getBoundingClientRect();
-    // The box hides most of a full envelope behind the next one or the front rail.
-    // Keep its proportions, and uncover that tucked part as it clears the slot.
-    const row = button.getBoundingClientRect();
     const art = button.querySelector(".mail-envelope-art")!.getBoundingClientRect();
-    const inSlot = transformTo(center, art);
-    const liftedSlot = `translateY(-${Math.min(28, row.height * .32)}px) ${inSlot}`;
-    const tucked = `inset(0 0 ${100 * Math.max(0, art.bottom - row.bottom) / art.height}% 0)`;
-    const clear = "inset(-100% -40% -30%)";
+    const resting = transformTo(center, art);
+    const lift = `translateY(-${Math.min(18, art.height * .07)}px) ${resting}`;
     const path: Keyframe[] = opening
-      ? [{ transform: inSlot, clipPath: tucked }, { transform: liftedSlot, clipPath: clear, offset: .15 },
-        { transform: "none", clipPath: clear, offset: .48 }, { transform: "none", clipPath: clear }]
-      : [{ transform: "none", clipPath: clear }, { transform: "none", clipPath: clear, offset: .42 },
-        { transform: liftedSlot, clipPath: clear, offset: .85 }, { transform: inSlot, clipPath: tucked }];
+      ? [{ transform: resting }, { transform: lift, offset: .15 }, { transform: "none", offset: .48 }, { transform: "none" }]
+      : [{ transform: "none" }, { transform: "none", offset: .42 }, { transform: lift, offset: .85 }, { transform: resting }];
     if (!opening) {
       sheet.inert = true;
-      const paper = flightPaper.getBoundingClientRect();
       paperMotion = sheet.animate([
         { transform: "none", opacity: 1 },
-        { transform: transformTo(sheet.getBoundingClientRect(), paper), opacity: 0 },
+        { transform: transformTo(sheet.getBoundingClientRect(), flightPaper.getBoundingClientRect()), opacity: 0 },
       ], { duration: 185, easing: "ease-in", fill: "forwards" });
     }
     motion = flight.animate(path, { duration, easing: "ease-in-out", fill: "both" });
     motion.onfinish = () => {
       const visible = body.isConnected && !document.hidden && !body.closest("[hidden],[inert]");
       if (opening && visible) showLetter(item);
-      else returnToBox(visible);
+      else returnToStack(visible);
     };
   }
 
-  function openEnvelope(item: Memory) {
-    if (body.dataset.mailState !== "box") return;
-    chest.querySelector('[aria-current="true"]')?.removeAttribute("aria-current");
-    buttons.get(item.id)!.setAttribute("aria-current", "true");
+  function openEnvelope() {
+    const item = items[index];
+    if (!item || body.dataset.mailState !== "box") return;
+    clearTurn();
     active = item;
     body.dataset.mailState = "opening";
-    lift();
-    chest.inert = true;
+    stack.inert = true;
     if (reducedMotion.matches) showLetter(item);
     else travel(item, "open");
   }
-
+  button.addEventListener("click", openEnvelope);
   sheet.querySelector(".mail-fold")!.addEventListener("click", () => {
     if (!active || body.dataset.mailState !== "reading") return;
     clearMotion();
     body.dataset.mailState = "returning";
-    if (reducedMotion.matches) returnToBox(true);
+    if (reducedMotion.matches) returnToStack(true);
     else travel(active, "return");
   });
 
   function suspendTransition() {
-    if (body.dataset.mailState === "opening" || body.dataset.mailState === "returning") returnToBox(false);
+    if (body.dataset.mailState === "opening" || body.dataset.mailState === "returning") returnToStack(false);
   }
   function visibilityChange() { if (document.hidden) suspendTransition(); }
   function focusOutside(event: FocusEvent) {
@@ -256,20 +290,19 @@ export function renderGameMailDesk(
   document.addEventListener("visibilitychange", visibilityChange);
   document.addEventListener("focusin", focusOutside);
   onCleanup(() => {
+    clearTurn();
     clearMotion();
     document.removeEventListener("visibilitychange", visibilityChange);
     document.removeEventListener("focusin", focusOutside);
     delete body.dataset.openLetterId;
     delete body.dataset.mailState;
   });
-  arrange();
-  if (letters.subscribe) onCleanup(letters.subscribe((entries, unreadIds) => {
-    items = entries;
-    unread = new Set(unreadIds);
-    arrange();
-  }));
-
-  const selected = items.find(item => item.id === letters.selectedId);
-  if (selected) openEnvelope(selected);
-  else chest.querySelector("button")?.focus({ preventScroll: true });
+  arrange(letters.items, letters.unreadIds ?? []);
+  if (letters.subscribe) onCleanup(letters.subscribe(arrange));
+  const selected = items.findIndex(item => item.id === letters.selectedId);
+  if (selected >= 0) {
+    index = selected;
+    showFront();
+    openEnvelope();
+  } else (items.length ? button : empty).focus({ preventScroll: true });
 }
