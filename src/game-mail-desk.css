@@ -43,9 +43,9 @@
   width: 1.28em;
   aspect-ratio: 520 / 353;
   background:
-    url("./assets/stationery-berry-wax.webp") center 73% / 25% auto no-repeat,
-    url("./assets/stationery-ivory-flap.webp") center top / 100% 70% no-repeat,
-    url("./assets/stationery-lily-pocket.webp") center / contain no-repeat;
+    var(--mail-seal-image) center 73% / 25% auto no-repeat,
+    var(--mail-flap-image) center top / 100% 70% no-repeat,
+    var(--mail-pocket-image) center / contain no-repeat;
   transform: rotate(-9deg);
 }
 .game-letter-reader:has(.mail-desk-body) .reader-tools {
@@ -105,8 +105,8 @@
   box-sizing: border-box;
   margin: 1.3cqw auto 2.4cqw;
   padding: clamp(8px, 2.2cqw, 21px) var(--margin-art) clamp(17px, 3.1cqw, 30px);
-  background-color: #fff0d7;
-  color: #513c38;
+  background-color: var(--mail-paper-tint);
+  color: var(--mail-ink);
   box-shadow: 1px 2px 0 #dbbda1, 2px 3px 0 #f4dfb9, 3px 5px 0 #986e52, 4px 8px 14px #482c2470;
   isolation: isolate;
 }
@@ -119,9 +119,22 @@
   z-index: -1;
   pointer-events: none;
   border: 1px solid transparent;
-  border-image-source: url("./assets/stationery-fox-letter.webp");
+  border-image-source: var(--mail-paper-image);
   border-image-slice: 26% 21% 32% 26% fill;
   border-image-width: calc(var(--margin-art) * .67) calc(var(--margin-art) * .81) calc(var(--margin-art) * .82) var(--margin-art);
+  mix-blend-mode: multiply;
+}
+.mail-sheet:not([data-stationery-theme=default])::before {
+  border-image-slice: 30% 24% 52% 45% fill;
+}
+@container mail-desk (min-width: 541px) {
+  .mail-sheet.has-writing-room::before {
+    border: 0;
+    background: var(--mail-paper-image) center / 100% 100% no-repeat;
+  }
+  .mail-sheet.has-writing-room .mail-sheet-caption {
+    padding-inline-start: 8%;
+  }
 }
 .mail-sheet-heading {
   flex: 0 0 auto;
@@ -134,7 +147,7 @@
 }
 .mail-sheet-heading h4 {
   margin: 0;
-  color: #6c4149;
+  color: var(--mail-accent);
   font: 650 clamp(15px, 2.6cqw, 24px)/1.45 system-ui, sans-serif;
 }
 .game-letter-reader .mail-fold { min-width: 64px; color: #713f47; }
@@ -155,7 +168,7 @@
 .mail-sheet .memory-detail:focus-visible { outline: 1px dashed #b78671; }
 .mail-sheet .mail-signature {
   margin: 0;
-  color: #7d5c5d;
+  color: var(--mail-accent);
   font-size: clamp(12px, 1.5cqw, 15px);
 }
 .game-letter-reader .mail-sheet .letter-text {
@@ -166,7 +179,7 @@
   column-gap: 0;
   column-fill: auto;
   margin: 0;
-  color: #493b37;
+  color: var(--mail-ink);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font: 400 clamp(15px, 1.9cqw, 18px)/1.85 system-ui, sans-serif;

@@ -1,5 +1,6 @@
 import type { Memory } from "./content";
 import { mountMailPages } from "./mail-letter-pages";
+import { applyStationeryTheme } from "./stationery-themes";
 import "./game-mail-desk.css";
 
 export interface LetterList {
@@ -36,6 +37,7 @@ const envelopeArt = `<span class="mail-envelope-art" aria-hidden="true"><span cl
 
 /** The ink stays on the paper it was printed on as the flap turns or the sheet slides out. */
 function inscribe(envelope: HTMLElement, item: Memory, sealed: boolean) {
+  applyStationeryTheme(envelope, item.id);
   const ink = envelope.querySelector<HTMLElement>(".mail-sender") ?? document.createElement("span");
   ink.className = "mail-sender";
   ink.textContent = item.author || item.title;
@@ -57,11 +59,14 @@ export function renderGameMailDesk(
   body.classList.add("mail-desk-body");
   body.removeAttribute("tabindex");
   body.setAttribute("aria-label", "晚安信箱，可用左右键挑信和翻页");
-  body.setAttribute("aria-label", "晚安信箱");
+  const heading = body.parentElement?.querySelector<HTMLElement>(":scope > header h3");
+  if (heading) applyStationeryTheme(heading);
   body.dataset.mailState = "box";
   body.innerHTML = `<section class="mail-stack" aria-label="桌上的来信">
       <button class="mail-stack-prev" type="button" aria-label="上一封" title="上一封 · ←"></button>
       <div class="mail-deck">
+        <div class="mail-deck-back" aria-hidden="true" hidden>${envelopeArt}</div>
+        <div class="mail-deck-back" aria-hidden="true" hidden>${envelopeArt}</div>
         <button type="button" class="mail-envelope">${envelopeArt}</button>
         <div class="mail-deck-leaf" aria-hidden="true" hidden>${envelopeArt}</div>
       </div>
@@ -80,6 +85,7 @@ export function renderGameMailDesk(
   const stack = body.querySelector<HTMLElement>(".mail-stack")!;
   const deck = stack.querySelector<HTMLElement>(".mail-deck")!;
   const button = deck.querySelector<HTMLButtonElement>(".mail-envelope")!;
+  const backs = deck.querySelectorAll<HTMLElement>(".mail-deck-back");
   const leaf = deck.querySelector<HTMLElement>(".mail-deck-leaf")!;
   const previous = stack.querySelector<HTMLButtonElement>(".mail-stack-prev")!;
   const next = stack.querySelector<HTMLButtonElement>(".mail-stack-next")!;
@@ -109,8 +115,14 @@ export function renderGameMailDesk(
     button.hidden = deck.hidden = caption.hidden = !item;
     previous.hidden = next.hidden = items.length <= 1;
     empty.hidden = Boolean(item);
-    deck.dataset.depth = String(Math.min(3, items.length));
     if (!item) return;
+    backs.forEach((back, offset) => {
+      back.hidden = offset + 1 >= items.length;
+      if (back.hidden) return;
+      const behind = items[(index + offset + 1) % items.length];
+      back.dataset.sealed = String(unread.has(behind.id));
+      applyStationeryTheme(back, behind.id);
+    });
     button.dataset.memoryId = item.id;
     button.dataset.sealed = String(unread.has(item.id));
     button.setAttribute("aria-label", `${item.title}，${unread.has(item.id) ? "未读" : "已读"}，打开来信`);
@@ -208,6 +220,7 @@ export function renderGameMailDesk(
     const fromPaper = flight.hidden ? undefined : flightPaper.getBoundingClientRect();
     clearMotion();
     body.dataset.mailState = "reading";
+    applyStationeryTheme(sheet, item.id);
     sheet.querySelector("h4")!.textContent = item.title;
     const signature = sheet.querySelector<HTMLElement>(".mail-signature")!;
     signature.textContent = item.author ? `来自 ${item.author}` : "";

@@ -5,6 +5,7 @@ import { FilmPreloader, downloadLabel } from "./film-preloader";
 import { attachPhotoOriginalViewer, renderPhotoBook } from "./game-photo-album";
 import { albumPreviewQueue } from "./album-preload";
 import { renderGameMailDesk, renderMailboxList, type LetterList } from "./game-mail-desk";
+import { applyStationeryTheme } from "./stationery-themes";
 import "./album.css";
 import "./mailbox.css";
 export interface CollectionSurface {
@@ -46,7 +47,7 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
   body.querySelector(".collection-layout")!.classList.toggle("mailbox-layout", collection.kind === "text");
   body.classList.toggle("mailbox-reader-body", collection.kind === "text");
   const list = body.querySelector(".collection-list")!,
-    detail = body.querySelector(".memory-detail")!;
+    detail = body.querySelector<HTMLElement>(".memory-detail")!;
   if (collection.kind === "text" || collection.kind === "image") {
     body.removeAttribute("tabindex");
     detail.setAttribute("tabindex", "0");
@@ -82,6 +83,7 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     const content = detail.querySelector(".memory-content")!;
     if (collection.kind === "text") {
       // Each letter opens at its salutation, even after reading a long one.
+      applyStationeryTheme(detail, item.id);
       body.scrollTop = 0;
       detail.scrollTop = 0;
       const p = document.createElement("p");
@@ -203,6 +205,7 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     title.textContent = item.title + (unread ? " · 未读" : "");
     button.append(title);
     if (collection.kind === "text") {
+      applyStationeryTheme(button, item.id);
       const short = document.createElement("span");
       short.className = "collection-item-short";
       short.setAttribute("aria-hidden", "true");

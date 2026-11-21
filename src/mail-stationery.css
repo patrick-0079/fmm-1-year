@@ -13,6 +13,8 @@
 }
 .mail-envelope-object > i,
 .mail-envelope-object::before,
+.mail-pocket::before,
+.mail-pocket::after,
 .mail-flap::before,
 .mail-flap::after {
   position: absolute;
@@ -20,12 +22,19 @@
   pointer-events: none;
   background-repeat: no-repeat;
 }
+.mail-envelope-object::before, .mail-pocket::before, .mail-flap::before, .mail-flap::after {
+  /* Tint the illuminated paper inside its own cut edge, including translucent pixels. */
+  background: var(--stock-color) var(--stock-image) var(--stock-position, center) / var(--stock-size, 100% 100%) no-repeat;
+  background-blend-mode: multiply;
+  mask: var(--stock-image) var(--stock-position, center) / var(--stock-size, 100% 100%) no-repeat;
+}
 .mail-envelope-object::before {
   content: "";
   inset: 0;
-  background-image: url("./assets/stationery-rose-lining.webp");
-  background-position: center bottom;
-  background-size: 100% 169.69%;
+  --stock-image: var(--mail-lining-image);
+  --stock-color: var(--mail-lining-tint);
+  --stock-position: center bottom;
+  --stock-size: 100% 169.69%;
 }
 [data-sealed="true"] .mail-envelope-object::before {
   opacity: 0;
@@ -33,7 +42,8 @@
 .mail-envelope-object .mail-paper {
   z-index: 1;
   inset: 5.5% 5.5% 4%;
-  background: url("./assets/stationery-fox-letter.webp") center / 100% 100% no-repeat;
+  background: var(--mail-paper-tint) var(--mail-paper-image) center / 100% 100% no-repeat;
+  background-blend-mode: multiply;
   border-radius: 1.2%;
   box-shadow: 0 1px 3px #5a362973;
   transform-origin: center;
@@ -41,8 +51,20 @@
 .mail-envelope-object .mail-pocket {
   z-index: 2;
   inset: 0;
-  background-image: url("./assets/stationery-lily-pocket.webp");
-  background-size: 100% 100%;
+}
+.mail-pocket::before {
+  content: "";
+  inset: 0;
+  --stock-image: var(--mail-pocket-image);
+  --stock-color: var(--mail-pocket-tint);
+}
+.mail-pocket::after {
+  content: "";
+  left: 4%;
+  bottom: 5%;
+  width: 31%;
+  height: 55%;
+  background: var(--mail-motif-image) left bottom / contain no-repeat;
 }
 .mail-envelope-object .mail-flap {
   z-index: 3;
@@ -57,13 +79,14 @@
   backface-visibility: hidden;
 }
 .mail-flap::before {
-  background-image: url("./assets/stationery-ivory-flap.webp");
-  background-size: 100% 100%;
+  --stock-image: var(--mail-flap-image);
+  --stock-color: var(--mail-flap-tint);
 }
 .mail-flap::after {
-  background-image: url("./assets/stationery-rose-lining.webp");
-  background-position: center top;
-  background-size: 100% 243.5%;
+  --stock-image: var(--mail-lining-image);
+  --stock-color: var(--mail-lining-tint);
+  --stock-position: center top;
+  --stock-size: 100% 243.5%;
   transform: rotateX(180deg);
 }
 .mail-envelope-object .mail-seal {
@@ -74,7 +97,7 @@
   aspect-ratio: 128 / 125;
   translate: -50% -50%;
   transform-origin: 28% 80%;
-  background-image: url("./assets/stationery-berry-wax.webp");
+  background-image: var(--mail-seal-image);
   background-size: 100% 100%;
   filter: drop-shadow(0 1px 1px #71372173);
 }

@@ -1,11 +1,25 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, loadEnv, normalizePath, type Plugin } from "vite";
+import { validateStationery } from "./scripts/validate-stationery.mjs";
+import { readLetterCatalogue } from "./scripts/scan-letters.mjs";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const referenceRoot = normalizePath(fileURLToPath(new URL("./ref/", import.meta.url)));
 const sourceRoot = normalizePath(fileURLToPath(new URL("./src/", import.meta.url)));
+
+const stationeryConfig: Plugin = {
+  name: "fufu-stationery-config",
+  enforce: "pre",
+  async transform(_, id) {
+    if (!normalizePath(id).endsWith("/ref/定制/信笺/config.json")) return;
+    const directory = dirname(id);
+    const { ids } = await readLetterCatalogue(resolve(directory, "../../来信"));
+    await validateStationery(directory, ids);
+  },
+};
 
 function buildMode(value: string | undefined): "full" | "lite" {
   switch (value?.trim()) {
@@ -91,6 +105,6 @@ export default defineConfig(({ mode }) => {
     server: { watch: { ignored: ["**/artifacts/**"] } },
     // The default dist/ is inside the Vite root and is emptied on every build.
     build: { copyPublicDir: releaseMode === "full" },
-    plugins: [releaseEntry(releaseMode), releaseMode === "full" && textureCache],
+    plugins: [releaseEntry(releaseMode), releaseMode === "full" && stationeryConfig, releaseMode === "full" && textureCache],
   };
 });

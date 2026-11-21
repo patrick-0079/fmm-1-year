@@ -34,6 +34,18 @@ export function mountMailPages(sheet: HTMLElement) {
     if (!width || !viewport.clientHeight) return;
     const oldCount = count;
     count = Math.max(1, Math.ceil((text.scrollWidth - 1) / width));
+    // Short notes can expose the whole painted margin. Longer letters use the
+    // same paper with a narrower illustrated frame around the writing area.
+    let writingRoom = false;
+    if (count === 1 && text.lastChild instanceof Text && text.lastChild.length) {
+      const last = text.lastChild;
+      const end = document.createRange();
+      end.setStart(last, last.length - 1);
+      end.setEnd(last, last.length);
+      const rect = sheet.getBoundingClientRect();
+      writingRoom = end.getBoundingClientRect().bottom < rect.top + rect.height * .47;
+    }
+    sheet.classList.toggle("has-writing-room", writingRoom);
     // Keep the same part of a long letter when the device is rotated.
     const page = oldCount > 1 ? Math.round(index / (oldCount - 1) * (count - 1)) : 0;
     show(page);

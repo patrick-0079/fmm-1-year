@@ -22,6 +22,9 @@ async function verifyLongLetterStack(reader: HTMLElement) {
     id: `letter-${i}`, title: `第 ${i + 1} 封来信`, author: `来信人 ${i + 1}`,
     text: i === 1 ? "今天的花也开了。\n".repeat(40) + "写到这里，晚安。" : "今晚也送你一个好梦。",
   }));
+  const kerry = "kerry-anniversary-letter", rabe = "rabe-anniversary-letter";
+  items[2].id = kerry;
+  items[3].id = rabe;
   const unread = new Set(items.slice(1, 91).map(item => item.id));
   const receipts: string[] = [];
   let deliver: ((entries: typeof items, unreadIds: string[]) => void) | undefined;
@@ -44,6 +47,8 @@ async function verifyLongLetterStack(reader: HTMLElement) {
       subscribe(listener) { deliver = listener; return () => { deliver = undefined; }; },
     }, cb => cleanups.push(cb));
     await select("letter-1");
+    if (front().dataset.stationeryTheme !== "default")
+      throw new Error("未配置样式的新来信没有使用默认信笺");
     if (body.querySelectorAll(".mail-stack button.mail-envelope").length !== 1 ||
         front().querySelector(".mail-sender")?.textContent !== items[1].author)
       throw new Error("最前面的信封应该可以拆开，并能看到对应署名");
@@ -54,8 +59,13 @@ async function verifyLongLetterStack(reader: HTMLElement) {
     await select("letter-1");
     key("End"); await select("letter-99");
     key("Home"); await select("letter-1");
-    key("ArrowRight"); await select("letter-2");
-    key("ArrowLeft"); await select("letter-1");
+    key("ArrowRight"); await select(kerry);
+    key("ArrowRight"); await select(rabe);
+    const outgoing = body.querySelector<HTMLElement>(".mail-deck-leaf")!;
+    if (front().dataset.stationeryTheme !== rabe ||
+        (!outgoing.hidden && outgoing.dataset.stationeryTheme !== kerry))
+      throw new Error("翻到下一封时，新旧信封互相串用了图案");
+    key("Home"); await select("letter-1");
     if (receipts.length || front().dataset.sealed !== "true") throw new Error("挑选信件时误拆了蜡封");
     const boundsOnDesk = (selector: string) => {
       const rect = front().querySelector<HTMLElement>(selector)!.getBoundingClientRect();
@@ -65,9 +75,12 @@ async function verifyLongLetterStack(reader: HTMLElement) {
     const sealed = boundsOnDesk(".mail-pocket");
     if (!sealed.width || !sealed.height) throw new Error("未拆信封的袋身不可见");
     if (liningIsVisible()) throw new Error("闭合封舌的上沿露出了内衬");
-    const deck = body.querySelector(".mail-deck")!;
-    for (const leaf of ["::before", "::after"]) {
-      const style = getComputedStyle(deck, leaf);
+    const backs = body.querySelectorAll<HTMLElement>(".mail-deck-back");
+    if (backs.length !== 2 || ![...backs].some(back => back.dataset.stationeryTheme === kerry) ||
+        ![...backs].some(back => back.dataset.stationeryTheme === rabe))
+      throw new Error("信摞下方没有使用接下来两封信的图案");
+    for (const back of backs) {
+      const style = getComputedStyle(back);
       if (style.backgroundColor !== "rgba(0, 0, 0, 0)" || style.boxShadow !== "none")
         throw new Error("底层信封的透明纸边绘制了矩形底色或阴影");
     }
@@ -109,6 +122,18 @@ async function verifyLongLetterStack(reader: HTMLElement) {
       throw new Error("已拆信封的封舌没有从袋口向上翻开");
     if (!body.querySelector(".mail-stack-position")?.textContent?.includes("101"))
       throw new Error("信摞没有收录阅读期间送到的新信");
+    key("ArrowRight"); await select(kerry);
+    front().click();
+    const flying = body.querySelector<HTMLElement>(".mail-flight")!;
+    if (!flying.hidden && flying.dataset.stationeryTheme !== kerry)
+      throw new Error("抽出的信封丢失了作者的信笺样式");
+    await waitForReading(() => body.dataset.openLetterId === kerry, "定制信笺没有展开");
+    if (body.querySelector<HTMLElement>(".mail-sheet")!.dataset.stationeryTheme !== kerry)
+      throw new Error("信纸展开后使用了其他来信的样式");
+    body.querySelector<HTMLButtonElement>(".mail-fold")!.click();
+    await waitForReading(() => body.dataset.mailState === "box", "定制信笺没有放回");
+    if (front().dataset.stationeryTheme !== kerry || front().dataset.sealed !== "false")
+      throw new Error("放回已拆信时丢失了作者样式或重新出现了蜡封");
   } finally {
     cleanups.forEach(cleanup => cleanup());
     sample.remove();

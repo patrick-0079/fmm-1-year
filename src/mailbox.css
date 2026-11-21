@@ -55,12 +55,6 @@
   border-radius: 6px;
   background: #f7eddf;
 }
-.mailbox-reader-body .mailbox-layout .collection-item.selected {
-  background: #fae7e8;
-  border-color: #bc849c;
-  color: #86516d;
-  box-shadow: inset 3px 0 #bc849c;
-}
 .mailbox-reader-body .mailbox-layout .memory-detail {
   min-width: 0;
   min-height: 0;
@@ -73,6 +67,37 @@
 }
 .mailbox-layout .memory-detail:focus-visible { outline: 2px solid #cda6b9; }
 .mailbox-layout .collection-item-short { display: none; }
+
+.mailbox-reader-body .mailbox-layout .collection-item[data-stationery-theme] {
+  color: var(--mail-ink);
+  background-color: color-mix(in srgb, var(--mail-pocket-tint) 66%, #fff9ef);
+  border-color: color-mix(in srgb, var(--mail-accent) 40%, #fff4de);
+}
+.mailbox-reader-body .mailbox-layout .collection-item.selected {
+  box-shadow: inset 3px 0 var(--mail-accent);
+  border-color: var(--mail-accent);
+}
+.mailbox-reader-body .mailbox-layout .memory-detail[data-stationery-theme] {
+  color: var(--mail-ink);
+  background: var(--mail-paper-tint) var(--mail-paper-image) center / 100% 100% no-repeat local;
+  background-blend-mode: multiply;
+  border: 1px solid color-mix(in srgb, var(--mail-accent) 48%, #fffaef);
+  padding: clamp(14px, 3vw, 34px);
+}
+.mailbox-layout .memory-detail[data-stationery-theme] :is(h3,.memory-author) { color: var(--mail-accent); }
+.mailbox-layout .memory-detail[data-stationery-theme] .letter-text {
+  padding: .6em .7em;
+  color: var(--mail-ink);
+  background-color: color-mix(in srgb, var(--mail-paper-tint) 87%, transparent);
+  border-radius: 6px;
+}
+.mailbox-reader-body .collection-item[data-stationery-theme].unread {
+  padding-right: 33px;
+  background-image: var(--mail-seal-image);
+  background-size: 21px auto;
+  background-position: right 6px center;
+  background-repeat: no-repeat;
+}
 
 @media (max-width: 650px) {
   .game-letter-reader:has(.mailbox-layout) { height: auto; }
@@ -88,17 +113,13 @@
   }
   .mailbox-layout .collection-item-title { display: none; }
   .mailbox-layout .collection-item-short { display: block; }
-  .mailbox-layout .collection-item.unread::after {
-    content: "";
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: #b86a84;
+  .mailbox-reader-body .collection-item[data-stationery-theme].unread {
+    padding: 6px 4px 18px;
+    background-size: 13px auto;
+    background-position: center bottom 3px;
   }
   .mailbox-reader-body .mailbox-layout .memory-detail { padding: 8px; }
+  .mailbox-reader-body .mailbox-layout .memory-detail[data-stationery-theme] { padding: 12px; }
   .mailbox-reader-body .mailbox-layout .memory-detail h3 {
     margin: 0 0 4px;
     font-size: 14px;

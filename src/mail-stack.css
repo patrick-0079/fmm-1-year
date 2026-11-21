@@ -23,8 +23,7 @@
   /* Reserve the raised flap's space in both states, so the pocket stays put. */
   margin-top: calc(var(--mail-envelope-width) * .2);
 }
-.mail-deck::before, .mail-deck::after {
-  content: "";
+.mail-deck-back {
   position: absolute;
   z-index: -1;
   width: 98%;
@@ -32,14 +31,12 @@
   left: 1%;
   bottom: 0;
   pointer-events: none;
-  background: url("./assets/stationery-ivory-flap.webp") top center / 100% 69.69% no-repeat,
-    url("./assets/stationery-lily-pocket.webp") center / 100% 100% no-repeat;
   filter: brightness(var(--paper-shade)) drop-shadow(1px 2px 2px #452d2766);
   transform-origin: 47% 67%;
 }
-.mail-deck::before { transform: translate(-1%, 3%) rotate(-5deg); --paper-shade: .90; }
-.mail-deck::after { z-index: -2; transform: translate(2%, 1%) rotate(6deg); --paper-shade: .83; }
-.mail-deck[data-depth="1"]::before, .mail-deck[data-depth="1"]::after, .mail-deck[data-depth="2"]::after { display: none; }
+.mail-deck-back:first-child { transform: translate(-1%, 3%) rotate(-5deg); --paper-shade: .90; }
+.mail-deck-back:nth-child(2) { z-index: -2; transform: translate(2%, 1%) rotate(6deg); --paper-shade: .83; }
+.mail-deck-back > .mail-envelope-art { position: absolute; inset: 0; }
 .mail-deck .mail-envelope, .mail-deck-leaf {
   display: block;
   position: absolute;
@@ -158,7 +155,7 @@
   left: 9%;
   width: 82%;
   top: 22%;
-  color: #74514b;
+  color: var(--mail-ink);
   font: 600 var(--ink-size) / 1.15 "STKaiti", "KaiTi", "Songti SC", Georgia, system-ui, serif;
   letter-spacing: .04em;
   text-align: center;

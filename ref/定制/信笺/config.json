@@ -1,0 +1,68 @@
+{
+  "default": {
+    "title": "铃兰与莓果",
+    "flap": "_shared/stationery-ivory-flap.webp",
+    "pocket": "_shared/stationery-lily-pocket.webp",
+    "lining": "_shared/stationery-rose-lining.webp",
+    "paper": "_shared/stationery-fox-letter.webp",
+    "seal": "_shared/stationery-berry-wax.webp",
+    "flapTint": "#FFFFFF", "pocketTint": "#FFFFFF", "liningTint": "#FFFFFF",
+    "paperTint": "#FFFFFF", "ink": "#513B38", "accent": "#784553"
+  },
+  "themes": {
+    "xiaoye-anniversary-letter": {
+      "title": "狐狸窝的一盏灯", "motif": "xiaoye/motif.webp", "seal": "xiaoye/seal.webp",
+      "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "xiaoye/paper.webp",
+      "flapTint": "#E2EBCF", "pocketTint": "#C9DAB9", "liningTint": "#8B9D77",
+      "paperTint": "#F5F7E8", "ink": "#354435", "accent": "#53693F"
+    },
+    "yeshenhua-anniversary-letter": {
+      "title": "月下的晚安电台", "motif": "yeshenhua/motif.webp", "seal": "yeshenhua/seal.webp",
+      "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "yeshenhua/paper.webp",
+      "flapTint": "#EBDCF0", "pocketTint": "#DBC7E6", "liningTint": "#92739E",
+      "paperTint": "#F8F0FA", "ink": "#493849", "accent": "#704F78"
+    },
+    "kerry-anniversary-letter": {
+      "title": "实验台上的好消息", "motif": "kerry/motif.webp", "seal": "kerry/seal.webp",
+      "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "kerry/paper.webp",
+      "flapTint": "#D5EBEC", "pocketTint": "#BFDADC", "liningTint": "#69959D",
+      "paperTint": "#EFF8F6", "ink": "#30474A", "accent": "#38696D"
+    },
+    "suyan-anniversary-letter": {
+      "title": "很多很多颗心", "motif": "suyan/motif.webp", "seal": "suyan/seal.webp",
+      "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "suyan/paper.webp",
+      "flapTint": "#FBE1E8", "pocketTint": "#F4C9D5", "liningTint": "#C47790",
+      "paperTint": "#FFF1F4", "ink": "#543A41", "accent": "#88485E"
+    },
+    "rabe-anniversary-letter": {
+      "title": "深夜里的耳机", "motif": "rabe/motif.webp", "seal": "rabe/seal.webp",
+      "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "rabe/paper.webp",
+      "flapTint": "#D7DFEF", "pocketTint": "#BDCAE2", "liningTint": "#667DA1",
+      "paperTint": "#F1F3FA", "ink": "#35405B", "accent": "#505D82"
+    },
+    "xiaoyou-anniversary-letter": {
+      "title": "留给姐姐的甜橘", "motif": "xiaoyou/motif.webp", "seal": "xiaoyou/seal.webp",
+      "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "xiaoyou/paper.webp",
+      "flapTint": "#FFE6B9", "pocketTint": "#F8D196", "liningTint": "#D09B5A",
+      "paperTint": "#FFF7E8", "ink": "#59432F", "accent": "#875229"
+    },
+    "guli-anniversary-letter": {
+      "title": "粉色小鱼游过的水纹", "motif": "guli/motif.webp", "seal": "guli/seal.webp",
+      "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "guli/paper.webp",
+      "flapTint": "#D9F0E7", "pocketTint": "#F5D5CA", "liningTint": "#A5C9C3",
+      "paperTint": "#F5FBF5", "ink": "#3A4A44", "accent": "#8A5454"
+    },
+    "post-anniversary-letter": {
+      "title": "小镇邮局的晚安邮戳", "motif": "post/motif.webp", "seal": "post/seal.webp",
+      "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "post/paper.webp",
+      "flapTint": "#F3E0D0", "pocketTint": "#E5CBBA", "liningTint": "#AA7576",
+      "paperTint": "#FCF4E8", "ink": "#4F3B37", "accent": "#7F404D"
+    },
+    "patrick-anniversary-letter": {
+      "title": "花海营火边的星光", "motif": "patrick/motif.webp", "seal": "patrick/seal.webp",
+      "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "patrick/paper.webp",
+      "flapTint": "#F8E5BA", "pocketTint": "#E8C5AA", "liningTint": "#B88666",
+      "paperTint": "#FFF6E4", "ink": "#4B4037", "accent": "#82583E"
+    }
+  }
+}

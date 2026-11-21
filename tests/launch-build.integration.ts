@@ -45,6 +45,10 @@ test("switching full → invitation → full cleans the deployed directory", asy
   for (const artwork of ["desk", "fox-letter", "berry-wax", "ivory-flap", "lily-pocket", "rose-lining"]) {
     assert.ok(explicit.files.some(name => name.startsWith(`assets/stationery-${artwork}-`)), artwork);
   }
+  const textureWorker = await readFile(join(outDir, "texture-cache.js"), "utf8");
+  for (const asset of explicit.files.filter(name => name.startsWith("assets/") && /\.(webp|png|jpe?g|avif)$/i.test(name))) {
+    assert.ok(textureWorker.includes(JSON.stringify(asset)), `texture cache must include ${asset}`);
+  }
   assert.ok(!explicit.files.some(name => name.includes("stationery-cherrywood-box")));
   assert.ok(!explicit.files.some(name => /CharaStudio.*\.png$/i.test(name)));
 
