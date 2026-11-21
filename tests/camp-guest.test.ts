@@ -14,6 +14,7 @@ const sitting = () => benchRest("meadow", campSeat, camp.approach);
 test("30 uninterrupted seconds of sitting bring the guest, who leaves an uncollected letter on the ground", () => {
   const world: ConstructorParameters<typeof CampGuest>[0] = {scene: "meadow", restState: sitting(), paused: false};
   const story = readResidentStory();
+  const beforeVisit = mailboxLetters(story);
   let saves = 0;
   const guest = new CampGuest(world, () => story, () => { saves++; });
   guest.tick(.016, 10);
@@ -34,7 +35,8 @@ test("30 uninterrupted seconds of sitting bring the guest, who leaves an uncolle
   assert.equal(guest.letterOnGround, false);
   guest.tick(.45, 72.2);
   assert.equal(guest.letterOnGround, true);
-  assert.equal(mailboxLetters(story).length, 2);
+  assert.deepEqual(mailboxLetters(story), beforeVisit);
+  assert.ok(beforeVisit.every(({id}) => id !== handedLetters.patrick));
   assert.deepEqual(guest.layers(sheet, false).map(layer => layer.y), [campGuestSeat.y, campLetterSpot.y]);
   world.restState = null;
   guest.tick(.016, 72.216);

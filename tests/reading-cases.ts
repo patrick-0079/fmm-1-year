@@ -9,11 +9,20 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
       target.dispatchEvent(new KeyboardEvent(type, {key: name, bubbles: true, cancelable: true}));
   };
   await world.prepareScene("room");
-  for (const id of ["letters", "album"]) {
-    world.switchScene("room", {x:121,y:240});
-    world.onInteract(id);
-    const reader = q(".game-letter-reader"), detail = q(".game-letter-reader .memory-detail");
-    expect(!reader.hidden && world.paused, id + "没有打开游戏内阅读器");
+  const reader = q(".game-letter-reader");
+  world.switchScene("room", {x:121,y:240});
+  {
+    world.onInteract("letters");
+    const envelope = q<HTMLButtonElement>(".game-letter-reader .mail-envelope");
+    expect(envelope && !reader.hidden && world.paused, "没有打开桌上的信堆");
+    expect(!reader.querySelector(".mail-sheet:not([hidden])"), "进信箱时自动拆开了信");
+    envelope.click();
+    const deadline = performance.now() + 3000;
+    while (!reader.querySelector(".mail-sheet:not([hidden])")) {
+      if (performance.now() >= deadline) throw new Error("拆封后没有出现信纸");
+      await new Promise(resolve => setTimeout(resolve, 16));
+    }
+    const detail = q(".mail-sheet:not([hidden]) .memory-detail");
     detail.scrollTop = 25;
     detail.focus({preventScroll:true});
     const previousScroll = detail.scrollTop;
@@ -24,13 +33,29 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
     expect(document.activeElement === detail && detail.scrollTop === previousScroll, "关闭说明没有返回原阅读焦点与位置");
     key("End", detail);
     expect(detail.scrollTop + detail.clientHeight >= detail.scrollHeight - 2, "说明返回后键盘不能读到末尾");
-    const selected = q<HTMLButtonElement>(".game-letter-reader .collection-item");
-    selected.focus({preventScroll:true});
+    q(".mail-fold").click();
+    expect(document.activeElement === envelope, "放回信封没有恢复原焦点");
     q(".help-button").click(); q(".help-close").click();
-    expect(document.activeElement === selected, "关闭说明没有保留左列选图/选信焦点");
-    key("Escape", selected);
+    expect(document.activeElement === envelope, "关闭说明没有保留选信焦点");
+    key("Escape", envelope);
     expect(reader.hidden && !world.paused && document.activeElement === world.canvas, "收起阅读器未恢复探索");
-    log(id + "：正文、左侧选择分别打开说明，返回后保留焦点、滚动和暂停，Esc 恢复探索。");
+    log("信堆和信纸均保留帮助前的焦点，放回信封与退出探索正常。");
+  }
+  {
+    world.onInteract("album");
+    q(".photo-book-next").click();
+    const photo = q<HTMLButtonElement>(".photo-book-photo");
+    const current = photo.dataset.memoryId;
+    photo.click();
+    expect(!reader.hidden && world.paused && !!reader.querySelector(".photo-original"), "翻开照片没有在原画幅查看");
+    key("Escape", q(".photo-original-back"));
+    const restored = q<HTMLButtonElement>(".photo-book-photo");
+    expect(restored.dataset.memoryId === current && document.activeElement === restored, "返回相册没有保留跨页与选片焦点");
+    q(".help-button").click(); q(".help-close").click();
+    expect(document.activeElement === restored, "关闭说明没有返回选中相片");
+    key("Escape", restored);
+    expect(reader.hidden && !world.paused && document.activeElement === world.canvas, "收起相册没有恢复探索");
+    log("相册翻页与单张返回均保留焦点，Esc 可逐层退出。");
   }
   for (const id of ["letters", "album"]) {
     q<HTMLButtonElement>(`[data-memory="${id}"]`).click();

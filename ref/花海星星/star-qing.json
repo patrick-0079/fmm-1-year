@@ -1,0 +1,11 @@
+{
+  "id": "star-qing",
+  "name": "卿取之于蓝",
+  "order": 6,
+  "shape": "plain",
+  "message": "",
+  "position": {
+    "x": 724,
+    "y": 142
+  }
+}

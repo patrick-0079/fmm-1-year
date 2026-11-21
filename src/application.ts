@@ -74,7 +74,6 @@ export function mountGame(tasks: Task[]) {
   };
   const reader = new MapReader(world);
   const pageReader = new PageMemoryReader(world);
-  let selectedLetterId: string | undefined;
   const mailCount = document.querySelector<HTMLElement>('[data-memory="letters"] small')!;
   function updateMailCount() {
     const story = progress.residents;
@@ -82,15 +81,14 @@ export function mountGame(tasks: Task[]) {
     mailCount.textContent = mailboxLetters(story).length + " 封来信" + (unread ? ` · ${unread} 封未读` : "");
     mailCount.closest("button")?.classList.toggle("has-unread", unread > 0);
   }
-  function readCollection(id: string, surface: CollectionSurface = reader) {
+  function readCollection(id: string, surface: CollectionSurface = reader, letterId?: string) {
     if (id === "album") { openCollection(surface, id); return; }
     if (id !== "letters") return;
     const story = progress.residents;
     openCollection(surface, id, {
-      items: mailboxLetters(story), selectedId: selectedLetterId,
+      items: mailboxLetters(story), selectedId: letterId,
       unreadIds: unreadLetterIds(story),
       onRead: letterId => {
-        selectedLetterId = letterId;
         if (markLetterRead(story, letterId)) save();
       },
     });
@@ -266,9 +264,8 @@ export function mountGame(tasks: Task[]) {
     read: id => {
       if (!mail.received(id)) return;
       activities.close();
-      selectedLetterId = id;
       reader.inGame = true;
-      readCollection("letters");
+      readCollection("letters", reader, id);
     },
   };
   inventory.onEquip = () => activities.finishEquipmentChoice();
@@ -716,7 +713,7 @@ export function mountGame(tasks: Task[]) {
         visit("town", "npc-" + b.dataset.townNpc),
       ),
     );
-  const openPageMemory = (id: "letters" | "album", trigger: HTMLElement | null) => {
+  const openPageMemory = (id: "letters" | "album", trigger: HTMLElement | null, letterId?: string) => {
     // Reading a keepsake does not start the adventure, claim an exploration
     // corner, or let an older queued guide click replace the new reading view.
     afterCrossing = undefined;
@@ -729,7 +726,7 @@ export function mountGame(tasks: Task[]) {
     dismissRevive();
     world.paused = !started || transitioning;
     pageReader.setTrigger(trigger);
-    readCollection(id, pageReader);
+    readCollection(id, pageReader, letterId);
   };
   document
     .querySelectorAll<HTMLButtonElement>("[data-memory]")
@@ -741,7 +738,8 @@ export function mountGame(tasks: Task[]) {
     );
   reader.onChangeView = () => {
     if (reader.inGame) {
-      openPageMemory("letters", document.querySelector('[data-memory="letters"]'));
+      const letterId = document.querySelector<HTMLElement>(".game-letter-reader .reader-body")?.dataset.openLetterId;
+      openPageMemory("letters", document.querySelector('[data-memory="letters"]'), letterId);
     } else visit("room", "letters");
   };
   for (const region of document.querySelectorAll<HTMLElement>("[data-page-ui]")) {
@@ -790,7 +788,6 @@ export function mountGame(tasks: Task[]) {
     try { localStorage.removeItem(JOURNEY_KEY); } catch { /* optional storage */ }
     const { muted, sound, bgm, bassSound, volume } = progress;
     progress = { ...readProgress(null), muted, sound, bgm, bassSound, volume };
-    selectedLetterId = undefined;
     elders.reset();
     xiaoye.reset();
     cinema.reset();

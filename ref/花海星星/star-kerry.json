@@ -1,0 +1,11 @@
+{
+  "id": "star-kerry",
+  "name": "Kerry",
+  "order": 4,
+  "shape": "plain",
+  "message": "",
+  "position": {
+    "x": 172,
+    "y": 308
+  }
+}

@@ -66,7 +66,7 @@ export class StarBottleView {
       // miss a tiny sprite by a few pixels without choosing its DOM neighbour.
       if(!event.detail)return;
       event.preventDefault();event.stopPropagation();
-      const rect=this.vessel.getBoundingClientRect(),size=bottleGeometry(this.art.clientWidth,this.art.clientHeight,this.compact,producers.length);
+      const rect=this.vessel.getBoundingClientRect(),size=this.geometry();
       const slot=nearestBottleStar(this.known.map(p=>({slot:p.slot,...size.slots[p.slot]})),event.clientX-rect.left,event.clientY-rect.top);
       const person=this.known.find(p=>p.slot===slot);if(person)this.select(person);
     });
@@ -110,8 +110,11 @@ export class StarBottleView {
     this.positionStars();
   }
   private positionStars() {
-    const size=bottleGeometry(this.art.clientWidth,this.art.clientHeight,this.compact,producers.length);this.vessel.style.width=`${size.width}px`;this.vessel.style.height=`${size.height}px`;
+    const size=this.geometry();this.vessel.style.width=`${size.width}px`;this.vessel.style.height=`${size.height}px`;
     for(const button of this.stars.querySelectorAll<HTMLButtonElement>("button")){const point=size.slots[Number(button.dataset.slot)];if(point){button.style.left=`${point.x}px`;button.style.top=`${point.y}px`;button.style.setProperty("--star-size",`${point.size}px`);button.style.setProperty("--star-angle",`${point.angle}deg`);}}
+  }
+  private geometry() {
+    return bottleGeometry(this.art.clientWidth, this.art.clientHeight, this.compact, producers.length, this.known.map(person => person.slot));
   }
   private canScrollMessage(target:EventTarget|null,delta:number) {
     if(!(target instanceof Node)||!this.message.contains(target)||this.message.hidden)return false;
@@ -135,6 +138,16 @@ export class StarBottleView {
       if (person.shape) {
         art.dataset.shape = person.shape;
         art.style.backgroundImage = `url("${creditStarTexture(person.shape).toDataURL()}")`;
+      }
+      if (person.sprite) {
+        const image = new Image();
+        image.alt = "";
+        image.draggable = false;
+        image.onload = () => {
+          art.style.backgroundImage = "none";
+          art.append(image);
+        };
+        image.src = person.sprite;
       }
       button.append(art);
       button.addEventListener("click", event => {

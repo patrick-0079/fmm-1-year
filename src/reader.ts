@@ -1,7 +1,6 @@
 import { escapeHtml } from "./icons";
 import { reservedShortcut } from "./input";
 import type { World } from "./world";
-import "./game-album.css";
 // An inline part of the game layout, with no dialog, backdrop, focus trap or input.
 // Full letters/media need accessible DOM controls; the object remains on the map.
 export class MapReader {
@@ -83,12 +82,13 @@ export class MapReader {
     return true;
   }
   private canScroll(target: EventTarget | null, delta: number) {
-    const scroller = target instanceof Element ? target.closest<HTMLElement>(".collection-list,.memory-detail") : null;
+    const scroller = target instanceof Element ? target.closest<HTMLElement>(".collection-list,.memory-detail,.photo-original-stage") : null;
     if (!scroller || !this.root.contains(scroller)) return false;
     return delta < 0 ? scroller.scrollTop > 0 : delta > 0 && scroller.scrollTop + scroller.clientHeight < scroller.scrollHeight - 1;
   }
   private scrollReading(event: KeyboardEvent) {
     if (!this.inGame || reservedShortcut(event) || !(event.target instanceof Element)) return;
+    if (event.defaultPrevented || event.target.closest(".photo-book,.photo-original")) return;
     if (event.key === " " && event.target.closest("button,a")) return;
     const scroller = event.target.closest<HTMLElement>(".collection-list,.memory-detail") ??
       (event.target.matches(".reader-body") ? this.root.querySelector<HTMLElement>(".memory-detail") : null);

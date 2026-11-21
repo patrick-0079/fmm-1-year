@@ -40,6 +40,8 @@ test("switching full → invitation → full cleans the deployed directory", asy
   assert.ok(explicit.files.some(name => name.includes("room-interactive")));
   assert.ok(explicit.files.some(name => name.startsWith("assets/town-guests-")));
   assert.ok(explicit.files.some(name => name.startsWith("assets/patrick-camp-")));
+  assert.ok(explicit.files.some(name => name.startsWith("assets/stationery-desk-")));
+  assert.ok(!explicit.files.some(name => /CharaStudio.*\.png$/i.test(name)));
 
   const lite = await run("false");
   assert.equal(lite.marker.mode, "lite");
@@ -48,7 +50,7 @@ test("switching full → invitation → full cleans the deployed directory", asy
     assert.match(file, /^(?:assets|index\.html|release\.json|favicon\.svg|_headers|assets\/(?:[\w.-]+\.(?:js|css)|launch-(?:cottage|fufu|fox-letter|player)-[\w-]+\.webp|fufu-cursor-(?:arrow|play)-[\w-]+\.(?:svg|png)))$/);
     if (/\.(?:js|css|html)$/.test(file)) {
       const body = await readFile(join(outDir, file), "utf8");
-      assert.doesNotMatch(body, /room-interactive|nemu-sprites|town-guests|patrick-camp|texture-cache\.js|rabe-anniversary-letter|patrick-anniversary-letter|\.mp4\b/);
+      assert.doesNotMatch(body, /room-interactive|nemu-sprites|town-guests|patrick-camp|texture-cache\.js|rabe-anniversary-letter|patrick-anniversary-letter|star-xiaoye|star-zhenghao|成为了芙妮宝星|CharaStudio|stationery-desk|1-year\/picture\/|\.mp4\b/);
     }
   }
   assert.ok(lite.files.includes("favicon.svg") && lite.files.includes("_headers"));

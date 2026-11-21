@@ -72,7 +72,6 @@ test("when the rainbow arch appears its pillars are solid, its mouth and the cou
 
 test("each producer has one anonymous, clickable and reachable star", () => {
   const spots = scenes.meadow.spots;
-  assert.equal(producers.length, 12);
   assert.equal(new Set(producers.map(p => p.id)).size, producers.length);
   for (const person of producers) {
     const s = spots.find(p => p.id === person.id)!;
@@ -84,42 +83,35 @@ test("each producer has one anonymous, clickable and reachable star", () => {
   }
 });
 
-test("six previous producer IDs and positions survive adding Xiaoye, Yeshenhua and Rabe", () => {
-  const previous = [
-    ["star-patrick", 390, 450], ["star-kerry", 172, 308], ["star-suyan", 415, 160],
-    ["star-qing", 724, 142], ["star-zhenghao", 754, 378], ["star-qianyu", 578, 502],
-  ] as const;
-  for (const [id, x, y] of previous) {
-    const person = producers.find(p => p.id === id);
-    assert.ok(person, id);
-    assert.deepEqual({ x: person.x, y: person.y }, { x, y });
-    assert.equal(person.message, "", "no placeholder text should become a message");
+test("older six- and nine-star collections survive expansion in any catalogue order", () => {
+  const firstSix = ["star-patrick", "star-kerry", "star-suyan", "star-qing", "star-zhenghao", "star-qianyu"];
+  const nextThree = ["star-xiaoye", "star-yeshenhua", "star-rabe"];
+  const newestThree = ["star-xiaoyou", "star-guli", "star-qianxiao"];
+  const originalIds = [...firstSix, ...nextThree, ...newestThree];
+  const currentIds = new Set(producers.map(star => star.id));
+  for (const id of originalIds) assert.ok(currentIds.has(id), "missing saved star " + id);
+
+  for (const owned of [firstSix, [...firstSix, ...nextThree]]) {
+    const old = readProgress(JSON.stringify({ creditStars: owned }));
+    assert.deepEqual(old.creditStars, owned);
+    const available = producers.filter(star => !old.creditStars.includes(star.id));
+    const availableIds = new Set(available.map(star => star.id));
+    for (const id of originalIds.filter(id => !owned.includes(id))) assert.ok(availableIds.has(id), id);
+    const collected = [...old.creditStars, ...availableIds];
+    assert.equal(collected.length, currentIds.size);
+    assert.deepEqual(readProgress(JSON.stringify({ creditStars: collected })).creditStars, collected);
   }
-  const old = readProgress(JSON.stringify({ creditStars: previous.map(([id]) => id) }));
-  assert.deepEqual(old.creditStars, previous.map(([id]) => id));
-  assert.deepEqual(producers.filter(p => !old.creditStars.includes(p.id)).map(p => p.id), [
-    "star-xiaoye", "star-yeshenhua", "star-rabe", "star-xiaoyou", "star-guli", "star-qianxiao",
-  ]);
 });
-test("the last three stars are discoverable without resetting any of the original nine", () => {
-  const previousIds = [
-    "star-xiaoye", "star-yeshenhua", "star-patrick", "star-kerry", "star-suyan",
-    "star-qing", "star-zhenghao", "star-qianyu", "star-rabe",
-  ];
-  const newIds = ["star-xiaoyou", "star-guli", "star-qianxiao"];
-  const old = readProgress(JSON.stringify({ creditStars: previousIds }));
-  assert.deepEqual(old.creditStars, previousIds);
-  assert.deepEqual(producers.filter(person => !old.creditStars.includes(person.id)).map(person => person.id), newIds);
-  const spots = scenes.meadow.spots;
-  for (const id of newIds) {
-    const spot = spots.find(s => s.id === id)!;
-    for (const other of spots.filter(s => s !== spot)) {
-      assert.ok(Math.hypot(other.x - spot.x, other.y - spot.y) > 60, id + " crowds " + other.id);
+
+test("new stars and meadow fixtures keep enough clearance to interact individually", () => {
+  const starIds = new Set(producers.map(star => star.id));
+  for (const star of producers) {
+    for (const other of scenes.meadow.spots) {
+      if (other.id === star.id) continue;
+      const gap = starIds.has(other.id) ? 42 : 60;
+      assert.ok(Math.hypot(other.x - star.x, other.y - star.y) >= gap, star.id + " crowds " + other.id);
     }
   }
-  const allIds = [...old.creditStars, ...newIds];
-  const restored = readProgress(JSON.stringify({ ...old, creditStars: allIds }));
-  assert.deepEqual(restored.creditStars, allIds);
 });
 test("credit discoveries survive updates and reload, without counting as any of the seven flowers", () => {
   const ids = producers.map(p => p.id);

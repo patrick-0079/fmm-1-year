@@ -1,0 +1,11 @@
+{
+  "id": "star-rabe",
+  "name": "Rabe",
+  "order": 9,
+  "shape": "plain",
+  "message": "",
+  "position": {
+    "x": 605,
+    "y": 390
+  }
+}

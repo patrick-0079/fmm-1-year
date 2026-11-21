@@ -1,0 +1,11 @@
+# Full-size originals are kept in object storage. Track the four original
+# illustrations already distributed with the project as editable art sources.
+/*.[pP][nN][gG]
+/*.[jJ][pP][gG]
+/*.[jJ][pP][eE][gG]
+/*.[wW][eE][bB][pP]
+!/morning.png
+!/reading.png
+!/bass.png
+!/fox.png
+/.album-scan-*/

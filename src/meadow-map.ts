@@ -1,67 +1,10 @@
 import { producers } from "./content.ts";
-import type { Hotspot, Scene } from "./maps.ts";
+import { meadowGround, meadowStarSpot } from "./meadow-ground.ts";
+import type { Scene } from "./maps.ts";
 
-const points = (pairs: number[][]) => pairs.map(([x, y]) => ({x, y}));
-export const campfire = { x: 232, y: 156 };
-export const campSeat = { x: 252, y: 167 };
-export const campLetterSpot: Hotspot = {
-  id: "meadow-camp-letter", title: "营火旁的信", x: 232, y: 187,
-  approach: { x: 232, y: 201 }, radius: 26,
-  hitAreas: [{ x: 225, y: 178, w: 15, h: 12 }],
-  cue: {
-    kind: "collect", action: "拾起营火旁的信", verb: "拾起", natural: false,
-    anchor: { x: 4, y: -6 }, objectBox: { x: -6, y: -8, w: 12, h: 9 },
-  },
-};
-export const starJar = { x: 198, y: 194 };
-export const meadowExit = { x: 58, y: 238 };
-export function enteredMoonCircle(before:{x:number;y:number},after:{x:number;y:number}) {
-  const distance=(p:{x:number;y:number})=>((p.x-meadowExit.x)/12)**2+((p.y-meadowExit.y)/6.5)**2;
-  return distance(before)>1 && distance(after)<=1;
-}
-// Follow the canvas, crossed poles and front peg in source pixels. Do not
-// bridge the sagging roof with a straight edge that repaints the night grass.
-export const tentRoof = [
-  [158,236],[166,226],[176,211],[184,194],[191,177],[197,161],
-  [202,152],[207,151],[213,154],[220,156],[236,157],[250,156],[259,153],
-  [267,150],[266,146],[263,142],[259,137],[259,132],[262,130],[265,131],
-  [270,139],[274,144],[275,144],[278,136],[281,130],[284,132],[282,139],
-  [278,147],[279,152],[281,159],[286,168],[291,179],[298,190],[307,204],
-  [316,215],[323,222],[329,226],[333,227],[334,230],[331,232],
-  [333,248],[332,256],[326,261],[323,263],[318,264],[315,266],[310,267],
-  [305,269],[294,272],[285,273],[277,277],[268,278],[262,281],[253,281],
-  [247,278],[238,276],[230,274],[228,283],[226,289],[222,290],[219,288],
-  [216,285],[214,284],[213,287],[213,298],[206,299],[206,288],
-  [202,287],[202,283],[196,282],[188,279],[177,277],[167,272],
-  [158,266],[151,260],[147,253],[148,246],[153,240],
-].map(([x,y])=>({x:x*900/1536,y:y*600/1024}));
+export { campfire, campSeat, campLetterSpot, starJar, meadowExit, enteredMoonCircle, tentRoof } from "./meadow-ground.ts";
 
 export const meadowScene: Scene = {
-  title: "花海", width: 900, height: 600,
-  bounds: { x: 24, y: 34, w: 852, h: 539 },
-  // The whole lawn is walkable, including flowers. Only the edge woods and
-  // objects resting on the ground constrain footsteps.
-  floor: points([[24,112],[47,90],[71,79],[94,58],[139,47],[168,34],
-    [750,34],[798,45],[838,69],[854,75],[876,94],[876,483],
-    [854,496],[842,516],[805,533],[780,555],[742,561],[724,573],
-    [134,573],[110,554],[75,538],[57,519],[36,515],[24,499]]),
-  spawn: { x: 87, y: 239 },
-  walls: [
-    {label: "帐篷底边", points: points([[89,143],[153,118],[200,139],[194,155],[124,173],[89,152]])},
-    {label: "营火石圈", points: points([[211,157],[216,152],[230,151],[242,152],[252,156],[253,161],[246,167],[231,170],[216,167],[210,163]])},
-    {label: "水壶", points: points([[244,132],[250,130],[260,131],[263,135],[262,142],[257,145],[247,144],[243,140]])},
-    {label: "星光瓶底", points: points([[194,192],[197,190],[202,191],[203,193],[201,195],[195,195]])},
-  ],
-  hazards: [],
-  spots: [
-    {id: "meadow-exit", title: "月芽传送阵 · 回庭院", ...meadowExit, portal: "garden", portalExit: "prism-arch",
-      approach: {x: 87, y: 239}, radius: 39, markerOffset: 0, selfMarked: true},
-    {id: "meadow-camp", title: "在营火边坐坐", ...campfire,
-      approach: {x: 247, y: 184}, radius: 40, selfMarked: true},
-    campLetterSpot,
-    {id: "meadow-jar", title: "看看星光瓶", ...starJar,
-      approach: {x: 186, y: 210}, radius: 34, selfMarked: true},
-    ...producers.map(({id, x, y}) => ({id, x, y, title: "拾起草间的落星",
-      approach: {x: x + 17, y: y + 10}, radius: 34, markerOffset: 11, selfMarked: true})),
-  ],
+  ...meadowGround,
+  spots: [...meadowGround.spots, ...producers.map(meadowStarSpot)],
 };

@@ -31,7 +31,7 @@ export class PageMemoryReader implements CollectionSurface {
     root.addEventListener("keydown", event => this.scrollWithKeyboard(event));
     window.addEventListener("keydown", event => {
       if (!this.opened || event.defaultPrevented || reservedShortcut(event) || event.key !== "Escape" ||
-          document.querySelector(".debug-panel:not([hidden])")) return;
+          document.querySelector(".debug-panel:not([hidden])") || (event.target instanceof Element && event.target.closest(".photo-original"))) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       this.close();
@@ -98,6 +98,7 @@ export class PageMemoryReader implements CollectionSurface {
 
   private scrollWithKeyboard(event: KeyboardEvent) {
     if (reservedShortcut(event) || !(event.target instanceof Element)) return;
+    if (event.defaultPrevented || event.target.closest(".photo-original")) return;
     const target = event.target;
     if (event.key === " " && target.closest("button,a")) return;
     const scroller = target.closest<HTMLElement>(".collection-list,.memory-detail") ??

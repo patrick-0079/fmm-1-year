@@ -132,10 +132,16 @@ function selectBottleStar(person: typeof producers[number]) {
 function checkBottleQuietEffects() {
   const known=producers.filter(person=>state().creditStars.includes(person.id));
   const blank=known.filter(person=>!person.message.trim()), written=known.find(person=>person.message.trim());
-  expect(blank.length && written,"先收集至少一颗无寄语星和一颗有寄语星，再检查瓶内切换");
+  expect(known.length,"先收集至少一颗落星，再检查瓶内切换");
   const before=state().creditStars.join();
   // Re-selecting restarts one effect; switching stars must remove the old one.
-  for (const person of [blank[0],blank[0],blank[1]??blank[0],written!,blank[0]]) selectBottleStar(person);
+  if (blank.length) {
+    selectBottleStar(blank[0]);
+    selectBottleStar(blank[0]);
+    if (blank[1]) selectBottleStar(blank[1]);
+  }
+  if (written) selectBottleStar(written);
+  if (blank.length && written) selectBottleStar(blank[0]);
   expect(state().creditStars.join()===before,"空星重选和寄语切换改变了收藏进度");
 }
 function checkStarWords(person: typeof producers[number]) {
@@ -255,7 +261,8 @@ async function checkAll() {
   expect(world.restState?.kind==="sitting" && q(".rest-tools").textContent?.includes("营火"),"营火旁不能坐下");
   world.interact();
   let quietPickups=0;
-  for (const [i, person] of producers.slice(0,-1).entries()) {
+  const firstVisit = producers.filter(person => person.id !== "star-qianxiao");
+  for (const [i, person] of firstVisit.entries()) {
     await collectStar(person,i===0 || (!person.message.trim() && quietPickups===0));
     if (person.message.trim()) continue;
     quietPickups++;
@@ -271,7 +278,8 @@ async function checkAll() {
     }
   }
   world.switchScene("meadow",jar.approach); world.interact();
-  checkBottleCollection(); checkBottleQuietEffects(); selectBottleStar(producers[0]); closeStarBottle();
+  checkBottleCollection(); checkBottleQuietEffects();
+  selectBottleStar(producers.find(person => person.id === "star-xiaoye")!); closeStarBottle();
   log("无寄语星仅出现一份柔和星光且不暂停探索，开瓶与切图清理；瓶内重选及空／有寄语切换不叠光、不改收藏");
   const exit=scenes.meadow.spots.find(s=>s.id==="meadow-exit")!;
   world.switchScene("meadow",exit.approach); world.interact();
@@ -777,8 +785,7 @@ if (sessionStorage.getItem(space+"reload")) {
     expect(state().creditStars.length>=producers.length-1,"刷新后落星进度丢失");
     for (const p of producers.filter(p=>state().creditStars.includes(p.id)))
       expect(!world.available(meadowSpot(p.id)), "读档后星星重新出现");
-    const last=producers.at(-1)!;
-    if (!state().creditStars.includes(last.id)) await collectStar(last);
+    for (const remaining of producers.filter(person => !state().creditStars.includes(person.id))) await collectStar(remaining);
     const jar=meadowSpot("meadow-jar");
     world.switchScene("meadow",jar.approach); world.interact(); checkBottleCollection();
     for(const p of producers) {

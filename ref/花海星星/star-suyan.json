@@ -1,0 +1,11 @@
+{
+  "id": "star-suyan",
+  "name": "苏颜",
+  "order": 5,
+  "shape": "plain",
+  "message": "",
+  "position": {
+    "x": 415,
+    "y": 160
+  }
+}

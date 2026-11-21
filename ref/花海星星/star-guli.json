@@ -1,0 +1,11 @@
+{
+  "id": "star-guli",
+  "name": "故里",
+  "order": 11,
+  "shape": "pink-fish",
+  "message": "",
+  "position": {
+    "x": 615,
+    "y": 187
+  }
+}

@@ -2,7 +2,7 @@
 
 ## 花海落星
 
-以下七颗星尚未提供寄语，按要求继续留空，不显示占位文字。后续如提供，填写 `src/content.ts` 的 `producers[].message`，保留对应星星 ID。
+以下七颗星的寄语待提供，暂时只显示署名。收到后填写 [ref/花海星星](ref/花海星星) 中对应记录的 `message`，保留原 ID，运行 `npm run scan`。
 
 | 制作人 | 寄语 | 对应的星 |
 | --- | --- | --- |
@@ -18,7 +18,7 @@
 
 ## 晚安信箱
 
-以下三封来信尚待提供。收到后加入 `src/content.ts` 的 `collections.letters.items`。
+以下三封来信尚待提供。收到后追加到 [ref/来信/letters.json](ref/来信/letters.json)，或在同目录单放一份 JSON，再运行 `npm run scan`。
 
 - [ ] 卿取之于蓝的来信：标题、展示署名与完整正文。
 - [ ] 正号的来信：标题、展示署名与完整正文。
@@ -29,9 +29,9 @@
 | 位置 | 可以提供的内容 | 接入位置 |
 | --- | --- | --- |
 | 庭院小电视 | 正式影片的 CDN 直链和片名 | `src/cinema-config.ts` 的 `gardenFilm` |
-| 回忆相册（可选扩充） | 新的正式图片原件、标题及配文或署名 | `src/content.ts` 的 `collections.album.items` |
+| 回忆相册（可选扩充） | 新照片原件及希望展示的配文或署名 | `ref/相册/` 放原图，`album.json` 的 `title`、`text` 填写标题和配文，原图上传至对象存储 |
 | 床边便签（可选扩充） | 后续复活鼓励，每条一段，署名可写在文末 | `src/content.ts` 的 `encouragements` |
-| 晚安信箱（可选扩充） | 其他新来信的正文、标题和展示署名 | `collections.letters.items` |
+| 晚安信箱（可选扩充） | 其他新来信的正文、标题和展示署名 | `ref/来信/` 下的 JSON |
 
 ## 正式上线时
 

@@ -140,7 +140,7 @@ export function readProgress(raw: string | null): Progress {
       bedNoteUnlocked: p.bedNoteUnlocked === true,
       bassSongPlayed: p.bassSongPlayed === true,
       roomFox: readFoxMemory(p.roomFox),
-      residents: readResidentStory(p.residents),
+      residents: readResidentStory(p.residents ?? {}),
       decoratorMet: p.decoratorMet === true,
       rabbitIntroduced: p.decoratorMet === true && p.rabbitIntroduced === true,
       echoes: readEchoMemory(p.echoes),

@@ -120,7 +120,7 @@
   width: 100%;
   height: auto;
   aspect-ratio: 3 / 2;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 4px;
   margin-bottom: 7px;
 }
@@ -164,9 +164,19 @@
   display: block;
   width: 100%;
   height: auto;
+  aspect-ratio: auto;
   max-height: none;
   object-fit: contain;
   image-rendering: auto;
+}
+.page-memory-reader .photo-preview-button > span {
+  display: block;
+  width: fit-content;
+  margin: 8px auto 0;
+  color: #78525b;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .page-memory-reader .reader-body .collection-layout .media-caption {
   margin: 16px 0 0;

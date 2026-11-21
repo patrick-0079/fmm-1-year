@@ -1,6 +1,7 @@
 import { producers } from "./content";
 import type { Point } from "./core";
 import { campfire, campLetterSpot, campSeat, meadowExit, starJar, tentRoof } from "./meadow-map";
+import { meadowFlock as flock } from "./meadow-ground";
 import { sfx } from "./sound";
 import { drawWildSprite } from "./wild-art";
 import type { DepthLayer, World } from "./world";
@@ -15,11 +16,6 @@ import { sceneArt } from "./scene-art";
 import type { ResidentStory } from "./resident-story";
 
 type Credit = typeof producers[number];
-const flock = [
-  {x: 296, y: 235, size: 32, phase: 1},
-  {x: 362, y: 269, size: 26, phase: 8},
-  {x: 590, y: 312, size: 33, phase: 15},
-];
 const sparkColors = ["#ffe6a0", "#f5d4bc", "#cee8cf", "#dae0ef"];
 const meadowStarLight = { halo: "#ffda80", glint: "#fff3c5", radius: 22 };
 const starLights = {
@@ -50,6 +46,17 @@ export class NightMeadow {
   private reader: MeadowStarReader;
   private bottle: StarBottleView;
   private campGuest: CampGuest;
+  private starSprites = new Map<string, HTMLImageElement>();
+
+  private loadedStarSprite(url: string) {
+    let image = this.starSprites.get(url);
+    if (!image) {
+      image = new Image();
+      image.src = url;
+      this.starSprites.set(url, image);
+    }
+    return image.complete && image.naturalWidth > 0 ? image : undefined;
+  }
 
   constructor(private world: World, private found: () => string[], private save: () => void,
     campStory: () => ResidentStory, private collectCampLetter: () => void) {
@@ -189,8 +196,9 @@ export class NightMeadow {
         drawWildSprite(c, atlas, grazing ? 1 : 0, x, y - bob, sheep.size, !forward);
       }});
     }
+    const collected = new Set(this.found());
     for (const [i, person] of producers.entries()) {
-      if (this.found().includes(person.id)) continue;
+      if (collected.has(person.id)) continue;
       const {x, y, shape} = person;
       const light = shape ? starLights[shape] : meadowStarLight;
       layers.push({y, draw: c => {
@@ -198,9 +206,12 @@ export class NightMeadow {
         const size = 19;
         const foot = y - 1 - pulse;
         glow(c, x, y - 8, light.radius + pulse * 3, light.halo);
-        if (shape) {
-          const sprite = creditStarTexture(shape);
-          c.drawImage(sprite, Math.round(x - size / 2), Math.round(foot - size), size, size);
+        const custom = person.sprite && this.loadedStarSprite(person.sprite);
+        const sprite = custom || (shape && creditStarTexture(shape));
+        if (sprite) {
+          const scale = size / Math.max(sprite.width, sprite.height);
+          const width = sprite.width * scale, height = sprite.height * scale;
+          c.drawImage(sprite, Math.round(x - width / 2), Math.round(foot - height), width, height);
         } else drawWildSprite(c, atlas, 2, x, foot, size);
         glint(c, x + 10, y - 15 - pulse * 2, 1.5, light.glint);
       }});

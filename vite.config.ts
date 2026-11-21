@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { defineConfig, loadEnv, normalizePath, type Plugin } from "vite";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
+const referenceRoot = normalizePath(fileURLToPath(new URL("./ref/", import.meta.url)));
 const sourceRoot = normalizePath(fileURLToPath(new URL("./src/", import.meta.url)));
 
 function buildMode(value: string | undefined): "full" | "lite" {
@@ -45,6 +46,9 @@ function releaseEntry(mode: "full" | "lite"): Plugin {
           // Fail the build if an invitation module starts importing the game.
           for (const id of this.getModuleIds()) {
             const path = normalizePath(id);
+            if (path.startsWith(referenceRoot)) {
+              this.error(`倒计时包引用了游戏素材目录：ref/${path.slice(referenceRoot.length)}`);
+            }
             if (path.startsWith(sourceRoot) && !path.startsWith(sourceRoot + "launch/")) {
               this.error(`倒计时包引用了游戏模块：${path.slice(sourceRoot.length)}`);
             }

@@ -1,110 +1,262 @@
-/* A paper album contained by the existing 3:2 game stage. Webpage reading
-   keeps its own PageMemoryReader styles and its independent pause reason. */
+/* The blank album is part of the desk painting. Prints, captions and controls
+   are live elements so both portrait and landscape photographs keep their edges. */
 .game-letter-reader.game-album-reader {
-  inset: 12px;
+  inset: 0;
   width: auto;
   height: auto;
   max-height: none;
-  padding: 14px;
-  border: 2px solid #bfa48f;
-  background: #fff8e9;
-  box-shadow: inset 3px 0 #e0c9ac, 0 8px 26px #49332c35;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: inherit;
+  background: #aa7652 url("./assets/stationery-album.webp") center / 100% 100% no-repeat;
+  color: #613c35;
+  container-type: size;
 }
-.game-album-reader > header { gap: 10px; background: #fff8e9; padding-bottom: 10px; }
-.game-album-reader header h3::after { content: "滚动看配文"; display: inline-block; margin-left: 10px; color: #8c7474; font-size: 12px; font-weight: 400; white-space: nowrap; }
-.game-album-reader .reader-tools button { min-height: 44px; }
-.game-album-reader .media-error button { min-height: 44px; }
+.game-letter-reader.game-album-reader > header {
+  position: absolute;
+  z-index: 2;
+  inset: 0 0 auto;
+  height: 10%;
+  min-height: 34px;
+  padding: 0 2%;
+  align-items: center;
+  flex-wrap: nowrap;
+  background: transparent;
+  border: 0;
+  pointer-events: none;
+}
+.game-album-reader > header small,
+.game-album-reader > header p { display: none; }
+.game-letter-reader.game-album-reader header h3,
+.game-album-reader .reader-tools .reader-close,
+.photo-book-navigation,
+.photo-original-toolbar button,
+.photo-original-retry {
+  color: #623e35;
+  background: #fff0d5;
+  border: 1px solid #b68369;
+  border-radius: 4px 6px 4px 6px;
+  box-shadow: 1px 2px #603d3936, inset 0 0 0 2px #f9dec0;
+}
+.game-letter-reader.game-album-reader header h3 {
+  line-height: 1.2;
+  margin: 0;
+  padding: .24em .72em;
+  font-size: clamp(14px, 2.3cqw, 23px);
+  border-left: .3em solid #bf7181;
+  font-weight: 650;
+}
+.game-album-reader .reader-tools { pointer-events: auto; }
+.game-album-reader .reader-tools .reader-close {
+  min-height: 32px;
+  font-size: clamp(12px, 1.6cqw, 15px);
+  padding: .3em .7em;
+}
 .game-letter-reader.game-album-reader > .reader-body {
-  display: flex;
-  flex: 1 1 auto;
+  position: absolute;
+  inset: 0;
   min-height: 0;
   overflow: hidden;
-  outline-offset: -3px;
 }
-.game-letter-reader.game-album-reader .collection-layout.album-layout {
+.photo-book { position: absolute; inset: 0; overflow: hidden; }
+.photo-book-spread {
+  position: absolute;
+  inset: 16% 7% 19%;
   display: grid;
-  grid-template-columns: 136px minmax(0, 1fr);
-  flex: 1 1 auto;
-  min-height: 0;
-  min-width: 0;
-  margin: 10px 0 0;
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7.5%;
+  align-items: stretch;
+  touch-action: pan-y;
 }
-.game-letter-reader.game-album-reader .album-layout .collection-list {
+.photo-book-photo {
+  --print-ratio: 1.5;
+  container-type: size;
+  border: 0;
+  min-width: 0;
+  min-height: 0;
+  padding: 1.5% 2%;
   display: flex;
   flex-direction: column;
-  flex-wrap: nowrap;
-  align-items: stretch;
-  gap: 9px;
-  min-width: 0;
-  min-height: 0;
-  margin: 0;
-  padding: 2px 10px 2px 2px;
-  border-right: 1px solid #decab2;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  overscroll-behavior: contain;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(3px, 1cqw, 12px);
+  border-radius: 4px;
+  background: none;
+  color: #6e4242;
+  text-align: center;
+  font: inherit;
   touch-action: pan-y;
 }
-.game-letter-reader.game-album-reader .album-layout .collection-item {
-  flex: 0 0 auto;
-  width: 100%;
+.photo-book-photo:focus-visible { outline: 0; }
+.photo-book-photo:focus-visible .photo-book-print,
+.photo-book-navigation button:focus-visible,
+.photo-original button:focus-visible,
+.photo-original-stage:focus-visible {
+  outline: 2px solid #834b64;
+  outline-offset: -2px;
+}
+.photo-book-mount {
+  min-height: 0;
   min-width: 0;
-  min-height: 44px;
-  padding: 6px;
-  color: #765763;
-  font-size: 12px;
-  line-height: 1.6;
-  white-space: normal;
-  background: #fffaf0;
-  border-color: #d9c2ac;
-  touch-action: manipulation;
-}
-.game-letter-reader.game-album-reader .album-layout .collection-item.selected {
-  color: #704652;
-  background: #fff0ee;
-  border-color: #ac657e;
-  box-shadow: inset 3px 0 #ac657e;
-}
-.game-album-reader .album-layout .collection-item img { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; margin-bottom: 4px; }
-.game-letter-reader.game-album-reader .album-layout .memory-detail {
+  display: grid;
+  place-items: center;
   container-type: size;
-  min-height: 0;
-  min-width: 0;
-  padding: 12px;
-  overflow: auto;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
-  scrollbar-width: thin;
-  background: #fffdf6;
-  border-color: #e2d0b9;
-  outline-offset: -3px;
+  width: 100%;
+  height: min(calc(100cqh - 2.5em), calc(100cqw / var(--print-ratio)));
+  flex: 0 1 auto;
 }
-.game-album-reader .memory-detail:focus-visible { outline: 2px solid #b98298; }
-.game-album-reader .album-layout .memory-detail h3 { margin: 0 0 9px; font-size: 17px; line-height: 1.5; }
-.game-letter-reader.game-album-reader .album-layout .memory-image {
+.photo-book-print {
+  position: relative;
   display: block;
-  width: auto;
-  max-width: 100%;
-  height: auto;
-  aspect-ratio: auto;
-  max-height: max(24px, calc(100cqh - 36px));
-  margin-inline: auto;
+  width: min(100cqw, calc(100cqh * var(--print-ratio)));
+  aspect-ratio: var(--print-ratio);
+  max-height: 100%;
+  padding: clamp(2px, .32cqw, 5px);
+  background: #fff9ed;
+  border: 1px solid #9f7e63;
+  box-shadow: 1px 2px 3px #775a463b;
+}
+.photo-book-print img {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   image-rendering: auto;
 }
-.game-album-reader .album-layout .media-caption { margin: 12px 0 0; font-size: 14px; line-height: 1.8; color: #705c60; }
+.photo-book-print::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  pointer-events: none;
+  background: linear-gradient(135deg,#f7c8bf 3%,#c38c85 45%,#925951 49%,transparent 51%) top left,
+    linear-gradient(225deg,#f7c8bf 3%,#c38c85 45%,#925951 49%,transparent 51%) top right,
+    linear-gradient(45deg,#f7c8bf 3%,#c38c85 45%,#925951 49%,transparent 51%) bottom left,
+    linear-gradient(315deg,#f7c8bf 3%,#c38c85 45%,#925951 49%,transparent 51%) bottom right;
+  background-size: clamp(7px, 7cqw, 23px) clamp(7px, 7cqw, 23px);
+  background-repeat: no-repeat;
+}
+.photo-book-caption {
+  justify-self: center;
+  max-width: 100%;
+  border-bottom: 1px solid #c89982;
+  padding: 0 .4em .12em;
+  font-size: clamp(12px, 4.4cqw, 20px);
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.photo-book-navigation {
+  position: absolute;
+  bottom: 1.1%;
+  left: 50%;
+  transform: translateX(-50%);
+  height: clamp(28px, 5.6cqw, 46px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45em;
+  white-space: nowrap;
+}
+.photo-book-count { min-width: 4.2em; text-align: center; font-size: clamp(12px,1.8cqw,18px); font-variant-numeric: tabular-nums; }
+.photo-book-navigation button {
+  align-self: stretch;
+  background: transparent;
+  border: 0;
+  color: #633e38;
+  font: bold clamp(18px, 2.5cqw, 26px)/1 system-ui,sans-serif;
+  min-width: 44px;
+  border-radius: inherit;
+}
+.photo-book-navigation button:disabled { opacity: .32; }
+.photo-book-navigation button:not(:disabled):hover { background: #f2d4b8; }
 .reading-letter:has(.game-album-reader:not([hidden])) :is(.bag-toggle,.time-pill,.scene-top) { visibility: hidden; }
-@media (max-width: 650px) {
-  .game-letter-reader.game-album-reader { inset: 4px; padding: 6px; border-radius: 7px; }
-  .game-album-reader > header { padding-bottom: 5px; gap: 5px; }
-  .game-album-reader header h3 { font-size: 15px; }
-  .game-letter-reader.game-album-reader .collection-layout.album-layout { grid-template-columns: 58px minmax(0, 1fr); margin-top: 5px; gap: 6px; }
-  .game-letter-reader.game-album-reader .album-layout .collection-list { padding: 1px 5px 1px 1px; gap: 6px; }
-  .game-letter-reader.game-album-reader .album-layout .collection-item { padding: 3px; font-size: 12px; line-height: 1.45; }
-  .game-letter-reader.game-album-reader .album-layout .memory-detail { padding: 6px; }
-  .game-album-reader .album-layout .memory-detail h3 { margin-bottom: 5px; font-size: 14px; }
-  .game-letter-reader.game-album-reader .album-layout .memory-image { max-height: max(24px, calc(100cqh - 28px)); }
-  .game-album-reader .album-layout .media-caption { font-size: 14px; line-height: 1.6; margin-top: 8px; }
+
+.reader-body.has-photo-original { position: relative; isolation: isolate; }
+.photo-original {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0,1fr);
+  padding: clamp(6px, 1.2vw, 16px);
+  gap: 6px;
+  overflow: hidden;
+  background: #302729;
+  border-radius: 6px;
+  color: #fff1d7;
+}
+.game-album-reader .photo-original { top: max(10%, 34px); border-radius: 0; }
+.photo-original-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px;
+}
+.photo-original-toolbar button,
+.photo-original-retry { flex: none; min-height: 32px; padding: .28em .68em; font: inherit; font-size: 14px; }
+.photo-original-toolbar button:disabled { opacity: .48; }
+.photo-original-title { flex: 1; min-width: 0; text-align: center; font-size: clamp(12px, 1.7vw, 16px); line-height: 1.4; }
+.photo-original-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: #241e21;
+  scrollbar-width: thin;
+}
+.photo-original-stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  aspect-ratio: auto;
+  object-fit: contain;
+  user-select: none;
+  image-rendering: auto;
+}
+.photo-original-stage.at-native-size { overflow: auto; touch-action: none; cursor: grab; }
+.photo-original-stage.at-native-size.is-dragging { cursor: grabbing; }
+.photo-original-stage.at-native-size img { width: auto; height: auto; }
+.photo-original-feedback {
+  position: absolute;
+  bottom: max(8px, 3%);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  width: max-content;
+  max-width: 96%;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #302426e8;
+  font-size: 13px;
+}
+.photo-original-feedback:has([role=status]:empty):has(button[hidden]) { display: none; }
+.photo-original-feedback [hidden] { display: none; }
+.photo-preview-button { display: block; position: relative; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; }
+.photo-preview-button:focus-visible { outline: 2px solid #9b697e; outline-offset: 1px; }
+
+@container (max-width: 510px) {
+  .game-album-reader .reader-tools .reader-close { min-height: 28px; padding: 2px 8px; }
+  .photo-book-spread { inset: 18% 7% 19%; }
+  .photo-book-caption { padding: 0; }
+  .photo-original { gap: 2px; padding: 4px; }
+  .photo-original-toolbar { gap: 4px; }
+  .photo-original-toolbar button, .photo-original-retry { min-height: 29px; font-size: 12px; }
+}
+@media (pointer: coarse) {
+  .photo-book-navigation button, .game-album-reader .reader-close { position: relative; }
+  .photo-book-navigation button::after, .game-album-reader .reader-close::after {
+    content: ""; position: absolute; inset: 50% 0 auto; min-height: 44px; transform: translateY(-50%);
+  }
+  .photo-original-toolbar button, .photo-original-feedback button { min-height: 44px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .photo-book-photo { animation: settle-photo .18s ease-out; }
+  @keyframes settle-photo { from { opacity: .72; transform: translateX(2px); } }
 }

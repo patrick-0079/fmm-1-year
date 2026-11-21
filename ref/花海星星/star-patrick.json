@@ -1,0 +1,11 @@
+{
+  "id": "star-patrick",
+  "name": "派大星",
+  "order": 3,
+  "shape": "plain",
+  "message": "",
+  "position": {
+    "x": 390,
+    "y": 450
+  }
+}

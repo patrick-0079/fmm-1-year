@@ -2,38 +2,47 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import sharp from "sharp";
 import { fileURLToPath } from "node:url";
-import { producers } from "../src/content.ts";
 import { BOTTLE_REFERENCE,bottleEntries,bottleGeometry,bottleScrollTop,nearestBottleStar } from "../src/star-bottle-layout.ts";
 
-test("one bottle holds every discovered star while new discoveries never shuffle old positions",()=>{
-  const old=producers.slice(0,9).map(person=>person.id);
-  assert.deepEqual(bottleEntries(producers,[]),[]);
-  const known=bottleEntries(producers,[old[5],...old,old[0],"missing-id"]);
-  assert.deepEqual(known.map(person=>person.id),old);
-  const partial=bottleEntries(producers,[producers[1].id,producers[6].id]);
-  assert.deepEqual(partial.map(person=>person.name),["夜神华","正号"]);
-  assert.equal(partial[1].shape,"cross","an already collected Zhenghao star should adopt the current cross artwork");
-  assert.deepEqual(partial.map(person=>person.slot),[known[1].slot,known[6].slot]);
-  const all=bottleEntries(producers,producers.map(person=>person.id));
-  assert.equal(all.length,12);
-  assert.deepEqual(all.slice(0,9),known);
-  assert.deepEqual(all.slice(9).map(({ slot, shape }) => [slot, shape]), [[9,"gold"],[10,"pink-fish"],[11,undefined]]);
+test("bottle slots follow catalogue order regardless of pickup order, duplicates or unknown IDs", () => {
+  const people = [
+    { id: "moon", name: "Moon", message: "" },
+    { id: "fish", name: "Fish", message: "One more star.", shape: "pink-fish" },
+    { id: "cross", name: "Cross", message: "", shape: "cross" },
+  ] as const;
+  assert.deepEqual(bottleEntries(people, []), []);
+  assert.deepEqual(bottleEntries(people, ["cross", "unknown", "fish", "cross"]), [
+    { ...people[1], slot: 1 }, { ...people[2], slot: 2 },
+  ]);
+  const all = bottleEntries(people, ["cross", "fish", "moon"]);
+  assert.deepEqual(all, people.map((person, slot) => ({ ...person, slot })));
+  const reordered = [people[2], people[0], people[1]];
+  assert.deepEqual(bottleEntries(reordered, ["fish", "cross"]), [
+    { ...people[2], slot: 0 }, { ...people[1], slot: 2 },
+  ]);
 });
 
-test("all twelve scattered star images fit the glass at phone and desktop sizes, with unambiguous direct taps",async()=>{
+test("current and expanded bottles fit every visible star inside the glass and resolve each direct tap",async()=>{
   const {data,info}=await sharp(fileURLToPath(new URL("../src/assets/star-bottle-closeup.webp",import.meta.url))).ensureAlpha().raw().toBuffer({resolveWithObject:true});
   assert.equal(info.width,BOTTLE_REFERENCE.width);assert.equal(info.height,BOTTLE_REFERENCE.height);
   for(const [width,height,compact] of [[290,298/1.5-8,true],[352,360/1.5-8,true],[266.8,330,false],[440,590,false]] as const){
-    const fit=bottleGeometry(width,height,compact);assert.ok(fit.width<=width&&fit.height<=height);
-    assert.equal(fit.slots.length,12);
-    const targets=fit.slots.map((point,slot)=>({slot,...point}));
-    for(const [i,p] of fit.slots.entries()){
-      assert.equal(nearestBottleStar(targets,p.x,p.y),i,"direct tap picked another star");
-      for(const q of fit.slots.slice(0,i))assert.ok(Math.hypot(p.x-q.x,p.y-q.y)>(p.size+q.size)/2,"visible stars overlap");
-      const half=p.size/2,angle=p.angle*Math.PI/180;
-      for(const dx of [-half,0,half])for(const dy of [-half,0,half]){
-        const x=Math.round((p.x+dx*Math.cos(angle)-dy*Math.sin(angle))*info.width/fit.width),y=Math.round((p.y+dx*Math.sin(angle)+dy*Math.cos(angle))*info.height/fit.height);
-        assert.ok(data[(y*info.width+x)*4+3]>24,`target ${i} lies outside conical glass at ${width}×${height}`);
+    const original=bottleGeometry(width,height,compact,12).slots;
+    const sparse=bottleGeometry(width,height,compact,80,[79]).slots;
+    assert.ok(sparse[79].size>bottleGeometry(width,height,compact,80).slots[79].size);
+    for (const count of [0,1,12,13,36,80]) {
+      const fit=bottleGeometry(width,height,compact,count);assert.ok(fit.width<=width&&fit.height<=height);
+      assert.equal(fit.slots.length,count);
+      const targets=fit.slots.map((point,slot)=>({slot,...point}));
+      if(count>12) assert.ok(fit.slots[0].size<=original[0].size);
+      for(const [i,p] of fit.slots.entries()){
+        if (i<12) assert.deepEqual([p.x,p.y,p.angle], [original[i].x,original[i].y,original[i].angle]);
+        assert.equal(nearestBottleStar(targets,p.x,p.y),i,"direct tap picked another star");
+        for(const q of fit.slots.slice(0,i))assert.ok(Math.hypot(p.x-q.x,p.y-q.y)>(p.size+q.size)/2,"visible stars overlap");
+        const half=p.size/2,angle=p.angle*Math.PI/180;
+        for(const dx of [-half,0,half])for(const dy of [-half,0,half]){
+          const x=Math.round((p.x+dx*Math.cos(angle)-dy*Math.sin(angle))*info.width/fit.width),y=Math.round((p.y+dx*Math.sin(angle)+dy*Math.cos(angle))*info.height/fit.height);
+          assert.ok(data[(y*info.width+x)*4+3]>24,`target ${i}/${count} lies outside conical glass at ${width}×${height}`);
+        }
       }
     }
   }

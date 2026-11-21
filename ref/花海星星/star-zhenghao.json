@@ -1,0 +1,11 @@
+{
+  "id": "star-zhenghao",
+  "name": "正号",
+  "order": 7,
+  "shape": "cross",
+  "message": "",
+  "position": {
+    "x": 754,
+    "y": 378
+  }
+}

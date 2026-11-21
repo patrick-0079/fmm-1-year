@@ -1,0 +1,252 @@
+/* The reader occupies the existing camera frame. Only the pile or paper scrolls. */
+.game-letter-reader:has(.mail-desk-body) {
+  inset: 0;
+  width: auto;
+  height: auto;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: #ad754e url("./assets/stationery-desk.webp") center / cover;
+  box-shadow: inset 0 0 28px #58352440;
+  container: mail-desk / inline-size;
+}
+.reading-letter:has(.mail-desk-body) :is(.bag-toggle,.time-pill,.scene-top) { visibility: hidden; }
+.game-letter-reader:has(.mail-desk-body) > header {
+  flex-wrap: nowrap;
+  align-items: center;
+  padding: clamp(4px, 1.3cqw, 14px) clamp(7px, 2cqw, 20px) 1px;
+  border: none;
+  background: transparent;
+}
+.game-letter-reader:has(.mail-desk-body) > header :is(small, p) { display: none; }
+.game-letter-reader:has(.mail-desk-body) > header h3 {
+  margin: 0;
+  padding: .24em .74em .3em;
+  border: 1px solid #ab7857;
+  border-radius: 3px 7px 5px 2px;
+  color: #513329;
+  background: linear-gradient(110deg, #fcebd0, #fff5da 60%, #f1d8b5);
+  box-shadow: inset 0 0 0 2px #fff3d7, inset 0 0 0 3px #c79979, 1px 3px 2px #4e2f2747;
+  font: 700 clamp(16px, 3cqw, 28px)/1.4 system-ui, sans-serif;
+}
+.game-letter-reader:has(.mail-desk-body) .reader-tools {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+}
+.game-letter-reader:has(.mail-desk-body) .reader-tools button, .game-letter-reader .mail-fold {
+  min-height: 44px;
+  padding: 3px clamp(6px, 1.3cqw, 14px);
+  border: 1px solid #a3795c;
+  border-radius: 4px;
+  background: #fff2d8;
+  color: #593c37;
+  box-shadow: inset 0 0 0 2px #ffe8c6, 1px 2px 0 #6b463c56;
+  font: 600 clamp(12px, 1.6cqw, 15px)/1.2 system-ui, sans-serif;
+  white-space: nowrap;
+}
+.game-letter-reader > .reader-body.mail-desk-body {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+}
+.game-letter-reader .mail-desk-pile.collection-list {
+  display: flex;
+  flex-flow: row wrap;
+  align-content: safe center;
+  justify-content: center;
+  align-items: center;
+  gap: 1.1cqw 1.8cqw;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  margin: 0;
+  padding: 2.2cqw 5cqw 3cqw;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #b79773 #543a2a35;
+  touch-action: pan-y;
+}
+.mail-desk-pile .mail-envelope {
+  --tilt: -3deg;
+  --side: 0%;
+  --rise: 0%;
+  --tint: 0deg;
+  --name-y: 27%;
+  position: relative;
+  flex: 0 0 29%;
+  aspect-ratio: 520 / 353;
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  background: transparent;
+  color: #3f2b30;
+  box-shadow: none;
+  transform: translate(var(--side), var(--rise)) rotate(var(--tilt));
+  transition: transform 120ms ease;
+  touch-action: pan-y;
+}
+.mail-desk-pile[data-count="2"] .mail-envelope { flex-basis: 39%; }
+.mail-envelope:nth-child(3n + 2) { --tilt: 3deg; --rise: -1.5%; }
+.mail-envelope:nth-child(3n) { --tilt: -2deg; --side: -1%; --rise: 2%; }
+.mail-envelope:nth-child(4n + 1) { --side: 2%; --rise: 2%; }
+.mail-envelope:nth-child(4n) { --tilt: -4deg; --side: -2.5%; }
+.mail-envelope:nth-child(5n + 2) { --tint: -27deg; }
+.mail-envelope:nth-child(5n + 3) { --tint: 34deg; }
+.mail-envelope:nth-child(5n + 4) { --tint: 165deg; }
+.mail-envelope:nth-child(5n) { --tint: -52deg; }
+.mail-envelope[data-sealed="false"] {
+  --name-y: 75%;
+  aspect-ratio: 520 / 536;
+}
+.mail-envelope-art {
+  position: absolute;
+  inset: 0;
+  filter: drop-shadow(0 2px 2px #4b2c285e);
+  pointer-events: none;
+}
+.mail-envelope-art::before, .mail-envelope[data-sealed="true"] .mail-envelope-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("./assets/stationery-sealed.webp") center / 100% 100% no-repeat;
+}
+.mail-envelope-art::before { filter: hue-rotate(var(--tint)) saturate(.72); }
+/* Keep wax its original red, separately from the dyed paper and moving flap. */
+.mail-envelope[data-sealed="true"] .mail-envelope-art::before {
+  mask-image: radial-gradient(ellipse 11.4% 16.4% at 50.4% 64.2%, transparent 94%, #000 99%);
+}
+.mail-envelope[data-sealed="true"] .mail-envelope-art::after {
+  clip-path: ellipse(11.7% 16.8% at 50.4% 64.2%);
+}
+.mail-envelope[data-sealed="false"] .mail-envelope-art::before {
+  background-image: url("./assets/stationery-open.webp");
+}
+.mail-envelope .envelope-name {
+  position: absolute;
+  top: var(--name-y);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 84%;
+  font: 650 clamp(12px, 2.4cqw, 26px)/1.2 system-ui, sans-serif;
+  text-shadow: 0 1px 1px #ffefcc;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  text-align: center;
+  pointer-events: none;
+}
+.mail-envelope:focus-visible, .mail-fold:focus-visible {
+  outline: 3px solid #fffde3;
+  outline-offset: 1px;
+  box-shadow: 0 0 0 5px #9b5770;
+  border-radius: 5px;
+}
+@media (hover: hover) {
+  .mail-desk-pile .mail-envelope:hover {
+    transform: translate(var(--side), calc(var(--rise) - 3px)) rotate(0);
+  }
+}
+.mail-envelope.opening { z-index: 1; }
+.mail-envelope.opening .mail-envelope-art::before { animation: unseal-paper 280ms both ease-out; }
+.mail-envelope.opening .mail-envelope-art::after { animation: unseal-wax 280ms both ease-out; }
+.mail-envelope.opening .envelope-name { animation: unseal-paper 170ms both; }
+.mail-envelope.opening .mail-lifted-flap {
+  position: absolute;
+  inset: auto 0 0;
+  height: 151.84%;
+  background: url("./assets/stationery-open.webp") center / 100% 100% no-repeat;
+  filter: hue-rotate(var(--tint)) saturate(.72);
+  animation: unseal-flap 280ms both ease-out;
+}
+@keyframes unseal-wax {
+  0% { transform: none; }
+  70%, 100% { transform: translate(4%, -17%) rotate(9deg); opacity: 0; }
+}
+@keyframes unseal-paper { 0%, 22% { opacity: 1; } 76%, 100% { opacity: 0; } }
+@keyframes unseal-flap {
+  0%, 22% { clip-path: inset(37% 0 0); opacity: 0; }
+  52% { opacity: 1; }
+  100% { clip-path: inset(0); opacity: 1; }
+}
+.game-letter-reader .mail-sheet {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  justify-self: center;
+  width: min(90%, 680px);
+  min-height: 0;
+  box-sizing: border-box;
+  margin: 1cqw auto 2.4cqw;
+  padding: clamp(7px, 2cqw, 18px) clamp(10px, 3.5cqw, 36px);
+  border: 1px solid #c19a77;
+  border-radius: 2px 5px 3px 4px;
+  background: linear-gradient(120deg, #faedd8, #fff9eb 19%, #fff7e7 72%, #f1e2cd);
+  color: #513c38;
+  box-shadow: 2px 3px 0 #dbbda1, 3px 6px 9px #48302649, inset 0 0 0 4px #faedda;
+  animation: mail-sheet-in 160ms ease-out;
+}
+@keyframes mail-sheet-in { from { transform: translateY(6px); } }
+.mail-sheet-heading {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  border-bottom: 1px solid #dcc6b1;
+  padding-bottom: 3px;
+}
+.mail-sheet-heading h4 {
+  margin: 0;
+  color: #63424a;
+  font: 700 clamp(15px, 2.4cqw, 22px)/1.4 system-ui, sans-serif;
+}
+.game-letter-reader .mail-sheet .memory-detail {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  padding: 8px 5px 10px 1px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  touch-action: pan-y;
+  outline-offset: -2px;
+}
+.mail-sheet .memory-detail:focus-visible { outline: 2px solid #bc8997; }
+.mail-sheet .mail-signature {
+  margin: 0 0 8px;
+  color: #7d5c5d;
+  font-size: clamp(12px, 1.5cqw, 15px);
+}
+.game-letter-reader .mail-sheet .letter-text {
+  margin: 0;
+  color: #4e4041;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 400 clamp(15px, 1.9cqw, 18px)/1.85 system-ui, sans-serif;
+}
+@container mail-desk (max-width: 540px) {
+  .game-letter-reader .mail-desk-pile.collection-list { padding: 2cqw 4cqw 4cqw; gap: 1cqw 2cqw; }
+  .mail-desk-pile .mail-envelope, .mail-desk-pile[data-count="2"] .mail-envelope { flex-basis: 44%; }
+  .game-letter-reader .mail-sheet { width: 95%; margin: 1cqw auto 2cqw; padding: 3px 9px 5px; }
+  .mail-sheet-heading h4 { font-size: 14px; }
+  .mail-sheet .mail-signature { margin-bottom: 4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mail-desk-pile .mail-envelope { transition: none; }
+  .mail-envelope.opening *, .mail-envelope.opening .mail-envelope-art::before,
+  .mail-envelope.opening .mail-envelope-art::after, .game-letter-reader .mail-sheet { animation: none; }
+}

@@ -46,7 +46,7 @@ test("corrupt or unexpected saved data cannot break a new visit", () => {
       bedNoteUnlocked: false,
       bassSongPlayed: false,
       roomFox: {missed:0,visit:"none",rebuffed:false,waitingForNote:false},
-      residents: readResidentStory(),
+      residents: readResidentStory({}),
       decoratorMet: false,
       rabbitIntroduced: false,
       echoes: {found: [], played: 0, listened: false},

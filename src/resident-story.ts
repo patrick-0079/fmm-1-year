@@ -1,21 +1,18 @@
-import { collections, type Memory } from "./content.ts";
+import type { Memory } from "./content.ts";
+import { allLetters, handedLetters, letterById, patrickLetter, postLetter, postRevision, publicLetterIds } from "./letters.ts";
 
-export const handedLetters = {
-  xiaoye: "xiaoye-anniversary-letter",
-  suyan: "suyan-anniversary-letter",
-  "radio-host": "yeshenhua-anniversary-letter",
-  xiaoyou: "xiaoyou-anniversary-letter",
-  guli: "guli-anniversary-letter",
-  patrick: "patrick-anniversary-letter",
-} as const;
+export { handedLetters, postLetter, patrickLetter, postRevision as POST_LETTER_REVISION } from "./letters.ts";
 export type HandedLetterId = typeof handedLetters[keyof typeof handedLetters];
 type NpcLetterId = Exclude<HandedLetterId, typeof handedLetters.patrick>;
 const handedLetterIds: readonly string[] = Object.values(handedLetters);
+const legacyOpenedLetters = ["kerry-anniversary-letter", "rabe-anniversary-letter"];
 function isNpcLetter(id: string): id is NpcLetterId {
   return id !== handedLetters.patrick && handedLetterIds.includes(id);
 }
 
 export interface ResidentStory {
+  /** Read receipts for letters available from the start. */
+  publicLettersRead: string[];
   npcLetters: Partial<Record<NpcLetterId, "unread" | "read">>;
   postDelivered: boolean;
   postReadRevision: number;
@@ -29,47 +26,13 @@ export interface ResidentStory {
   guardianInvited: boolean;
 }
 
-// Increment for a new letter revision so readers of an earlier text see it unread.
-export const POST_LETTER_REVISION = 2;
-export const postLetter: Memory = {
-  id: "post-anniversary-letter",
-  title: "红笺送来的信",
-  author: "红笺 · 周年小镇邮局",
-  text: `芙芙，见字安。
-
-乖乖，这一次，轮到你收一封晚安了。
-
-我在邮局整理信件时，总会看到一些很小的事情：有人记着你随口说过的鼓励，有人把听你直播的夜晚写进日记，也有人不太会表达，写了又擦，最后只留下“一周年快乐”。纸张薄薄的，装着的心意却一点也不轻。
-
-愿你读到这些信时，也能安心地给自己放一小会儿假。好好吃饭，睡一个踏实的觉。来不及说的晚安，可以留到明天。
-
-你曾把晚安送到许多人身边。今天，这些晚安都沿着来时的路，轻轻回到你手里。
-
-小镇的花还会开，邮局的灯也会亮着。往后的日子里，愿你有喜欢做的事，也有可以什么都不做的下午；有人陪你热热闹闹地笑，也有人懂得陪你安安静静地歇一会儿。
-
-一周年快乐，乖乖。
-
-下一次路过邮局，不用带信，也欢迎你来坐坐。`,
-};
-
-export const patrickLetter: Memory = {
-  id: handedLetters.patrick,
-  title: "派大星的周年来信",
-  author: "派大星",
-  text: `芙芙，晚上好！
-
-展信佳！
-
-谢谢你这一年来的陪伴。想留住那些一起度过的晚安，我做了这个小小的游戏，送给你当作一周年礼物。希望走到这片花海时，你也能在火边安心歇一会儿。
-
-一周年快乐！愿接下来的日子里，开心的事多一点，累了也能好好休息。期待下一年继续和芙芙一起，度过更多温暖的夜晚。
-
-派大星
-2026年11月20日`,
-};
-
 export function readResidentStory(value?: Partial<ResidentStory> | null): ResidentStory {
   const revision = value?.postReadRevision;
+  // Older saves displayed public letters as already opened and had no receipt.
+  const receipts = value?.publicLettersRead;
+  const publicLettersRead = Array.isArray(receipts)
+    ? [...new Set(receipts.filter(id => publicLetterIds.has(id)))]
+    : value ? legacyOpenedLetters.filter(id => publicLetterIds.has(id)) : [];
   const npcLetters: ResidentStory["npcLetters"] = {};
   for (const id of handedLetterIds) {
     if (!isNpcLetter(id)) continue;
@@ -77,6 +40,7 @@ export function readResidentStory(value?: Partial<ResidentStory> | null): Reside
     if (status === "unread" || status === "read") npcLetters[id] = status;
   }
   return {
+    publicLettersRead,
     npcLetters,
     postDelivered: value?.postDelivered === true,
     postReadRevision: value?.postDelivered === true && typeof revision === "number" &&
@@ -91,11 +55,11 @@ export function readResidentStory(value?: Partial<ResidentStory> | null): Reside
 }
 
 export function mailboxLetters(story: ResidentStory) {
-  return [
-    ...collections.letters.items.filter(({ id }) => !isNpcLetter(id) || story.npcLetters[id]),
-    ...(story.postDelivered ? [postLetter] : []),
-    ...(story.patrickDelivered ? [patrickLetter] : []),
-  ];
+  return allLetters.filter(({ id }) => {
+    if (id === postLetter.id) return story.postDelivered;
+    if (id === patrickLetter.id) return story.patrickDelivered;
+    return !isNpcLetter(id) || !!story.npcLetters[id];
+  });
 }
 
 export function hasHandedLetter(story: ResidentStory, id: HandedLetterId) {
@@ -110,7 +74,7 @@ export function collectHandedLetter(story: ResidentStory, id: HandedLetterId): M
     return patrickLetter;
   }
   if (!isNpcLetter(id)) return;
-  const letter = collections.letters.items.find(item => item.id === id);
+  const letter = letterById.get(id);
   if (letter) story.npcLetters[id] = "unread";
   return letter;
 }
@@ -127,25 +91,30 @@ export function letterChoice(mail: LetterHandoff, id: HandedLetterId, refresh: (
     : { title: "收下信", run: () => { if (mail.collect(id)) refresh(); } };
 }
 
-export function postUnread(story: ResidentStory, revision = POST_LETTER_REVISION) {
+export function postUnread(story: ResidentStory, revision = postRevision) {
   return story.postDelivered && story.postReadRevision < revision;
 }
 
 export function unreadLetterIds(story: ResidentStory) {
-  const ids = collections.letters.items.map(letter => letter.id)
-    .filter(id => isNpcLetter(id) && story.npcLetters[id] === "unread");
-  if (postUnread(story)) ids.push(postLetter.id);
-  if (story.patrickDelivered && !story.patrickRead) ids.push(patrickLetter.id);
-  return ids;
+  return mailboxLetters(story).map(letter => letter.id).filter(id => {
+    if (id === postLetter.id) return postUnread(story);
+    if (id === patrickLetter.id) return !story.patrickRead;
+    if (isNpcLetter(id)) return story.npcLetters[id] === "unread";
+    return !story.publicLettersRead.includes(id);
+  });
 }
 
 export function markLetterRead(story: ResidentStory, id: string) {
+  if (publicLetterIds.has(id) && !story.publicLettersRead.includes(id)) {
+    story.publicLettersRead.push(id);
+    return true;
+  }
   if (isNpcLetter(id) && story.npcLetters[id] === "unread") {
     story.npcLetters[id] = "read";
     return true;
   }
   if (id === postLetter.id && postUnread(story)) {
-    story.postReadRevision = POST_LETTER_REVISION;
+    story.postReadRevision = postRevision;
     return true;
   }
   if (id === patrickLetter.id && story.patrickDelivered && !story.patrickRead) {

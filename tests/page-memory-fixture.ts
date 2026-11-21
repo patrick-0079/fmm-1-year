@@ -1,5 +1,6 @@
 import "../src/style.css";
 import "../src/readability.css";
+import { collections } from "../src/content";
 import { PageMemoryReader } from "../src/page-memory-reader";
 import { openCollection } from "../src/media";
 import type { World } from "../src/world";
@@ -42,6 +43,8 @@ async function verify() {
     assert(worldState.paused && worldState.scene === "room" && worldState.visited.length === 0, "网页信箱意外开局、换图或增加访问记录");
     assert(Math.abs(gameWidth - q("#game").getBoundingClientRect().width) < 1, "网页阅读改变游戏宽度");
     const detail = q(".page-memory-reader .memory-detail"), list = q(".page-memory-reader .collection-list");
+    assert(!detail.querySelector(".letter-text"), "打开网页信箱自动拆开了第一封信");
+    list.querySelector("button")!.click();
     assert(detail.clientHeight > 0 && detail.scrollHeight > detail.clientHeight, "长信没有独立滚动容器");
     assert(parseFloat(getComputedStyle(q(".letter-text")).fontSize) >= 14, "手机正文小于 14px");
     assert(list.getBoundingClientRect().right <= detail.getBoundingClientRect().left, "信件索引未保留在正文左侧");
@@ -67,9 +70,11 @@ async function verify() {
 
     q("#album").click(); await settle();
     const albumList = q(".page-memory-reader .collection-list"), albumDetail = q(".page-memory-reader .memory-detail");
-    assert(albumList.querySelectorAll("img").length === 4, "相册没有显示四张缩略图");
-    await Promise.all(Array.from(q(".page-memory-reader").querySelectorAll("img")).map(image => image.decode()));
-    assert(Array.from(albumList.querySelectorAll("img")).every(image => image.naturalWidth > 0), "相册缩略图没有全部载入");
+    const expected = collections.album.items.map(item => item.id);
+    const displayed = Array.from(albumList.querySelectorAll<HTMLButtonElement>("button"), tab => tab.dataset.memoryId);
+    assert(JSON.stringify(displayed) === JSON.stringify(expected), "照片目录与相册清单的顺序或数量不一致");
+    await albumList.querySelector("img")!.decode();
+    assert(albumList.querySelectorAll('img[loading="lazy"]').length === expected.length, "网页提前请求了整本相册");
     assert(albumList.getBoundingClientRect().right <= albumDetail.getBoundingClientRect().left, "相册缩略图在窄屏变成了顶部横栏");
     assert(albumDetail.querySelector(".memory-image"), "相册正文没有图片");
     if (innerWidth <= 650) assert(albumList.clientWidth >= 64 && albumList.clientWidth <= 72, "手机相册左列宽度不在 64–72px");
@@ -77,7 +82,7 @@ async function verify() {
     q(".page-reader-return").click();
     assert(returned === returnBefore + 1 && !reader.opened && document.activeElement === worldState.canvas, "回到游戏没有关闭阅读区并调用返回入口");
     assert(worldState.paused, "回到游戏擅自开始了尚未开始的游戏");
-    log("相册保留左侧缩略图与右侧原图；回到游戏由接线方决定，不擅自开局。");
+    log(`相册列出 ${expected.length} 张照片，右侧先显示预览，回到游戏时保留开局状态。`);
 
     q("#letters").click();
     q("#album").focus({ preventScroll: true }); reader.close(false);
