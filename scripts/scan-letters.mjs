@@ -88,8 +88,9 @@ export async function scanLetters(sourceDir, manifestPath, { requireStoryLetters
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
   const root = fileURLToPath(new URL("../", import.meta.url));
-  const { files, count } = await scanLetters(join(root, "ref/来信"), join(root, "src/letters.generated.ts"), {
-    requireStoryLetters: true, stationeryDir: join(root, "ref/定制/信笺"),
+  const lettersDir = join(root, "ref/来信");
+  const { files, count } = await scanLetters(lettersDir, join(root, "src/letters.generated.ts"), {
+    requireStoryLetters: true, stationeryDir: join(lettersDir, "信笺"),
   });
   console.log(`已扫描 ${files.length} 份来信配置，共 ${count} 封信。`);
 }

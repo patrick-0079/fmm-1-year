@@ -108,4 +108,14 @@ test("a large scanned catalogue is available in the game and excluded from the i
   const full = await run(true);
   for (const letter of letters) assert.ok(full.includes(letter.text), letter.id);
   assert.doesNotMatch(await run(false), /封测试信的问候|letter-\d+/);
+
+  // A theme file under the catalogue is validated separately from letter records.
+  const stationery = join(source, "信笺");
+  await mkdir(stationery);
+  await writeFile(join(stationery, "config.json"), JSON.stringify({ default: {}, themes: {} }));
+  await scanLetters(source, join(root, "src", "letters.generated.ts"));
+  await writeFile(join(launch, "full.ts"),
+    'import theme from "../../ref/来信/信笺/config.json"; document.body.textContent = theme.default.title;');
+  await assert.rejects(run(true), /default\.title 需要填写主题名/);
+  assert.doesNotMatch(await run(false), /config\.json|信笺/);
 });

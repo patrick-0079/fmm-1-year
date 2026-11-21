@@ -82,6 +82,12 @@
   --stock-image: var(--mail-flap-image);
   --stock-color: var(--mail-flap-tint);
 }
+[data-neutral-stock] :is(.mail-flap, .mail-pocket)::before {
+  /* Dye the paper grain at its original luminance, without amber bleeding into cool inks. */
+  background-color: white;
+  background-image: linear-gradient(var(--stock-color), var(--stock-color)), var(--stock-image);
+  background-blend-mode: multiply, luminosity;
+}
 .mail-flap::after {
   --stock-image: var(--mail-lining-image);
   --stock-color: var(--mail-lining-tint);

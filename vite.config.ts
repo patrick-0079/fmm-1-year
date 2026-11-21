@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, loadEnv, normalizePath, type Plugin } from "vite";
 import { validateStationery } from "./scripts/validate-stationery.mjs";
@@ -14,9 +14,9 @@ const stationeryConfig: Plugin = {
   name: "fufu-stationery-config",
   enforce: "pre",
   async transform(_, id) {
-    if (!normalizePath(id).endsWith("/ref/定制/信笺/config.json")) return;
+    if (!normalizePath(id).endsWith("/ref/来信/信笺/config.json")) return;
     const directory = dirname(id);
-    const { ids } = await readLetterCatalogue(resolve(directory, "../../来信"));
+    const { ids } = await readLetterCatalogue(dirname(directory));
     await validateStationery(directory, ids);
   },
 };

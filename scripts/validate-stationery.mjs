@@ -3,7 +3,7 @@ import { join, relative, sep } from "node:path";
 
 const imageKeys = ["flap", "pocket", "lining", "paper", "seal", "motif"];
 const colorKeys = ["flapTint", "pocketTint", "liningTint", "paperTint", "ink", "accent"];
-const keys = new Set(["title", ...imageKeys, ...colorKeys]);
+const keys = new Set(["title", "neutralStock", ...imageKeys, ...colorKeys]);
 const imageExtension = /\.(?:png|webp|jpg|jpeg|avif)$/;
 const isObject = value => value !== null && typeof value === "object" && !Array.isArray(value);
 
@@ -29,6 +29,9 @@ export async function validateStationery(directory, letterIds) {
   function validate(theme, label, defaults = false) {
     if (!isObject(theme)) fail(`${label} 需要一个配置对象。`);
     if (typeof theme.title !== "string" || !theme.title.trim()) fail(`${label}.title 需要填写主题名。`);
+    if (Object.hasOwn(theme, "neutralStock") && typeof theme.neutralStock !== "boolean") {
+      fail(`${label}.neutralStock 需要布尔值 true 或 false。`);
+    }
     for (const key of Object.keys(theme)) {
       if (!keys.has(key)) fail(`${label} 含有未识别的字段 ${key}。`);
     }
