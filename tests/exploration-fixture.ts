@@ -190,7 +190,7 @@ function checkHarvest() {
     expect(q(".activity-status").textContent?.includes("还剩 "+(3-i)+" 颗"),"剩余的树果数量不正确");
     q(".activity-close").click();
   }
-  expect(!world.available(apple),"采空的苹果树仍显示为可采集目标");
+  expect(!world.available(apple),"拿空的果篮仍显示为可采集目标");
   world.interact(); world.onInteract("apple");
   expect(q(".bag-count").textContent?.includes("苹果 3"),"同一天能收第四颗苹果");
   q(".activity-close").click();
@@ -205,7 +205,7 @@ function checkHarvest() {
   world.interact(); world.onInteract("flowers");
   expect(q(".bag-count").textContent?.includes("花朵 3"),"同一天能收第四丛花");
   q(".activity-close").click();
-  log("摘三颗苹果、采三丛花后当日采空，背包数量与树果剩余数相符");
+  log("拿完果篮的三颗苹果、采完当日三朵花，核对背包数量");
 }
 async function checkAll() {
   await start();
@@ -676,14 +676,20 @@ q("#check-bass").addEventListener("click",()=>void run(async()=>{
   dbg("flower-door").click(); expect(!world.canEnter("meadow"),"临时花门没有关闭");
   dbg("map:town").click(); await wait(()=>world.scene==="town" && !world.suspended);
   const photos=q("#town-samples");photos.replaceChildren();
+  const rosters=new Set<string>();
   for(const [phase,label] of [["dawn","清晨"],["day","白昼"],["dusk","黄昏"],["night","星夜"]]) {
-    q(".debug-trigger").click();dbg("time:"+phase).click();q(".debug-close").click();
+    q(".debug-trigger").click();dbg("time:"+phase).click();
+    const residents=world.config.spots.map(s=>s.id).filter(id=>id.startsWith("npc-"));
+    expect(world.suspended && residents.length===10,"打开调试面板时小镇班次未同步");
+    rosters.add(residents.sort().join(","));
+    q(".debug-close").click();
     await new Promise<void>(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r())));
     const cell=document.createElement("figure"), picture=document.createElement("canvas"), cap=document.createElement("figcaption");
     picture.width=300;picture.height=200;picture.getContext("2d")!.drawImage(world.canvas,0,0,300,200);
     cap.textContent=label;cell.append(picture,cap);photos.append(cell);
     expect(q(".time-pill").dataset.phase===phase,"小镇时段错误");
   }
+  expect(rosters.size===4,"小镇四个时段的居民名单没有切换");
   q(".debug-trigger").click();dbg("time:auto").click();q(".debug-close").click();
   const board=world.canvas.parentElement!; board.scrollIntoView({block:"center",behavior:"instant"});
   const sy=scrollY;

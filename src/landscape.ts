@@ -3,27 +3,16 @@ export interface GardenTree extends Point {
   scale: number;
   tone: number;
 }
-export const gardenTrees: Record<"garden" | "challenge", GardenTree[]> = {
-  garden: [
-    { x: 260, y: 350, scale: 1.05, tone: -6 },
-    { x: 555, y: 280, scale: 1.15, tone: 6 },
-    { x: 550, y: 178, scale: 0.95, tone: 0 },
-    { x: 770, y: 370, scale: 0.9, tone: 10 },
-    { x: 360, y: 495, scale: 1.1, tone: -4 },
-    // Keep the southeast gate, both pillars and its approach free of branches.
-    { x: 126, y: 370, scale: 1.05, tone: 4 },
-  ],
-  challenge: [
-    { x: 153, y: 159, scale: 1.2, tone: -8 },
-    { x: 300, y: 150, scale: 1, tone: 4 },
-    { x: 665, y: 150, scale: 1.2, tone: 0 },
-    { x: 278, y: 435, scale: 1.1, tone: 7 },
-    { x: 639, y: 429, scale: 1.1, tone: -5 },
-    { x: 745, y: 230, scale: 0.9, tone: 9 },
-    { x: 143, y: 363, scale: 0.95, tone: 0 },
-    { x: 550, y: 370, scale: 1, tone: -8 },
-  ],
-};
+export const challengeTrees: GardenTree[] = [
+  { x: 153, y: 159, scale: 1.2, tone: -8 },
+  { x: 300, y: 150, scale: 1, tone: 4 },
+  { x: 665, y: 150, scale: 1.2, tone: 0 },
+  { x: 278, y: 435, scale: 1.1, tone: 7 },
+  { x: 639, y: 429, scale: 1.1, tone: -5 },
+  { x: 745, y: 230, scale: 0.9, tone: 9 },
+  { x: 143, y: 363, scale: 0.95, tone: 0 },
+  { x: 550, y: 370, scale: 1, tone: -8 },
+];
 export interface Creek {
   upper: Point[];
   lower: Point[];

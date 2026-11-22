@@ -49,28 +49,53 @@ test("a clicked walker waits; a talking picnic guest finishes before shift chang
   const visited=new Set<string>();
   cast.talking("picnic-friend",true);
   for(let i=0;i<30;i++) {
-    cast.tick(.05,"dusk",far,null,false,()=>true);
+    cast.tick(.05,"night",far,null,false,()=>true);
     for(const k of guests)if(cast.get(k).mode==="leaving" || cast.get(k).mode==="arriving")visited.add(k);
   }
   assert.equal(cast.interactable("picnic-friend"),true);
   cast.talking("picnic-friend",false);
   for(let i=0;i<1400;i++){
-    cast.tick(.05,"dusk",far,null,false,()=>true);
+    cast.tick(.05,"night",far,null,false,()=>true);
     for(const k of guests)if(cast.get(k).mode==="leaving" || cast.get(k).mode==="arriving")visited.add(k);
     assert.ok(guests.filter(k=>cast.get(k).moving).length<=2);
   }
   assert.equal(visited.size,4);
   assert.deepEqual(guests.filter(k=>cast.interactable(k)),["decorator","suyan"]);
-  assert.ok(cast.mapFor(base,"dusk").walls.every(w=>w.label!=="庭院来宾 · 晴糖"));
+  assert.ok(cast.mapFor(base,"night").walls.every(w=>w.label!=="庭院来宾 · 晴糖"));
 });
 test("reduced motion preserves static working poses, guest availability and a clear player foot",()=>{
   const cast=new GardenResidents(),base=bloomingGarden;
   cast.mapFor(base,"day");
-  for(let i=0;i<5;i++)cast.tick(.05,"dusk",{x:650,y:181},null,true,()=>true);
+  for(let i=0;i<5;i++)cast.tick(.05,"night",{x:650,y:181},null,true,()=>true);
   const map=cast.mapFor(base,"night");
   assert.deepEqual(guests.filter(k=>cast.interactable(k)),["decorator","suyan"]);
   assert.equal(map.walls.some(w=>w.label==="来宾 · 苏颜"),false);
   assert.ok(guests.every(k=>!cast.get(k).moving));
   cast.tick(.05,"night",far,null,true,()=>true);
   assert.ok(cast.mapFor(base,"night").walls.some(w=>w.label==="来宾 · 苏颜"));
+});
+test("all four manual shifts immediately update feet, walls and interaction anchors on both garden maps",()=>{
+  const cast=new GardenResidents();
+  for(const base of [scenes.garden,bloomingGarden]) {
+    cast.leave();
+    cast.mapFor(base,"night");
+    for (const [phase,expected] of [
+      ["dawn",["balloon-friend","decorator"]],["day",["balloon-friend","picnic-friend"]],
+      ["dusk",["picnic-friend","suyan"]],["night",["decorator","suyan"]],
+    ] as const) {
+      cast.syncShift(phase,far);
+      const map=cast.mapFor(base,phase);
+      assert.deepEqual(guests.filter(k=>cast.interactable(k)),expected);
+      assert.deepEqual(guests.filter(k=>map.spots.includes(cast.anchor(k))),expected);
+      assert.equal(map.walls.filter(w=>w.label.startsWith("庭院来宾") || w.label==="来宾 · 苏颜").length,2);
+    }
+    cast.talking("suyan",true);
+    const foot={...cast.get("suyan").foot};
+    cast.syncShift("day",far);cast.tick(0,"day",far,null,false,()=>true);
+    assert.ok(cast.mapFor(base,"day").spots.includes(cast.anchor("suyan")));
+    assert.deepEqual(cast.get("suyan").foot,foot);
+    cast.talking("suyan",false);
+    cast.tick(.016,"day",far,null,false,()=>true);
+    assert.equal(cast.mapFor(base,"day").spots.includes(cast.anchor("suyan")),false);
+  }
 });

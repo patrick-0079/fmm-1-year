@@ -1,16 +1,8 @@
-import type { DepthLayer, World } from "./world";
+import type { DepthLayer } from "./world";
 import { sceneArt } from "./scene-art";
 import {
   blockBoard, flightRings, rabbitPlatforms, wishLawn,
 } from "./town-attraction-layout";
-import masks from "./town-playground-masks.generated.json";
-
-const covers = masks.map(({ path, ...region }) => ({ ...region, mask: new Path2D(path) }));
-export function townPlaygroundCovers(world: World): DepthLayer[] {
-  const view = world.visibleArea;
-  return covers.filter(({ x, y, w, h }) => x < view.x + view.w && x + w > view.x && y < view.y + view.h && y + h > view.y)
-    .map(cover => ({ y: cover.depth, draw: c => world.drawMapCover(c, cover, cover.mask) }));
-}
 
 function drawSprite(c: CanvasRenderingContext2D, frame: 0 | 1) {
   c.drawImage(sceneArt.playgroundAnimations, 108 * frame, 0, 108, 74, -27, -36, 54, 37);

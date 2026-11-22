@@ -80,6 +80,11 @@ export const townTerraceWalls: Obstacle[] = [
   { label:"工坊街沿花盆", x:966, y:450, w:12, h:12 },
   { label:"工坊街沿花盆", x:983, y:456, w:12, h:13 },
   { label:"工坊南侧邮筒", x:967, y:505, w:18, h:17 },
+  // The planted bed descends along the masonry curb. Leave the cobbles on
+  // either side open, including the approach from the block board to the plaza.
+  { label:"工坊邮筒前花坛", points:outline([[944,535],[950,529],[961,528],[971,530],
+    [984,534],[997,541],[1009,547],[1021,553],[1027,560],[1026,573],
+    [1020,578],[1007,574],[989,568],[970,560],[954,553],[944,548]]) },
   { label:"电台露台茶桌", x:1180, y:800, w:62, h:11 },
   { label:"电台留声机", x:1412, y:811, w:29, h:13 },
   ...[[434,338],[513,271],[581,441],[699,360],[834,434],[875,488],[936,396],

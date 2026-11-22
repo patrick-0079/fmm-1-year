@@ -17,32 +17,6 @@ export const festivalProps = [
   { kind: "garland", x: 1284, y: 883 },
 ] as const;
 
-export function drawTownSigns(c: CanvasRenderingContext2D) {
-  c.save();
-  // Small shop-front ribbons make the anniversary present on every street.
-  for (const [x, y] of [
-    [298, 222],
-    [775, 227],
-    [1180, 366],
-    [220, 592],
-    [865, 737],
-    [1337, 790],
-  ]) {
-    c.fillStyle = "#98657c";
-    c.fillRect(x - 28, y - 1, 56, 15);
-    c.fillStyle = "#f3d6bb";
-    c.fillRect(x - 26, y, 52, 12);
-    c.fillStyle = "#b85f83";
-    c.font = '8px "Microsoft YaHei","PingFang SC",sans-serif';
-    c.textAlign = "center";
-    c.fillText("芙芙 · 周年限定", x, y + 9);
-    c.fillStyle = "#df90b3";
-    c.fillRect(x - 31, y + 1, 4, 10);
-    c.fillRect(x + 27, y + 1, 4, 10);
-  }
-  c.restore();
-}
-
 function pixelHeart(
   c: CanvasRenderingContext2D,
   x: number,

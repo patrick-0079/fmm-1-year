@@ -43,6 +43,17 @@ test("the courage garden bench advances to each exclusive easter-egg window", ()
     assert.equal(eggAvailable("firefly", phase), phase === "night");
   }
 });
+test("the bench leaves a pinned preview at its next boundary on the natural clock", () => {
+  for (const elapsed of [0,224.999,301,599,1024]) {
+    for (const [shown,next,hour] of [["dawn","day",8],["day","dusk",17],["dusk","night",20],["night","dawn",5]] as const) {
+      const delta=untilNextPhase(elapsed,shown);
+      const time=worldTime(elapsed+delta);
+      assert.ok(delta>=0 && delta<DAY_SECONDS+.011);
+      assert.equal(time.phase,next);
+      assert.equal(Math.floor(time.hours),hour);
+    }
+  }
+});
 test("old mute preferences survive the music upgrade and invalid volumes are clamped", () => {
   assert.equal(readProgress('{"sound":false}').bgm, false);
   assert.equal(readProgress('{"sound":true}').bgm, true);

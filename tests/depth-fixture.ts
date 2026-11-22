@@ -5,6 +5,7 @@ import { gardenForeground } from "../src/garden-foreground";
 import { gardenGateLamp } from "../src/garden-gate-lamp";
 import { townForeground } from "../src/town-foreground";
 import playgroundMasks from "../src/town-playground-masks.generated.json";
+import streetlightMasks from "../src/town-streetlight-outlines.json";
 import { townCanopies } from "../src/town-scenery";
 import { gardenSign } from "../src/garden-sign";
 import { televisionSilhouette } from "../src/cinema-config";
@@ -27,9 +28,6 @@ interface DepthCase {
   depth:number;
   solid:Point[];
   clear:Point[];
-  // Other scenery can legitimately cover a doorway in the complete scene.
-  // Those holes are still checked using the real fragment renderer below.
-  occludedClear?:number[];
   // The old lamp's right handle aperture is less than two device pixels wide
   // at DPR 1 on a 390 px screen; permit edge antialiasing, never an opaque fill.
   subpixelClear?:number[];
@@ -54,7 +52,7 @@ const cases:DepthCase[]=[
     solid:[[204,680],[216,677],[222,667],[215,664],[201,694],[224,696]].map(([x,y])=>pixel(x,y)),
     clear:[[204,660],[205,663],[202,665],[217,660],[215,661],[217,661],[213,693],[233,700]].map(([x,y])=>pixel(x,y)),
   }},
-  {id:"west-alcove-arch",scene:"garden",depth:606*gardenScale,solid:[gp(198,510)],clear:[gp(204,564),gp(204,614)],occludedClear:[0,1],edges:{
+  {id:"west-alcove-arch",scene:"garden",depth:606*gardenScale,solid:[gp(198,510)],clear:[gp(204,564),gp(204,614)],edges:{
     solid:[[199,503],[175,507],[229,519]].map(([x,y])=>pixel(x,y)),
     clear:[[192,494],[201,494],[217,503],[224,506]].map(([x,y])=>pixel(x,y)),
   }},
@@ -83,12 +81,21 @@ const cases:DepthCase[]=[
   {id:"pond-arch",scene:"town",depth:909,solid:[{x:928,y:834}],clear:[{x:929,y:878},{x:926,y:916}]},
   {id:"quarry-lintel",scene:"town",depth:91,solid:[{x:1428,y:31}],clear:[{x:1428,y:65},{x:1428,y:99}]},
   {id:"north-stair-pennants",scene:"town",depth:272,solid:[{x:525,y:200}],clear:[{x:536,y:209},{x:536,y:280}]},
+  {id:"north-cottages-streetlight",scene:"town",depth:199,solid:[{x:1043,y:131},{x:1032,y:165}],clear:[{x:1055,y:165},{x:1043,y:208}]},
+  {id:"post-fork-streetlight",scene:"town",depth:713,solid:[{x:472,y:639},{x:482,y:663}],clear:[{x:485,y:695},{x:472,y:724}]},
+  {id:"river-bridge-streetlight",scene:"town",depth:535,solid:[{x:1327,y:477},{x:1314,y:500}],clear:[{x:1339,y:502},{x:1327,y:546}]},
   {id:"bakery-stair-pennants",scene:"town",depth:362,solid:[{x:739,y:331}],clear:[{x:750,y:348},{x:750,y:361}]},
   {id:"plaza-west-pennants",scene:"town",depth:441,solid:[{x:620,y:385}],clear:[{x:626,y:385},{x:606,y:394}]},
   {id:"wish-crossing-lamp",scene:"town",depth:444,solid:[{x:582,y:371},{x:582,y:419}],clear:[{x:568,y:368},{x:582,y:451}]},
   {id:"block-board-lamp",scene:"town",depth:547,solid:[{x:1170,y:472},{x:1170,y:529}],clear:[{x:1156,y:468},{x:1170,y:554}],actor:{x:1170,positions:[521,531,557]}},
   {id:"rabbit-east-lamp",scene:"town",depth:592,solid:[{x:584,y:515},{x:584,y:568}],clear:[{x:569,y:513},{x:584,y:605}],actor:{x:584,positions:[566,576,614]}},
   {id:"plaza-east-lamp",scene:"town",depth:435,solid:[{x:834,y:358},{x:834,y:419}],clear:[{x:846,y:356},{x:834,y:445}]},
+  {id:"workshop-blue-postbox",scene:"town",depth:526,solid:[{x:976,y:491},{x:976,y:514}],clear:[{x:989,y:481},{x:993,y:512}]},
+  {id:"workshop-rose-border-west",scene:"town",depth:560,solid:[{x:968,y:538},{x:962,y:546}],clear:[{x:985,y:525},{x:997,y:534}],actor:{x:972,positions:[525,540,574]}},
+  {id:"workshop-rose-border-east",scene:"town",depth:578,solid:[{x:1009,y:561},{x:1019,y:564}],clear:[{x:1020,y:546},{x:1034,y:569}]},
+  {id:"workshop-junction-lamp",scene:"town",depth:396,solid:[{x:939,y:316},{x:939,y:373}],clear:[{x:928,y:316},{x:959,y:374}],actor:{x:939,positions:[328,382,407]}},
+  {id:"bakery-stair-rise-3",scene:"town",depth:333,solid:[{x:777,y:323}],clear:[{x:775,y:328},{x:780,y:334}]},
+  {id:"bakery-stair-post-knot",scene:"town",depth:268,solid:[{x:813,y:250}],clear:[{x:809,y:255},{x:819,y:252}]},
   {id:"flight-ring",scene:"town",depth:457,solid:[{x:696,y:356},{x:676,y:453}],clear:[{x:697,y:433},{x:694,y:472}],actor:{x:676,positions:[434,440,477]}},
   {id:"flight-small-ring",scene:"town",depth:427,solid:[{x:770,y:395}],clear:[{x:750,y:394},{x:756,y:438}],actor:{x:755,positions:[403,418,446]}},
   {id:"flight-front-flowers",scene:"town",depth:502,solid:[{x:649,y:466},{x:659,y:469}],clear:[{x:677,y:464},{x:674,y:472}]},
@@ -106,7 +113,7 @@ const wait=async(check:()=>boolean)=>{const until=performance.now()+20000;while(
 const assert=(condition:unknown,message:string)=>{if(!condition)throw Error(message);};
 const rgb=[255,0,255];
 type Sample={point:Point;rgb:number[]};
-type Evidence={id:string;scene:SceneId;depth:number;behind:Sample[];front:Sample[];mask?:Sample[];edges?:{solid:Sample[];clear:Sample[]};occludedClear?:number[];status:string};
+type Evidence={id:string;scene:SceneId;depth:number;behind:Sample[];front:Sample[];mask?:Sample[];edges?:{solid:Sample[];clear:Sample[]};status:string};
 const evidence:Evidence[]=[];
 function drawNow(){(world as unknown as {draw:()=>void}).draw();}
 function sample(point:Point):Sample {
@@ -145,7 +152,7 @@ function sampleEdges(outlines:Point[][],landmarks:NonNullable<DepthCase["edges"]
 }
 async function verify(test:DepthCase){
   const foreground=test.scene==="town"?townForeground:gardenForeground;
-  const baked=test.scene==="town"?playgroundMasks.find(mask=>mask.id===test.id):undefined;
+  const baked=test.scene==="town"?playgroundMasks.find(mask=>mask.id===test.id)??streetlightMasks.find(mask=>mask.id===test.id):undefined;
   const target=baked ? {
     id:baked.id,y:baked.depth,points:[{x:baked.x,y:baked.y},{x:baked.x+baked.w,y:baked.y+baked.h}],
   } : test.existingOutline?{id:test.id,y:test.depth,points:test.existingOutline}:foreground.find(f=>f.id===test.id);
@@ -161,7 +168,7 @@ async function verify(test:DepthCase){
   const photo=(title:string)=>{const figure=document.createElement("figure"),img=document.createElement("img"),caption=document.createElement("figcaption");img.src=capture(bounds);img.alt=title;caption.textContent=title;figure.append(img,caption);images.append(figure);};
   const points=[...test.solid,...test.clear];
   const probe=(depth:number):DepthLayer=>({y:depth,draw(c){c.fillStyle="#ff00ff";for(const p of points)c.fillRect(p.x-4,p.y-4,8,8);}});
-  const record:Evidence={id:test.id,scene:test.scene,depth:test.depth,behind:[],front:[],occludedClear:test.occludedClear,status:"检查中"};evidence.push(record);
+  const record:Evidence={id:test.id,scene:test.scene,depth:test.depth,behind:[],front:[],status:"检查中"};evidence.push(record);
   try{
     world.clearInput();world.paused=true;world.actorHidden=true;
     world.onLighting=()=>{};world.onEffects=()=>{};world.onOverlay=()=>{};world.onDraw=()=>{};
@@ -176,9 +183,7 @@ async function verify(test:DepthCase){
       world.getDepthLayers=()=>[{y:baked.depth,draw:c=>world.drawMapCover(c,baked,shape)},probe(test.depth-1)];
       drawNow();record.mask=points.map(sample);
     } else if(!test.existingOutline || test.fragments){
-      // Use World.draw and drawMapFragment, never a duplicate polygon renderer.
-      // Removing unrelated foliage only for this extra mask check lets a tree
-      // in front of the west alcove coexist with a genuinely transparent arch.
+      // Isolate the actual map fragment separately from neighbouring scenery.
       world.getDepthLayers=()=>[{y:target!.y,draw:c=>{for(const outline of test.fragments??[target!.points])world.drawMapFragment(c,outline);}},probe(test.depth-1)];
       drawNow();record.mask=points.map(sample);
     }
@@ -197,8 +202,8 @@ async function verify(test:DepthCase){
       drawNow();photo("固定脚点近看：人物在花冠后方，检查花叶间是否混入地砖/草地");
     }
     assert(record.behind.slice(0,test.solid.length).every(p=>!pink(p)),"柱后人物压在实体拱顶上");
-    assert(record.behind.slice(test.solid.length).every((p,i)=>test.occludedClear?.includes(i)?!pink(p):pink(p,test.subpixelClear?.includes(i)?40:3)),"完整场景门洞/地面遮挡不符合实景");
-    assert(record.front.every((p,i)=>i>=test.solid.length&&test.occludedClear?.includes(i-test.solid.length)?!pink(p):pink(p)),"柱前人物遮挡不符合实景");
+    assert(record.behind.slice(test.solid.length).every((p,i)=>pink(p,test.subpixelClear?.includes(i)?40:3)),"完整场景门洞/地面遮挡不符合实景");
+    assert(record.front.every(p=>pink(p)),"柱前人物遮挡不符合实景");
     if(record.mask){
       assert(record.mask.slice(0,test.solid.length).every(p=>!pink(p)),"单片拱顶遮罩未覆盖实体");
       assert(record.mask.slice(test.solid.length).every((p,i)=>pink(p,test.subpixelClear?.includes(i)?40:3)),"门洞/地面被单片前景贴图擦除");

@@ -6,6 +6,7 @@ import {
 } from "../src/town-attraction-layout.ts";
 import { townForeground } from "../src/town-foreground.ts";
 import { townCanopies } from "../src/town-scenery.ts";
+import { bakeryPennants } from "../src/bakery-pennants.ts";
 import "./build-town-pond-mask.mjs";
 
 const assets = new URL("../src/assets/", import.meta.url);
@@ -15,7 +16,32 @@ const mapSize = { width: 3072, height: 2048 };
 const cell = { width: 316, height: 224, baseline: 216 };
 const frames = { stump: 0, moon: 1, cloud: 2, board: 3, ring: 4, smallRing: 5, rabbit: 7, kite: 9, flightPad: 10 };
 const source = sharp(file(artwork, "设施图集.webp"));
-const map = sharp(file(assets, "anniversary-town-hd-v13.png"));
+const xy = points => points.map(({x,y}) => `${x},${y}`).join(" ");
+const clothColors = ["#fff1a8","#f8e6e3","#ffb8c2","#fff3c7","#ffebe7","#ffb8be","#ffe8bf"];
+const silks = bakeryPennants.map(({cord,cloth}, i) => {
+  const [a,b] = cord;
+  const panel = cloth.length ? `<defs><linearGradient id="silk${i}" x2="1" y2="1"
+    gradientUnits="objectBoundingBox"><stop stop-color="#fff7e6"/><stop offset=".32" stop-color="${clothColors[i]}"/>
+    <stop offset=".78" stop-color="${clothColors[i]}"/><stop offset="1" stop-color="#ef9caa"/></linearGradient></defs>
+    <polygon points="${xy(cloth)}" fill="url(#silk${i})"
+    stroke="#dc2455" stroke-width="1.2" stroke-linejoin="round"/>
+    <path d="M${cloth[0].x+1} ${cloth[0].y+1.35} L${cloth[1].x-.6} ${cloth[1].y+1.1}
+      L${cloth[0].x+1.2} ${cloth[0].y+3.45}Z" fill="#f49fb1"/>
+    <path d="M${cloth[0].x+1} ${cloth[0].y+1} L${cloth[1].x-.6} ${cloth[1].y+.75}"
+      fill="none" stroke="#fff1df" stroke-width=".4"/>` : "";
+  return `${panel}<path d="M${a.x} ${a.y}L${b.x} ${b.y}" stroke="#d32456"
+    stroke-width="1.52" stroke-linecap="round"/>
+    <path d="M${a.x} ${a.y-.32}L${b.x} ${b.y-.32}" stroke="#ed5c7b"
+    stroke-width=".36" stroke-linecap="round"/>`;
+}).join("");
+const silkArt = svg(456, 552, `<g transform="scale(6) translate(-744 -246)">${silks}
+  <path d="M810.7 250l5-1.3m-4.8 2.6l5.2-1.3m-3.1 1.7l2.1 2.7"
+    fill="none" stroke="#aa3250" stroke-width="1.3" stroke-linecap="round"/>
+  <path d="M811 249.8l4.2-1m-2.8 2.1l2.7-.8" fill="none" stroke="#f5a9ad" stroke-width=".5"/>
+  </g>`);
+const apron = await sharp(silkArt).resize(152,184).blur(.38).png().toBuffer();
+const map = sharp(await sharp(file(assets, "anniversary-town-hd-v13.png"))
+  .composite([{ input: apron, left:1488, top:492 }]).png().toBuffer());
 
 async function tile(name) {
   const index = frames[name];

@@ -69,6 +69,8 @@ export function resolveCue(spot: Hotspot, scene: SceneId): InteractionCue {
       tall ? [-35, -72, 70, 76] : [-27, -20, 54, 30], true);
   }
   const known = objects[spot.id];
+  if (spot.id === "apple" && scene === "garden")
+    return cue("collect", spot.title, 11, -11, [-21, -23, 42, 28], false, "拿苹果");
   if (known) return known;
   if (spot.id === "npc-cat")
     return cue("pet", "摸摸奶糖", 10, -24, [-17, -29, 34, 33]);

@@ -24,10 +24,10 @@ export function worldTime(elapsed: number) {
     label: `${String(Math.floor(hours)).padStart(2, "0")}:${String(Math.floor((hours % 1) * 60)).padStart(2, "0")}`,
   };
 }
-export function untilNextPhase(elapsed: number) {
-  const { hours } = worldTime(elapsed);
-  const next = [5, 8, 17, 20, 29].find((hour) => hour > hours + 0.001)!;
-  return ((next - hours) / 24) * DAY_SECONDS + 0.01;
+export function untilNextPhase(elapsed: number, displayedPhase = worldTime(elapsed).phase) {
+  const nextHour = { dawn: 8, day: 17, dusk: 20, night: 5 }[displayedPhase];
+  const hoursAhead = (nextHour - worldTime(elapsed).hours + 24) % 24;
+  return hoursAhead / 24 * DAY_SECONDS + 0.01;
 }
 export function eggAvailable(id: string, phase: Phase) {
   return id === "dew"

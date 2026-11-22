@@ -6,6 +6,7 @@ export interface Light {
   y: number;
   radius: number;
   color: string;
+  window?: boolean;
 }
 const warm = (x: number, y: number, radius = 48): Light => ({
   x,
@@ -19,7 +20,7 @@ export const sceneLights: Record<SceneId, Light[]> = {
   room: [
     warm(558, 76, 70),
     warm(45, 158, 72),
-    { x: 300, y: 40, radius: 95, color: "#9ab9ef" },
+    { x: 300, y: 40, radius: 95, color: "#9ab9ef", window: true },
   ],
   garden: [
     [351, 142],

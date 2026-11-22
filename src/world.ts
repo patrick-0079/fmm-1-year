@@ -1,7 +1,8 @@
 import type { AchievementEvent } from "./achievement-events";
 import type { Phase } from "./day";
 import roomUrl from "./assets/room-interactive.webp";
-import gardenUrl from "./assets/garden-lanes-v18.webp";
+import gardenUrl from "./assets/anniversary-garden-tree-free.webp";
+import appleBasketUrl from "./assets/apple-basket.webp";
 import challengeUrl from "./assets/courage-garden.webp";
 import spriteUrl from "./assets/nemu-sprites.webp";
 import restUrl from "./assets/fufu-rest-poses.webp";
@@ -30,6 +31,7 @@ import { enteredMoonCircle } from "./meadow-map";
 import { surfaceOutline } from "./collision";
 import { trapFootprint } from "./trap-art";
 import { drawGardenHazard } from "./garden-hazards";
+import { courageFlowerLayers, courageFlowerUrl } from "./courage-flower-art";
 import { drawDoorRug } from "./door-rug";
 import {
   advancePath,
@@ -60,7 +62,7 @@ const art = {
 };
 const sceneTextures: Record<SceneId, string[]> = {
   room: [roomUrl, spriteUrl, restUrl, wreathUrl, rewardsUrl],
-  garden: [gardenUrl, orchardAtlasUrl], challenge: [challengeUrl, orchardAtlasUrl, trapsUrl],
+  garden: [gardenUrl, appleBasketUrl, orchardAtlasUrl], challenge: [challengeUrl, orchardAtlasUrl, trapsUrl, courageFlowerUrl],
   town: [townUrl], meadow: [meadowUrl, meadowAtlasUrl], ruins: [ruinsUrl, wellUrl],
 };
 export interface DepthLayer {
@@ -101,6 +103,13 @@ export class World {
   private exitWalk?: (now: number) => void;
   private targetEvent: string | null = null;
   get pendingInteractionId() { return this.targetEvent; }
+  cancelUnavailableTarget() {
+    if (this.targetEvent && !this.config.spots.some(s => s.id === this.targetEvent && this.available(s))) {
+      this.path = [];
+      this.targetEvent = null;
+      this.walking = false;
+    }
+  }
   facing: Facing = 0;
   private walking = false;
   private time = 0;
@@ -480,6 +489,7 @@ export class World {
   get meadowSprites() { return this.images.get(meadowAtlasUrl); }
   get echoWell() { return this.images.get(wellUrl); }
   get orchardSprites() { return this.images.get(orchardAtlasUrl); }
+  get appleBasket() { return this.images.get(appleBasketUrl); }
   private paintMap(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
     const background = this.sceneryArtwork;
     if (!background) return;
@@ -717,10 +727,7 @@ export class World {
     }
     this.immunity = Math.max(0, this.immunity - dt);
     if (this.restState) return;
-    if (this.targetEvent && !this.config.spots.some(s => s.id === this.targetEvent && this.available(s))) {
-      this.path = [];
-      this.targetEvent = null;
-    }
+    this.cancelUnavailableTarget();
     const before = { ...this.player };
     if (this.path.length) {
       const result = advancePath(this.player, this.path, dt, this.config);
@@ -882,6 +889,7 @@ export class World {
     };
     const layers = [
       ...this.getDepthLayers(),
+      ...(this.scene === "challenge" ? courageFlowerLayers(this.images.get(courageFlowerUrl)) : []),
       ...connectionLayers(this.scene),
       { y: this.player.y, draw: drawPlayer },
     ];

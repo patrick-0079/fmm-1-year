@@ -45,13 +45,14 @@ test("switching full → invitation → full cleans the deployed directory", asy
   assert.ok(explicit.files.some(name => name.startsWith("assets/anniversary-town-v13-")));
   assert.ok(explicit.files.some(name => name.startsWith("assets/anniversary-town-hd-v13-")));
   assert.ok(explicit.files.some(name => name.startsWith("assets/town-playground-animation-")));
-  const residentArt = ["town-work-poses", "garden-guest-routines", "gardener-hat", "guardian-moonstone", "meadow-jelly-bells"];
+  const gameArt = ["town-work-poses", "garden-guest-routines", "gardener-hat", "guardian-moonstone", "meadow-jelly-bells",
+    "anniversary-garden-tree-free", "apple-basket", "courage-tall-flowers"];
   const walkSheets = await readdir(new URL("../src/assets/resident-walk/", import.meta.url));
   for (const sheet of walkSheets) {
     const prefix = "assets/" + sheet.slice(0, -5) + "-";
     assert.ok(explicit.files.some(file => file.startsWith(prefix) && file.endsWith(".webp")), sheet);
   }
-  for (const name of residentArt) {
+  for (const name of gameArt) {
     assert.ok(explicit.files.some(file => file.startsWith(`assets/${name}-`)), name);
   }
   assert.ok(!explicit.files.some(name => /assets\/town-(?:attractions|wish-lawn)-/.test(name)));
@@ -75,7 +76,7 @@ test("switching full → invitation → full cleans the deployed directory", asy
     assert.match(file, /^(?:assets|index\.html|release\.json|favicon\.svg|_headers|assets\/(?:[\w.-]+\.(?:js|css)|launch-(?:cottage|fufu|fox-letter|player)-[\w-]+\.webp|fufu-cursor-(?:arrow|play)-[\w-]+\.(?:svg|png)))$/);
     if (/\.(?:js|css|html)$/.test(file)) {
       const body = await readFile(join(outDir, file), "utf8");
-      for (const name of residentArt) assert.ok(!body.includes(name), name);
+      for (const name of gameArt) assert.ok(!body.includes(name), name);
       assert.doesNotMatch(body, /room-interactive|nemu-sprites|town-guests|anniversary-town|town-playground|patrick-camp|texture-cache\.js|rabe-anniversary-letter|patrick-anniversary-letter|star-xiaoye|star-zhenghao|成为了芙妮宝星|CharaStudio|stationery-|1-year\/picture\/|\.mp4\b/);
     }
   }

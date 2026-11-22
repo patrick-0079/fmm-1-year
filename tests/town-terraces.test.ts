@@ -50,3 +50,15 @@ test("every town interaction can still be reached at its exact approach point", 
     assert.deepEqual(path?.at(-1), spot.approach, spot.id);
   }
 });
+
+test("streetlamp feet stop a walker without closing the path around their posts", () => {
+  const stand = (x: number, y: number) => canStand({x,y}, town.walls, town.bounds, town.floor, town.surfaces);
+  for (const [x,y] of [[1043,197],[1163,125],[1220,94],[1277,151],[1344,62],[1389,268],
+    [1328,532],[585,950],[472,710],[392,891],[446,813]]) {
+    assert.equal(stand(x,y),false,`lamp foot at ${x},${y}`);
+  }
+  for (const [x,y] of [[1059,197],[1179,125],[1204,94],[1261,151],[1312,532],[1344,532],
+    [569,950],[601,950],[488,710],[430,813],[462,813]]) {
+    assert.equal(stand(x,y),true,`paving beside lamp at ${x},${y}`);
+  }
+});

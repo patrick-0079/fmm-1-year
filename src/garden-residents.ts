@@ -20,15 +20,21 @@ export interface GardenPerformer {
 }
 const home = Object.fromEntries([...gardenGuests, { ...suyanSpot, id: "suyan" }].map(n => [n.id,{x:n.x,y:n.y}])) as Record<GuestKey,Point>;
 const routes = {
-  "balloon-friend": { day:true, near:home["balloon-friend"], door:{x:256,y:343}, pause:12, wall:"庭院来宾 · 星星" },
-  "picnic-friend": { day:true, near:{x:617,y:395}, door:{x:560,y:276}, pause:11, wall:"庭院来宾 · 晴糖" },
-  decorator: { day:false, near:{x:317,y:413}, door:{x:270,y:344}, pause:9, wall:"庭院来宾 · 霉霉" },
-  suyan: { day:false, near:{x:635,y:175}, door:{x:558,y:169}, pause:15, wall:"来宾 · 苏颜" },
+  "balloon-friend": { phases:["dawn","day"], near:home["balloon-friend"], door:{x:256,y:343}, pause:12, wall:"庭院来宾 · 星星" },
+  "picnic-friend": { phases:["day","dusk"], near:{x:617,y:395}, door:{x:560,y:276}, pause:11, wall:"庭院来宾 · 晴糖" },
+  decorator: { phases:["night","dawn"], near:{x:317,y:413}, door:{x:270,y:344}, pause:9, wall:"庭院来宾 · 霉霉" },
+  suyan: { phases:["dusk","night"], near:{x:635,y:175}, door:{x:558,y:169}, pause:15, wall:"来宾 · 苏颜" },
 };
 const keys = Object.keys(routes) as GuestKey[];
 const gap=(a:Point,b:Point)=>Math.hypot(a.x-b.x,a.y-b.y);
 export function gardenWorking(key:GuestKey,phase:Phase) {
-  return routes[key].day === (phase === "day" || phase === "dawn");
+  return routes[key].phases.includes(phase);
+}
+function atHome(key:GuestKey, phase:Phase): GardenPerformer {
+  return {
+    foot:{...home[key]}, mode:gardenWorking(key,phase) ? "working" : "away",
+    step:0, moving:false, facing:0, wait:routes[key].pause-5, alternate:false, route:[], detourIn:0,
+  };
 }
 interface MapCopy {
   map: Scene;
@@ -47,6 +53,7 @@ export class GardenResidents {
   private player?: Point;
   private base?: Scene;
   private speaker?: GuestKey;
+  private heldAfterJump?: GuestKey;
   private yielding = "";
 
   get(key:GuestKey) { return this.actors.get(key)!; }
@@ -56,15 +63,23 @@ export class GardenResidents {
     if (yes) this.speaker=key;
     else if (this.speaker===key) this.speaker=undefined;
   }
-  leave() { this.present=false; this.speaker=undefined; }
+  leave() { this.present=false; this.speaker=undefined; this.heldAfterJump=undefined; }
 
   private enter(phase:Phase) {
     if (this.present) return;
     this.present=true;
-    for (const key of keys) this.actors.set(key,{
-      foot:{...home[key]}, mode:gardenWorking(key,phase) ? "working" : "away",
-      step:0, moving:false, facing:0, wait:routes[key].pause-5, alternate:false, route:[],detourIn:0,
-    });
+    for (const key of keys) this.actors.set(key,atHome(key,phase));
+    this.revision++;
+  }
+  syncShift(phase:Phase, player:Point) {
+    this.enter(phase);
+    this.player=player;
+    this.heldAfterJump=this.speaker && !gardenWorking(this.speaker,phase) ? this.speaker : undefined;
+    for (const key of keys) {
+      const actor=this.get(key);
+      const mode=gardenWorking(key,phase) ? "working" : "away";
+      if (key!==this.speaker && actor.mode!==mode) this.actors.set(key,atHome(key,phase));
+    }
     this.revision++;
   }
   private copy(base:Scene) {
@@ -120,6 +135,13 @@ export class GardenResidents {
 
   tick(dt:number,phase:Phase,player:Point,pending:string|null,still:boolean,inView:(p:Point)=>boolean,quiet=false) {
     if (!this.present || !this.base) return;
+    if (this.heldAfterJump && this.speaker!==this.heldAfterJump) {
+      if (!gardenWorking(this.heldAfterJump,phase)) {
+        const actor=this.get(this.heldAfterJump);
+        actor.mode="away"; actor.moving=false; actor.route=[]; this.revision++;
+      }
+      this.heldAfterJump=undefined;
+    }
     this.player=player;
     // Only crossings of a footprint boundary require rebuilding the wall list.
     const copy=this.copy(this.base);

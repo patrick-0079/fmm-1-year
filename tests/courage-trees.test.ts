@@ -3,7 +3,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { canTravelBetween, obstacleContainsFoot, polygonContains } from "../src/core.ts";
-import { creeks, gardenTrees } from "../src/landscape.ts";
+import { creeks, challengeTrees } from "../src/landscape.ts";
 import { scenes } from "../src/maps.ts";
 
 const garden = scenes.challenge;
@@ -15,7 +15,7 @@ test("every trunk in the courage garden stands on painted lawn clear of the stre
     .resize(garden.width, garden.height, { fit: "fill" })
     .removeAlpha().raw().toBuffer({ resolveWithObject: true });
   const apple = garden.spots.find(spot => spot.id === "apple")!;
-  const trees = [...gardenTrees.challenge, { ...apple, scale: 1 }];
+  const trees = [...challengeTrees, { ...apple, scale: 1 }];
   const roots = garden.walls.filter(wall => wall.label === "花园树根");
   assert.equal(roots.length, trees.length);
 

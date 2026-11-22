@@ -57,13 +57,34 @@ function initialize(n: TownNpc, i: number, phase: Phase): ResidentMotion {
 export class TownRoutines {
   readonly people = new Map<TownResidentId,ResidentMotion>();
   private phase: Phase = "day";
+  private heldAfterJump?: TownResidentId;
   constructor(phase: Phase = "day") { this.enter(phase); }
   enter(phase: Phase) {
     this.phase=phase;
+    this.heldAfterJump=undefined;
     TOWN_NPCS.forEach((n,i)=>this.people.set(n.id,initialize(n,i,phase)));
   }
 
+  syncShift(phase:Phase, speaking?:TownResidentId) {
+    this.phase=phase;
+    this.heldAfterJump=speaking && !worksInTown(speaking,phase) ? speaking : undefined;
+    TOWN_NPCS.forEach((npc,index)=>{
+      const actor=this.people.get(npc.id)!;
+      const status=worksInTown(npc.id,phase) ? "present" : "absent";
+      if (npc.id!==speaking && actor.status!==status) {
+        Object.assign(actor,initialize(npc,index,phase));
+      }
+    });
+  }
+
   tick(dt:number, phase:Phase, player:Point, view:Rect, held:string|null, speaking:string|undefined, still:boolean) {
+    if (this.heldAfterJump && speaking!==this.heldAfterJump) {
+      if (!worksInTown(this.heldAfterJump,phase)) {
+        const actor=this.people.get(this.heldAfterJump)!;
+        actor.status="absent"; actor.walking=false; actor.route=[];
+      }
+      this.heldAfterJump=undefined;
+    }
     if (!dt && phase===this.phase) return;
     this.phase=phase;
     // Continue the two moving feet already in view before offering a new turn to a neighbour.

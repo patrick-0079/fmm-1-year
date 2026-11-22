@@ -1,4 +1,9 @@
 import type { Point } from "./core.ts";
+import { bakeryPennants, bakeryPostKnot } from "./bakery-pennants.ts";
+import {
+  workshopBluePostbox, workshopWestFlowers, workshopEastFlowers,
+  workshopLampMast, workshopLampWestFlag, workshopLampEastFlag,
+} from "./workshop-contours.ts";
 
 export interface TownForeground {
   id: string;
@@ -86,6 +91,12 @@ export const playgroundForeground = [
 /** Native 1536 × 1024 map coordinates. These concave silhouettes leave the
  * stair openings untouched; repainting their bounding rectangles erases walkers. */
 export const townForeground: TownForeground[] = [
+  shape("workshop-blue-postbox", 526, workshopBluePostbox),
+  shape("workshop-rose-border-west", 560, workshopWestFlowers),
+  shape("workshop-rose-border-east", 578, workshopEastFlowers),
+  shape("workshop-junction-lamp", 396, workshopLampMast),
+  shape("workshop-junction-lamp-west-flag", 396, workshopLampWestFlag),
+  shape("workshop-junction-lamp-east-flag", 396, workshopLampEastFlag),
   ...playgroundForeground,
   shape("flower-arch", 328, [
     [208,327],[202,324],[201,319],[202,314],[201,307],[199.5,303],
@@ -191,15 +202,10 @@ export const townForeground: TownForeground[] = [
     [520,199],[514,199],
   ]),
   shape("bakery-stair-pennants", 362, [
-    [716,310],[724,315],[734,319],[745,323],[753,324],[765,324],
-    [776,324],[787,321],[796,318],[806,313],[814,307],[818,302],
-    [819,303],[817,307],[815,310],[814,319],[812,322],[810,322],
-    [803,316],[803,323],[802,326],[800,326],[793,320],[792,325],
-    [791,329],[790,332],[788,332],[783,325],[779,334],[777,337],
-    [775,336],[771,328],[768,334],[767,337],[765,337],[761,329],
-    [755,338],[753,338],[747,327],[741,335],[738,336],[734,325],
+    [716,310],[724,315],[734,319],[746,323],[746,326],[741,335],[738,336],[734,325],
     [727,332],[724,332],[721,319],[716,316],
   ]),
+  ...bakeryPennants, bakeryPostKnot,
   shape("plaza-west-pennants", 441, [
     [594,380],[607,380],[614,378],[623,375],[631,372],[638,369],
     [645,365],[647,365],[647,369],[645,374],[644,378],[642,378],

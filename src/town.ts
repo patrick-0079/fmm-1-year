@@ -10,9 +10,9 @@ import { TownRoutines, worksInTown } from "./town-routines";
 import { prepareTownWork } from "./town-work-art";
 import { prepareResidentWalk } from "./resident-walk";
 import type { SceneId } from "./maps";
-import { townForeground } from "./town-foreground";
+import { townMapCovers } from "./town-map-covers";
 import { townScene } from "./town-map";
-import { drawWishLights, townAttractionLayers, townPlaygroundCovers } from "./town-attraction-art";
+import { drawWishLights, townAttractionLayers } from "./town-attraction-art";
 import type { GameId } from "./arcade-engines";
 import npcUrl from "./assets/town-npcs.webp";
 import { drawPartyProp } from "./party-art";
@@ -21,7 +21,6 @@ import { drawTownCrown, drawTownWeather, windAllowance } from "./scenery-wind";
 import {
   townCanopies,
   festivalProps,
-  drawTownSigns,
   drawFestivalProp,
 } from "./town-scenery";
 export const TOWN_TALKED_KEY = "fufu-town-talked-v1";
@@ -84,6 +83,10 @@ export class Town {
     };
   }
   get talkedIds(): ReadonlySet<string> { return this.visited; }
+  syncShift() {
+    this.lives.syncShift(this.world.currentPhase,this.act?.npc.id);
+    this.residents.update(this.world.player,this.act?.npc.id,this.placement?.foot,this.lives.people);
+  }
   enterScene(scene:SceneId) {
     this.act=undefined;
     this.placement=undefined;
@@ -213,11 +216,7 @@ export class Town {
     const visible = (x: number, y: number) =>
       x + 64 >= view.x && x - 64 <= view.x + view.w && y + 18 >= view.y && y - 76 <= view.y + view.h;
     return [
-      ...townPlaygroundCovers(this.world),
-      ...townForeground.map(part => ({
-        y: part.y,
-        draw: (c: CanvasRenderingContext2D) => this.world.drawMapFragment(c, part.points),
-      })),
+      ...townMapCovers(this.world),
       ...townCanopies.map((t) => ({
         y: t.y,
         draw: (c: CanvasRenderingContext2D) => {
@@ -264,7 +263,6 @@ export class Town {
     if (this.world.scene !== "town") return;
     this.pond.draw(c, this.world.visibleArea, this.time, this.reducedMotion.matches);
     if (!this.reducedMotion.matches) drawTownWeather(c,this.world);
-    drawTownSigns(c);
     drawWishLights(c, this.time, this.reducedMotion.matches);
   }
 }

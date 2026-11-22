@@ -1,4 +1,5 @@
 import type { Phase } from "./day";
+import type { DaylightMix } from "./daylight-mix";
 import { sceneArt } from "./scene-art";
 
 const masks = new WeakMap<HTMLImageElement, Path2D>();
@@ -75,7 +76,7 @@ function glassMask(artwork: HTMLImageElement) {
 /** Trace the actual glass, leaving the mullions, curtains and sill untouched. */
 export function drawRoomWindow(
   c: CanvasRenderingContext2D,
-  phase: Phase,
+  phase: Phase | DaylightMix,
   artwork?: HTMLImageElement,
   time = 0,
 ) {
@@ -120,10 +121,20 @@ export function drawRoomWindow(
   }
   c.clip();
   if (artwork?.complete && artwork.naturalWidth) c.clip(glassMask(artwork));
-  const index = { dawn: 0, day: 1, dusk: 2, night: 3 }[phase];
   c.imageSmoothingEnabled = false;
-  c.drawImage(sky, index % 2 * 768, Math.floor(index / 2) * 512 + 28,
-    768, 317, 220, 0, 160, 66);
-  skyMotion(c, sky, phase, time);
+  const paneSky = (stop: Phase, opacity: number) => {
+    const index = { dawn: 0, day: 1, dusk: 2, night: 3 }[stop];
+    c.save();
+    c.globalAlpha *= opacity;
+    c.drawImage(sky, index % 2 * 768, Math.floor(index / 2) * 512 + 28,
+      768, 317, 220, 0, 160, 66);
+    skyMotion(c, sky, stop, time);
+    c.restore();
+  };
+  if (typeof phase === "string") paneSky(phase, 1);
+  else {
+    paneSky(phase.from, 1);
+    if (phase.mix > 0) paneSky(phase.to, phase.mix);
+  }
   c.restore();
 }

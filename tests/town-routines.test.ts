@@ -75,3 +75,22 @@ test("crowded camera allows at most two walking residents, spectators keep their
   for(let i=0;i<600;i++)r.tick(.05,"dusk",empty,view,null,undefined,true);
   for(const a of r.people.values())assert.equal(a.odometer,0);
 });
+test("manual changes settle all commutes while keeping an off-duty letter author at their current foot",()=>{
+  const cast=new TownRoutines("day"), map=new TownResidentMap(street);
+  cast.tick(.05,"dusk",empty,view,null,"xiaoyou",false);
+  const author=cast.people.get("xiaoyou")!;
+  const foot={x:author.x,y:author.y};
+  for (const phase of ["night","dawn","night"] as const) {
+    cast.syncShift(phase,"xiaoyou");
+    cast.tick(0,phase,empty,view,null,"xiaoyou",false);
+    map.update(empty,undefined,undefined,cast.people);
+    assert.equal(map.scene.spots.filter(s=>s.id.startsWith("npc-")).length,11);
+    assert.ok(map.scene.spots.includes(map.anchor("xiaoyou")));
+    assert.deepEqual({x:author.x,y:author.y},foot);
+    assert.ok([...cast.people.values()].every(a=>a.status==="present" || a.status==="absent"));
+  }
+  cast.tick(0,"night",empty,view,null,undefined,false);
+  map.update(empty,undefined,undefined,cast.people);
+  assert.equal(map.scene.spots.filter(s=>s.id.startsWith("npc-")).length,10);
+  assert.equal(map.scene.spots.includes(map.anchor("xiaoyou")),false);
+});

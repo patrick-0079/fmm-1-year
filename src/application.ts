@@ -316,6 +316,11 @@ export function mountGame() {
   const town = new Town(world, activities, inventory, id => visit(ARCADES[id].scene, "arcade-"+id),
     { story: () => progress.residents, mail, save, notify: toast });
   const gardenLife = new GardenLife(world, activities, inventory, () => progress, save);
+  nature.onTimeJump = () => {
+    if (world.scene === "garden") gardenLife.residents.syncShift(world.currentPhase,world.player);
+    if (world.scene === "town") town.syncShift();
+    world.cancelUnavailableTarget();
+  };
   const xiaoye = new Xiaoye(world, activities, mail, () => world.currentPhase);
   const suyan = new Suyan(world, activities, mail, gardenLife.residents);
   const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);

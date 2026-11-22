@@ -1,5 +1,7 @@
 import type { Point } from "./core";
 import type { Creek, GardenTree } from "./landscape";
+import type { DaylightMix } from "./daylight-mix";
+import type { Phase } from "./day";
 import { creekDrift, drawDrift } from "./creek-drift";
 import { drawTreeInBreeze } from "./scenery-wind";
 function path(c: CanvasRenderingContext2D, points: Point[]) {
@@ -7,11 +9,22 @@ function path(c: CanvasRenderingContext2D, points: Point[]) {
   points.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
   c.closePath();
 }
+const waterReflection: Record<"garden" | "challenge", Record<Phase, readonly string[]>> = {
+  garden: {
+    dawn: ["#81b8bf", "#acd7cd", "#f1dcb7"], day: ["#66b9bb", "#6ac7d0", "#499fae"],
+    dusk: ["#e5b396", "#bfa2b0", "#7d99af"], night: ["#466d88", "#739dab", "#53788f"],
+  },
+  challenge: {
+    dawn: ["#70a5ac", "#9ec8bd", "#e0dbb0"], day: ["#66b9bb", "#6ac7d0", "#499fae"],
+    dusk: ["#cead86", "#9e9fa0", "#6f8e9d"], night: ["#45677f", "#76a2ac", "#426e81"],
+  },
+};
 export function drawCreek(
   c: CanvasRenderingContext2D,
   creek: Creek,
   t: number,
   scene: "garden" | "challenge",
+  light: DaylightMix,
 ) {
   c.save();
   c.lineJoin = "round";
@@ -28,12 +41,17 @@ export function drawCreek(
     c.strokeStyle = "#acbd82";
     c.lineWidth = 8;
     c.stroke();
-    const gradient = c.createLinearGradient(minX, 0, maxX, 0);
-    gradient.addColorStop(0, "#66b9bb");
-    gradient.addColorStop(0.5, "#6ac7d0");
-    gradient.addColorStop(1, "#499fae");
-    c.fillStyle = gradient;
-    c.fill();
+    const reflect = (phase: Phase, strength: number) => {
+      const gradient = c.createLinearGradient(minX, 0, maxX, 0);
+      waterReflection[scene][phase].forEach((color, i) => gradient.addColorStop(i / 2, color));
+      c.save();
+      c.globalAlpha *= strength;
+      c.fillStyle = gradient;
+      c.fill();
+      c.restore();
+    };
+    reflect(light.from, 1);
+    if (light.mix > 0) reflect(light.to, light.mix);
     c.strokeStyle = "#3c94a4";
     c.lineWidth = 1.5;
     c.stroke();

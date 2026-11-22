@@ -1,5 +1,6 @@
 import type { Geometry, Hazard, Point } from "./core.ts";
-import { gardenTrees, creeks } from "./landscape.ts";
+import { challengeTrees, creeks } from "./landscape.ts";
+import { courageFlowerRoots } from "./courage-flowerbeds.ts";
 import { townScene } from "./town-map.ts";
 import { fenceSegments } from "./fences.ts";
 import { gardenGuests } from "./garden-guests.ts";
@@ -252,6 +253,7 @@ export const scenes: Record<SceneId, Scene> = {
       { label: "右上长椅", x: 570, y: 103, w: 46, h: 22 },
       { label: "右上双人椅", x: 637, y: 103, w: 42, h: 22 },
       { label: "左侧长椅", x: 85, y: 251, w: 47, h: 24 },
+      { label: "气球摊西侧灯串柱", x: 135, y: 238, w: 6, h: 9 },
       polygon("小电视路牌底座", [[185,459],[211,459],[216,473],[212,482],[185,482],[180,474]]),
       polygon("打卡站花盆", [[124,463],[143,463],[145,469],[141,478],[127,478],[122,471]]),
       polygon("打卡站行李", [[155,472],[171,468],[180,476],[178,486],[157,486]]),
@@ -477,15 +479,18 @@ for (const guest of gardenGuests) {
     h: 9,
   });
 }
-// Flat collectible patches do not block feet; only the new apple-tree trunks do.
+const appleTree = { x: 705, y: 392, scale: 1 };
+const appleBasket = { x: 315, y: 255 };
+const treeRoots = [[-4,13],[4,13],[5,18],[10,24],[7,26],[1,24],[-4,25],[-10,23],[-5,19]];
+for (const tree of [...challengeTrees, appleTree]) {
+  scenes.challenge.walls.push(polygon("花园树根", treeRoots.map(([dx,dy]) =>
+    [tree.x + dx * tree.scale, tree.y + dy * tree.scale])));
+}
+scenes.garden.walls.push(polygon("苹果果篮", [
+  [303,250],[327,250],[333,255],[326,259],[305,259],[297,255],
+]));
 for (const id of ["garden", "challenge"] as const) {
   const outdoor = scenes[id];
-  const tree = id === "garden" ? { x: 315, y: 235 } : { x: 705, y: 392 };
-  for (const trunk of [...gardenTrees[id], { ...tree, scale: 1, tone: 0 }]) {
-    const roots = [[-4,13],[4,13],[5,18],[10,24],[7,26],[1,24],[-4,25],[-10,23],[-5,19]];
-    outdoor.walls.push(polygon("花园树根", roots.map(([dx,dy]) =>
-      [trunk.x + dx*trunk.scale, trunk.y + dy*trunk.scale])));
-  }
   outdoor.walls.push(
     { label: "小溪上游", points: creeks[id].upper },
     { label: "小溪下游", points: creeks[id].lower },
@@ -497,6 +502,7 @@ for (const id of ["garden", "challenge"] as const) {
   const flowers = id === "garden" ? { x: 548, y: 410 } : { x: 170, y: 267 };
   const drop = id === "garden" ? { x: 590, y: 365 } : { x: 295, y: 225 };
   if (id === "challenge") {
+    outdoor.walls.push(...courageFlowerRoots);
     const bench = { x: 560, y: 430 };
     outdoor.walls.push(polygon("休息长椅", [
       [-27,0],[26,0],[30,6],[28,16],[22,18],[20,13],[-19,13],[-21,18],[-27,16],[-30,7],
@@ -511,12 +517,21 @@ for (const id of ["garden", "challenge"] as const) {
     });
   }
   outdoor.spots.push(
-    {
+    id === "garden" ? {
+      id: "apple",
+      title: "从果篮拿一颗苹果",
+      ...appleBasket,
+      approach: { x: appleBasket.x + 18, y: appleBasket.y + 18 },
+      radius: 38,
+      markerOffset: 20,
+      hitAreas: [{ x: appleBasket.x - 23, y: appleBasket.y - 24, w: 46, h: 29 }],
+      color: "#e99585",
+    } : {
       id: "apple",
       title: "摘一颗苹果",
-      x: tree.x,
-      y: tree.y,
-      approach: { x: tree.x + 30, y: tree.y + 31 },
+      x: appleTree.x,
+      y: appleTree.y,
+      approach: { x: appleTree.x + 30, y: appleTree.y + 31 },
       radius: 65,
       markerOffset: 61,
       color: "#e99585",
