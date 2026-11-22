@@ -6,15 +6,6 @@ import room from "../src/assets/room.webp";
 
 const modal = new Modal();
 const temporaryUrls: string[] = [];
-collections.letters.items = [
-  {
-    id: "test-letter",
-    title: "测试留言",
-    author: "<测试署名>",
-    text: "测试正文，应该显示为普通文本：<script>不会执行</script>\n第二行。",
-  },
-  { id: "test-long", title: "长留言", text: "一周年快乐。".repeat(100) },
-];
 collections.album.items = [
   { id: "test-image", title: "测试图片", src: room, alt: "测试场景图" },
   {
@@ -102,7 +93,7 @@ document.querySelectorAll<HTMLButtonElement>("[data-test]").forEach((button) =>
         "测试片段已准备好";
     }
     const id = button.dataset.test!;
-    openCollection(modal, id, id === "letters" ? { items: collections.letters.items, onRead: () => {} } : undefined);
+    openCollection(modal, id);
   }),
 );
 window.addEventListener("pagehide", () =>

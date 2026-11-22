@@ -111,8 +111,8 @@ export class CampGuest {
       return;
     }
     if (visit?.arrivalAge !== undefined) {
-      if (!this.world.paused) visit.arrivalAge = Math.min(placedAt, visit.arrivalAge + dt);
-      if (visit.arrivalAge >= placedAt && seat !== visit.seat) this.reset();
+      if (!this.world.paused) visit.arrivalAge += dt;
+      if (visit.arrivalAge >= placedAt) this.reset();
       return;
     }
     if (seat?.kind !== "sitting" || seat.scene !== "meadow") {

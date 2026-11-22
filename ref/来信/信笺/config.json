@@ -37,6 +37,7 @@
     "rabe-anniversary-letter": {
       "title": "深夜里的耳机", "motif": "rabe/motif.webp", "seal": "rabe/seal.webp",
       "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "rabe/paper.webp",
+      "paperSlices": [101, 150, 211, 198],
       "neutralStock": true, "flapTint": "#DDE3F6", "pocketTint": "#C7D2ED", "liningTint": "#667DA1",
       "paperTint": "#F1F3FA", "ink": "#35405B", "accent": "#505D82"
     },

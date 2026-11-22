@@ -27,7 +27,7 @@ export class Xiaoye {
   constructor(private world: World, private activities: Activities,
     private mail: LetterHandoff, private phase: () => Phase) {
     this.panels = Array.from(document.querySelectorAll<HTMLElement>(
-      ".inventory-panel,.map-reader,.game-letter-reader,.page-memory-reader,.inline-help",
+      ".inventory-panel,.map-reader,.game-letter-reader,.inline-help",
     ));
     const tick = world.onTick, depth = world.getDepthLayers, effects = world.onEffects,
       presentation = world.getActorPresentation;

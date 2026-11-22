@@ -11,26 +11,6 @@ export interface LetterList {
   subscribe?: (listener: (items: readonly Memory[], unreadIds: readonly string[]) => void) => () => void;
 }
 
-/** Deliveries keep the catalogue order. Insert missing envelopes around the existing buttons. */
-export function renderMailboxList(
-  list: Element,
-  letters: LetterList,
-  makeButton: (item: Memory, unread: boolean) => HTMLButtonElement,
-  onCleanup: (callback: () => void) => void,
-) {
-  const insertDeliveries = (items: readonly Memory[], unreadIds: readonly string[]) => {
-    const scrollTop = list.scrollTop;
-    items.forEach((item, index) => {
-      const next = list.children.item(index);
-      if (next?.getAttribute("data-memory-id") !== item.id)
-        list.insertBefore(makeButton(item, unreadIds.includes(item.id)), next);
-    });
-    list.scrollTop = scrollTop;
-  };
-  insertDeliveries(letters.items, letters.unreadIds ?? []);
-  if (letters.subscribe) onCleanup(letters.subscribe(insertDeliveries));
-}
-
 const envelopeArt = `<span class="mail-envelope-art" aria-hidden="true"><span class="mail-envelope-object">
   <i class="mail-paper"></i><i class="mail-pocket"></i><i class="mail-flap"></i><i class="mail-seal"></i>
 </span></span>`;

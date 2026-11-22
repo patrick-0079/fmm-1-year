@@ -79,20 +79,19 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
       <section class="page-memory-section" aria-labelledby="page-memory-title" data-page-ui>
         <div class="page-section-heading"><div><span class="eyebrow">把喜欢，妥帖收藏</span><h2 id="page-memory-title">留一格，给回忆</h2></div><p>一些写下的话，一些平常的日子。</p></div>
         <div class="page-memory-cards">
-          <button class="page-memory-card memory-letter" data-memory="letters" aria-controls="page-memory-reader">
+          <button class="page-memory-card memory-letter" data-memory="letters">
             <span class="memory-cover"><svg class="letter-envelope" viewBox="0 0 300 180" aria-hidden="true"><path d="M22 39h260v118H22z" fill="#b8a288" opacity=".15"/><rect x="17" y="30" width="266" height="122" rx="5" fill="#efdcc2" stroke="#cdb393"/><path d="M18 31h264L155 119a10 10 0 0 1-10 0Z" fill="#fff3dd" stroke="#d8c0a2"/><path d="m18 151 1-76 119 61q12 7 24 0l120-61v76Z" fill="#f8e8ce" stroke="#d6bda0"/><path d="m23 145 104-48m150 48-104-48" fill="none" stroke="#e5cfb3"/><rect x="229" y="41" width="38" height="42" fill="#fffcf0" stroke="#cbb69d" stroke-dasharray="2 2"/>${stampImage}<path d="M34 54h62m-62 7h54m-54 7h59" stroke="#d3b6a9" stroke-width="1.2"/><circle cx="150" cy="116" r="16" fill="#c590a1" stroke="#e4b9c4" stroke-width="3"/><g fill="#fff0da"><circle cx="150" cy="110" r="4"/><circle cx="156" cy="114" r="4"/><circle cx="154" cy="121" r="4"/><circle cx="146" cy="121" r="4"/><circle cx="144" cy="114" r="4"/></g><circle cx="150" cy="116" r="3" fill="#d8b576"/></svg><span class="memory-postmark" aria-hidden="true">${icon("mail")} 晚安邮局</span></span>
-            <span class="memory-card-copy"><span class="memory-card-title">晚安信箱</span><span class="memory-description">把想说的话，折成一封小小的信。</span><small></small><span class="memory-card-action">阅读来信 ${icon("arrow")}</span></span>
+            <span class="memory-card-copy"><span class="memory-card-title">晚安信箱</span><span class="memory-description">把想说的话，折成一封小小的信。</span><small></small><span class="memory-card-action">去小屋读信 ${icon("arrow")}</span></span>
           </button>
-          <button class="page-memory-card memory-album" data-memory="album" aria-controls="page-memory-reader">
+          <button class="page-memory-card memory-album" data-memory="album">
             <span class="memory-cover">${coverImage}</span>
-            <span class="memory-card-copy"><span class="memory-card-title">回忆相册</span><span class="memory-description">从草莓吐司的早晨，到轻轻说晚安。</span><small>${collections.album.items.length} 张日常回忆</small><span class="memory-card-action">翻开相册 ${icon("arrow")}</span></span>
+            <span class="memory-card-copy"><span class="memory-card-title">回忆相册</span><span class="memory-description">从草莓吐司的早晨，到轻轻说晚安。</span><small>${collections.album.items.length} 张日常回忆</small><span class="memory-card-action">去小屋看相册 ${icon("arrow")}</span></span>
           </button>
           <button class="page-memory-card cinema-shortcut memory-cinema">
             <span class="memory-cover"><img src="${cinemaCover}" alt="" loading="lazy"/><span class="cinema-play" aria-hidden="true">▶</span><span class="memory-film-label" aria-hidden="true">第一年的晚安</span></span>
             <span class="memory-card-copy"><span class="memory-card-title">周年放映</span><span class="memory-description">坐下来，一起重温这一年的小瞬间。</span><small>视频异步准备，可以先逛逛</small><span class="memory-card-action">去花园看放映 ${icon("arrow")}</span></span>
           </button>
         </div>
-        <section class="page-memory-reader" id="page-memory-reader" hidden aria-label="回忆阅读区"></section>
       </section>
       <section class="credits page-meadow-note" aria-labelledby="credits-title"><img src="${meadowCover}" alt="" loading="lazy"/><div class="credits-heading"><span class="eyebrow">还有一些喜欢，藏在星星里</span><h2 id="credits-title">草地上的署名</h2><p>集齐七色花，去夜里的花海走走。<br>拾起一颗落星，就能遇见一位制作人。</p><span class="meadow-note-sign" aria-hidden="true">✧ 愿每一份晚安，都被温柔珍藏</span></div></section>
     </main>

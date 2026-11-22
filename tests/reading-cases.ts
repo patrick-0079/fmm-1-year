@@ -157,7 +157,9 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
   checkTapSurface(world, "letters", { x: 54, y: 164 });
   checkTapSurface(world, "album", { x: 36, y: 210 });
   {
-    world.onInteract("letters");
+    q('[data-memory="letters"]').click();
+    await waitForReading(() => !reader.hidden, "首页来信卡没有带玩家走到小屋信箱");
+    expect(!document.querySelector(".page-memory-reader,.reader-change-view"), "信箱仍提供独立的页面阅读");
     const front = () => q<HTMLButtonElement>(".game-letter-reader .mail-stack button.mail-envelope");
     const unopened = front();
     if (unopened?.dataset.sealed === "true" && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -200,7 +202,8 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
   }
   {
     const previouslyOpened = book().facts.includes("photo-opened");
-    world.onInteract("album");
+    q('[data-memory="album"]').click();
+    await waitForReading(() => !reader.hidden && !!reader.querySelector(".photo-book"), "首页相册卡没有打开小屋里的相册");
     q(".photo-book-next").click();
     expect(book().facts.includes("photo-opened") === previouslyOpened, "单纯翻页错误地记作打开单张照片");
     const photo = q<HTMLButtonElement>(".photo-book-photo");
@@ -216,30 +219,6 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
     key("Escape", restored);
     expect(reader.hidden && !world.paused && document.activeElement === world.canvas, "收起相册没有恢复探索");
     log("相册翻页与单张返回均保留焦点，Esc 可逐层退出。");
-  }
-  for (const id of ["letters", "album"]) {
-    q<HTMLButtonElement>(`[data-memory="${id}"]`).click();
-    const reader = q(".page-memory-reader"), detail = q(".page-memory-reader .memory-detail");
-    const close = q(".page-reader-close");
-    expect(!reader.hidden && world.suspended, "网页阅读没有独立暂停探索");
-    close.focus({preventScroll:true});
-    for (const name of ["End", "PageDown", "Home"]) {
-      const event = new KeyboardEvent("keydown", {key:name, bubbles:true, cancelable:true});
-      close.dispatchEvent(event);
-      expect(event.defaultPrevented, "网页阅读标题按钮上的按键跳到了外部网页：" + name);
-    }
-    expect(detail.scrollTop === 0, "标题按钮上的 Home 未回到当前正文开头");
-    const list = q(".page-memory-reader .collection-list");
-    const tab = q(".page-memory-reader .collection-item");
-    key("End", tab);
-    expect(list.scrollTop + list.clientHeight >= list.scrollHeight - 2 && detail.scrollTop === 0,
-      "左侧目录上的 End 错误地滚动了正文");
-    const shortcut = new KeyboardEvent("keydown", {key:"Home", ctrlKey:true, bubbles:true, cancelable:true});
-    close.dispatchEvent(shortcut);
-    expect(!shortcut.defaultPrevented, "阅读器截获了组合键");
-    close.click();
-    expect(reader.hidden && !world.suspended, "网页阅读关闭后没有恢复探索");
-    log(id + "：网页阅读标题按钮的翻页键只控制正文，目录 End 只滚目录，组合键保持原生。");
   }
   await world.prepareScene("garden");
   world.switchScene("garden", {x:710,y:347});

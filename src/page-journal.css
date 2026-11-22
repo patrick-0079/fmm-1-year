@@ -63,7 +63,6 @@
 .page-memory-card .memory-card-action { margin-top: auto; padding-top: 12px; border-top: 1px dashed #decbbc; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 600; color: #9f6c82; min-height: 44px; }
 .memory-cinema .memory-card-action { color: #63838e; border-color: #bdcfd3; }
 .memory-card-action .icon { width: 16px; height: 16px; }
-.page-memory-reader { margin-top: 20px; }
 
 .page-journal .page-meadow-note { display: flex; align-items: center; position: relative; isolation: isolate; overflow: hidden; border: 1px solid #aebbb0; border-radius: 10px; margin-top: 42px; padding: 30px 36px; min-height: 215px; text-align: left; background: #30413e; }
 .page-meadow-note > img { position: absolute; inset: 0 0 0 auto; width: 67%; height: 100%; object-fit: cover; object-position: 50% 52%; z-index: -2; }

@@ -1,4 +1,4 @@
-import { anniversary, encouragements, type Memory } from "./content";
+import { anniversary, collections, encouragements, type Memory } from "./content";
 import { EVENT_IDS, GAME_IDS, SAVE_KEY, readProgress } from "./core";
 import { mergeCollections } from "./shared-collections";
 import { mergeAchievementProgress, migrateAchievementFacts, reconcileAchievements, recordAchievementFact } from "./achievements";
@@ -13,7 +13,6 @@ import { resolveCue } from "./interaction-cues";
 import { Activities } from "./activities";
 import { BedNote } from "./bed-note";
 import { MapReader } from "./reader";
-import { PageMemoryReader } from "./page-memory-reader";
 import { Inventory } from "./inventory";
 import { Arcade } from "./arcade";
 import { Town, TOWN_TALKED_KEY } from "./town";
@@ -40,7 +39,8 @@ import { RoomFox } from "./room-fox";
 import { mountDebugPanel } from "./debug-panel";
 import { meadowOpen } from "./rainbow-flowers";
 import { JOURNEY_KEY, readJourney, type Journey } from "./journey";
-import { openCollection, type CollectionSurface } from "./media";
+import { openCollection } from "./media";
+import { renderGameMailDesk } from "./game-mail-desk";
 import {
   chime,
   setSound,
@@ -78,35 +78,35 @@ export function mountGame() {
   // The guide stays clickable during the brief gate fade. Honor its latest
   // destination as soon as the current crossing has finished.
   let afterCrossing: (() => void) | undefined;
-  let readingRequest = 0;
   const world = new World(document.querySelector("#world")!);
   const revealMapIfOffscreen = () => {
     const board=world.canvas.parentElement!, rect=board.getBoundingClientRect();
     if (rect.bottom<=0 || rect.top>=window.innerHeight) board.scrollIntoView({block:"nearest",behavior:"instant"});
   };
   const reader = new MapReader(world);
-  const pageReader = new PageMemoryReader(world);
   const mailboxListeners = new Set<(items: readonly Memory[], unreadIds: readonly string[]) => void>();
-  const mailCount = document.querySelector<HTMLElement>('[data-memory="letters"] small')!;
+  const mailCard = document.querySelector<HTMLButtonElement>('[data-memory="letters"]')!;
+  const albumCard = document.querySelector<HTMLButtonElement>('[data-memory="album"]')!;
+  const mailCount = mailCard.querySelector("small")!;
+  mailCard.disabled = true;
+  albumCard.disabled = true;
   function updateMailCount() {
     const story = progress.residents;
     const unread = unreadLetterIds(story).length;
     mailCount.textContent = mailboxLetters(story).length + " 封来信" + (unread ? ` · ${unread} 封未读` : "");
-    mailCount.closest("button")?.classList.toggle("has-unread", unread > 0);
+    mailCard.classList.toggle("has-unread", unread > 0);
   }
   function refreshMailboxViews() {
     updateMailCount();
     const items = mailboxLetters(progress.residents), unread = unreadLetterIds(progress.residents);
     for (const listener of mailboxListeners) listener(items, unread);
   }
-  function readCollection(id: string, surface: CollectionSurface = reader, letterId?: string) {
-    if (id === "album") {
-      openCollection(surface, id, undefined, () => world.onAchievementEvent("photo-opened"));
-      return;
-    }
-    if (id !== "letters") return;
+  function readLetters(letterId?: string) {
+    reader.inGame = true;
+    const { title, subtitle } = collections.letters;
+    const body = reader.open(title, subtitle, "A LITTLE MEMORY · 珍藏一份心意");
     const story = progress.residents;
-    openCollection(surface, id, {
+    renderGameMailDesk(body, {
       items: mailboxLetters(story), selectedId: letterId,
       unreadIds: unreadLetterIds(story),
       subscribe: listener => {
@@ -116,7 +116,7 @@ export function mountGame() {
       onRead: letterId => {
         if (markLetterRead(story, letterId)) save();
       },
-    });
+    }, cleanup => reader.onCleanup(cleanup));
   }
   const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
   const saveNow = document.querySelector<HTMLButtonElement>(".save-now")!;
@@ -250,7 +250,6 @@ export function mountGame() {
   const help = document.querySelector<HTMLElement>(".inline-help")!;
   const setHelp = (open: boolean) => {
     if (open) {
-      pageReader.close(false);
       meadow.closeBottle();
       inventory.close(false);
     }
@@ -263,7 +262,6 @@ export function mountGame() {
     }
   };
   const closePanels = () => {
-    pageReader.close(false);
     meadow.closeBottle();
     meadow.closeReader();
     bass.close(false);
@@ -303,8 +301,7 @@ export function mountGame() {
     read: id => {
       if (!mail.received(id)) return;
       activities.close();
-      reader.inGame = true;
-      readCollection("letters", reader, id);
+      readLetters(id);
     },
   };
   inventory.onEquip = () => activities.finishEquipmentChoice();
@@ -346,7 +343,7 @@ export function mountGame() {
   const sceneWrap = world.canvas.parentElement!;
   const prompt = new InteractionPrompt(sceneWrap, id => world.activateCue(id));
   const touchAction = document.querySelector<HTMLElement>(".touch-interact span")!;
-  const cuePanels = Array.from(document.querySelectorAll<HTMLElement>(".inventory-panel,.map-reader,.game-letter-reader,.page-memory-reader"));
+  const cuePanels = Array.from(document.querySelectorAll<HTMLElement>(".inventory-panel,.map-reader,.game-letter-reader"));
   let cueScale = world.canvas.clientWidth / 600;
   let cueOffset = {x:world.canvas.offsetLeft,y:world.canvas.offsetTop};
   new ResizeObserver(() => {
@@ -409,7 +406,6 @@ export function mountGame() {
     reader.close();
     dismissRevive();
     transitioning = true;
-    const readingAtStart = readingRequest;
     const from = world.scene;
     const leavingHome = from === "room" && scene !== from;
     if (leavingHome) world.standUp();
@@ -432,9 +428,7 @@ export function mountGame() {
       world.switchScene(scene, arrival, Math.abs(dx)>Math.abs(dy) ? (dx>0 ? 2 : 1) : (dy<0 ? 3 : 0));
       if (leavingHome && world.scene === scene) fox.departed(true);
       else if (scene === "room" && from !== scene && world.scene === scene) fox.arrive(false);
-      // A newer reading choice must keep its position and focus even when
-      // an already-started map crossing finishes in the background.
-      if (readingRequest === readingAtStart && !pageReader.opened) revealMapIfOffscreen();
+      revealMapIfOffscreen();
     }).catch(() => {
       if (leavingHome) fox.clear();
       toast("地图暂未载入，稍后可以再试一次。");
@@ -600,8 +594,11 @@ export function mountGame() {
       ]);
     else if (id === "letters" || id === "album") {
       activities.close();
-      reader.inGame = true;
-      readCollection(id);
+      if (id === "letters") readLetters();
+      else {
+        reader.inGame = true;
+        openCollection(reader, id, () => world.onAchievementEvent("photo-opened"));
+      }
     }
   };
   function begin() {
@@ -628,11 +625,6 @@ export function mountGame() {
     world.canvas.focus({ preventScroll: true });
   }
   enter.addEventListener("click", begin);
-  pageReader.onReturnToGame = () => {
-    if (started) world.canvas.focus({preventScroll:true});
-    else enter.focus({preventScroll:true});
-    revealMapIfOffscreen();
-  };
   world
     .load()
     .then(async () => {
@@ -653,6 +645,8 @@ export function mountGame() {
       world.paused = !started;
       worldReady = true;
       enter.disabled = false;
+      mailCard.disabled = false;
+      albumCard.disabled = false;
       enter.innerHTML = `${journey ? "继续上次的冒险" : "开始小冒险"} ${icon("arrow")}`;
       if (journey) document.querySelector(".intro-screen small")!.textContent =
         `本机存档 · ${scenes[world.scene].title} · 点击继续`;
@@ -781,35 +775,12 @@ export function mountGame() {
   document
     .querySelector(".cinema-shortcut")!
     .addEventListener("click", () => visit("garden", "danmaku"));
-  const openPageMemory = (id: "letters" | "album", trigger: HTMLElement | null, letterId?: string) => {
-    // Reading a keepsake does not start the adventure, claim an exploration
-    // corner, or let an older queued guide click replace the new reading view.
-    afterCrossing = undefined;
-    readingRequest++;
-    closePanels();
-    cinema.close();
-    arcade.close();
-    activities.close();
-    reader.close();
-    dismissRevive();
-    world.paused = !started || transitioning;
-    pageReader.setTrigger(trigger);
-    readCollection(id, pageReader, letterId);
-  };
-  document
-    .querySelectorAll<HTMLButtonElement>("[data-memory]")
-    .forEach((button) =>
-      button.addEventListener("click", () => {
-        const id = button.dataset.memory;
-        if (id === "letters" || id === "album") openPageMemory(id, button);
-      }),
-    );
-  reader.onChangeView = () => {
-    if (reader.inGame) {
-      const letterId = document.querySelector<HTMLElement>(".game-letter-reader .reader-body")?.dataset.openLetterId;
-      openPageMemory("letters", document.querySelector('[data-memory="letters"]'), letterId);
-    } else visit("room", "letters");
-  };
+  for (const card of [mailCard, albumCard]) {
+    card.addEventListener("click", () => {
+      visit("room", card.dataset.memory!);
+      sceneWrap.scrollIntoView({ block: "nearest", behavior: "instant" });
+    });
+  }
   for (const region of document.querySelectorAll<HTMLElement>("[data-page-ui]")) {
     region.addEventListener("pointerdown", () => world.clearInput());
     region.addEventListener("focusin", () => world.clearInput());
@@ -904,7 +875,6 @@ export function mountGame() {
   world.onScene("room");
   mountDebugPanel(world,inventory,nature,flowerTrail,async(scene,id,mode)=>{
     if(!worldReady || world.busy || transitioning || !world.canEnter(scene)) return false;
-    const readingAtStart = readingRequest;
     begin();
     closePanels(); cinema.close(); arcade.close(); activities.close(); reader.close(); dismissRevive();
     // Debug travel shares the normal crossing lock: a slow image must not move
@@ -932,10 +902,7 @@ export function mountGame() {
       const next = afterCrossing;
       afterCrossing = undefined;
       if (next) next();
-      else if (arrived && readingRequest === readingAtStart && !pageReader.opened) {
-        // A newer page-reading choice supersedes the requested debug activity.
-        // Loading the destination may finish, but must not reopen its old game
-        // or pull the reader's focus and scroll back to the canvas.
+      else if (arrived) {
         world.canvas.focus({preventScroll:true});
         if(mode === "open" && spot) world.onInteract(spot.id);
         revealMapIfOffscreen();

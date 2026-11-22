@@ -102,7 +102,7 @@ export class Inventory {
       const hotkey = e.key.toLowerCase() === "b" || (e.key === "Escape" && !this.root.hidden);
       if (!hotkey) return;
       if (reservedShortcut(e) || document.querySelector(".debug-panel:not([hidden])")) return;
-      if (this.root.hidden && e.target instanceof Element && e.target.closest("[data-page-ui],.page-memory-reader")) return;
+      if (this.root.hidden && e.target instanceof Element && e.target.closest("[data-page-ui]")) return;
       if (this.root.hidden && !this.canOpen()) return;
       e.preventDefault();
       e.stopImmediatePropagation();

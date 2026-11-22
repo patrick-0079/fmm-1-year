@@ -7,7 +7,6 @@ export class MapReader {
   private cleanups: (() => void)[] = [];
   private root: HTMLElement;
   inGame = false;
-  onChangeView: () => void = () => {};
   private ownsPause = false;
   private touchY = 0;
   private readingFocus: HTMLElement | null = null;
@@ -21,8 +20,6 @@ export class MapReader {
       });
       root.addEventListener("click", (e) => {
         if ((e.target as Element).closest(".reader-close")) this.close();
-        if ((e.target as Element).closest(".reader-change-view"))
-          this.onChangeView();
       });
       root.addEventListener("keydown", event => this.scrollReading(event));
       root.addEventListener("wheel", event => {
@@ -57,7 +54,7 @@ export class MapReader {
     this.root.hidden = false;
     this.root.classList.toggle("game-album-reader", this.inGame && title === "回忆相册");
     this.root.setAttribute("aria-label", `${title} · ${this.inGame ? "游戏内阅读" : "地图阅读"}`);
-    this.root.innerHTML = `<header><div><small>${escapeHtml(label)}</small><h3>${escapeHtml(title)}</h3><p>${escapeHtml(subtitle)}</p></div><div class="reader-tools">${title === "晚安信箱" ? `<button class="reader-change-view map-action">${this.inGame ? "页面阅读" : "在游戏中阅读"}</button>` : ""}<button class="reader-close map-action">${this.inGame ? "收起 · Esc" : "收起回地图 · Esc"}</button></div></header><div class="reader-body" tabindex="0" aria-label="${escapeHtml(title)}内容，可滚动阅读"></div>`;
+    this.root.innerHTML = `<header><div><small>${escapeHtml(label)}</small><h3>${escapeHtml(title)}</h3><p>${escapeHtml(subtitle)}</p></div><div class="reader-tools"><button class="reader-close map-action">${this.inGame ? "收起 · Esc" : "收起回地图 · Esc"}</button></div></header><div class="reader-body" tabindex="0" aria-label="${escapeHtml(title)}内容，可滚动阅读"></div>`;
     if (this.inGame) {
       this.ownsPause = true;
       this.world.paused = true;

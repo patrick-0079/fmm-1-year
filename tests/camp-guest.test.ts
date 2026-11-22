@@ -26,7 +26,7 @@ test("receiving the camp letter in debug still allows the one visit without drop
   assert.equal(guest.layers(sheet, false).length, 1);
   assert.equal(guest.letterOnGround, false);
   guest.tick(1, 33);
-  assert.equal(guest.layers(sheet, false).length, 1);
+  assert.deepEqual(guest.layers(sheet, false), []);
   guest.reset();
   guest.tick(.1, 34);
   guest.tick(.1, 64);
@@ -59,9 +59,14 @@ test("30 uninterrupted seconds of sitting bring the guest, who leaves an uncolle
   assert.equal(guest.letterOnGround, true);
   assert.deepEqual(mailboxLetters(story), beforeVisit);
   assert.ok(beforeVisit.every(({id}) => id !== handedLetters.patrick));
-  assert.deepEqual(guest.layers(sheet, false).map(layer => layer.y), [campGuestSeat.y, campLetterSpot.y]);
+  assert.deepEqual(guest.layers(sheet, false).map(layer => layer.y), [campLetterSpot.y],
+    "only the letter remains at the moment it lands");
+  assert.deepEqual(guest.layers(sheet, true).map(layer => layer.y), [campLetterSpot.y]);
+  guest.tick(.016, 73);
+  assert.deepEqual(guest.layers(sheet, false).map(layer => layer.y), [campLetterSpot.y],
+    "continuing to sit does not bring the guest back");
   world.restState = null;
-  guest.tick(.016, 72.216);
+  guest.tick(.016, 73.016);
   assert.deepEqual(guest.layers(sheet, false).map(layer => layer.y), [campLetterSpot.y]);
   assert.ok(collectHandedLetter(story, handedLetters.patrick));
   assert.equal(guest.letterOnGround, false);

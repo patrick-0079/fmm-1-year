@@ -4,10 +4,7 @@ import { duckMusic } from "./sound";
 import { FilmPreloader, downloadLabel } from "./film-preloader";
 import { attachPhotoOriginalViewer, renderPhotoBook } from "./game-photo-album";
 import { albumPreviewQueue } from "./album-preload";
-import { renderGameMailDesk, renderMailboxList, type LetterList } from "./game-mail-desk";
-import { applyStationeryTheme } from "./stationery-themes";
 import "./album.css";
-import "./mailbox.css";
 export interface CollectionSurface {
   readonly inGame?: boolean;
   open(title: string, subtitle: string, label: string): HTMLElement;
@@ -15,23 +12,19 @@ export interface CollectionSurface {
   onCleanup(cleanup: () => void): void;
 }
 
-export function openCollection(modal: CollectionSurface, id: string, letters?: LetterList, onPhotoOpen?: () => void) {
+export function openCollection(modal: CollectionSurface, id: string, onPhotoOpen?: () => void) {
   const collection = collections[id];
-  if (!collection || (id === "letters" && !letters)) return;
-  const items = letters?.items ?? collection.items;
+  if (!collection || collection.kind === "text") return;
+  const { kind, items } = collection;
   const body = modal.open(
     collection.title,
     collection.subtitle,
     collection.kind === "image" && items.length ? "FUFU'S LITTLE DAYS · 芙芙的日常" : "A LITTLE MEMORY · 珍藏一份心意",
   );
-  const symbols = { text: "mail", image: "book", audio: "sound", video: "tv" };
-  const nouns = { text: "留言", image: "图片", audio: "录音", video: "视频" };
-  if (modal.inGame && id === "letters" && letters) {
-    renderGameMailDesk(body, letters, cleanup => modal.onCleanup(cleanup));
-    return;
-  }
+  const symbols = { image: "book", audio: "sound", video: "tv" };
+  const nouns = { image: "图片", audio: "录音", video: "视频" };
   if (!items.length) {
-    body.innerHTML = `<div class="empty-memory"><div class="empty-icon">${icon(symbols[collection.kind])}<span>${icon("heart")}</span></div><span class="empty-tag">COMING SOON</span><h3>这里，留给未来的一份心意</h3><p>${nouns[collection.kind]}正在慢慢集合。<br>先去吹蜡烛、拆礼物，或者到花园放一朵烟花吧。</p><button class="button secondary">继续小冒险 ${icon("arrow")}</button></div>`;
+    body.innerHTML = `<div class="empty-memory"><div class="empty-icon">${icon(symbols[kind])}<span>${icon("heart")}</span></div><span class="empty-tag">COMING SOON</span><h3>这里，留给未来的一份心意</h3><p>${nouns[kind]}正在慢慢集合。<br>先去吹蜡烛、拆礼物，或者到花园放一朵烟花吧。</p><button class="button secondary">继续小冒险 ${icon("arrow")}</button></div>`;
     body
       .querySelector("button")!
       .addEventListener("click", () => modal.close());
@@ -43,15 +36,13 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
   }
   body.innerHTML = `<div class="collection-layout"><nav class="collection-list" aria-label="${escapeHtml(collection.title)}列表"></nav><section class="memory-detail" aria-live="polite"></section></div>`;
   const openOriginal = id === "album" ? attachPhotoOriginalViewer(body, cleanup => modal.onCleanup(cleanup), onPhotoOpen) : undefined;
-  body.querySelector(".collection-layout")!.classList.toggle("album-layout", collection.kind === "image");
-  body.querySelector(".collection-layout")!.classList.toggle("mailbox-layout", collection.kind === "text");
-  body.classList.toggle("mailbox-reader-body", collection.kind === "text");
+  body.querySelector(".collection-layout")!.classList.toggle("album-layout", kind === "image");
   const list = body.querySelector(".collection-list")!,
     detail = body.querySelector<HTMLElement>(".memory-detail")!;
-  if (collection.kind === "text" || collection.kind === "image") {
+  if (kind === "image") {
     body.removeAttribute("tabindex");
     detail.setAttribute("tabindex", "0");
-    detail.setAttribute("aria-label", collection.kind === "text" ? "信件正文，可滚动阅读" : "相片与说明，可滚动阅读");
+    detail.setAttribute("aria-label", "相片与说明，可滚动阅读");
   }
   let media: HTMLMediaElement | null = null;
   let filmUrl: string | undefined;
@@ -73,37 +64,22 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
       const selected = button.dataset.memoryId === item.id;
       button.classList.toggle("selected", selected);
       button.setAttribute("aria-pressed", String(selected));
-      if (selected) {
-        button.querySelector(".collection-item-title")!.textContent = item.title;
-        button.classList.remove("unread");
-        button.setAttribute("aria-label", item.title);
-      }
     });
     detail.innerHTML = `<h3>${escapeHtml(item.title)}</h3>${item.author ? `<p class="memory-author">来自 ${escapeHtml(item.author)}</p>` : ""}<div class="memory-content"></div>`;
     const content = detail.querySelector(".memory-content")!;
-    if (collection.kind === "text") {
-      // Each letter opens at its salutation, even after reading a long one.
-      applyStationeryTheme(detail, item.id);
-      body.scrollTop = 0;
-      detail.scrollTop = 0;
-      const p = document.createElement("p");
-      p.className = "letter-text";
-      p.textContent = item.text || "这封信的正文还在路上。";
-      content.append(p);
-      letters?.onRead(item.id);
-    } else if (!item.src) {
+    if (!item.src) {
       content.innerHTML =
         '<p class="media-error">这份素材暂未添加，稍后再来看看吧。</p>';
     } else {
       let element: HTMLImageElement | HTMLMediaElement;
-      if (collection.kind === "image") {
+      if (kind === "image") {
         if (id === "album") albumPreviewQueue.prioritize(items, items.indexOf(item));
         element = new Image();
         element.alt = item.alt || item.title;
         element.className = "memory-image";
         element.decoding = "async";
       } else {
-        const player = document.createElement(collection.kind);
+        const player = document.createElement(kind);
         player.controls = true;
         player.preload = "metadata";
         player.volume = 0.65;
@@ -173,8 +149,7 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
         content.append(caption);
       }
     }
-    // Direct NPC links can select a letter below the phone's visible tab list.
-    // Move only that list, never scrollIntoView (which would move the page).
+    // Keep the selected thumbnail in view without scrolling the whole page.
     const active = list.querySelector<HTMLElement>(".selected");
     if (active && list.clientHeight > 0) {
       const viewport = list.getBoundingClientRect(), tab = active.getBoundingClientRect();
@@ -183,14 +158,13 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
       else if (tab.bottom > bottom) list.scrollTop += tab.bottom - bottom;
     }
   };
-  const makeButton = (item: Memory, unread: boolean) => {
+  const makeButton = (item: Memory) => {
     const button = document.createElement("button");
     button.className = "collection-item";
     button.dataset.memoryId = item.id;
     button.setAttribute("aria-pressed", "false");
-    button.setAttribute("aria-label", item.title + (unread ? "，未读" : ""));
-    button.classList.toggle("unread", unread);
-    if (collection.kind === "image" && item.thumbnail) {
+    button.setAttribute("aria-label", item.title);
+    if (kind === "image" && item.thumbnail) {
       const thumbnail = new Image();
       thumbnail.loading = "lazy";
       thumbnail.src = item.thumbnail;
@@ -202,21 +176,12 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     }
     const title = document.createElement("span");
     title.className = "collection-item-title";
-    title.textContent = item.title + (unread ? " · 未读" : "");
+    title.textContent = item.title;
     button.append(title);
-    if (collection.kind === "text") {
-      applyStationeryTheme(button, item.id);
-      const short = document.createElement("span");
-      short.className = "collection-item-short";
-      short.setAttribute("aria-hidden", "true");
-      short.textContent = item.author || item.title;
-      button.append(short);
-    }
     button.addEventListener("click", () => select(item));
     return button;
   };
-  if (letters) renderMailboxList(list, letters, makeButton, cleanup => modal.onCleanup(cleanup));
-  else for (const item of items) list.append(makeButton(item, false));
+  for (const item of items) list.append(makeButton(item));
   const visibility = () => {
     if (document.hidden) media?.pause();
   };
@@ -225,12 +190,6 @@ export function openCollection(modal: CollectionSurface, id: string, letters?: L
     stop();
     document.removeEventListener("visibilitychange", visibility);
   });
-  const initial = items.findIndex(item => item.id === letters?.selectedId);
-  if (collection.kind === "text" && initial < 0) {
-    detail.innerHTML = '<p class="mail-select-prompt">选一封来信，读读写给芙芙的话。</p>';
-    list.querySelector("button")?.focus({ preventScroll: true });
-  } else {
-    select(items[Math.max(0, initial)]);
-    if (collection.kind === "text" || collection.kind === "image") (detail as HTMLElement).focus({ preventScroll: true });
-  }
+  select(items[0]);
+  if (kind === "image") detail.focus({ preventScroll: true });
 }

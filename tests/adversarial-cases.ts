@@ -14,7 +14,10 @@ export async function verifyNavigationRaces(world: World, log: (text: string) =>
   };
   const prepare = world.prepareScene.bind(world);
   await Promise.all([prepare("town"), prepare("garden"), prepare("ruins")]);
-  for (const closeBeforeArrival of [false, true]) {
+  for (const [first, last, surface] of [
+    ["letters", "album", ".photo-book"],
+    ["album", "letters", ".mail-stack"],
+  ] as const) {
     world.switchScene("room");
     let release!: () => void;
     const pending = new Promise<void>(resolve => { release = resolve; });
@@ -24,24 +27,17 @@ export async function verifyNavigationRaces(world: World, log: (text: string) =>
       q<HTMLDetailsElement>('[data-debug="game:blocks"]').closest("details")!.open = true;
       q('[data-debug="game:blocks"]').click();
       expect(world.paused, "调试定位未进入转场");
-      q('[data-memory="letters"]').click();
-      const root = q(".page-memory-reader"), detail = q(".page-memory-reader .memory-detail");
-      detail.focus({preventScroll:true});
-      detail.scrollTop = 65;
-      await frames();
-      if (closeBeforeArrival) q(".page-reader-close").click();
-      const focus = document.activeElement;
-      const scroll = window.scrollY, bodyScroll = detail.scrollTop;
+      q(`[data-memory="${first}"]`).click();
+      q(`[data-memory="${last}"]`).click();
       release();
-      await wait(() => world.scene === "town" && !q(".scene-transition").classList.contains("active"));
+      const reader = q(".game-letter-reader");
+      await wait(() => world.scene === "room" && !reader.hidden && !!reader.querySelector(surface));
       await frames();
-      expect(root.hidden === closeBeforeArrival && world.suspended === !closeBeforeArrival, "慢切图完成后破坏了网页阅读状态");
+      expect(world.paused && reader.contains(document.activeElement), "切图后没有保留阅读暂停和焦点");
       expect(q(".arcade-hud").hidden, "过期的调试请求在阅读时打开了小游戏");
-      expect(document.activeElement === focus, "慢切图完成后抢走了阅读焦点");
-      expect(window.scrollY === scroll && detail.scrollTop === bodyScroll, "慢切图完成后把网页滚回地图");
-      if (!closeBeforeArrival) q(".page-reader-close").click();
+      reader.querySelector<HTMLButtonElement>(".reader-close")!.click();
       expect(!world.suspended && !world.paused, "阅读结束后未恢复探索");
-      log(`延迟调试定位时改读来信${closeBeforeArrival ? "并提前收起" : ""}：保留新选择、焦点和滚动，不打开过期小游戏。`);
+      log(`慢切图期间先后点两张首页卡片，按最后一次选择在小屋打开${last === "letters" ? "信箱" : "相册"}。`);
     } finally { release(); world.prepareScene = prepare; }
   }
 

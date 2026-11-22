@@ -127,12 +127,20 @@
 .mail-sheet:not([data-stationery-theme=default])::before {
   border-image-slice: 30% 24% 52% 45% fill;
 }
+.game-letter-reader .mail-sheet[data-paper-slices] {
+  --margin-art: clamp(28px, 9cqw, 84px);
+}
+.mail-sheet[data-paper-slices]::before {
+  border-image-slice: var(--mail-paper-slices);
+  border-image-width: var(--mail-paper-widths);
+  border-image-repeat: round;
+}
 @container mail-desk (min-width: 541px) {
-  .mail-sheet.has-writing-room::before {
+  .mail-sheet.has-writing-room:not([data-paper-slices])::before {
     border: 0;
     background: var(--mail-paper-image) center / 100% 100% no-repeat;
   }
-  .mail-sheet.has-writing-room .mail-sheet-caption {
+  .mail-sheet.has-writing-room:not([data-paper-slices]) .mail-sheet-caption {
     padding-inline-start: 8%;
   }
 }
@@ -259,7 +267,7 @@
   .mail-sheet-heading {
     min-height: 45px;
     padding-bottom: 1px;
-    padding-right: 106px;
+    padding-right: 70px;
   }
   .game-letter-reader .mail-fold {
     position: absolute;
