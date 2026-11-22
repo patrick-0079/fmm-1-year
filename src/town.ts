@@ -8,7 +8,7 @@ import { townResidentLayers, residentPlacement, drawResidentPortrait, type TownA
 import { TownResidentMap } from "./town-resident-map";
 import { townForeground } from "./town-foreground";
 import { townScene } from "./town-map";
-import { drawAttractionGround, townAttractionLayers } from "./town-attraction-art";
+import { drawWishLights, townAttractionLayers, townPlaygroundCovers } from "./town-attraction-art";
 import type { GameId } from "./arcade-engines";
 import npcUrl from "./assets/town-npcs.webp";
 import { drawPartyProp } from "./party-art";
@@ -182,6 +182,7 @@ export class Town {
   private layers(): DepthLayer[] {
     if (this.world.scene !== "town") return [];
     return [
+      ...townPlaygroundCovers(this.world),
       ...townForeground.map(part => ({
         y: part.y,
         draw: (c: CanvasRenderingContext2D) => this.world.drawMapFragment(c, part.points),
@@ -226,7 +227,7 @@ export class Town {
   }
   private drawSigns(c: CanvasRenderingContext2D) {
     if (this.world.scene !== "town") return;
-    drawAttractionGround(c, this.time, this.reducedMotion.matches);
     drawTownSigns(c);
+    drawWishLights(c, this.time, this.reducedMotion.matches);
   }
 }

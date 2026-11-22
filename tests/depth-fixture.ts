@@ -4,6 +4,7 @@ import type { SceneId } from "../src/maps";
 import { gardenForeground } from "../src/garden-foreground";
 import { gardenGateLamp } from "../src/garden-gate-lamp";
 import { townForeground } from "../src/town-foreground";
+import playgroundMasks from "../src/town-playground-masks.generated.json";
 import { townCanopies } from "../src/town-scenery";
 import { gardenSign } from "../src/garden-sign";
 import { televisionSilhouette } from "../src/cinema-config";
@@ -88,6 +89,10 @@ const cases:DepthCase[]=[
   {id:"block-board-lamp",scene:"town",depth:547,solid:[{x:1170,y:472},{x:1170,y:529}],clear:[{x:1156,y:468},{x:1170,y:554}],actor:{x:1170,positions:[521,531,557]}},
   {id:"rabbit-east-lamp",scene:"town",depth:592,solid:[{x:584,y:515},{x:584,y:568}],clear:[{x:569,y:513},{x:584,y:605}],actor:{x:584,positions:[566,576,614]}},
   {id:"plaza-east-lamp",scene:"town",depth:435,solid:[{x:834,y:358},{x:834,y:419}],clear:[{x:846,y:356},{x:834,y:445}]},
+  {id:"flight-ring",scene:"town",depth:457,solid:[{x:696,y:356},{x:676,y:453}],clear:[{x:697,y:433},{x:694,y:472}],actor:{x:676,positions:[434,440,477]}},
+  {id:"flight-small-ring",scene:"town",depth:427,solid:[{x:770,y:395}],clear:[{x:750,y:394},{x:756,y:438}],actor:{x:755,positions:[403,418,446]}},
+  {id:"flight-front-flowers",scene:"town",depth:502,solid:[{x:649,y:466},{x:659,y:469}],clear:[{x:677,y:464},{x:674,y:472}]},
+  {id:"rabbit-west-flowers",scene:"town",depth:616,solid:[{x:411,y:569},{x:416,y:579}],clear:[{x:433,y:574},{x:431,y:592}]},
   {id:"bakery-fence-pennants",scene:"town",depth:247,solid:[{x:978,y:186}],clear:[{x:985,y:185},{x:998,y:184}]},
   {id:"garden-sign",scene:"garden",depth:479,solid:[{x:191,y:415},{x:208,y:415}],clear:[{x:197,y:420},{x:205,y:471}],existingOutline:gardenSign,fragments:[gardenSign]},
   {id:"garden-screen",scene:"garden",depth:273,solid:[{x:708,y:163},{x:721,y:164}],clear:[{x:716,y:169},{x:680,y:175}],existingOutline:televisionSilhouette,fragments:[televisionSilhouette]},
@@ -140,7 +145,10 @@ function sampleEdges(outlines:Point[][],landmarks:NonNullable<DepthCase["edges"]
 }
 async function verify(test:DepthCase){
   const foreground=test.scene==="town"?townForeground:gardenForeground;
-  const target=test.existingOutline?{id:test.id,y:test.depth,points:test.existingOutline}:foreground.find(f=>f.id===test.id);
+  const baked=test.scene==="town"?playgroundMasks.find(mask=>mask.id===test.id):undefined;
+  const target=baked ? {
+    id:baked.id,y:baked.depth,points:[{x:baked.x,y:baked.y},{x:baked.x+baked.w,y:baked.y+baked.h}],
+  } : test.existingOutline?{id:test.id,y:test.depth,points:test.existingOutline}:foreground.find(f=>f.id===test.id);
   assert(target,"缺少前景定义 "+test.id);
   assert(Math.abs(target!.y-test.depth)<.5,"前景深度偏离实景柱脚："+target!.y+" / "+test.depth);
   await world.prepareScene(test.scene);world.switchScene(test.scene);
@@ -163,7 +171,11 @@ async function verify(test:DepthCase){
     record.behind=points.map(sample);photo("脚底在柱后：拱顶遮挡；门洞保留（其他前景树仍会遮挡）");
     world.getDepthLayers=()=>[...saved.layers(),probe(test.depth+1)];drawNow();
     record.front=points.map(sample);photo("脚底在柱前：拱门不再遮挡；其他前景保留");
-    if(!test.existingOutline || test.fragments){
+    if(baked){
+      const shape=new Path2D(baked.path);
+      world.getDepthLayers=()=>[{y:baked.depth,draw:c=>world.drawMapCover(c,baked,shape)},probe(test.depth-1)];
+      drawNow();record.mask=points.map(sample);
+    } else if(!test.existingOutline || test.fragments){
       // Use World.draw and drawMapFragment, never a duplicate polygon renderer.
       // Removing unrelated foliage only for this extra mask check lets a tree
       // in front of the west alcove coexist with a genuinely transparent arch.

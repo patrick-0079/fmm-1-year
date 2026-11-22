@@ -512,6 +512,12 @@ export class World {
     this.paintMap(c, x, y, w, h);
     c.restore();
   }
+  drawMapCover(c: CanvasRenderingContext2D, { x, y, w, h }: { x: number; y: number; w: number; h: number }, mask: Path2D) {
+    c.save();
+    c.clip(mask);
+    this.paintMap(c, x, y, w, h);
+    c.restore();
+  }
   get config() {
     if (this.scene === "town") return this.townMap;
     return this.scene === "garden" && this.canEnter("meadow") ? bloomingGarden : scenes[this.scene];

@@ -1,60 +1,32 @@
-import type { DepthLayer } from "./world";
+import type { DepthLayer, World } from "./world";
 import { sceneArt } from "./scene-art";
 import {
-  blockBoard, flightPad, flightRings, rabbitPlatforms, townAttractionBases, wishLawn,
+  blockBoard, flightRings, rabbitPlatforms, wishLawn,
 } from "./town-attraction-layout";
+import masks from "./town-playground-masks.generated.json";
 
-const sprites = {
-  stump: 0, moon: 1, cloud: 2, board: 3, ring: 4,
-  smallRing: 5, ringCloud: 6, peachRabbit: 7, smallRingCloud: 8, kite: 9, flightPad: 10,
-} as const;
-type Sprite = keyof typeof sprites;
-type Placement = { sprite: Sprite; x: number; y: number };
-const raisedProps: readonly Placement[] = [...rabbitPlatforms, ...flightRings];
-
-// At 2× resolution, the bottom-center anchor of every sprite is (158, 216).
-const cellWidth = 316, cellHeight = 224, baseline = 216;
-function drawSprite(c: CanvasRenderingContext2D, sprite: Sprite, x: number, y: number,
-  from = 0, to = cellWidth / 2, earLift = 0) {
-  const index = sprites[sprite];
-  const sx = (index % 5) * cellWidth + from * 2, sy = Math.floor(index / 5) * cellHeight;
-  const dx = Math.round(x) - cellWidth / 4 + from, dy = Math.round(y) - baseline / 2;
-  const w = to - from;
-  if (earLift > 0) {
-    // Only the lilac rabbit's ears move. The cloud and its supports stay fixed.
-    const belowEars = 60;
-    c.drawImage(sceneArt.attractions, sx, sy, w * 2, belowEars * 2,
-      dx, dy - earLift, w, belowEars + earLift);
-    c.drawImage(sceneArt.attractions, sx, sy + belowEars * 2, w * 2, cellHeight - belowEars * 2,
-      dx, dy + belowEars, w, cellHeight / 2 - belowEars);
-    return;
-  }
-  c.drawImage(sceneArt.attractions, sx, sy, w * 2, cellHeight, dx, dy, w, cellHeight / 2);
+const covers = masks.map(({ path, ...region }) => ({ ...region, mask: new Path2D(path) }));
+export function townPlaygroundCovers(world: World): DepthLayer[] {
+  const view = world.visibleArea;
+  return covers.filter(({ x, y, w, h }) => x < view.x + view.w && x + w > view.x && y < view.y + view.h && y + h > view.y)
+    .map(cover => ({ y: cover.depth, draw: c => world.drawMapCover(c, cover, cover.mask) }));
 }
 
-export function drawAttractionGround(c: CanvasRenderingContext2D, time: number, still: boolean) {
-  if (!sceneArt.attractions.naturalWidth) return;
+function drawSprite(c: CanvasRenderingContext2D, frame: 0 | 1) {
+  c.drawImage(sceneArt.playgroundAnimations, 108 * frame, 0, 108, 74, -27, -36, 54, 37);
+}
+
+export function drawWishLights(c: CanvasRenderingContext2D, time: number, still: boolean) {
+  if (still) return;
+  const { x, y } = wishLawn;
+  const pulse = (time + .5) % 4;
   c.save();
-  c.fillStyle = "#523c3142";
-  for (const { x, y, w, h } of townAttractionBases) {
+  c.globalAlpha = .32 + .27 * Math.cos(pulse * Math.PI / 2);
+  c.fillStyle = "#fff4b8";
+  for (const [dx, dy] of [[47.5, 39], [96.9, 48.7]]) {
     c.beginPath();
-    c.ellipse(x + w / 2, y + h / 2 + 2, w / 2 + 2, h / 3, 0, 0, Math.PI * 2);
+    c.arc(x + dx, y + dy, 1.6, 0, Math.PI * 2);
     c.fill();
-  }
-  drawSprite(c, flightPad.sprite, flightPad.x, flightPad.y);
-  if (sceneArt.wishLawn.naturalWidth) {
-    const { x, y, w, h } = wishLawn;
-    c.drawImage(sceneArt.wishLawn, x, y, w, h);
-    if (!still) {
-      const pulse = (time + .5) % 4;
-      c.globalAlpha = .32 + .27 * Math.cos(pulse * Math.PI / 2);
-      c.fillStyle = "#fff4b8";
-      for (const [dx, dy] of [[47.5, 39.0], [96.9, 48.7]]) {
-        c.beginPath();
-        c.arc(x + dx, y + dy, 1.6, 0, Math.PI * 2);
-        c.fill();
-      }
-    }
   }
   c.restore();
 }
@@ -92,7 +64,7 @@ function rabbitLayers(time: number, still: boolean): DepthLayer[] {
         }
         c.translate(Math.round(peachX), Math.round(peachY));
         if (returning && !still) c.scale(-1, 1);
-        drawSprite(c, "peachRabbit", 0, 0);
+        drawSprite(c, 0);
         c.restore();
       },
     },
@@ -158,30 +130,16 @@ function kiteLayer(time: number, still: boolean): DepthLayer {
         c.restore();
       }
       c.rotate(still ? -.04 : .065 * Math.sin(turn));
-      drawSprite(c, "kite", 0, 0);
+      drawSprite(c, 1);
       c.restore();
     },
   };
 }
 
 export function townAttractionLayers(time: number, still: boolean): DepthLayer[] {
-  if (!sceneArt.attractions.naturalWidth) return [];
-  const earCycle = time % 4.3;
-  const earLift = still || earCycle >= .5 ? 0 : 1.4 * Math.sin(Math.PI * earCycle / .5);
-  const [small, large] = flightRings;
+  const actors = sceneArt.playgroundAnimations.naturalWidth ? [...rabbitLayers(time, still), kiteLayer(time, still)] : [];
   return [
-    ...raisedProps.map(({ sprite, x, y }) => ({
-      y, draw: (c: CanvasRenderingContext2D) => drawSprite(c, sprite, x, y, 0, cellWidth / 2, sprite === "cloud" ? earLift : 0),
-    })),
-    { y: small.y - 4, draw: c => drawSprite(c, "smallRingCloud", small.x, small.y) },
-    { y: large.y - 11, draw: c => drawSprite(c, "ringCloud", large.x, large.y) },
-    // The platform slopes toward the street, so its near and far edges have different depths.
-    ...[[0, 40, -20], [40, 85, -12], [85, cellWidth / 2, -2]].map(([a, b, depth]) => ({
-      y: blockBoard.y + depth,
-      draw: (c: CanvasRenderingContext2D) => drawSprite(c, blockBoard.sprite, blockBoard.x, blockBoard.y, a, b),
-    })),
     { y: blockBoard.y, draw: c => drawFallingBlock(c, time, still) },
-    ...rabbitLayers(time, still),
-    kiteLayer(time, still),
+    ...actors,
   ];
 }

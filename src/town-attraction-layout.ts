@@ -6,19 +6,19 @@ type Box = readonly [x: number, y: number, width: number, height: number];
 type Base = readonly [centerX: number, centerY: number, width: number, depth: number];
 const area = ([x, y, w, h]: Box): Area => ({ x, y, w, h });
 
-// Y is the front edge of the art. Stone plates and the takeoff marker sit on
-// the ground; the platforms and rings are painted in foot-depth order.
+// The map baker uses the same anchors as the character-relative effects.
+// Y is the front edge of the art. Stone plates and the takeoff marker are flat.
 export const rabbitPlatforms = [
-  { sprite: "stump", x: 430, y: 588 },
-  { sprite: "moon", x: 474, y: 577 },
-  { sprite: "cloud", x: 516, y: 560 },
+  { sprite: "stump", x: 443, y: 588 },
+  { sprite: "moon", x: 482, y: 577 },
+  { sprite: "cloud", x: 521, y: 560 },
 ] as const;
 export const blockBoard = { sprite: "board", x: 1088, y: 499 } as const;
 export const flightRings = [
   { sprite: "smallRing", x: 753, y: 427 },
   { sprite: "ring", x: 694, y: 457 },
 ] as const;
-export const flightPad = { sprite: "flightPad", x: 669, y: 476 } as const;
+export const flightPad = { sprite: "flightPad", x: 679, y: 470 } as const;
 export const wishLawn = { x: 462, y: 276, w: 143, h: 90 } as const;
 export const wishPairs = [
   { left: { x: 502, y: 303 }, right: { x: 575, y: 316 } },
@@ -28,12 +28,12 @@ export const wishPairs = [
 
 const layouts = {
   hop: {
-    radius: 54, anchor: [26, -15], bounds: [407, 498, 135, 90],
-    bases: [[414, 585, 9, 6], [446, 585, 9, 6], [466, 573, 8, 6], [483, 573, 8, 6],
-      [507, 556, 8, 6]],
-    hits: [[410, 568, 41, 13], [410, 579, 39, 7], [417, 543, 20, 23],
-      [453, 553, 41, 12], [482, 538, 12, 22], [459, 563, 30, 5], [462, 568, 8, 8], [479, 568, 9, 8],
-      [493, 520, 47, 19], [502, 509, 30, 15], [503, 499, 25, 12], [503, 539, 9, 20], [520, 539, 14, 20]],
+    radius: 54, anchor: [34, -15], bounds: [420, 498, 127, 90],
+    bases: [[427, 585, 9, 6], [459, 585, 9, 6], [474, 573, 8, 6], [491, 573, 8, 6],
+      [512, 556, 8, 6]],
+    hits: [[423, 568, 41, 13], [423, 579, 39, 7], [430, 543, 20, 23],
+      [461, 553, 41, 12], [490, 538, 12, 22], [467, 563, 30, 5], [470, 568, 8, 8], [487, 568, 9, 8],
+      [498, 520, 47, 19], [507, 509, 30, 15], [508, 499, 25, 12], [508, 539, 9, 20], [525, 539, 14, 20]],
   },
   blocks: {
     radius: 66, anchor: [31, -40], bounds: [1012, 397, 152, 102],
@@ -42,10 +42,10 @@ const layouts = {
       [1034, 446, 113, 12], [1021, 458, 136, 11], [1014, 469, 145, 15], [1113, 484, 44, 10]],
   },
   flight: {
-    radius: 62, anchor: [-41, 13], bounds: [644, 350, 134, 126],
+    radius: 62, anchor: [-31, 8], bounds: [644, 350, 134, 120],
     bases: [[677, 453, 24, 7], [722, 444, 28, 7], [744, 423, 10, 7], [770, 421, 12, 7]],
     // Narrow rim bands leave the opening available for click-to-walk.
-    hits: [[650, 464, 37, 11], [677, 351, 32, 9], [666, 359, 18, 16], [708, 362, 16, 16],
+    hits: [[663, 455, 34, 15], [677, 351, 32, 9], [666, 359, 18, 16], [708, 362, 16, 16],
       [651, 379, 16, 18], [654, 395, 8, 27], [650, 417, 15, 15], [655, 431, 16, 10],
       [725, 381, 9, 13], [729, 393, 9, 26], [722, 418, 11, 14],
       [717, 430, 17, 14], [665, 444, 70, 12], [707, 442, 30, 10],

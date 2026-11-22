@@ -42,8 +42,10 @@ test("switching full → invitation → full cleans the deployed directory", asy
   assert.ok(explicit.files.includes("future-game-asset.txt"));
   assert.ok(explicit.files.some(name => name.includes("room-interactive")));
   assert.ok(explicit.files.some(name => name.startsWith("assets/town-guests-")));
-  assert.ok(explicit.files.some(name => name.startsWith("assets/town-attractions-")));
-  assert.ok(explicit.files.some(name => name.startsWith("assets/town-wish-lawn-")));
+  assert.ok(explicit.files.some(name => name.startsWith("assets/anniversary-town-v13-")));
+  assert.ok(explicit.files.some(name => name.startsWith("assets/anniversary-town-hd-v13-")));
+  assert.ok(explicit.files.some(name => name.startsWith("assets/town-playground-animation-")));
+  assert.ok(!explicit.files.some(name => /assets\/town-(?:attractions|wish-lawn)-/.test(name)));
   assert.ok(explicit.files.some(name => name.startsWith("assets/patrick-camp-")));
   for (const artwork of ["desk", "fox-letter", "berry-wax", "ivory-flap", "lily-pocket", "rose-lining"]) {
     assert.ok(explicit.files.some(name => name.startsWith(`assets/stationery-${artwork}-`)), artwork);
@@ -64,7 +66,7 @@ test("switching full → invitation → full cleans the deployed directory", asy
     assert.match(file, /^(?:assets|index\.html|release\.json|favicon\.svg|_headers|assets\/(?:[\w.-]+\.(?:js|css)|launch-(?:cottage|fufu|fox-letter|player)-[\w-]+\.webp|fufu-cursor-(?:arrow|play)-[\w-]+\.(?:svg|png)))$/);
     if (/\.(?:js|css|html)$/.test(file)) {
       const body = await readFile(join(outDir, file), "utf8");
-      assert.doesNotMatch(body, /room-interactive|nemu-sprites|town-guests|town-attractions|town-wish-lawn|patrick-camp|texture-cache\.js|rabe-anniversary-letter|patrick-anniversary-letter|star-xiaoye|star-zhenghao|成为了芙妮宝星|CharaStudio|stationery-|1-year\/picture\/|\.mp4\b/);
+      assert.doesNotMatch(body, /room-interactive|nemu-sprites|town-guests|anniversary-town|town-playground|patrick-camp|texture-cache\.js|rabe-anniversary-letter|patrick-anniversary-letter|star-xiaoye|star-zhenghao|成为了芙妮宝星|CharaStudio|stationery-|1-year\/picture\/|\.mp4\b/);
     }
   }
   assert.ok(lite.files.includes("favicon.svg") && lite.files.includes("_headers"));
