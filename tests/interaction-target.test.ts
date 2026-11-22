@@ -1,11 +1,27 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { clickedInteraction, interactionHitY, nearbyInteraction } from "../src/interaction.ts";
-import type { Hotspot } from "../src/maps.ts";
+import { scenes, type Hotspot } from "../src/maps.ts";
+import { findPath } from "../src/core.ts";
 import { gateSpot, gateSignFoot, townGates } from "../src/gate-layout.ts";
 
 const spot = (id: string, x: number, y = 100, radius = 80): Hotspot => ({
   id, title: id, x, y, approach: { x, y: y + 15 }, radius,
+});
+
+test("the garden screen and lawn flower each take E at their own viewing or picking point", () => {
+  const garden = scenes.garden;
+  const screen = garden.spots.find(s => s.id === "danmaku")!;
+  const flower = garden.spots.find(s => s.id === "prism-calendula")!;
+  for (const [target, neighbor, oldApproach] of [
+    [screen, flower, { x: 710, y: 347 }],
+    [flower, screen, { x: 710, y: 374 }],
+  ] as const) {
+    for (const where of [target.approach, oldApproach]) {
+      assert.deepEqual(findPath(garden.spawn, where, garden, garden.hazards)?.at(-1), where);
+      assert.equal(nearbyInteraction(where, garden.spots, neighbor.id)?.id, target.id);
+    }
+  }
 });
 
 test("nearby interaction holds a choice through small distance changes, then switches at eight pixels", () => {

@@ -143,12 +143,15 @@ export function mountGame() {
       3800,
     );
   };
-  function persist() {
-    try {
-      if (!resetInProgress) {
+  function persist(announce = true) {
+    if (!resetInProgress) {
+      try {
         const other = localStorage.getItem(SAVE_KEY);
         if (other) mergeAchievementProgress(progress, readProgress(other));
-      }
+      } catch { /* Evaluate the local actions even if storage is unavailable. */ }
+      refreshAchievements?.(announce);
+    }
+    try {
       localStorage.setItem(SAVE_KEY, JSON.stringify(progress));
     } catch {
       /* playable without storage */
@@ -166,7 +169,6 @@ export function mountGame() {
   }
   function save() {
     updateMailCount();
-    if (!resetInProgress) refreshAchievements?.();
     persist();
   }
   function audio() {
@@ -738,11 +740,15 @@ export function mountGame() {
     if (!resetInProgress && recordAchievementFact(progress, event)) save();
   };
   const migratedBook = migrateAchievementFacts(progress, achievementContext());
-  if (refreshAchievements(false) || migratedBook) persist();
+  if (refreshAchievements(false) || migratedBook) persist(false);
   window.addEventListener("storage", event => {
     if (event.key !== SAVE_KEY || !event.newValue || resetInProgress) return;
-    mergeAchievementProgress(progress, readProgress(event.newValue));
-    refreshAchievements?.(false);
+    // Events can arrive after another write or a reset. Only merge the current save.
+    try { if (localStorage.getItem(SAVE_KEY) !== event.newValue) return; } catch { return; }
+    if (mergeAchievementProgress(progress, readProgress(event.newValue)) && refreshAchievements?.(false)) {
+      // Two incomplete books can form a finished badge without another local action.
+      persistBookOnly();
+    }
   });
   document.querySelectorAll<HTMLButtonElement>("[data-arcade]").forEach((b) =>
     b.addEventListener("click", () => {

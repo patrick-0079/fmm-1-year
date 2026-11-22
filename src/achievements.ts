@@ -45,7 +45,7 @@ const daily: Definition[] = [
   { id: "courage", chapter: "daily", name: "带一朵勇气回家", difficulty: "普通", description: "穿过勇气花园，摘下终点的勇气之花。", target: target("challenge", "courage") },
   { id: "wreath", chapter: "daily", name: "芙芙今天戴花", difficulty: "简单", description: "捡到花环，给芙芙正式佩戴一次。", target: target("garden", "wreath") },
   { id: "bass", chapter: "daily", name: "把晚安弹给你", difficulty: "普通", description: "在白色贝斯上跟着提示亲手弹完 16 个音，静音也可以。", target: target("room", "white-bass") },
-  { id: "memories", chapter: "daily", name: "这一年有画面", difficulty: "简单", description: "在任一相册点开一张单张照片，再到花园打开放映，顺序不限。", target: target("room", "album") },
+  { id: "memories", chapter: "daily", name: "这一年有画面", difficulty: "简单", description: "点开一张相册照片，再去周年花园打开放映。先看哪一个都可以，影片载入时就会记下这次到访。", target: target("room", "album") },
   { id: "fox", chapter: "daily", name: "嗷～嗷呜", difficulty: "简单", description: "摸摸小屋狐狸，让它舒服地眯起眼睛。", target: target("room", "room-fox") },
   { id: "fox-peace", chapter: "daily", name: "尾巴终于松开了", difficulty: "普通", description: "小狐狸生闷气后，在同一次回家里摸它两次，和它和好。", hint: "有时候，伸出去的手要再试一次。" },
   { id: "companions", chapter: "daily", name: "旅伴有两位", difficulty: "普通", description: "分别从星星和霉霉那里正式邀请桃桃与棉棉同行。", target: target("garden", "garden-guest-balloon-friend") },
@@ -129,16 +129,32 @@ export function recordAchievementFact(progress: Progress, id: AchievementEvent):
   return true;
 }
 
+function recoverScreeningVisit(into: Progress, source: Progress): boolean {
+  // The garden screening hotspot records this visit independently of the badge book.
+  // Preloading the video, or touching the separate small-TV photo stand, does not.
+  return source.visited.includes("danmaku") && recordAchievementFact(into, "cinema-opened");
+}
+
 /** Other tabs can play and earn stamps independently while this page is open. */
-export function mergeAchievementProgress(into: Progress, from: Progress) {
-  for (const fact of from.achievements.facts) recordAchievementFact(into, fact);
+export function mergeAchievementProgress(into: Progress, from: Progress): boolean {
+  let changed = recoverScreeningVisit(into, from);
+  for (const fact of from.achievements.facts) {
+    if (recordAchievementFact(into, fact)) changed = true;
+  }
   for (const id of from.achievements.earned) {
-    if (!into.achievements.earned.includes(id)) into.achievements.earned.push(id);
+    if (!into.achievements.earned.includes(id)) {
+      into.achievements.earned.push(id);
+      changed = true;
+    }
   }
   for (const { id } of gameRows) {
     const best = from.arcadeBests[id] ?? 0;
-    if (best > (into.arcadeBests[id] ?? 0)) into.arcadeBests[id] = best;
+    if (best > (into.arcadeBests[id] ?? 0)) {
+      into.arcadeBests[id] = best;
+      changed = true;
+    }
   }
+  return changed;
 }
 
 export interface AchievementContext {
@@ -151,13 +167,13 @@ export interface AchievementContext {
 }
 const eggs = ["dew", "sunset", "firefly"] as const;
 
-/** Once per pre-book save, only import actions evidenced by actual saved gameplay. */
+/** Repair independent screening evidence on every load; other historical facts are imported once. */
 export function migrateAchievementFacts(progress: Progress, context: AchievementContext): boolean {
-  if (!progress.achievements.legacyPending) return false;
+  const recoveredScreening = recoverScreeningVisit(progress, progress);
+  if (!progress.achievements.legacyPending) return recoveredScreening;
   const record = (id: AchievementEvent) => recordAchievementFact(progress, id);
   if (context.wearingWreath && context.owned.includes("wreath")) record("wreath-worn");
   if (progress.roomFox.visit === "petted") record("fox-content");
-  if (progress.visited.includes("danmaku")) record("cinema-opened");
   if (progress.decoratorMet) record("garden-guest-decorator");
   if (progress.residents.guardianInvited) record("elder-guardian");
   if (context.owned.includes("petCat")) {
@@ -211,7 +227,7 @@ export function reconcileAchievements(progress: Progress, context: AchievementCo
   const photo = facts.has("photo-opened"), cinema = facts.has("cinema-opened");
   const memories = meter(Number(photo) + Number(cinema), 2, "处回忆", [
     photo ? "相册 · 已翻开单张照片" : "相册 · 点开一张照片",
-    cinema ? "放映 · 已打开花园大屏" : "放映 · 去花园的大屏看看",
+    cinema ? "放映 · 已打开花园大屏" : "放映 · 到花园大屏前选择「观看周年放映」",
   ]);
   memories.target = photo && !cinema ? target("garden", "danmaku") : target("room", "album");
   meters.set("memories", memories);

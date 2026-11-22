@@ -240,9 +240,11 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
   }
   await world.prepareScene("garden");
   world.switchScene("garden", {x:710,y:347});
-  world.onInteract("danmaku");
-  expect(book().earned.includes("memories"), "真实打开单张照片与花园大屏后没有盖章");
+  world.canvas.focus({preventScroll:true});
+  key("e");
   const video = q<HTMLVideoElement>('video[data-garden-video]'), hud = q(".cinema-hud");
+  expect(!hud.hidden && book().facts.includes("cinema-opened"), "在大屏前按 E 没有进入放映并记下到访");
+  expect(book().earned.includes("memories"), "真实打开单张照片与花园大屏后没有盖章");
   for (const shortcut of ["e", " "]) {
     video.pause();
     video.dispatchEvent(new Event("error"));

@@ -15,6 +15,35 @@ import { rings } from "../src/astrolabe.ts";
 const empty: AchievementContext = { townTalked: [], owned: [], wearingWreath: false, playSeconds: 0 };
 const newGame = () => readProgress(null);
 
+test("an existing badge book recovers a missing garden screening receipt but never guesses a single-photo view", () => {
+  const old = newGame();
+  old.visited.push("bili", "album");
+  assert.equal(migrateAchievementFacts(old, empty), false);
+  assert.deepEqual(old.achievements.facts, []);
+
+  old.visited.push("danmaku");
+  const restored = readProgress(JSON.stringify(old));
+  assert.equal(restored.achievements.legacyPending, false);
+  assert.equal(migrateAchievementFacts(restored, empty), true);
+  assert.deepEqual(restored.achievements.facts, ["cinema-opened"]);
+  assert.deepEqual(reconcileAchievements(restored, empty).fresh, []);
+  recordAchievementFact(restored, "photo-opened");
+  assert.deepEqual(reconcileAchievements(restored, empty).fresh, ["memories"]);
+  const reloaded = readProgress(JSON.stringify(restored));
+  assert.equal(migrateAchievementFacts(reloaded, empty), false);
+  assert.deepEqual(reconcileAchievements(reloaded, empty).fresh, []);
+});
+
+test("merging a screening visit from another tab completes the badge alongside a real single-photo view", () => {
+  const album = newGame(), screening = newGame();
+  recordAchievementFact(album, "photo-opened");
+  screening.visited.push("danmaku");
+  mergeAchievementProgress(album, screening);
+  assert.deepEqual(reconcileAchievements(album, empty).fresh, ["memories"]);
+  mergeAchievementProgress(album, screening);
+  assert.deepEqual(reconcileAchievements(album, empty).fresh, []);
+});
+
 test("two open books keep the highest single run and show the score that earned its stamp", () => {
   const first = newGame(), second = newGame();
   first.arcadeBests.flight = 16;

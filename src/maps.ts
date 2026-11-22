@@ -321,7 +321,7 @@ export const scenes: Record<SceneId, Scene> = {
         title: "花园小电视 · 周年放映",
         x: 713,
         y: 235,
-        approach: { x: 710, y: 347 },
+        approach: { x: 710, y: 331 },
         radius: 130,
         color: "#66bfd8",
       },

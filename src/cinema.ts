@@ -229,6 +229,7 @@ export class GardenCinema {
         v.pause();
         return;
       }
+      this.world.onAchievementEvent("cinema-opened");
       this.slow = false;
       duckMusic(true);
       update();
