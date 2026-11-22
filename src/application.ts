@@ -703,14 +703,6 @@ export function mountGame() {
         transition(button.dataset.scene as SceneId);
       }),
     );
-  document.querySelectorAll<HTMLButtonElement>("[data-explore-scene]").forEach(button => {
-    button.addEventListener("click", () => {
-      const scene = button.dataset.exploreScene;
-      if (scene !== "town" && scene !== "ruins") return;
-      begin();
-      transition(scene);
-    });
-  });
   const visit = (scene: SceneId, id: string) => {
     if (world.busy || !world.canEnter(scene)) return;
     if (transitioning) {
@@ -786,22 +778,9 @@ export function mountGame() {
     refreshAchievements?.(false);
     persistSharedCollections();
   });
-  document.querySelectorAll<HTMLButtonElement>("[data-arcade]").forEach((b) =>
-    b.addEventListener("click", () => {
-      const id = b.dataset.arcade as GameId;
-      if (ARCADES[id]) visit(ARCADES[id].scene, "arcade-" + id);
-    }),
-  );
   document
     .querySelector(".cinema-shortcut")!
     .addEventListener("click", () => visit("garden", "danmaku"));
-  document
-    .querySelectorAll<HTMLButtonElement>("[data-town-npc]")
-    .forEach((b) =>
-      b.addEventListener("click", () =>
-        visit("town", "npc-" + b.dataset.townNpc),
-      ),
-    );
   const openPageMemory = (id: "letters" | "album", trigger: HTMLElement | null, letterId?: string) => {
     // Reading a keepsake does not start the adventure, claim an exploration
     // corner, or let an older queued guide click replace the new reading view.

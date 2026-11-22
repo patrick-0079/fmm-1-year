@@ -15,20 +15,10 @@ import "./fufu-cursors.css";
 import "./page-journal.css";
 import { achievementBookMarkup } from "./achievement-book";
 import { helpMarkup } from "./help";
-import { ARCADES, TOWN_NPCS, TOWN_FRAMES } from "./town-data";
-import { ITEMS, type ItemId } from "./items";
-import { drawItem, rewardsUrl, whenWardrobeReady } from "./item-art";
 import { albumCoverPhoto, albumStampPhoto } from "./album-catalog";
 import { scheduleAlbumPreviews } from "./album-preload";
 import cinemaCover from "./assets/arcade-postcard-v14.webp";
-import townCover from "./assets/anniversary-town-v13.webp";
-import ruinsCover from "./assets/echo-ruins.webp";
 import meadowCover from "./assets/night-meadow-v16.webp";
-import residentsUrl from "./assets/town-npcs.webp";
-import yeshenhuaUrl from "./assets/yeshenhua.webp";
-import { drawYeshenhuaGuide } from "./yeshenhua-art";
-import { drawTownGuest } from "./town-guest-art";
-import { prepareProp, sceneArt } from "./scene-art";
 import { anniversary, collections } from "./content";
 import { EVENT_IDS } from "./core";
 import { escapeHtml, icon } from "./icons";
@@ -45,15 +35,6 @@ for (const href of [roomUrl, spriteUrl]) {
   preload.href = href;
   preload.fetchPriority = "high";
   document.head.append(preload);
-}
-
-function gameTickets(scene: "town" | "ruins") {
-  return Object.entries(ARCADES).filter(([, game]) => game.scene === scene).map(([id, game]) => `
-    <button class="page-game-ticket" data-arcade="${id}">
-      <canvas data-page-reward="${game.reward}" width="80" height="80" aria-hidden="true"></canvas>
-      <span><strong>${game.title}</strong><small>纪念奖励 · ${ITEMS[game.reward].name}</small></span>
-      <span class="ticket-arrow" aria-hidden="true">↗</span>
-    </button>`).join("");
 }
 
 const coverImage = albumCoverPhoto?.thumbnail && albumCoverPhoto.src
@@ -113,80 +94,12 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
         </div>
         <section class="page-memory-reader" id="page-memory-reader" hidden aria-label="回忆阅读区"></section>
       </section>
-      <section class="page-exploration" aria-labelledby="page-explore-title" data-page-ui>
-        <div class="page-section-heading"><div><span class="eyebrow">下一站，也有小小的惊喜</span><h2 id="page-explore-title">沿着晚安，继续探索</h2></div><p>选一条喜欢的路，慢慢走就好。</p></div>
-        <div class="page-postcards">
-          <article class="page-postcard postcard-town">
-            <div class="postcard-cover"><img src="${townCover}" alt="灯光与鲜花环绕的周年小镇街道" loading="lazy"/><span class="page-postcard-stamp" aria-hidden="true">${icon("heart")} 周年小镇</span></div>
-            <div class="postcard-copy"><div><h3>周年小镇</h3><p>沿着街灯，认识一些新朋友。</p></div><button class="page-travel" data-explore-scene="town">前往小镇 ${icon("arrow")}</button></div>
-            <details class="page-games"><summary><span>${icon("gift")} 小镇游园券 <small>4 个小游戏</small></span><span class="details-action">展开</span></summary><div class="page-game-tickets">${gameTickets("town")}</div></details>
-          </article>
-          <article class="page-postcard postcard-ruins">
-            <div class="postcard-cover"><img src="${ruinsCover}" alt="月光下长满苔纹的回声遗迹" loading="lazy"/><span class="page-postcard-stamp" aria-hidden="true">${icon("moon")} 回声遗迹</span></div>
-            <div class="postcard-copy"><div><h3>回声遗迹</h3><p>循着回声，寻找藏在石廊里的秘密。</p></div><button class="page-travel" data-explore-scene="ruins">前往遗迹 ${icon("arrow")}</button></div>
-            <details class="page-games"><summary><span>${icon("star")} 遗迹游园券 <small>3 个小游戏</small></span><span class="details-action">展开</span></summary><div class="page-game-tickets">${gameTickets("ruins")}</div></details>
-          </article>
-        </div>
-        <details class="town-guide page-residents"><summary><span>认识小镇居民 <strong id="town-npc-count">0 / ${TOWN_NPCS.length}</strong><small>镇民为游戏角色</small></span><span class="details-action">展开导览</span></summary><div>${TOWN_NPCS.map((npc) => `<button data-town-npc="${npc.id}"><span class="resident-portrait"><canvas data-page-npc="${npc.sprite}" data-page-resident="${npc.id}" width="80" height="88" aria-hidden="true"></canvas></span><span><strong>${npc.name}</strong><small>${npc.role}</small></span><span class="resident-arrow" aria-hidden="true">↗</span></button>`).join("")}</div></details>
-      </section>
       <section class="credits page-meadow-note" aria-labelledby="credits-title"><img src="${meadowCover}" alt="" loading="lazy"/><div class="credits-heading"><span class="eyebrow">还有一些喜欢，藏在星星里</span><h2 id="credits-title">草地上的署名</h2><p>集齐七色花，去夜里的花海走走。<br>拾起一颗落星，就能遇见一位制作人。</p><span class="meadow-note-sign" aria-hidden="true">✧ 愿每一份晚安，都被温柔珍藏</span></div></section>
     </main>
     <footer data-page-ui><span>${icon("heart")} 献给芙眠眠的第一年</span><p>粉丝制作的一周年纪念礼物 · 愿下一个晚安，依然有你。</p><button class="text-button reset-button">重新探索</button><span class="reset-confirmation" hidden>清除本机进度？<button class="reset-confirm map-action">重新开始</button><button class="reset-cancel map-action">保留进度</button></span></footer>
   </div><div class="toast" role="status" aria-live="polite"></div><div class="confetti-layer" aria-hidden="true"></div>`;
 
 document.querySelector(".inline-help")!.innerHTML = helpMarkup;
-// These illustrations are only needed when their paper guide is unfolded.
-// The same sprite crops and equipment renderer are used by the game itself.
-let guideArtRequested = false;
-const paintGuideArt = () => {
-  if (guideArtRequested) return;
-  guideArtRequested = true;
-  const residents = new Image(), yeshenhua = new Image(), rewards = new Image();
-  const paintResidents = () => {
-    for (const canvas of document.querySelectorAll<HTMLCanvasElement>("canvas[data-page-npc]")) {
-      const npc = TOWN_NPCS.find(n => n.id === canvas.dataset.pageResident);
-      if (!npc) continue;
-      const c = canvas.getContext("2d")!;
-      if (npc.appearance === "yeshenhua") {
-        drawYeshenhuaGuide(c, yeshenhua);
-        continue;
-      }
-      if (npc.appearance === "guest") {
-        c.clearRect(0, 0, 80, 88);
-        c.imageSmoothingEnabled = false;
-        drawTownGuest(c, sceneArt.townGuests, npc.sprite, 40, 84, 80);
-        continue;
-      }
-      if (!residents.complete || !residents.naturalWidth) continue;
-      const frame = TOWN_FRAMES[npc.sprite];
-      const cropHeight = Math.min(frame.h, frame.w * 1.1);
-      const scale = Math.min(72 / frame.w, 80 / cropHeight);
-      c.clearRect(0, 0, 80, 88);
-      c.imageSmoothingEnabled = true;
-      c.drawImage(residents, frame.x, frame.y, frame.w, cropHeight, (80-frame.w*scale)/2, 4, frame.w*scale, cropHeight*scale);
-    }
-  };
-  residents.onload = paintResidents;
-  yeshenhua.onload = paintResidents;
-  void prepareProp("townGuests").then(paintResidents, () => {});
-  const paintRewards = () => {
-    for (const canvas of document.querySelectorAll<HTMLCanvasElement>("canvas[data-page-reward]")) {
-      const c = canvas.getContext("2d")!;
-      c.clearRect(0, 0, 80, 80);
-      drawItem(c, canvas.dataset.pageReward as ItemId, 5, 5, 70, 70, undefined, rewards);
-    }
-  };
-  rewards.onload = paintRewards;
-  whenWardrobeReady(paintRewards);
-  residents.src = residentsUrl; yeshenhua.src = yeshenhuaUrl; rewards.src = rewardsUrl;
-};
-document.querySelectorAll<HTMLDetailsElement>(".page-games, .page-residents").forEach(details => {
-  details.addEventListener("toggle", () => {
-    const action = details.querySelector(".details-action");
-    if (action) action.textContent = details.open ? "收起" : details.classList.contains("page-residents") ? "展开导览" : "展开";
-    if (details.open) paintGuideArt();
-  });
-});
 // The paper cards render before the deferred game module. Do not present live
 // buttons without handlers while that module (or the cache worker) is loading.
 const startupButtons = [...document.querySelectorAll<HTMLButtonElement>("#app button:not([disabled])")];

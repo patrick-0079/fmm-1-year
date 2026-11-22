@@ -109,8 +109,13 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
     assert(world.scene === ARCADES[game].scene && arcade.querySelector(".arcade-title")?.textContent === ARCADES[game].title, "打开了错误的游戏");
     arcade.querySelector<HTMLButtonElement>(".arcade-close")!.click();
   }
-  const count = () => document.querySelector("#town-npc-count")!.textContent;
-  assert(count() === "15 / 18", "原 15 位居民的计数有误");
+  const book = document.querySelector<HTMLElement>(".achievement-book")!;
+  book.querySelector<HTMLButtonElement>('[data-book-toggle][aria-expanded="false"]')?.click();
+  book.querySelector<HTMLButtonElement>('[data-book-chapter="daily"]')!.click();
+  book.querySelector<HTMLButtonElement>('[data-book-pick="friends"]')!.click();
+  const townProgress = () => [...book.querySelectorAll(".achievement-detail li")]
+    .find(row => row.textContent?.startsWith("小镇 "))?.textContent;
+  assert(townProgress()?.startsWith("小镇 15/18 ·"), "原 15 位居民的计数有误");
   log("四位引路人打开各自的小游戏准备画面，青团成功跨图抵达西廊，镇民计数 15 / 18");
 
   const belongings = localStorage.getItem(INVENTORY_KEY);
@@ -122,7 +127,7 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
     choose("尝一瓣");
     assert(status() === "甜吗？我挑了好久呢！", "品尝对白有误");
     close();
-    assert(count() === "16 / 18", "重访同一来宾时重复计数");
+    assert(townProgress()?.startsWith("小镇 16/18 ·"), "重访同一来宾时重复计数");
   }
   assert(localStorage.getItem(INVENTORY_KEY) === belongings, "橘子演出改变了背包");
   talk("guli"); choose("看看小鱼");
@@ -131,6 +136,7 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
   assert(status() === "这张叫『晚安星』。愿下次见面时，我们还有好多好事可以讲给彼此听。", "浅笑的晚安星对白有误");
   world.switchScene("garden");
   await wait(() => hud.hidden, "切图后仍显示浅笑的对白");
-  assert(count() === "18 / 18", "三位来宾没有记入居民计数");
+  assert(townProgress() === "小镇 18/18 · 已见齐", "三位来宾没有记入居民计数");
+  book.querySelector<HTMLButtonElement>("[data-book-toggle]")!.click();
   log("三位来宾的对白、重访品尝、切图清理和 18 / 18 计数通过");
 }

@@ -43,33 +43,6 @@
   line-height: 1.7;
   margin-top: 4px;
 }
-.town-guide {
-  margin-top: 12px;
-  font-size: 10px;
-  color: #a38b6e;
-}
-.town-guide summary {
-  cursor: pointer;
-  padding: 6px 0;
-}
-.town-guide > div {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-}
-.town-guide button {
-  padding: 6px 3px;
-  font-size: 9px;
-  background: #f6efe0;
-  border: 1px solid #e6dac4;
-  border-radius: 3px;
-}
-.town-guide button small {
-  display: block;
-  margin-top: 3px;
-  font-size: 7px;
-  color: #b5a088;
-}
 .arcade-hud {
   position: absolute;
   z-index: 7;

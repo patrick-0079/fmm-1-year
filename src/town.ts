@@ -68,7 +68,6 @@ export class Town {
       world.canvas.parentElement!.toggleAttribute("data-quarry-view",
         world.scene==="town" && world.player.x>1150 && world.player.y<260);
     };
-    this.updateJournal();
   }
   get talkedIds(): ReadonlySet<string> { return this.visited; }
 
@@ -76,7 +75,6 @@ export class Town {
     this.act = undefined;
     this.visited.clear();
     this.save();
-    this.updateJournal();
   }
   interact(id: string) {
     if (this.world.scene !== "town" || !id.startsWith("npc-")) return false;
@@ -85,7 +83,6 @@ export class Town {
     if (!this.visited.has(npc.id)) {
       this.visited.add(npc.id);
       this.save();
-      this.updateJournal();
     }
     this.showPage(npc, residentOpening(npc.id, this.hooks.story(), this.inventory.hasBouquet()));
     return true;
@@ -180,10 +177,6 @@ export class Town {
         JSON.stringify([...this.visited]),
       );
     } catch {}
-  }
-  private updateJournal() {
-    const count = document.querySelector("#town-npc-count");
-    if (count) count.textContent = `${this.visited.size} / ${TOWN_NPCS.length}`;
   }
   private layers(): DepthLayer[] {
     if (this.world.scene !== "town") return [];

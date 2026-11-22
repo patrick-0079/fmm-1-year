@@ -22,11 +22,3 @@ export function drawYeshenhua(c:CanvasRenderingContext2D, image:HTMLImageElement
   c.drawImage(image,f.x,f.y,f.w,f.h,p.x,p.y,p.w,p.h);
   return true;
 }
-
-export function drawYeshenhuaGuide(c:CanvasRenderingContext2D, image:HTMLImageElement) {
-  if (!image.complete || !image.naturalWidth) return;
-  const f=yeshenhuaFrames[0],h=Math.min(f.h,f.w*1.1),scale=Math.min(72/f.w,80/h);
-  c.clearRect(0,0,80,88);
-  c.imageSmoothingEnabled=true;
-  c.drawImage(image,f.x,f.y,f.w,h,(80-f.w*scale)/2,4,f.w*scale,h*scale);
-}

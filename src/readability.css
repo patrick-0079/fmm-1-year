@@ -16,8 +16,6 @@ small {
   font-size: 12px !important;
 }
 .town-journal p,
-.town-guide button,
-.town-guide button small,
 .journey-legend,
 .time-pill,
 .memory-author,
@@ -52,8 +50,7 @@ small {
   font-size: 14px;
 }
 .arcade-shortcuts strong,
-.memory-shortcuts span,
-.town-guide summary {
+.memory-shortcuts span {
   font-size: 13px;
 }
 .activity-hud .map-action,
