@@ -1,14 +1,14 @@
 import type { World, DepthLayer } from "./world";
 import type { Inventory } from "./inventory";
 import type { Activities } from "./activities";
-import { arcadesIn, TOWN_NPCS, type TownNpc } from "./town-data";
+import { TOWN_NPCS, type TownNpc } from "./town-data";
 import { residentOpening, townDialogues, type TownPage } from "./town-dialogue";
 import { letterChoice, type LetterHandoff, type ResidentStory } from "./resident-story";
 import { townResidentLayers, residentPlacement, drawResidentPortrait, type TownAct } from "./town-acting";
 import { TownResidentMap } from "./town-resident-map";
 import { townForeground } from "./town-foreground";
 import { townScene } from "./town-map";
-import { drawArcadeStall } from "./arcade-stall";
+import { drawAttractionGround, townAttractionLayers } from "./town-attraction-art";
 import type { GameId } from "./arcade-engines";
 import npcUrl from "./assets/town-npcs.webp";
 import { drawPartyProp } from "./party-art";
@@ -30,6 +30,7 @@ export class Town {
   private sprites = new Image();
   private visited = new Set<string>();
   private time = 0;
+  private reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
   private residents = new TownResidentMap(townScene);
   private placement?: ReturnType<typeof residentPlacement>;
   private act?: TownAct & { npc: TownNpc; after?: TownPage["after"] };
@@ -216,11 +217,7 @@ export class Town {
             ),
           ),
       })),
-      ...arcadesIn("town").map(([id, g]) => ({
-        y: g.y + 15,
-        draw: (c: CanvasRenderingContext2D) =>
-          drawArcadeStall(c, g, id),
-      })),
+      ...townAttractionLayers(this.time, this.reducedMotion.matches),
       ...TOWN_NPCS.flatMap(n => townResidentLayers(
         n, this.sprites, this.world, this.visited.has(n.id), this.time, this.act,
         this.act?.npcId === n.id ? this.placement : undefined,
@@ -229,16 +226,7 @@ export class Town {
   }
   private drawSigns(c: CanvasRenderingContext2D) {
     if (this.world.scene !== "town") return;
+    drawAttractionGround(c, this.time, this.reducedMotion.matches);
     drawTownSigns(c);
-    c.save();
-    c.fillStyle = "#87634d";
-    c.fillRect(680, 371, 174, 23);
-    c.fillStyle = "#f3dfb1";
-    c.fillRect(683, 374, 168, 17);
-    c.fillStyle = "#a17183";
-    c.font = '10px "Microsoft YaHei",sans-serif';
-    c.textAlign = "center";
-    c.fillText("芙芙一周年 · 晚安小镇", 767, 386);
-    c.restore();
   }
 }

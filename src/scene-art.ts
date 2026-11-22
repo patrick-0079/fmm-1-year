@@ -1,4 +1,5 @@
-import stallsUrl from "./assets/anniversary-stalls-v12.webp";
+import attractionsUrl from "./assets/town-attractions.webp";
+import wishLawnUrl from "./assets/town-wish-lawn.webp";
 import keepsakesUrl from "./assets/garden-keepsakes-v12.webp";
 import skiesUrl from "./assets/window-skies-v12.webp";
 import gateUrl from "./assets/country-wicket-v18.webp";
@@ -17,14 +18,14 @@ import suyanUrl from "./assets/suyan.webp";
 import townGuestsUrl from "./assets/town-guests.webp";
 import patrickCampUrl from "./assets/patrick-camp.webp";
 import type { SceneId } from "./maps";
-export { stallsUrl, keepsakesUrl, skiesUrl, relicsUrl };
+export { keepsakesUrl, skiesUrl, relicsUrl };
 
-export const sceneArt = {stalls:new Image(), keepsakes:new Image(), skies:new Image(), gate:new Image(), bass:new Image(), relics:new Image(), astrolabeProps:new Image(), fox:new Image(), picnic:new Image(), peachWalk:new Image(), quarry:new Image(), elders:new Image(), xiaoye:new Image(), xiaoyeEmbrace:new Image(), yeshenhua:new Image(), suyan:new Image(), townGuests:new Image(), patrickCamp:new Image()};
+export const sceneArt = {attractions:new Image(), wishLawn:new Image(), keepsakes:new Image(), skies:new Image(), gate:new Image(), bass:new Image(), relics:new Image(), astrolabeProps:new Image(), fox:new Image(), picnic:new Image(), peachWalk:new Image(), quarry:new Image(), elders:new Image(), xiaoye:new Image(), xiaoyeEmbrace:new Image(), yeshenhua:new Image(), suyan:new Image(), townGuests:new Image(), patrickCamp:new Image()};
 type Prop = keyof typeof sceneArt;
-const urls: Record<Prop,string> = {stalls:stallsUrl, keepsakes:keepsakesUrl, skies:skiesUrl, gate:gateUrl, bass:bassUrl, relics:relicsUrl, astrolabeProps:astrolabePropsUrl, fox:foxUrl, picnic:picnicUrl, peachWalk:peachWalkUrl, quarry:townQuarryUrl, elders:elderResidentsUrl, xiaoye:xiaoyeUrl, xiaoyeEmbrace:xiaoyeEmbraceUrl, yeshenhua:yeshenhuaUrl, suyan:suyanUrl, townGuests:townGuestsUrl, patrickCamp:patrickCampUrl};
+const urls: Record<Prop,string> = {attractions:attractionsUrl, wishLawn:wishLawnUrl, keepsakes:keepsakesUrl, skies:skiesUrl, gate:gateUrl, bass:bassUrl, relics:relicsUrl, astrolabeProps:astrolabePropsUrl, fox:foxUrl, picnic:picnicUrl, peachWalk:peachWalkUrl, quarry:townQuarryUrl, elders:elderResidentsUrl, xiaoye:xiaoyeUrl, xiaoyeEmbrace:xiaoyeEmbraceUrl, yeshenhua:yeshenhuaUrl, suyan:suyanUrl, townGuests:townGuestsUrl, patrickCamp:patrickCampUrl};
 const propsByScene: Record<SceneId,Prop[]> = {
   room:["skies","bass","fox"], garden:["keepsakes","gate","picnic","peachWalk","xiaoye","xiaoyeEmbrace","suyan"], challenge:["keepsakes","elders"],
-  town:["stalls","gate","quarry","yeshenhua","townGuests"], meadow:["patrickCamp"], ruins:["relics","astrolabeProps","elders"],
+  town:["attractions","wishLawn","gate","quarry","yeshenhua","townGuests"], meadow:["patrickCamp"], ruins:["relics","astrolabeProps","elders"],
 };
 const requests = new Map<Prop,Promise<void>>();
 export function prepareProp(key: Prop) {
@@ -40,11 +41,6 @@ export function prepareProp(key: Prop) {
 export function prepareSceneArt(scene: SceneId) {
   return Promise.all(propsByScene[scene].map(prepareProp));
 }
-export const stallFrames = [
-  { x: 7, y: 190, w: 486, h: 667 },
-  { x: 523, y: 190, w: 488, h: 668 },
-  { x: 1040, y: 190, w: 489, h: 668 },
-];
 export const keepsakeFrames = {
   star: { x: 85, y: 175, w: 770, h: 515 },
   wreath: { x: 1040, y: 45, w: 785, h: 765 },

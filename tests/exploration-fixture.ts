@@ -23,6 +23,7 @@ import { verifyReadingControls } from "./reading-cases";
 import { verifyNavigationRaces } from "./adversarial-cases";
 import { foxNook } from "../src/room-props";
 import { interactionHitY } from "../src/interaction";
+import { rabbitPlatforms } from "../src/town-attraction-layout";
 import { checkTapSurface } from "./hotspot-pointer-cases";
 
 // Same application as the homepage; all its saves are private to this QA tab.
@@ -786,13 +787,13 @@ q("#check-market").addEventListener("click",()=>void run(async()=>{
   world.switchScene("town",{x:572,y:644});
   key("ArrowLeft");try{await wait(()=>world.player.x<=518);}finally{key("ArrowLeft",false);}
   expect(world.player.y===644,"没有跨过南侧路沿");
-  const counter=scenes.town.spots.find(s=>s.id==="arcade-hop")!;
-  const rect=world.canvas.getBoundingClientRect(),pos=world.project({x:counter.x,y:counter.y-24});
+  const moon=rabbitPlatforms[1];
+  const rect=world.canvas.getBoundingClientRect(),pos=world.project({x:moon.x,y:moon.y-22});
   world.canvas.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,button:0,
     clientX:rect.left+pos.x*rect.width/600,clientY:rect.top+pos.y*rect.height/400}));
   await wait(()=>!q(".arcade-hud").hidden);
   expect(q(".arcade-title").textContent==="月兔跳一跳","未能从主街进入月兔台");
-  q(".arcade-close").click(); log("方向键从主街跨过路沿，点击月兔台可从摊位正面进入跳一跳");
+  q(".arcade-close").click(); log("方向键从主街跨过路沿，点击月牙跳台后进入跳一跳");
   const orange=rainbowFlowers[1];world.switchScene(orange.scene,orange.approach);world.interact();
   expect(state().rainbowFlowers.includes("prism-calendula"),"橙色金盏菊没有正常采集");
   const wreath=scenes.garden.spots.find(s=>s.id==="wreath")!;
@@ -876,6 +877,10 @@ Object.assign(window, { contentQA: {
   pointAt(x: number, y: number) {
     const p=world.project({x,y}),r=world.canvas.getBoundingClientRect();
     return {x:r.left+p.x*r.width/600,y:r.top+p.y*r.height/400};
+  },
+  async focusAt(x: number, y: number) {
+    world.setFocus({ x, y }, .9);
+    await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
   },
   canvasImage: () => world.canvas.toDataURL(),
   checkBottleCollection,

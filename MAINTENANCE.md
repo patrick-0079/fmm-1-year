@@ -31,11 +31,11 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 七色花与夜间花海 | `src/rainbow-flowers.ts` 和 `src/flower-trail.ts` 维护七种花与入口。`src/meadow-map.ts` 描出草地、帐篷、火圈和水壶。`src/night-meadow.ts` 绘制羊、萤火与落星并管理拾星寄语；`src/star-bottle.ts`、`src/star-bottle.css` 管理游戏内锥形星光瓶特写 |
 | 苹果、可采花丛、勇气花和黄昏纸船 | `src/nature.ts` 按剩余数量和时段绘制，`src/wild-art.ts` 按脚底锚点读取四格图集。运行 `npm run art:night` 重建花海和采集物美术。[v16 素材说明](doc/artwork/ARTWORK-v16.md) |
 | 烟花祝福 | `src/celebration.ts` 的 `fireworkWishes`；全部是预设文字 |
-| 小镇居民和小游戏摊位 | `src/town-data.ts`；位置、靠近点和半径需要一起验证 |
+| 小镇居民和露天游乐设施 | `src/town-data.ts` 记录居民和游戏 ID，`src/town-attraction-layout.ts` 记录设施的靠近点、点击范围与底座 |
 | 庭院来宾与动物 | `src/garden-guests.ts`；对话与跟随逻辑在 `src/garden-life.ts` |
 | 小叶子大猫玩偶 | `src/xiaoye-data.ts` 维护站位和取消规则；`src/xiaoye-embrace.ts` 管理 4.8 秒动作节奏，`src/xiaoye.ts` 绘制分层拥抱、临时人物朝向与提灯；见 [v55 拥抱动画](doc/artwork/ARTWORK-v55.md) |
 | 宠物安全足迹 | `src/companion-motion.ts`；启用与换图先找侧旁可达落点，跟随保持 30px 间距，太近时沿当前侧退让；暂停、睡觉与小游戏期间停止更新 |
-| v12 摊位、星屑、花环、窗景 | `src/scene-art.ts` 登记图集；摊位图标和清晰招牌仍在 `src/arcade-stall.ts` 绘制 |
+| 游乐设施、星屑、花环和窗景 | `src/scene-art.ts` 按地图加载图集，`src/town-attraction-art.ts` 绘制小镇设施与示意动作 |
 | 装备定义、部位、获取说明 | `src/items.ts`；图标在 `src/item-art.ts`，佩戴定位在 `src/equipment.ts`，人物绘制在 `src/avatar.ts` |
 | 地图互动提示 | `src/interaction-cues.ts` 配置动作、类别、本体锚点与避让范围；`interaction-glints.ts` 绘制细微反光；`interaction-prompt.ts` 与对应样式/布局模块负责物件旁的清晰按钮 |
 | 调试台与正式构建 | `src/debug-panel.ts` 集中管理地图、七色花、游戏、时间、碰撞和衣橱。根目录 `.env` 中 `VITE_WARDROBE_DEBUG=true` 同时开启面板和试穿。正式构建改为 `false` 后重新部署，生产构建变量可以覆盖仓库默认值 |
@@ -102,7 +102,11 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 周年游园券、七幅棋盘背景、飞行与跳跃角色的原画、图集顺序及提示词见 [v14 美术与配乐记录](doc/artwork/ARTWORK-v14.md)。
 
-小镇的预览图 `anniversary-town-v13.webp` 和高清图 `anniversary-town-hd-v13.webp` 出自同一份 3072×2048 母图。进入小镇才请求高清图，解码成功后再替换；失败保留预览并在下次进镇重试。`World.paintMap` 按图片实际尺寸换算源区域，底图和树冠裁片走同一套取样。调整摊位时把两只柜脚都放在原图的空地上，预留人物可走到的柜台正面；不要用纹理多边形盖住原图来制造空地。
+小镇的预览图 `anniversary-town-v13.webp` 和高清图 `anniversary-town-hd-v13.webp` 出自同一份 3072×2048 母图。进入小镇才请求高清图，解码成功后再替换，失败保留预览并在下次进镇重试。`World.paintMap` 按图片实际尺寸换算源区域，底图和树冠裁片走同一套取样。
+
+露天游乐设施以确认的效果图为原稿。透明道具图集 `town-attractions.webp` 以两倍分辨率排成 5 列，每格 316 × 224 像素，绘制锚点为格内 `(158,216)`。六枚心愿石片与草地合成 `town-wish-lawn.webp`，和起飞标记、影子一起绘制在地层。积木板沿斜底座分层，星环和云石支座各按其接地点排序。路灯、旗帜与低围栏的可见轮廓由 `src/town-foreground.ts` 重绘，人物走到其后方时才被遮挡。
+
+更新素材时同步核对轮廓、底座、点击范围和居民站位。测试月兔台东南通道、两座星环开口与花店石片双向通行，分别从灯柱前后走过。两份素材随小镇解码并纳入贴图缓存，倒计时精简包不会发布这些资源。
 
 南门及木桥门两侧的热点、对应出口、碰撞和灯光共用 `townGates`。立柱阻挡脚步，中间开口可通行；门体同人物按脚底排序。高清重绘、拼图与压缩方法见 [ARTWORK-v13.md](doc/artwork/ARTWORK-v13.md)。窗景仍通过玻璃遮罩绘制四时图集，保留窗框、窗帘和花朵，见 [ARTWORK-v12.md](doc/artwork/ARTWORK-v12.md)。
 
@@ -226,7 +230,7 @@ R2 CORS 完整示例在 [README](README.md#花园小电视cdn-周年放映)。`C
 | --- | --- |
 | `/tests/interaction-fixture.html` | 真实控制器的暂停、恢复、焦点、快捷键与活动计时回归，不写存档 |
 | `/tests/equipment-fixture.html` | 15 件纪念品的方向、坐姿、睡姿；睡觉不能出现饰品 |
-| `/tests/scenery-fixture.html` | 窗景、晨露花和四座小镇摊位的绘制 |
+| `/tests/scenery-fixture.html` | 窗景、晨露花和四处小镇设施的底图合成 |
 | `/tests/mobile-fixture.html` | 375/320 宽度真实页面，使用当前来源的本机进度 |
 | `/tests/media-fixture.html` | 图片、音视频和缺失素材，使用专用测试容器 |
 

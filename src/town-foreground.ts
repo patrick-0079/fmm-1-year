@@ -10,9 +10,55 @@ const shape = (id: string, y: number, outline: number[][]): TownForeground => ({
   id, y, points: outline.map(([x, y]) => ({x, y})),
 });
 
+// Silhouettes of the street lamps in the four play areas. The finial, glass,
+// post and flags share the depth of the stone foot beneath them.
+const lampMast = [
+  [0,0],[2,1],[3,3],[3,6],[6,9],[8,9.5],[9,11.5],[8,13],[7,13.5],
+  [6.5,18],[5,21],[3,22.5],[3,24],[4,26],[3,27.5],[3,49],
+  [4,52],[3.5,55],[3.5,63],[4.5,66],[4,76],[6.5,79],[7,82.5],
+  [6,85],[3,87],[-4,87],[-7,85],[-8,82.5],[-7,79],[-5,76],
+  [-4.5,66],[-4.5,64],[-3,61],[-3,53],[-3.5,52],[-3,49],[-3,27.5],
+  [-4,26],[-3,24],[-3.5,22.5],[-5.5,21],[-7,18],[-8,13.5],
+  [-9,12],[-8,10],[-6,9],[-3,6],[-3,3],[-2,1],
+];
+const lampFlag = [
+  [2,24],[4,23],[6,24],[14,24],[17,23],[19,24],[19,26],[17,27],
+  [17,56],[15,58],[10,55],[7,58],[4,58],[4,28],[2,27],
+];
+const streetLamp = (id: string, x: number, top: number, foot: number, width: number, flags: readonly number[]) => {
+  const part = (name: string, outline: number[][], direction = 1) => shape(id + name, foot,
+    outline.map(([dx, dy]) => [x + dx * width * direction, top + dy * (foot - top) / 87]));
+  return [part("", lampMast), ...flags.map(direction => part(direction < 0 ? "-west-flag" : "-east-flag", lampFlag, direction))];
+};
+
+export const playgroundForeground = [
+  ...streetLamp("wish-crossing-lamp", 582, 356, 444, 1.06, [-1, 1]),
+  ...streetLamp("block-board-lamp", 1170, 458, 547, 1.02, [-1, 1]),
+  ...streetLamp("rabbit-east-lamp", 584, 501, 592, 1.02, [1]),
+  ...streetLamp("plaza-east-lamp", 834, 344, 435, 1.03, [-1]),
+  shape("wish-lawn-upper-rail", 373, [
+    [461,343],[465,344],[468,347],[494,358],[497,357],[500,359],[500,363],
+    [496,365],[468,354],[461,351],
+  ]),
+  shape("wish-lawn-lower-rail", 375, [
+    [461,355],[467,354],[496,366],[500,365],[503,369],[503,373],[498,374],
+    [470,362],[462,362],
+  ]),
+  shape("wish-lawn-rail-posts", 379, [
+    [493,355],[494,353],[498,353],[501,355],[501,366],[503,365],[506,366],
+    [508,368],[507,378],[504,379],[500,378],[499,373],[496,375],[493,373],
+  ]),
+  shape("wish-lawn-stone-wall", 400, [
+    [496,377],[499,375],[505,377],[510,375],[514,376],[521,374],[527,375],
+    [530,371],[534,370],[540,371],[542,375],[542,393],[537,396],[529,395],
+    [521,398],[514,398],[510,397],[505,401],[499,402],[496,398],
+  ]),
+];
+
 /** Native 1536 × 1024 map coordinates. These concave silhouettes leave the
  * stair openings untouched; repainting their bounding rectangles erases walkers. */
 export const townForeground: TownForeground[] = [
+  ...playgroundForeground,
   shape("flower-arch", 328, [
     [208,327],[202,324],[201,319],[202,314],[201,307],[199.5,303],
     [200,299],[202,296],[201,292],[199,290],[198.5,287],[196.5,286],

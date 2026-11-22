@@ -12,6 +12,7 @@ export interface PromptState {
   anchor: PromptPoint;
   playerBox: PromptBox;
   objectBox: PromptBox;
+  nearbyTargets?: PromptBox[];
 }
 
 // Small stepped line drawings keep the icon language close to the game art.
@@ -156,7 +157,10 @@ export class InteractionPrompt {
   private place() {
     const state = this.state;
     if (!state || !this.viewport.w || !this.viewport.h) return;
-    const next = placeInteractionPrompt(this.viewport, this.size, state.anchor, state.playerBox, state.objectBox, this.obstacles);
+    const obstacles = state.nearbyTargets?.length
+      ? [...this.obstacles, ...state.nearbyTargets]
+      : this.obstacles;
+    const next = placeInteractionPrompt(this.viewport, this.size, state.anchor, state.playerBox, state.objectBox, obstacles);
     this.labelBox = { x: next.x, y: next.y, ...this.size };
     const key = [next.x, next.y, next.edge, next.tip].join(",");
     if (key === this.position) return;

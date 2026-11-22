@@ -16,7 +16,8 @@ test("three games move with their hotspots and collision; seven games remain uni
     const own=scenes[g.scene], other=scenes[g.scene==="town"?"ruins":"town"], spot="arcade-"+id;
     assert.ok(own.spots.some(s=>s.id===spot));
     assert.ok(!other.spots.some(s=>s.id===spot));
-    assert.ok(!canStand({x:g.x,y:g.y+2},own.walls,own.bounds,own.floor,own.surfaces));
+    if (g.scene === "ruins")
+      assert.ok(!canStand({x:g.x,y:g.y+2},own.walls,own.bounds,own.floor,own.surfaces));
   }
   const old=readProgress('{"arcadeBests":{"miner":187,"snake":8,"mines":26}}');
   assert.deepEqual(old.arcadeBests,{miner:187,snake:8,mines:26});

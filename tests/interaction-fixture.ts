@@ -453,7 +453,7 @@ await check("奶油猫与垂耳兔佩戴后七种小游戏可启动、暂停、�
       layer?.draw(canvas.getContext("2d")!);
       assert(engine().status === "playing", `${pet} ${id} 佩戴后停止运行`);
       arcade.close();
-      assert(!world.paused, `${pet} ${id} 离开摊位后不能移动`);
+      assert(!world.paused, `${pet} ${id} 退出游戏后不能移动`);
     }
   }
 });

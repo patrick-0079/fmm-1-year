@@ -1,5 +1,6 @@
 import type { Scene } from "./maps.ts";
-import { arcadesIn, TOWN_NPCS } from "./town-data.ts";
+import { TOWN_NPCS } from "./town-data.ts";
+import { townAttractionBases, townAttractionSpots } from "./town-attraction-layout.ts";
 import { townEchoGate } from "./ruins-map.ts";
 import { postObstacles } from "./post-streets.ts";
 import { fenceSegments } from "./fences.ts";
@@ -38,6 +39,7 @@ export const townScene: Scene = {
   ].map(([x, y]) => ({ x, y })),
   walls: [
     ...townTerraceWalls,
+    ...townAttractionBases,
     {label:"旧矿车车轮",x:1306,y:83,w:38,h:12},
     {label:"洞口左木柱",x:1393,y:74,w:13,h:17},
     {label:"洞口右木柱",x:1451,y:74,w:13,h:17},
@@ -148,23 +150,13 @@ export const townScene: Scene = {
       // The gifts and card stay visible when the player approaches from the side.
       approach: n.approach ?? {
         x: n.x + (n.id === "photo-visitor" ? 17 : 0),
-        y: n.y + (n.id === "hop-keeper" ? 18 : 26),
+        y: n.y + 26,
       },
       radius: 56,
-      markerOffset: n.appearance === "guest" ? (n.id === "guli" ? 34 : 44) : 53,
+      markerOffset: n.id === "guli" ? 34 : n.appearance === "guest" || n.id === "hop-keeper" ? 44 : 53,
       color: "#ceab63",
     })),
-    ...arcadesIn("town").map(([id, g]) => ({
-      id: "arcade-" + id,
-      title: g.title,
-      x: g.x,
-      y: g.y,
-      approach: { x: g.x, y: g.y + 35 },
-      radius: 70,
-      hitAreas: [{ x: g.x - 32, y: g.y - 86, w: 64, h: 99 }],
-      markerOffset: 89,
-      color: "#8eadda",
-    })),
+    ...townAttractionSpots,
     ...townGates.filter((g) => g.scene === "town").map(gateSpot),
   ],
 };
@@ -175,12 +167,4 @@ for (const npc of TOWN_NPCS)
     y: npc.y - 6,
     w: 10,
     h: 9,
-  });
-for (const [,game] of arcadesIn("town"))
-  townScene.walls.push({
-    label: game.title + "摊位",
-    x: game.x - 24,
-    y: game.y - 1,
-    w: 48,
-    h: 16,
   });

@@ -368,12 +368,21 @@ export function mountGame() {
     const verb = cue?.verb ?? (world.restState ? "起身" : "互动");
     if (touchAction.textContent !== verb) touchAction.textContent = verb;
     if (!spot || !cue) { prompt.update(null); return; }
+    // The town's flower and dialogue labels can otherwise sit over a small
+    // playground target on a phone. Keep both targets available to touch.
+    const nearbyTargets = world.scene === "town"
+      ? world.config.spots.filter(other => other.id !== spot.id &&
+        (cue.kind === "game" || other.id.startsWith("arcade-")) &&
+        Math.abs(other.x - spot.x) < 160 && Math.abs(other.y - spot.y) < 120 && world.available(other))
+        .map(other => cueBox(other, resolveCue(other, "town").objectBox))
+      : undefined;
     prompt.update({
       id: spot.id, action: cue.action, verb: cue.verb, kind: cue.kind,
       mode: world.cueInputMode, inRange: world.inInteractionRange(spot),
       anchor: cuePoint({x:spot.x+cue.anchor.x,y:spot.y+cue.anchor.y}),
       objectBox: cueBox(spot,cue.objectBox),
       playerBox: cueBox(world.player,{x:-16,y:-44,w:32,h:46}),
+      nearbyTargets,
     });
   };
   const previousTick = world.onTick;
