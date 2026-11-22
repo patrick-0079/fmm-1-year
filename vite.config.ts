@@ -92,7 +92,12 @@ const textureCache: Plugin = {
   name: "fufu-texture-cache",
   apply: "build",
   generateBundle(_, bundle) {
-    const textures = Object.keys(bundle).filter(path => /\.(webp|png|jpe?g|avif|gif|svg)$/i.test(path)).sort();
+    const paths = Object.keys(bundle).filter(path => /\.(webp|png|jpe?g|avif|gif|svg)$/i.test(path)).sort();
+    const textures = paths.map(path => {
+      const file = bundle[path];
+      if (file.type !== "asset") return this.error(`Expected a texture asset at ${path}`);
+      return [path, createHash("sha256").update(file.source).digest("base64")];
+    });
     const worker = readFileSync(new URL("./scripts/texture-worker.js", import.meta.url), "utf8");
     this.emitFile({ type: "asset", fileName: "texture-cache.js",
       source: `const textureFiles = ${JSON.stringify(textures)};\n${worker}` });

@@ -60,6 +60,27 @@ test("hidden ETags require both a modification date and source length, never jus
   assert.deepEqual(requests, ["GET","HEAD","HEAD","GET","HEAD","GET","HEAD","GET"]);
 });
 
+test("a decoder retry replaces an unplayable blob even if its ETag is unchanged", async () => {
+  const cache = memoryCache(), methods: string[] = [];
+  let value = 1;
+  const open = () => new FilmPreloader(filmSrc, () => {}, async (_, options) => {
+    const method = options?.method ?? "GET";
+    methods.push(method);
+    return new Response(method === "HEAD" ? null : Uint8Array.of(value), {
+      headers: {ETag: '"same"', "Content-Length":"1"},
+    });
+  }, 500, async () => cache);
+  const film = open();
+  assert.deepEqual(await playBytes(film), [1]);
+  value = 2;
+  const replacement = film.start(true);
+  assert.equal(replacement, film.start(true));
+  const url = await replacement;
+  URL.revokeObjectURL(url);
+  assert.deepEqual(await playBytes(open()), [2]);
+  assert.deepEqual(methods, ["GET", "GET", "HEAD"]);
+});
+
 test("failed replacement preserves the last complete copy and disk quota cannot block playback", async () => {
   const cache = memoryCache();
   let id = "v1", body = Uint8Array.of(1,2);

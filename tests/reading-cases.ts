@@ -1,6 +1,7 @@
 import type { World } from "../src/world";
 import { SAVE_KEY, readProgress } from "../src/core";
 import { renderGameMailDesk } from "../src/game-mail-desk";
+import { checkTapSurface } from "./hotspot-pointer-cases";
 
 async function waitForReading(check: () => boolean, message: string) {
   const deadline = performance.now() + 3000;
@@ -153,6 +154,8 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
   await world.prepareScene("room");
   const reader = q(".game-letter-reader");
   world.switchScene("room", {x:121,y:240});
+  checkTapSurface(world, "letters", { x: 54, y: 164 });
+  checkTapSurface(world, "album", { x: 36, y: 210 });
   {
     world.onInteract("letters");
     const front = () => q<HTMLButtonElement>(".game-letter-reader .mail-stack button.mail-envelope");

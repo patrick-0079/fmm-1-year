@@ -81,3 +81,21 @@ test("a companion steps away on its current side rather than walking through the
     assert.ok(Math.abs(follower.position.x-player.x)>=COMPANION_GAP-.01);
   }
 });
+
+test("after making room, the companion follows the next turn without retracing the old street", () => {
+  const street = { bounds: { x: 0, y: 0, w: 300, h: 220 }, walls: [] };
+  const follower = new CompanionMotion();
+  const walk = (x: number, y: number) => follower.update({ x, y }, street, 1 / 60, true);
+  follower.join({ x: 100, y: 110 }, street);
+
+  // Walk east into the companion, pause while it makes room, then turn north.
+  const corner = { x: 170, y: 110 };
+  for (let x = 101; x <= corner.x; x++) walk(x, corner.y);
+  for (let frame = 0; frame < 40; frame++) walk(corner.x, corner.y);
+  assert.ok(follower.position.x >= corner.x + 24, "the companion must first yield on the player's right");
+  for (let y = corner.y - 1; y >= 35; y--) {
+    walk(corner.x, y);
+    assert.ok(follower.position.x >= corner.x - 12, "the companion is heading back to old footsteps west of the corner");
+  }
+  assert.ok(follower.position.y <= 35 + COMPANION_GAP + 1, "the companion missed the north turn");
+});

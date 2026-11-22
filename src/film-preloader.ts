@@ -43,12 +43,12 @@ export class FilmPreloader {
     this.idleTimeoutMs = idleTimeoutMs;
     this.openCache = openCache;
   }
-  start(): Promise<string> {
-    if (this.task) return this.task;
+  start(replaceUnplayable = false): Promise<string> {
+    if (this.task && (!replaceUnplayable || this.progress.state !== "ready")) return this.task;
     this.progress = { state: "loading", received: 0, total: 0 };
     this.update();
     // A second tab can reuse the finished copy instead of downloading another 67 MB.
-    this.task = this.loadOnce().catch((error) => {
+    this.task = this.loadOnce(replaceUnplayable).catch((error) => {
       this.progress.state = "error";
       this.task = null;
       this.update();
@@ -56,25 +56,25 @@ export class FilmPreloader {
     });
     return this.task;
   }
-  private async loadOnce(): Promise<string> {
+  private async loadOnce(replaceUnplayable: boolean): Promise<string> {
     let acquired = false;
     try {
       if (globalThis.navigator?.locks)
         return await navigator.locks.request("fufu-film:" + this.src, () => {
           acquired = true;
-          return this.load();
+          return this.load(replaceUnplayable);
         });
     } catch (error) {
       if (acquired) throw error;
       // A browser that blocks Web Locks can still cache complete responses.
     }
-    return this.load();
+    return this.load(replaceUnplayable);
   }
-  private async load() {
+  private async load(replaceUnplayable: boolean) {
     let cache: FilmCache | null = null, stored: Response | undefined;
     try {
       cache = await this.openCache();
-      stored = await cache?.match(this.src);
+      if (!replaceUnplayable) stored = await cache?.match(this.src);
     } catch { /* Storage can be disabled independently of network playback. */ }
     if (stored?.status === 200) {
       this.progress.state = "checking";

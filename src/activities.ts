@@ -60,6 +60,7 @@ export class Activities {
   private released = false;
   private rise = 0;
   private bursts = 0;
+  private sessionLaunches = 0;
   private launches = 0;
   private particles: Particle[] = [];
   private rockets: (Point & {
@@ -449,6 +450,7 @@ export class Activities {
       this.launch();
       return;
     }
+    this.sessionLaunches = 0;
     this.begin("fireworks", "在花园里点亮烟花 · 点击上方天空，或按 E 连续发射");
     this.action("点燃一朵烟花", () => this.launch());
     this.action("♡ 爱心烟花", () => this.launch(undefined, 0));
@@ -456,7 +458,7 @@ export class Activities {
     this.action("✧ 金色花火", () => this.launch(undefined, 2));
     this.launch();
   }
-  private launch(point?: Point, pattern = this.launches++ % 3) {
+  private launch(point?: Point, pattern?: number) {
     if (this.rockets.length > 3) return;
     const origin = { x: 680, y: 450 };
     this.rockets.push({
@@ -465,10 +467,14 @@ export class Activities {
         x: 520 + Math.random() * 230,
         y: 290 + Math.random() * 70,
       },
-      color: colors[this.bursts % colors.length],
-      pattern,
+      color: colors[this.launches % colors.length],
+      pattern: pattern ?? this.launches % 3,
       trail: [],
     });
+    this.launches++;
+    this.sessionLaunches++;
+    this.status.textContent = `本次已放出 ${this.sessionLaunches} 朵烟花`;
+    if (this.sessionLaunches === 3) this.hooks.complete("fireworks");
     sfx("launch");
   }
   note(text: string, link?: string) {
@@ -671,9 +677,6 @@ export class Activities {
             sparkle: i % 12,
           });
         }
-        if (this.bursts >= 3) this.hooks.complete("fireworks");
-        if (this.mode === "fireworks")
-          this.status.textContent = `${text} · ${this.bursts} 朵烟花已绽放`;
       } else {
         rocket.trail.push({ x: rocket.x, y: rocket.y });
         if (rocket.trail.length > 13) rocket.trail.shift();

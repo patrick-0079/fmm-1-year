@@ -28,14 +28,13 @@ export function achievementStampMarkup(entry: AchievementEntry) {
   return `<span class="achievement-stamp stamp-${entry.chapter} ${entry.earned ? "stamp-earned" : "stamp-pending"}${unknown ? " stamp-secret" : ""}" aria-hidden="true">${image}</span>`;
 }
 
-function stampButton(entry: AchievementEntry, active: boolean, compact: boolean) {
+function stampButton(entry: AchievementEntry, active: boolean) {
   const hidden = concealed(entry);
   const label = visibleName(entry);
   const state = hidden ? "线索" : entry.earned ? "已盖章" : entry.difficulty;
-  return `<button type="button" class="achievement-pick ${compact ? "stamp-row" : "stamp-cell"}" data-book-pick="${entry.id}"
+  return `<button type="button" class="achievement-pick stamp-cell" data-book-pick="${entry.id}"
     data-focus="pick-${entry.id}" aria-expanded="${active}" aria-controls="achievement-detail" aria-label="${escapeHtml(hidden ? label + "，" + entry.hint : label + "，" + state)}">
-    ${achievementStampMarkup(entry)}<span class="achievement-pick-copy"><strong${hidden ? ' class="achievement-clue"' : ""}>${escapeHtml(hidden ? entry.hint! : label)}</strong>${compact ? `<small>${escapeHtml(state)}${!hidden && entry.goal > 1 ? " · " + escapeHtml(entry.progressLabel) : ""}</small>` : ""}</span>
-    ${compact ? '<span class="achievement-arrow" aria-hidden="true">›</span>' : ""}</button>`;
+    ${achievementStampMarkup(entry)}<span class="achievement-pick-copy"><strong${hidden ? ' class="achievement-clue"' : ""}>${escapeHtml(hidden ? entry.hint! : label)}</strong></span></button>`;
 }
 
 function details(entry: AchievementEntry) {
@@ -47,14 +46,11 @@ function details(entry: AchievementEntry) {
       hidden
         ? ""
         : `<span class="achievement-detail-progress">${escapeHtml(entry.progressLabel)}</span>
-      ${entry.details.length ? `<ul>${entry.details.map((detail) => `<li>${escapeHtml(detail)}</li>`).join("")}</ul>` : ""}
-      ${entry.target ? `<button class="achievement-go" type="button" data-book-go="${entry.id}" data-focus="go">前往 <span aria-hidden="true">↗</span></button>` : ""}`
+      ${entry.details.length ? `<ul>${entry.details.map((detail) => `<li>${escapeHtml(detail)}</li>`).join("")}</ul>` : ""}`
     }</section>`;
 }
 
-type Travel = NonNullable<AchievementEntry["target"]>;
-
-export function mountAchievementBook(onTravel: (destination: Travel) => void) {
+export function mountAchievementBook() {
   const root = document.querySelector<HTMLElement>(".achievement-book")!;
   const live = root.querySelector<HTMLElement>(".achievement-live")!;
   paintAchievementArt(root);
@@ -74,11 +70,6 @@ export function mountAchievementBook(onTravel: (destination: Travel) => void) {
     const earned = rows.filter((row) => row.earned);
     const current = rows.find((row) => row.id === selected);
     const last = earned.find((row) => row.id === latest) ?? earned.at(-1);
-    const recommendations = rows.filter((row) => !row.earned && !concealed(row) && row.chapter !== "advanced");
-    const suggested = [
-      ...recommendations,
-      ...rows.filter((row) => !row.earned && !recommendations.includes(row)),
-    ].slice(0, 3);
     const count = rows.length;
     const content = [
       `<div class="achievement-count"><span>已收集徽章</span><strong>${earned.length}<span> / ${count}</span></strong></div>
@@ -89,11 +80,7 @@ export function mountAchievementBook(onTravel: (destination: Travel) => void) {
         content.push(
           `<section class="achievement-last" aria-label="最近获得"><div class="achievement-last-imprint">${achievementStampMarkup(last)}</div><span><small>最近获得</small><strong>${escapeHtml(last.name)}</strong></span></section>`,
         );
-      if (suggested.length)
-        content.push(
-          `<section aria-label="徽章建议"><h3>接下来可以做</h3><div class="achievement-suggestions">${suggested.map((row) => stampButton(row, false, true)).join("")}</div></section>`,
-        );
-      else if (count) content.push('<p class="achievement-complete">四十四枚徽章，全部收集齐啦。</p>');
+      if (count && earned.length === count) content.push('<p class="achievement-complete">四十四枚徽章，全部收集齐啦。</p>');
     }
     content.push(
       `<button class="achievement-browse" type="button" data-book-toggle data-focus="toggle" aria-expanded="${open}" aria-controls="achievement-chapters"><span aria-hidden="true">${open ? "‹" : "✧"}</span>${open ? "合上徽章册" : "翻开徽章册"}<span aria-hidden="true">${open ? "" : "›"}</span></button>`,
@@ -110,7 +97,7 @@ export function mountAchievementBook(onTravel: (destination: Travel) => void) {
         <div class="achievement-grid">${entries
           .map(
             (row, index) =>
-              stampButton(row, row.id === selected, false) +
+              stampButton(row, row.id === selected) +
               (current && index === detailAfter ? details(current) : ""),
           )
           .join("")}</div>
@@ -155,9 +142,6 @@ export function mountAchievementBook(onTravel: (destination: Travel) => void) {
         if (rect.top < 0 || rect.bottom > document.documentElement.clientHeight)
           detail.scrollIntoView({ block: "nearest" });
       }
-    } else if (button.dataset.bookGo) {
-      const row = rows.find((entry) => entry.id === button.dataset.bookGo);
-      if (row?.target && !concealed(row)) onTravel(row.target);
     }
   });
   return {

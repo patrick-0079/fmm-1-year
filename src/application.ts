@@ -1,5 +1,6 @@
 import { anniversary, encouragements, type Memory } from "./content";
 import { EVENT_IDS, GAME_IDS, SAVE_KEY, readProgress } from "./core";
+import { mergeCollections } from "./shared-collections";
 import { mergeAchievementProgress, migrateAchievementFacts, reconcileAchievements, recordAchievementFact } from "./achievements";
 import { mountAchievementBook, achievementStampMarkup } from "./achievement-book";
 import { paintAchievementArt } from "./achievement-art";
@@ -30,7 +31,7 @@ import { FlowerTrail } from "./flower-trail";
 import { NightMeadow } from "./night-meadow";
 import { EchoRuins } from "./echo-ruins";
 import { Elders } from "./elders";
-import { collectHandedLetter, grantDebugLetters, handedLetters, hasHandedLetter, mailboxLetters, markLetterRead,
+import { collectHandedLetter, grantDebugLetters, handedLetters, hasHandedLetter, mailboxLetters, markLetterRead, mergeResidentStory,
   unreadLetterIds, type LetterHandoff } from "./resident-story";
 import { AstrolabeQuest } from "./astrolabe-quest";
 import { RoomBass } from "./room-bass";
@@ -63,10 +64,17 @@ export function mountGame() {
   let journey: Journey | null = null;
   try { journey = readJourney(localStorage.getItem(JOURNEY_KEY), progress.rainbowFlowers); } catch { /* optional storage */ }
   let worldReady = false, resetInProgress = false, lastPositionCheck = 0;
+  let sharedResetPending = false;
   let refreshAchievements: ((announce?: boolean) => boolean) | undefined;
   const playClock = new ForegroundPlayClock(() => {
-    if (!resetInProgress && refreshAchievements?.()) persistBookOnly();
-  }, () => location.reload());
+    if (!resetInProgress && refreshAchievements?.()) persistSharedCollections();
+  }, reloadAfterSharedReset);
+  function reloadAfterSharedReset() {
+    if (resetInProgress) return;
+    sharedResetPending = true;
+    resetInProgress = true;
+    location.reload();
+  }
   // The guide stays clickable during the brief gate fade. Honor its latest
   // destination as soon as the current crossing has finished.
   let afterCrossing: (() => void) | undefined;
@@ -85,6 +93,11 @@ export function mountGame() {
     const unread = unreadLetterIds(story).length;
     mailCount.textContent = mailboxLetters(story).length + " 封来信" + (unread ? ` · ${unread} 封未读` : "");
     mailCount.closest("button")?.classList.toggle("has-unread", unread > 0);
+  }
+  function refreshMailboxViews() {
+    updateMailCount();
+    const items = mailboxLetters(progress.residents), unread = unreadLetterIds(progress.residents);
+    for (const listener of mailboxListeners) listener(items, unread);
   }
   function readCollection(id: string, surface: CollectionSurface = reader, letterId?: string) {
     if (id === "album") {
@@ -122,6 +135,8 @@ export function mountGame() {
     if (!manual && journey?.scene === world.scene && journey.x === x && journey.y === y) return;
     const next = {scene: world.scene, x, y, savedAt: Date.now()};
     try {
+      // pagehide can run before the other tab's reset notification is dispatched.
+      if (readProgress(localStorage.getItem(SAVE_KEY)).generation !== progress.generation) return;
       localStorage.setItem(JOURNEY_KEY, JSON.stringify(next));
       journey = next;
       showJourney();
@@ -144,10 +159,17 @@ export function mountGame() {
     );
   };
   function persist(announce = true) {
+    if (sharedResetPending) return;
     if (!resetInProgress) {
       try {
-        const other = localStorage.getItem(SAVE_KEY);
-        if (other) mergeAchievementProgress(progress, readProgress(other));
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (raw) {
+          const other = readProgress(raw);
+          if (other.generation !== progress.generation) { reloadAfterSharedReset(); return; }
+          mergeCollections(progress, other);
+          if (mergeResidentStory(progress.residents, other.residents)) refreshMailboxViews();
+          mergeAchievementProgress(progress, other);
+        }
       } catch { /* Evaluate the local actions even if storage is unavailable. */ }
       refreshAchievements?.(announce);
     }
@@ -157,14 +179,20 @@ export function mountGame() {
       /* playable without storage */
     }
   }
-  // A second window can earn a time stamp while this one is reading a letter.
-  // A clock tick must never replace another window's newer story or inventory.
-  function persistBookOnly() {
+  // Both windows can write before they receive each other's storage event.
+  // Converge permanent receipts without replacing a newer puzzle move or setting.
+  function persistSharedCollections() {
+    if (resetInProgress) return;
     try {
       const saved = readProgress(localStorage.getItem(SAVE_KEY));
+      if (saved.generation !== progress.generation) { reloadAfterSharedReset(); return; }
+      const before = JSON.stringify(saved);
+      mergeCollections(saved, progress);
+      mergeResidentStory(saved.residents, progress.residents);
       mergeAchievementProgress(saved, progress);
       saved.achievements.legacyPending = progress.achievements.legacyPending;
-      localStorage.setItem(SAVE_KEY, JSON.stringify(saved));
+      const next = JSON.stringify(saved);
+      if (next !== before) localStorage.setItem(SAVE_KEY, next);
     } catch { /* Source records remain playable in memory. */ }
   }
   function save() {
@@ -373,6 +401,7 @@ export function mountGame() {
       };
       return;
     }
+    if (scene === world.scene && !entrance) return;
     closePanels();
     cinema.close();
     arcade.close();
@@ -468,6 +497,7 @@ export function mountGame() {
     revealMapIfOffscreen();
   };
   world.onScene = (scene) => {
+    sceneWrap.dataset.currentMap = scene;
     bass.close(false);
     saveLocation();
     if (scene !== "meadow") meadow.leave();
@@ -704,7 +734,7 @@ export function mountGame() {
     world.canvas.focus({ preventScroll: true });
     revealMapIfOffscreen();
   };
-  const achievementBook = mountAchievementBook(({scene, spot}) => visit(scene, spot));
+  const achievementBook = mountAchievementBook();
   const flash = document.createElement("div");
   flash.className = "achievement-flash";
   flash.hidden = true;
@@ -745,10 +775,16 @@ export function mountGame() {
     if (event.key !== SAVE_KEY || !event.newValue || resetInProgress) return;
     // Events can arrive after another write or a reset. Only merge the current save.
     try { if (localStorage.getItem(SAVE_KEY) !== event.newValue) return; } catch { return; }
-    if (mergeAchievementProgress(progress, readProgress(event.newValue)) && refreshAchievements?.(false)) {
-      // Two incomplete books can form a finished badge without another local action.
-      persistBookOnly();
+    const other = readProgress(event.newValue);
+    if (other.generation !== progress.generation) { reloadAfterSharedReset(); return; }
+    mergeCollections(progress, other);
+    if (mergeResidentStory(progress.residents, other.residents)) {
+      refreshMailboxViews();
+      refreshCampLetter();
     }
+    mergeAchievementProgress(progress, other);
+    refreshAchievements?.(false);
+    persistSharedCollections();
   });
   document.querySelectorAll<HTMLButtonElement>("[data-arcade]").forEach((b) =>
     b.addEventListener("click", () => {
@@ -843,7 +879,7 @@ export function mountGame() {
     achievementBook.reset();
     clearTimeout(flashTimer);
     flash.hidden = true;
-    progress = { ...readProgress(null), muted, sound, bgm, bassSound, volume };
+    progress = { ...readProgress(null), generation: crypto.randomUUID?.() ?? String(Date.now()), muted, sound, bgm, bassSound, volume };
     elders.reset();
     xiaoye.reset();
     cinema.reset();
@@ -861,7 +897,7 @@ export function mountGame() {
     if (freshStart) {
       inventory.setFitting(false);
       // Nature.reset has already started a fresh day; keep that new clock across reloads.
-      for (const key of [NATURE_KEY, TOWN_TALKED_KEY, INVENTORY_KEY, SAVE_KEY]) {
+      for (const key of [NATURE_KEY, TOWN_TALKED_KEY, INVENTORY_KEY]) {
         try { localStorage.removeItem(key); } catch { /* Storage can be unavailable. */ }
       }
     }
@@ -934,8 +970,7 @@ export function mountGame() {
       if (!grantDebugLetters(story, id)) return;
       save();
       refreshCampLetter();
-      const items = mailboxLetters(story), unread = unreadLetterIds(story);
-      for (const listener of mailboxListeners) listener(items, unread);
+      refreshMailboxViews();
     },
   });
   for (const id of GAME_IDS)

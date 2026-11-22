@@ -161,6 +161,7 @@ export const townScene: Scene = {
       y: g.y,
       approach: { x: g.x, y: g.y + 35 },
       radius: 70,
+      hitAreas: [{ x: g.x - 32, y: g.y - 86, w: 64, h: 99 }],
       markerOffset: 89,
       color: "#8eadda",
     })),

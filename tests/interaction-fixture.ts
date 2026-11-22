@@ -475,6 +475,23 @@ await check("小游戏退出后焦点回到画布，不跳页，也不会抢走�
   outside.remove();
 });
 
+await check("夜空替我说只计算一次互动内成功发出的烟花", () => {
+  const settle = () => { for (let frame = 0; frame < 60; frame++) world.onTick(1 / 30, frame / 30); };
+  for (let visit = 0; visit < 3; visit++) {
+    activities.fireworks();
+    activities.close();
+    settle();
+  }
+  assert(!completedActivities.has("fireworks"), "分三次点燃的烟花被合并计数");
+  activities.fireworks();
+  key("e");
+  assert(!completedActivities.has("fireworks"), "只发了两朵就发章");
+  key("e");
+  activities.close();
+  assert(completedActivities.has("fireworks"), "三朵已发出，收起后仍未发章");
+  settle();
+});
+
 await check("蛋糕、礼盒、气球和烟花收起后，键盘焦点与操作立即返回地图", () => {
   for (const activity of ["cake", "gifts", "balloons", "fireworks"] as const) {
     activities[activity]();

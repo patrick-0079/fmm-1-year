@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { clickedInteraction, interactionHitY, nearbyInteraction } from "../src/interaction.ts";
-import { scenes, type Hotspot } from "../src/maps.ts";
+import { scenes, type Hotspot, type SceneId } from "../src/maps.ts";
+import { resolveCue } from "../src/interaction-cues.ts";
 import { findPath } from "../src/core.ts";
 import { gateSpot, gateSignFoot, townGates } from "../src/gate-layout.ts";
 
@@ -76,4 +77,27 @@ test("a shifted cosmetic cue never expands the clickable extent into a neighbori
   assert.equal(clickedInteraction({ x: 100, y: 47 }, [npc, object]), npc);
   assert.equal(clickedInteraction({ x: 160, y: 88 }, [npc, object]), object);
   assert.equal(clickedInteraction({ x: 130, y: 35 }, [npc, object]), undefined);
+});
+
+test("every authored approach, subject centre and highlight selects its own object, including seasonal neighbours", () => {
+  for (const scene of Object.keys(scenes) as SceneId[]) {
+    const { spots } = scenes[scene];
+    for (const spot of spots) {
+      const { objectBox, anchor } = resolveCue(spot, scene);
+      const centre = { x: spot.x + objectBox.x + objectBox.w / 2, y: spot.y + objectBox.y + objectBox.h / 2 };
+      const glint = { x: spot.x + anchor.x, y: spot.y + anchor.y };
+      assert.equal(nearbyInteraction(spot.approach, spots)?.id, spot.id, scene + " approach " + spot.id);
+      for (const point of [centre, glint])
+        assert.equal(clickedInteraction(point, spots)?.id, spot.id, scene + " subject " + spot.id);
+    }
+  }
+});
+
+test("the garden screen and bedside furniture accept clicks across the illustrated surface", () => {
+  for (const [scene, id, x, y] of [
+    ["room","letters",64,184], ["room","album",32,204], ["room","bed",535,154],
+    ["room","gifts",568,318], ["room","cake",326,231], ["garden","balloons",154,210],
+    ["garden","danmaku",650,233], ["garden","danmaku",779,233],
+    ["challenge","prism-lily",370,282], ["challenge","firefly",420,305],
+  ] as const) assert.equal(clickedInteraction({ x, y }, scenes[scene].spots)?.id, id);
 });

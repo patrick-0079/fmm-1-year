@@ -63,6 +63,40 @@ export function mailboxLetters(story: ResidentStory) {
   });
 }
 
+/** These story receipts only advance within one adventure. Keep live reader references valid. */
+export function mergeResidentStory(into: ResidentStory, from: ResidentStory) {
+  let changed = false;
+  for (const id of from.publicLettersRead) {
+    if (!into.publicLettersRead.includes(id)) {
+      into.publicLettersRead.push(id);
+      changed = true;
+    }
+  }
+  for (const id of Object.values(handedLetters)) {
+    if (!isNpcLetter(id)) continue;
+    const receipt = from.npcLetters[id], previous = into.npcLetters[id];
+    if (receipt && previous !== receipt && previous !== "read") {
+      into.npcLetters[id] = receipt;
+      changed = true;
+    }
+  }
+  for (const key of ["postDelivered", "patrickArrived", "patrickDelivered", "patrickRead", "welcomeReceived", "guardianInvited"] as const) {
+    if (from[key] && !into[key]) {
+      into[key] = true;
+      changed = true;
+    }
+  }
+  if (from.postReadRevision > into.postReadRevision) {
+    into.postReadRevision = from.postReadRevision;
+    changed = true;
+  }
+  if (from.cake !== into.cake && (from.cake === "eaten" || (from.cake === "reserved" && into.cake === "new"))) {
+    into.cake = from.cake;
+    changed = true;
+  }
+  return changed;
+}
+
 export function hasHandedLetter(story: ResidentStory, id: HandedLetterId) {
   return id === handedLetters.patrick ? story.patrickDelivered : !!story.npcLetters[id];
 }

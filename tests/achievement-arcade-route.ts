@@ -24,7 +24,8 @@ export async function verifyArcadeStamps(world: World, log: (line: string) => vo
   for (const id of Object.keys(constructors) as GameId[]) {
     const game = ARCADES[id];
     await world.prepareScene(game.scene);
-    const hotspot = scenes[game.scene].spots.find(spot => spot.id === "arcade-"+id)!;
+    const map = game.scene === "town" ? world.townMap : scenes[game.scene];
+    const hotspot = map.spots.find(spot => spot.id === "arcade-"+id)!;
     world.switchScene(game.scene, hotspot.approach);
     const prototype: Engine = constructors[id].prototype;
     let current: Engine | undefined;
@@ -33,7 +34,8 @@ export async function verifyArcadeStamps(world: World, log: (line: string) => vo
     try {
       prototype.start = function() { current = this; start.call(this); };
       Math.random = () => id === "blocks" ? .2 : .5;
-      world.onInteract(hotspot.id);
+      world.setCueInput("keyboard");
+      tap("e");
       button(".arcade-result-actions button").click();
     } finally {
       Math.random = random;

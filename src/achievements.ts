@@ -1,5 +1,4 @@
 import type { Progress } from "./core.ts";
-import type { SceneId } from "./maps.ts";
 import type { GameId } from "./arcade-engines.ts";
 import { ARCADES, TOWN_NPCS } from "./town-data.ts";
 import { earnedSeals, rings, seals } from "./astrolabe.ts";
@@ -17,14 +16,12 @@ export const achievementChapters = [
 ] as const;
 export type ChapterId = typeof achievementChapters[number]["id"];
 type Difficulty = "简单" | "普通" | "挑战" | "探索" | "进阶";
-export interface AchievementTarget { scene: SceneId; spot: string }
 interface Definition {
   id: string;
   chapter: ChapterId;
   name: string;
   description: string;
   difficulty: Difficulty;
-  target?: AchievementTarget;
   hint?: string;
   letterId?: string;
 }
@@ -35,37 +32,36 @@ export interface AchievementEntry extends Definition {
   progressLabel: string;
   details: string[];
 }
-const target = (scene: SceneId, spot: string): AchievementTarget => ({ scene, spot });
 
 const daily: Definition[] = [
-  { id: "cake", chapter: "daily", name: "第一口草莓", difficulty: "简单", description: "在小屋吹灭蜡烛、切开蛋糕，让芙芙吃完第一块。", target: target("room", "cake") },
-  { id: "gifts", chapter: "daily", name: "缎带里的心意", difficulty: "简单", description: "解开礼物两侧的缎带，掀开盒盖，收下礼物。", target: target("room", "gifts") },
-  { id: "balloons", chapter: "daily", name: "把愿望交给风", difficulty: "简单", description: "给粉、蓝、紫三只气球充好气，一起放飞。", target: target("garden", "balloons") },
-  { id: "fireworks", chapter: "daily", name: "夜空替我说", difficulty: "简单", description: "在周年花园的一次烟花互动中放出三朵烟花。", target: target("garden", "fireworks") },
-  { id: "courage", chapter: "daily", name: "带一朵勇气回家", difficulty: "普通", description: "穿过勇气花园，摘下终点的勇气之花。", target: target("challenge", "courage") },
-  { id: "wreath", chapter: "daily", name: "芙芙今天戴花", difficulty: "简单", description: "捡到花环，给芙芙正式佩戴一次。", target: target("garden", "wreath") },
-  { id: "bass", chapter: "daily", name: "把晚安弹给你", difficulty: "普通", description: "在白色贝斯上跟着提示亲手弹完 16 个音，静音也可以。", target: target("room", "white-bass") },
-  { id: "memories", chapter: "daily", name: "这一年有画面", difficulty: "简单", description: "点开一张相册照片，再去周年花园打开放映。先看哪一个都可以，影片载入时就会记下这次到访。", target: target("room", "album") },
-  { id: "fox", chapter: "daily", name: "嗷～嗷呜", difficulty: "简单", description: "摸摸小屋狐狸，让它舒服地眯起眼睛。", target: target("room", "room-fox") },
+  { id: "cake", chapter: "daily", name: "第一口草莓", difficulty: "简单", description: "在小屋吹灭蜡烛、切开蛋糕，让芙芙吃完第一块。" },
+  { id: "gifts", chapter: "daily", name: "缎带里的心意", difficulty: "简单", description: "解开礼物两侧的缎带，掀开盒盖，收下礼物。" },
+  { id: "balloons", chapter: "daily", name: "把愿望交给风", difficulty: "简单", description: "给粉、蓝、紫三只气球充好气，一起放飞。" },
+  { id: "fireworks", chapter: "daily", name: "夜空替我说", difficulty: "简单", description: "在周年花园的同一次互动中放出三朵烟花。开场的第一朵也算，收起后重新计数。" },
+  { id: "courage", chapter: "daily", name: "带一朵勇气回家", difficulty: "普通", description: "穿过勇气花园，摘下终点的勇气之花。" },
+  { id: "wreath", chapter: "daily", name: "芙芙今天戴花", difficulty: "简单", description: "捡到花环，给芙芙正式佩戴一次。" },
+  { id: "bass", chapter: "daily", name: "把晚安弹给你", difficulty: "普通", description: "在白色贝斯上跟着提示亲手弹完 16 个音，静音也可以。" },
+  { id: "memories", chapter: "daily", name: "这一年有画面", difficulty: "简单", description: "在相册点开一张单张照片，并打开周年花园的大屏放映。顺序不限，影片载入时也算到访。" },
+  { id: "fox", chapter: "daily", name: "嗷～嗷呜", difficulty: "简单", description: "摸摸小屋狐狸，让它舒服地眯起眼睛。" },
   { id: "fox-peace", chapter: "daily", name: "尾巴终于松开了", difficulty: "普通", description: "小狐狸生闷气后，在同一次回家里摸它两次，和它和好。", hint: "有时候，伸出去的手要再试一次。" },
-  { id: "companions", chapter: "daily", name: "旅伴有两位", difficulty: "普通", description: "分别从星星和霉霉那里正式邀请桃桃与棉棉同行。", target: target("garden", "garden-guest-balloon-friend") },
+  { id: "companions", chapter: "daily", name: "旅伴有两位", difficulty: "普通", description: "分别从星星和霉霉那里正式邀请桃桃与棉棉同行。" },
   { id: "friends", chapter: "daily", name: "小路尽头都是朋友", difficulty: "挑战", description: "与四张地图上的每位常驻角色互动，小叶子的拥抱要等它轻轻松开。" },
   { id: "bed-note", chapter: "daily", name: "床头留了一张便签", difficulty: "简单", description: "触发勇气花园的陷阱，回到小屋床上，看到小叶子的便签。", hint: "走累的时候，枕边也许有人给你留了话。" },
 ];
 
-function letter(key: string, letterId: string, name: string, difficulty: Difficulty, description: string, destination?: AchievementTarget, hint?: string): Definition {
-  return { id: "letter-" + key, chapter: "letters", letterId, name, difficulty, description, target: destination, hint };
+function letter(key: string, letterId: string, name: string, difficulty: Difficulty, description: string, hint?: string): Definition {
+  return { id: "letter-" + key, chapter: "letters", letterId, name, difficulty, description, hint };
 }
 const letters = [
-  letter("xiaoye", deliveryIds.xiaoye, "小叶子 · 绒爪递来的信", "普通", "在周年花园抱完小叶子，选择「收下信」。", target("garden", "xiaoye-plush")),
-  letter("yeshenhua", deliveryIds["radio-host"], "夜神华 · 夹在节目单里", "普通", "和夜神华聊完一个话题，查看节目单并收下信。", target("town", "npc-radio-host")),
-  letter("kerry", "kerry-anniversary-letter", "Kerry · 灵验的祝福", "简单", "拆开 Kerry 的周年来信，让正文在眼前展开。", target("room", "letters")),
-  letter("suyan", deliveryIds.suyan, "苏颜 · 很多很多颗心", "简单", "和苏颜聊到小花封口，收下她手里的信。", target("garden", "garden-guest-suyan")),
-  letter("rabe", "rabe-anniversary-letter", "Rabe · 深夜有了去处", "简单", "拆开 Rabe 的周年来信，让正文在眼前展开。", target("room", "letters")),
-  letter("xiaoyou", deliveryIds.xiaoyou, "一橙橘小佑 · 果篮底的心意", "普通", "尝过橘子，查看果篮，收下小佑包好的信。", target("town", "npc-xiaoyou")),
-  letter("guli", deliveryIds.guli, "故里 · 从鱼尾拆开", "普通", "看过鱼别针，问起故里手里的东西并收下信。", target("town", "npc-guli")),
-  letter("post", deliveryIds.post, "红笺 · 晚安寄到了", "普通", "在小镇邮局和红笺聊到她把信投出去。", target("town", "npc-post")),
-  letter("patrick", deliveryIds.patrick, "派大星 · 火边留下的信", "探索", "在花海的营火旁亲手拾起派大星留下的信。", undefined, "草地上有些心意，要等人走近才看得见。"),
+  letter("xiaoye", deliveryIds.xiaoye, "小叶子 · 绒爪递来的信", "普通", "在周年花园抱完小叶子，选择「收下信」。"),
+  letter("yeshenhua", deliveryIds["radio-host"], "夜神华 · 夹在节目单里", "普通", "和夜神华聊完一个话题，查看节目单并收下信。"),
+  letter("kerry", "kerry-anniversary-letter", "Kerry · 灵验的祝福", "简单", "拆开 Kerry 的周年来信，让正文在眼前展开。"),
+  letter("suyan", deliveryIds.suyan, "苏颜 · 很多很多颗心", "简单", "和苏颜聊到小花封口，收下她手里的信。"),
+  letter("rabe", "rabe-anniversary-letter", "Rabe · 深夜有了去处", "简单", "拆开 Rabe 的周年来信，让正文在眼前展开。"),
+  letter("xiaoyou", deliveryIds.xiaoyou, "一橙橘小佑 · 果篮底的心意", "普通", "尝过橘子，查看果篮，收下小佑包好的信。"),
+  letter("guli", deliveryIds.guli, "故里 · 从鱼尾拆开", "普通", "看过鱼别针，问起故里手里的东西并收下信。"),
+  letter("post", deliveryIds.post, "红笺 · 晚安寄到了", "普通", "在小镇邮局和红笺聊到她把信投出去。"),
+  letter("patrick", deliveryIds.patrick, "派大星 · 火边留下的信", "探索", "在花海的营火旁亲手拾起派大星留下的信。", "草地上有些心意，要等人走近才看得见。"),
 ];
 
 const gameRows: ReadonlyArray<{ id: GameId; name: string; difficulty: Difficulty; goal: number; verb: string; unit: string }> = [
@@ -77,9 +73,8 @@ const gameRows: ReadonlyArray<{ id: GameId; name: string; difficulty: Difficulty
   { id: "mines", name: "星纹石上的安全路", difficulty: "普通", goal: 26, verb: "翻开", unit: "块安全砖" },
   { id: "miner", name: "井底也有星光", difficulty: "简单", goal: 160, verb: "取得", unit: "矿光" },
 ];
-const gameTarget = (id: GameId) => target(ARCADES[id].scene, "arcade-" + id);
 const games = gameRows.map(({ id, name, difficulty, verb, unit, goal }): Definition => ({
-  id: "game-" + id, chapter: "games", name, difficulty, target: gameTarget(id),
+  id: "game-" + id, chapter: "games", name, difficulty,
   description: `在「${ARCADES[id].title}」中单局${verb} ${goal} ${unit}。`,
 }));
 const explore: Definition[] = [
@@ -100,11 +95,11 @@ const days = [
 ] as const;
 const advanced: Definition[] = [
   { id: "all-games", chapter: "advanced", name: "游园券上盖满啦", difficulty: "挑战", description: "在小镇与遗迹的七款小游戏各通关一次，可以分几次游玩。" },
-  { id: "flight-16", chapter: "advanced", name: "星门后面还有星门", difficulty: "挑战", description: "芙芙晚安飞行单局穿过 16 道星门，首次达标后选择「继续游玩」。", target: gameTarget("flight") },
-  { id: "miner-320", chapter: "advanced", name: "再往井底一点", difficulty: "进阶", description: "琥珀深井黄金矿工单局收集 320 矿光，首次达标后选择「继续游玩」。", target: gameTarget("miner") },
+  { id: "flight-16", chapter: "advanced", name: "星门后面还有星门", difficulty: "挑战", description: "芙芙晚安飞行单局穿过 16 道星门，首次达标后选择「继续游玩」。" },
+  { id: "miner-320", chapter: "advanced", name: "再往井底一点", difficulty: "进阶", description: "琥珀深井黄金矿工单局收集 320 矿光，首次达标后选择「继续游玩」。" },
   ...days.map(({ days, name, difficulty }): Definition => ({
     id: "days-" + days, chapter: "advanced", name, difficulty,
-    description: `开始探索后前台累计游玩 ${days * 10} 分钟，相当于 ${days} 个游戏日。可以分次累积。`,
+    description: `开始探索后，在线并保持游戏页面可见，累计游玩 ${days * 10} 分钟，相当于 ${days} 个游戏日。可以分次累积。`,
   })),
 ];
 export const achievementDefinitions: readonly Definition[] = [...daily, ...letters, ...games, ...explore, ...advanced];
@@ -194,7 +189,6 @@ interface Meter {
   goal: number;
   progressLabel: string;
   details: string[];
-  target?: AchievementTarget;
 }
 function meter(current: number, goal: number, unit: string, details: string[] = []): Meter {
   return { current, goal, progressLabel: `${current} / ${goal} ${unit}`, details };
@@ -219,34 +213,31 @@ export function reconcileAchievements(progress: Progress, context: AchievementCo
   }
   const wreath = yesNo(facts.has("wreath-worn"));
   if (context.owned.includes("wreath")) {
-    wreath.details.push("花环已经在背包里。打开背包，选中花环并确认佩戴。");
-    wreath.target = undefined;
+    wreath.details.push("花环 · 已收入背包");
   }
   meters.set("wreath", wreath);
   meters.set("bass", yesNo(progress.bassSongPlayed));
   const photo = facts.has("photo-opened"), cinema = facts.has("cinema-opened");
   const memories = meter(Number(photo) + Number(cinema), 2, "处回忆", [
-    photo ? "相册 · 已翻开单张照片" : "相册 · 点开一张照片",
-    cinema ? "放映 · 已打开花园大屏" : "放映 · 到花园大屏前选择「观看周年放映」",
+    photo ? "相册 · 已翻开单张照片" : "相册 · 尚未翻开单张照片",
+    cinema ? "放映 · 已打开花园大屏" : "放映 · 尚未打开花园大屏",
   ]);
-  memories.target = photo && !cinema ? target("garden", "danmaku") : target("room", "album");
   meters.set("memories", memories);
   meters.set("fox", yesNo(facts.has("fox-content")));
   meters.set("fox-peace", yesNo(facts.has("fox-reconciled")));
   const cat = facts.has("petCat"), bunny = facts.has("petBunny");
   const companions = meter(Number(cat) + Number(bunny), 2, "位旅伴", [
-    `桃桃 · ${cat ? "已同行" : "去见星星"}`, `棉棉 · ${bunny ? "已同行" : "去见霉霉"}`,
+    `桃桃 · ${cat ? "已同行" : "尚未同行"}`, `棉棉 · ${bunny ? "已同行" : "尚未同行"}`,
   ]);
-  companions.target = target("garden", cat && !bunny ? "garden-guest-decorator" : "garden-guest-balloon-friend");
   meters.set("companions", companions);
   meters.set("bed-note", yesNo(progress.bedNoteUnlocked));
 
   const talked = new Set(context.townTalked);
   const groups = [
-    { name: "小镇", scene: "town" as const, people: TOWN_NPCS.map(n => ({ name: n.name, id: "npc-" + n.id, met: talked.has(n.id) })) },
-    { name: "周年花园", scene: "garden" as const, people: gardenResidents.map(([id, name]) => ({ name, id, met: facts.has(id) })) },
-    { name: "勇气花园", scene: "challenge" as const, people: [{ name: "园丁爷爷", id: "elder-gardener", met: facts.has("elder-gardener") }] },
-    { name: "回声遗迹", scene: "ruins" as const, people: [{ name: "遗迹守护者", id: "elder-guardian", met: facts.has("elder-guardian") }] },
+    { name: "小镇", people: TOWN_NPCS.map(n => ({ name: n.name, met: talked.has(n.id) })) },
+    { name: "周年花园", people: gardenResidents.map(([id, name]) => ({ name, met: facts.has(id) })) },
+    { name: "勇气花园", people: [{ name: "园丁爷爷", met: facts.has("elder-gardener") }] },
+    { name: "回声遗迹", people: [{ name: "遗迹守护者", met: facts.has("elder-guardian") }] },
   ];
   const people = groups.flatMap(group => group.people);
   const friends = meter(people.filter(p => p.met).length, people.length, "位朋友", groups.map(group => {
@@ -254,10 +245,6 @@ export function reconcileAchievements(progress: Progress, context: AchievementCo
     const suffix = remaining.length ? " · 待相遇：" + remaining.map(p => p.name).join("、") : " · 已见齐";
     return `${group.name} ${group.people.length - remaining.length}/${group.people.length}${suffix}`;
   }));
-  for (const group of groups) {
-    const next = group.people.find(n => !n.met);
-    if (next) { friends.target = target(group.scene, next.id); break; }
-  }
   meters.set("friends", friends);
 
   const story = progress.residents;
@@ -268,17 +255,16 @@ export function reconcileAchievements(progress: Progress, context: AchievementCo
       : story.publicLettersRead.includes(id) || !!story.npcLetters[id as keyof typeof story.npcLetters];
     meters.set(letter.id, yesNo(got));
   }
-  const unplayed = [];
+  let clearedGames = 0;
   for (const g of gameRows) {
     const best = progress.arcadeBests[g.id] ?? 0;
     const score = meter(best, g.goal, g.unit);
     score.progressLabel = "单局最好 " + score.progressLabel;
     meters.set("game-" + g.id, score);
-    if (best < g.goal) unplayed.push(g);
+    if (best >= g.goal) clearedGames++;
   }
-  const allGames = meter(gameRows.length - unplayed.length, gameRows.length, "款游戏",
+  const allGames = meter(clearedGames, gameRows.length, "款游戏",
     gameRows.map(g => `${ARCADES[g.id].title} · ${(progress.arcadeBests[g.id] ?? 0) >= g.goal ? "已通关" : "待通关"}`));
-  if (unplayed.length) allGames.target = gameTarget(unplayed[0].id);
   meters.set("all-games", allGames);
   meters.set("flight-16", meter(progress.arcadeBests.flight ?? 0, 16, "道星门（单局最好）"));
   meters.set("miner-320", meter(progress.arcadeBests.miner ?? 0, 320, "矿光（单局最好）"));
@@ -298,10 +284,6 @@ export function reconcileAchievements(progress: Progress, context: AchievementCo
   const earnedInRuins = earnedSeals(progress.astrolabe, progress.echoes.listened);
   for (const seal of seals) meters.set("ruin-" + seal.id, yesNo(earnedInRuins.includes(seal.id)));
   meters.set("ruin-set", meter(progress.astrolabe.found.length, rings.length, "枚星盘环"));
-  meters.get("ruin-first")!.target = target("ruins", "star-notebook");
-  meters.get("ruin-set")!.target = target("ruins", "star-notebook");
-  meters.get("ruin-plate")!.target = target("ruins", "star-plate");
-  meters.get("ruin-light")!.target = target("ruins", "star-mirror-0");
   for (const { days: n } of days) {
     const minutes = Math.floor(Math.max(0, Number.isFinite(context.playSeconds) ? context.playSeconds : 0) / 60);
     meters.set("days-" + n, meter(minutes, n * 10, "分钟前台游玩"));

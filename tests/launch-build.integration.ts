@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { copyFile, mkdtemp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -47,7 +48,8 @@ test("switching full → invitation → full cleans the deployed directory", asy
   }
   const textureWorker = await readFile(join(outDir, "texture-cache.js"), "utf8");
   for (const asset of explicit.files.filter(name => name.startsWith("assets/") && /\.(webp|png|jpe?g|avif)$/i.test(name))) {
-    assert.ok(textureWorker.includes(JSON.stringify(asset)), `texture cache must include ${asset}`);
+    const digest = createHash("sha256").update(await readFile(join(outDir, asset))).digest("base64");
+    assert.ok(textureWorker.includes(JSON.stringify([asset, digest])), `texture cache integrity for ${asset}`);
   }
   assert.ok(!explicit.files.some(name => name.includes("stationery-cherrywood-box")));
   assert.ok(!explicit.files.some(name => /CharaStudio.*\.png$/i.test(name)));

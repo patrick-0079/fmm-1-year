@@ -32,6 +32,7 @@ import { drawGardenHazard } from "./garden-hazards";
 import { drawDoorRug } from "./door-rug";
 import {
   advancePath,
+  advancePathDistance,
   canStand,
   facingFromMovement,
   findPath,
@@ -89,6 +90,7 @@ export class World {
   private keys = new Set<string>();
   private touch: Point = { x: 0, y: 0 };
   private path: Point[] = [];
+  private exitWalk?: (now: number) => void;
   private targetEvent: string | null = null;
   facing: Facing = 0;
   private walking = false;
@@ -609,6 +611,43 @@ export class World {
     const spot = this.config.spots.find((s) => s.id === id);
     if (spot && this.available(spot)) this.goTo(spot.approach, id);
   }
+  /** The crossing owns input while the player and fox meet at the door. */
+  async walkToDoorstep(goal: Point) {
+    const room = this.config;
+    const route = findPath(this.player, goal, room);
+    if (route?.length && !this.reducedMotion.matches && !document.hidden) {
+      let previous = this.player;
+      let distance = 0;
+      for (const point of route) {
+        distance += Math.hypot(point.x - previous.x, point.y - previous.y);
+        previous = point;
+      }
+      // Keep map shortcuts brisk even when starting at the other end of the room.
+      const duration = Math.min(1750, distance * 7);
+      if (duration > 0) {
+        let remaining = route, covered = 0;
+        const started = performance.now();
+        this.exitWalk = now => {
+          if (this.config !== room) return;
+          const travelled = Math.min(1, Math.max(0, (now - started) / duration)) * distance;
+          const step = advancePathDistance(this.player, remaining, travelled - covered, room);
+          const dx = step.point.x - this.player.x, dy = step.point.y - this.player.y;
+          this.walking = Math.hypot(dx, dy) > .01;
+          if (this.walking) this.facing = facingFromMovement(this.facing, dx, dy);
+          this.player = step.point;
+          remaining = step.remaining;
+          covered = travelled;
+        };
+        await new Promise<void>(done => setTimeout(done, duration));
+        this.exitWalk = undefined;
+      }
+    }
+    if (this.config === room) {
+      this.player = { ...goal };
+      this.walking = false;
+      this.facing = 0;
+    }
+  }
   private goTo(goal: Point, event: string | null, intendedHazard?: string) {
     this.standUp();
     this.clearInput();
@@ -629,7 +668,8 @@ export class World {
     this.last = timestamp;
     this.time = timestamp / 1000;
     this.onTick(document.hidden || this.suspended ? 0 : dt, this.time);
-    if (!this.paused && !this.suspended && !document.hidden) this.update(dt);
+    if (this.exitWalk) this.exitWalk(timestamp);
+    else if (!this.paused && !this.suspended && !document.hidden) this.update(dt);
     this.updateCamera();
     this.refreshInteractionCue();
     this.draw();

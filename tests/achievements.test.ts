@@ -70,7 +70,6 @@ test("the book starts with 44 unique stamps in five chapters and seals unopened 
   assert.ok(entries.every(e => !e.earned && e.current === 0 && e.progressLabel));
   const mail = entries.filter(e => e.chapter === "letters");
   assert.deepEqual(new Set(mail.map(e => e.letterId)), new Set(allLetters.map(l => l.id)));
-  assert.ok(entries.filter(e => e.hint).every(e => !e.target));
   assert.ok(entries.filter(e => e.hint).every(e => !/派大星|30 秒|两次|电波|星盘环/.test(e.hint!)));
   assert.equal(migrateAchievementFacts(p, empty), false);
 });
@@ -117,7 +116,7 @@ test("all 25 meetings count unique characters from their own maps and ignore let
     assert.equal(recordAchievementFact(p, id), false);
   }
   assert.equal(get(town).current, 24);
-  assert.equal(get(town).target?.spot, "xiaoye-plush");
+  assert.ok(get(town).details.some(line => line.includes("待相遇：小叶子")));
   recordAchievementFact(p, "xiaoye-plush");
   const all = get(town);
   assert.equal(all.earned, true);

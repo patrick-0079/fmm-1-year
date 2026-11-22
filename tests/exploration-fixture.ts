@@ -1,5 +1,5 @@
 import { World, scenes } from "../src/world";
-import { SAVE_KEY, readProgress } from "../src/core";
+import { SAVE_KEY, canStand, readProgress } from "../src/core";
 import { rainbowFlowers, meadowGate } from "../src/rainbow-flowers";
 import { producers } from "../src/content";
 import { JOURNEY_KEY, readJourney } from "../src/journey";
@@ -13,6 +13,7 @@ import { elderPlaces } from "../src/elders-data";
 import { ARCADES } from "../src/town-data";
 import { verifyGuests, verifyGardenDiscovery } from "./guest-cases";
 import { verifyAchievementBook } from "./achievement-book-cases";
+import { verifyFullBadgeRoute } from "./full-badge-route";
 import { verifyArcadeStamps } from "./achievement-arcade-route";
 import { verifyLetterAndMeadowStamps } from "./achievement-mail-route";
 import { verifyFieldTrip } from "./field-trip-cases";
@@ -22,6 +23,7 @@ import { verifyReadingControls } from "./reading-cases";
 import { verifyNavigationRaces } from "./adversarial-cases";
 import { foxNook } from "../src/room-props";
 import { interactionHitY } from "../src/interaction";
+import { checkTapSurface } from "./hotspot-pointer-cases";
 
 // Same application as the homepage; all its saves are private to this QA tab.
 const space="fufu-only-exploration-fixture/";
@@ -285,7 +287,9 @@ async function checkAll() {
   selectBottleStar(producers.find(person => person.id === "star-xiaoye")!); closeStarBottle();
   log("无寄语星仅出现一份柔和星光且不暂停探索，开瓶与切图清理；瓶内重选及空／有寄语切换不叠光、不改收藏");
   const exit=scenes.meadow.spots.find(s=>s.id==="meadow-exit")!;
-  world.switchScene("meadow",exit.approach); world.interact();
+  world.switchScene("meadow",exit.approach);
+  checkTapSurface(world, exit.id, exit);
+  world.interact();
   await wait(()=>world.scene==="garden");
   expect(q(".star-whisper").hidden && !q(".time-pill").textContent?.includes("静夜"),"花海特效或时钟泄漏到庭院");
   checkQuietEffect(q(".star-whisper"),false,"返回庭院后");
@@ -308,6 +312,12 @@ async function run(check:()=>Promise<void>) {
   finally {q<HTMLButtonElement>("#verify").disabled=false;}
 }
 q("#verify").addEventListener("click",()=>void run(checkAll));
+q("#check-full-badge-route").addEventListener("click",()=>void run(async()=>{
+  if (!q(".intro-screen").classList.contains("dismissed")) await start();
+  await verifyFullBadgeRoute(world, log, async () => {
+    for (const person of producers) await collectStar(person);
+  });
+}));
 for (const [selector,check] of [["#check-arcade-stamps",verifyArcadeStamps],["#check-mail-stamps",verifyLetterAndMeadowStamps]] as const) {
   q(selector).addEventListener("click",()=>void run(async()=>{
     if (!q(".intro-screen").classList.contains("dismissed")) await start();
@@ -354,17 +364,39 @@ q("#check-fox").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();
   q(".reset-button").click(); q(".reset-confirm").click();
   const bubble=q(".fox-bubble"), words=(text:string)=>!bubble.hidden && bubble.textContent===text;
+  const mat = scenes.room.spots.find(spot => spot.id === "door")!.approach;
   const go=async(scene:"garden"|"room",door=false)=>{
-    if(door)world.onInteract("door");else q('[data-scene="'+scene+'"]').click();
-    if(world.scene==="room" && scene==="garden"){
-      await wait(()=>words("呜…呜呜"));expect(world.scene==="room","送别被切图遮住");
+    const leavingHome = world.scene === "room" && scene === "garden";
+    if (door) {
+      const exit = world.config.spots.find(spot => spot.id === "door")!;
+      world.switchScene(world.scene, exit.approach);
+      world.canvas.focus({preventScroll:true});
+    }
+    const from = {...world.player};
+    if (door) { key("e"); key("e",false); } else q('[data-scene="'+scene+'"]').click();
+    if (leavingHome) {
+      let sawWalk = false;
+      await wait(() => {
+        const {player,config} = world;
+        expect(canStand(player,config.walls,config.bounds,config.floor,config.surfaces), "送别途中穿过了家具");
+        if (Math.hypot(player.x-from.x,player.y-from.y)>4 && Math.hypot(player.x-mat.x,player.y-mat.y)>4) sawWalk = true;
+        return words("呜…呜呜");
+      });
+      expect(world.scene==="room" && world.player.x===mat.x && world.player.y===mat.y, "狐狸送别时芙芙没有到门垫");
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches && Math.hypot(from.x-mat.x,from.y-mat.y)>40)
+        expect(sawWalk, "导航送别缺少芙芙步行到门口的过程");
     }
     await wait(()=>world.scene===scene && !world.paused);
   };
-  await go("garden",true);
+  world.switchScene("room",bassStand.spot.approach);
+  q('.scene-nav [data-scene="room"]').click();
+  q('.scene-nav [data-scene="room"]').click();
+  expect(!world.paused && world.player.x === bassStand.spot.approach.x && world.player.y === bassStand.spot.approach.y,
+    "重复点击当前地图导航不应重置位置或启动转场");
+  await go("garden");
   for(let i=0;i<2;i++){
     await go("room",i===1);expect(words("嗷呜！") && state().roomFox.missed===i,"正常欢迎或计数错误");
-    await go("garden");expect(state().roomFox.missed===i+1,"离开没有结算");
+    await go("garden", i === 1);expect(state().roomFox.missed===i+1,"离开没有结算");
   }
   await world.prepareScene("challenge");
   world.switchScene("challenge",scenes.challenge.hazards[0]);
@@ -389,6 +421,8 @@ q("#check-fox").addEventListener("click",()=>void run(async()=>{
     await wait(()=>!world.paused && q(".toast").textContent?.includes("暂未载入")===true);
     expect(world.scene==="room" && JSON.stringify(state().roomFox)===before,"加载失败却结算了探访");
   } finally {world.prepareScene=prepare;}
+  await go("garden");
+  await go("room");
   q(".reset-button").click();q(".reset-confirm").click();
   expect(state().roomFox.visit==="none" && state().roomFox.missed===0,"清档残留情绪");
   expect(!state().achievements.earned.length && !state().achievements.facts.length,"清档保留了旧狐狸或便签徽章");

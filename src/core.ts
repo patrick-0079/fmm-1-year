@@ -59,6 +59,8 @@ export interface Checkpoint {
   y: number;
 }
 export interface Progress {
+  /** Assigned on reset so stale tabs can never restore receipts into the next adventure. */
+  generation?: string;
   achievements: AchievementMemory;
   visited: string[];
   completed: string[];
@@ -135,6 +137,7 @@ export function readProgress(raw: string | null): Progress {
           ]
         : [];
     return {
+      ...(typeof p.generation === "string" && p.generation ? {generation: p.generation} : {}),
       achievements: readAchievementMemory(p.achievements, true),
       visited: valid(p.visited, EVENT_IDS),
       completed: valid(p.completed, GAME_IDS),
@@ -411,9 +414,12 @@ export function advancePath(
   delta: number,
   geometry: Geometry,
 ) {
+  return advancePathDistance(start, path, PLAYER_SPEED * clampedDelta(delta), geometry);
+}
+
+export function advancePathDistance(start: Point, path: Point[], budget: number, geometry: Geometry) {
   const remaining = [...path];
-  let point = { ...start },
-    budget = PLAYER_SPEED * clampedDelta(delta);
+  let point = { ...start };
   while (remaining.length && budget > 1e-6) {
     const target = remaining[0],
       distance = Math.hypot(target.x - point.x, target.y - point.y);

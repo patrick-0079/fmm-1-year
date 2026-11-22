@@ -68,8 +68,13 @@ export class CompanionMotion {
     // their companion. Let the pet take a short visible step aside, not remain
     // stacked on the player's torso until another long walk happens.
     if (Math.hypot(this.position.x-player.x,this.position.y-player.y)<24 &&
-      (!this.aside || Math.hypot(this.aside.x-player.x,this.aside.y-player.y)<24))
+      (!this.aside || Math.hypot(this.aside.x-player.x,this.aside.y-player.y)<24)) {
       this.aside = companionJoinPoint(player, geometry, this.position);
+      // We have rejoined the player here. Following the older trail after
+      // stepping aside would send the pet back to the other end of the room.
+      this.trail = [{ ...player }];
+      this.lastPlayer = { ...player };
+    }
     if (this.aside) {
       const dx=this.aside.x-this.position.x,dy=this.aside.y-this.position.y,distance=Math.hypot(dx,dy);
       if (distance<.05) this.aside=null;

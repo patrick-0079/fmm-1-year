@@ -268,13 +268,16 @@ export class GardenCinema {
       v.addEventListener(event, update);
     this.player.prepend(v);
   }
-  private preload() {
+  private preload(replaceUnplayable = false) {
     this.session.retry();
     void this.download
-      .start()
+      .start(replaceUnplayable)
       .then((url) => {
-        this.video!.src = url;
-        this.video!.load();
+        const video = this.video!;
+        const previous = video.src;
+        video.src = url;
+        video.load();
+        if (previous.startsWith("blob:") && previous !== url) URL.revokeObjectURL(previous);
       })
       .catch(() => {
         this.session.fail();
@@ -347,7 +350,8 @@ export class GardenCinema {
     this.session.retry();
     this.slow = false;
     this.notified = false;
-    if (this.download.progress.state === "error") this.preload();
+    if (this.video.error) this.preload(true);
+    else if (this.download.progress.state === "error") this.preload();
     else this.video.load();
     this.render();
   }

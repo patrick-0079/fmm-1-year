@@ -4,6 +4,10 @@
   bottom: max(12px, env(safe-area-inset-bottom));
   right: max(12px, env(safe-area-inset-right));
 }
+/* Leave room below the footer actions when the fixed preview controls are present. */
+body:has(.debug-dock) .page-journal > footer {
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+}
 .debug-trigger,
 .debug-panel button {
   color: #594959;

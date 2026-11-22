@@ -1,7 +1,12 @@
-// Vite embeds the exact, content-hashed texture paths in textureFiles above.
+// Verify bytes against this build, including entries created by an older worker.
 const scope = self.registration.scope;
-const textures = new Set(textureFiles.map(file => new URL(file, scope).href));
+const textures = new Map(textureFiles.map(([file, digest]) => [new URL(file, scope).href, digest]));
 const cacheName = "fufu-game-textures-v1:" + new URL(scope).pathname;
+const verified = new Set();
+async function matchesDigest(response, digest) {
+  const hash = await crypto.subtle.digest("SHA-256", await response.clone().arrayBuffer());
+  return btoa(String.fromCharCode(...new Uint8Array(hash))) === digest;
+}
 
 self.addEventListener("activate", event => {
   event.waitUntil((async () => {
@@ -23,11 +28,17 @@ self.addEventListener("fetch", event => {
     try {
       cache = await caches.open(cacheName);
       const hit = await cache.match(request);
-      if (hit) return hit;
+      if (hit && (verified.has(request.url) || await matchesDigest(hit, textures.get(request.url)))) {
+        verified.add(request.url);
+        return hit;
+      }
+      if (hit) await cache.delete(request);
+      verified.delete(request.url);
     } catch { /* Browsers with restricted storage can still load every texture. */ }
-    const response = await fetch(request);
+    const digest = textures.get(request.url);
+    const response = await fetch(request, { mode: "same-origin", integrity: "sha256-" + digest, cache: "reload" });
     if (cache && response.status === 200 && response.headers.get("Content-Type")?.startsWith("image/")) {
-      event.waitUntil(cache.put(request, response.clone()).catch(() => {}));
+      event.waitUntil(cache.put(request, response.clone()).then(() => verified.add(request.url)).catch(() => {}));
     }
     return response;
   })());

@@ -65,7 +65,11 @@ export class RoomFox {
   async farewell() {
     this.farewellAt = performance.now();
     this.bubble.hidden = true;
-    if (!this.reduced.matches) await new Promise<void>(r=>setTimeout(r,550));
+    const doorstep = this.world.config.spots.find(spot => spot.id === "door")!.approach;
+    await Promise.all([
+      this.world.walkToDoorstep(doorstep),
+      this.reduced.matches ? undefined : new Promise<void>(done => setTimeout(done, 550)),
+    ]);
     this.position = {...foxDoor};
     this.speak("farewell");
     await new Promise<void>(r=>setTimeout(r,780));
