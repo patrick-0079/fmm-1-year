@@ -75,6 +75,11 @@ test("every playable pitch and the full demonstration contain audible PCM sample
   }
   const demo = sample("anniversary-demo"),
     rate = demo.readUInt32LE(24);
+  let peak = 0;
+  for (let offset = 44; offset < demo.length; offset += 2) {
+    peak = Math.max(peak, Math.abs(demo.readInt16LE(offset)) / 32768);
+  }
+  assert.ok(peak > 0.85 && peak < 0.99, "the mixed demonstration needs headroom at note transitions");
   assert.ok((demo.length - 44) / 2 / rate >= 16 * beatSeconds);
   let beat = 0;
   for (const n of bassScore) {
