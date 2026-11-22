@@ -1,5 +1,7 @@
 import type { Point } from "./core";
 import type { Creek, GardenTree } from "./landscape";
+import { creekDrift, drawDrift } from "./creek-drift";
+import { drawTreeInBreeze } from "./scenery-wind";
 function path(c: CanvasRenderingContext2D, points: Point[]) {
   c.beginPath();
   points.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
@@ -9,9 +11,11 @@ export function drawCreek(
   c: CanvasRenderingContext2D,
   creek: Creek,
   t: number,
+  scene: "garden" | "challenge",
 ) {
   c.save();
   c.lineJoin = "round";
+  const debris = creekDrift(scene, t);
   for (const points of [creek.upper, creek.lower]) {
     const minX = Math.min(...points.map((p) => p.x)),
       maxX = Math.max(...points.map((p) => p.x));
@@ -43,6 +47,9 @@ export function drawCreek(
       c.fillRect(Math.round(x / 2) * 2, Math.round(y / 2) * 2, 3 + (i % 4), 1);
       if (i % 7 === 0)
         c.fillRect(Math.round(x / 2) * 2 + 2, Math.round(y / 2) * 2 + 3, 2, 1);
+    }
+    for (const obj of debris) {
+      if (obj.y >= minY - 5 && obj.y <= maxY + 5) drawDrift(c, obj);
     }
     c.restore();
     for (let i = 0; i < points.length; i += 2) {
@@ -88,6 +95,7 @@ export function drawGardenTree(
   c: CanvasRenderingContext2D,
   image: HTMLImageElement,
   tree: GardenTree,
+  wind = 0,
 ) {
   const { x, y, scale } = tree;
   c.save();
@@ -96,7 +104,10 @@ export function drawGardenTree(
   c.ellipse(x, y + 24 * scale, 28 * scale, 8 * scale, 0, 0, Math.PI * 2);
   c.fill();
   c.filter = `hue-rotate(${tree.tone}deg)`;
-  if (image.complete && image.naturalWidth)
-    c.drawImage(image, x - 36 * scale, y - 53 * scale, 72 * scale, 80 * scale);
+  if (image.complete && image.naturalWidth) {
+    c.translate(x - 36 * scale,y - 53 * scale);
+    c.scale(scale,scale);
+    drawTreeInBreeze(c,image,wind);
+  }
   c.restore();
 }

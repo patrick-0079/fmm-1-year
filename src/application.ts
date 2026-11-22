@@ -20,7 +20,6 @@ import { GardenCinema } from "./cinema";
 import { GardenLife } from "./garden-life";
 import { Xiaoye } from "./xiaoye";
 import { Suyan } from "./suyan";
-import { worldTime } from "./day";
 import { ARCADES } from "./town-data";
 import { reservedShortcut } from "./input";
 import type { GameId } from "./arcade-engines";
@@ -306,6 +305,7 @@ export function mountGame() {
   };
   inventory.onEquip = () => activities.finishEquipmentChoice();
   const nature = new Nature(world, activities, toast, inventory);
+  world.isPresentingDialogue = () => activities.dialogueOpen;
   const arcade = new Arcade(world, activities, inventory, (id, score) => {
     const best = progress.arcadeBests[id] ?? 0;
     if (score <= best) return best;
@@ -316,8 +316,8 @@ export function mountGame() {
   const town = new Town(world, activities, inventory, id => visit(ARCADES[id].scene, "arcade-"+id),
     { story: () => progress.residents, mail, save, notify: toast });
   const gardenLife = new GardenLife(world, activities, inventory, () => progress, save);
-  const xiaoye = new Xiaoye(world, activities, mail, () => nature.timePreview ?? worldTime(nature.elapsed).phase);
-  const suyan = new Suyan(world, activities, mail);
+  const xiaoye = new Xiaoye(world, activities, mail, () => world.currentPhase);
+  const suyan = new Suyan(world, activities, mail, gardenLife.residents);
   const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);
   const campLetterButton = document.querySelector<HTMLButtonElement>(".camp-letter")!;
   const refreshCampLetter = () => {
@@ -500,12 +500,14 @@ export function mountGame() {
     revealMapIfOffscreen();
   };
   world.onScene = (scene) => {
+    nature.refreshClock();
+    if (scene !== "garden") gardenLife.residents.leave();
+    town.enterScene(scene);
     sceneWrap.dataset.currentMap = scene;
     bass.close(false);
     saveLocation();
     if (scene !== "meadow") meadow.leave();
     if (scene !== "ruins") { ruins.clearEffect(); starQuest.clearFlash(); }
-    nature.refreshClock();
     document.querySelector("#location-name")!.textContent =
       `${({room:"ROOM 01",garden:"GARDEN 02",challenge:"GARDEN 03",town:"TOWN 04",meadow:"SECRET 05",ruins:"RUINS 06"})[scene]} · ${scenes[scene].title}`;
     document

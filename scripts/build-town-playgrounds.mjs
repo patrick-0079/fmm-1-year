@@ -6,6 +6,7 @@ import {
 } from "../src/town-attraction-layout.ts";
 import { townForeground } from "../src/town-foreground.ts";
 import { townCanopies } from "../src/town-scenery.ts";
+import "./build-town-pond-mask.mjs";
 
 const assets = new URL("../src/assets/", import.meta.url);
 const artwork = new URL("../ref/素材/周年小镇/", import.meta.url);

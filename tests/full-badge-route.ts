@@ -1,3 +1,4 @@
+import { arriveOnShift, scheduledResident } from "./resident-visits";
 import { achievementDefinitions } from "../src/achievements";
 import { bassScore } from "../src/bass-score";
 import { SAVE_KEY, readProgress } from "../src/core";
@@ -35,6 +36,11 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   async function interactAt(scene: SceneId, id: string) {
     closeActivity();
     await world.prepareScene(scene);
+    if (scheduledResident(id)) {
+      await arriveOnShift(world, scene, id);
+      key(world.canvas, "e"); key(world.canvas, "e", false);
+      return;
+    }
     const config = scene === "town" ? world.townMap : scenes[scene];
     const spot = config.spots.find(s => s.id === id);
     if (!spot) throw Error("没有找到 " + id);
@@ -132,7 +138,7 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   expect(earned("courage"), "亲手摘勇气花后未盖章");
   closeActivity();
   await world.prepareScene("garden");
-  verifyGuests(world);
+  await verifyGuests(world);
   await verifyGardenDiscovery(world);
   log("放飞三色气球、同场烟花、采勇气花、戴花环、邀请两位旅伴、跨日发现三个彩蛋");
 

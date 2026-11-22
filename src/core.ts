@@ -35,14 +35,20 @@ export interface Point {
   x: number;
   y: number;
 }
-export type Obstacle =
-  (Rect & { label?: string }) | { points: Point[]; label?: string };
+export type Obstacle = (Rect | { points: Point[] }) & {
+  label?: string;
+  /** This actor yields when a player resumes or arrives at its current mark. */
+  yieldsOnArrival?: boolean;
+};
 export interface Geometry {
   bounds: Rect;
   walls: Obstacle[];
   floor?: Point[];
   /** Union of paved surfaces; absent for maps whose lawns are walkable. */
   surfaces?: Point[][];
+}
+export function canArriveAt(point: Point, map: Geometry): boolean {
+  return canStand(point, map.walls.filter(wall => !wall.yieldsOnArrival), map.bounds, map.floor, map.surfaces);
 }
 export interface Hazard {
   id: string;

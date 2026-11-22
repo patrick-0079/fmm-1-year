@@ -2,7 +2,8 @@ import type { World, DepthLayer } from "./world";
 import type { Activities } from "./activities";
 import type { Progress } from "./core";
 import { elderLines, elderPlaces, guardianGreeting, type ElderPage, type ElderPose } from "./elders-data";
-import { sceneArt } from "./scene-art";
+import { drawIdlePose, sceneArt } from "./scene-art";
+import { drawElderIdle, prepareGardenGestures } from "./garden-gesture-art";
 
 type ElderScene = keyof typeof elderPlaces;
 type Choice = { title: string; run: () => void };
@@ -49,6 +50,7 @@ function drawSprite(c: CanvasRenderingContext2D, pose: ElderPose, x: number, y: 
 export class Elders {
   private page: ElderPage | null = null;
   private tending = false;
+  private watchingLane = false;
   private poseAge = 0;
   private giftingBook = false;
 
@@ -56,18 +58,27 @@ export class Elders {
     private progress: () => Pick<Progress, "astrolabe" | "residents">, private save: () => void,
     private openNotebook: () => void) {
     const depth = world.getDepthLayers, tick = world.onTick;
+    let artScene: string | undefined;
     world.getDepthLayers = () => world.scene === "challenge" || world.scene === "ruins"
       ? [...depth(), this.layer(world.scene)] : depth();
     world.onTick = (dt, time) => {
       tick(dt, time);
+      if(artScene!==world.scene){
+        artScene=world.scene;
+        if(world.scene==="challenge" || world.scene==="ruins")prepareGardenGestures(world.scene);
+      }
       if (this.page) this.poseAge += dt;
-      if (world.scene !== "challenge" || this.gardenerDistance() > 65) this.tending = false;
+      if (world.scene !== "challenge" || this.gardenerDistance() > 65) {
+        this.tending=false;
+        this.watchingLane=false;
+      } else if (this.gardenerDistance() <= 60) this.watchingLane=true;
     };
   }
 
   reset() {
     this.page = null;
     this.tending = false;
+    this.watchingLane = false;
     this.poseAge = 0;
     this.giftingBook = false;
   }
@@ -112,7 +123,7 @@ export class Elders {
 
   private layer(scene: ElderScene): DepthLayer {
     const npc = elderPlaces[scene];
-    const attending = !this.tending && this.gardenerDistance() <= 60;
+    const attending = !this.tending && this.watchingLane;
     const idle = scene === "ruins" ? "watch" : (attending ? "stand" : "dig");
     const pose = this.page ? elderLines[this.page].pose : idle;
     return { y: npc.y, draw: c => {
@@ -127,7 +138,21 @@ export class Elders {
       if (!reduced.matches && pose === "bow" && this.poseAge < .65) {
         c.rotate(Math.sin(this.poseAge / .65 * Math.PI) * .055);
       }
-      drawSprite(c, pose, 0, 0, 48, this.giftingBook);
+      const work = (this.world.ambientTime + 10.6) % 15.2;
+      if (!this.page && pose === "dig" && !reduced.matches && work < 3 && sceneArt.gardenerWork.naturalWidth) {
+        const frame = work < .38 || (work >= .85 && work < 1.36) ? 0 : work < 2.05 ? 1 : 2;
+        drawIdlePose(c, sceneArt.gardenerWork, frame, 0, 0, 48);
+        // Two small sprays rise from the blade, then fall back into its furrow.
+        const soilAge = work < 1.36 ? work - .38 : work - 1.36;
+        if (soilAge >= 0 && soilAge < .36) {
+          const progress = soilAge / .36;
+          for (const [dx, height, tint] of [[4,2,"#826748"],[2,3.6,"#b29664"]] as const) {
+            c.fillStyle = tint;
+            c.fillRect(Math.round(18 + dx * progress), Math.round(-1 - Math.sin(Math.PI * progress) * height), 1, 1);
+          }
+        }
+      } else if(this.page || reduced.matches || (scene==="challenge" && pose!=="dig")
+        || !drawElderIdle(c,scene,this.world.ambientTime)) drawSprite(c, pose, 0, 0, 48, this.giftingBook);
       c.restore();
     } };
   }

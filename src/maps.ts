@@ -470,6 +470,7 @@ for (const guest of gardenGuests) {
   });
   scenes.garden.walls.push({
     label: "庭院来宾 · " + guest.name,
+    yieldsOnArrival: true,
     x: guest.x - 5,
     y: guest.y - 6,
     w: 10,

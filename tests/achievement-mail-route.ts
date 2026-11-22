@@ -1,3 +1,4 @@
+import { arriveOnShift, scheduledResident } from "./resident-visits";
 import { SAVE_KEY, readProgress } from "../src/core";
 import { rainbowFlowers, meadowGate } from "../src/rainbow-flowers";
 import { campLetterSpot } from "../src/meadow-ground";
@@ -29,6 +30,7 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
   const approach = async(scene: SceneId, id: string) => {
     close();
     await world.prepareScene(scene);
+    if (scheduledResident(id)) return arriveOnShift(world, scene, id);
     const cfg=scene==="town"?world.townMap:scenes[scene];
     const spot=cfg.spots.find(s=>s.id===id)!;
     world.switchScene(scene,spot.approach);

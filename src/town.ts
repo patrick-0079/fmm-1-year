@@ -6,12 +6,18 @@ import { residentOpening, townDialogues, type TownPage } from "./town-dialogue";
 import { letterChoice, type LetterHandoff, type ResidentStory } from "./resident-story";
 import { townResidentLayers, residentPlacement, drawResidentPortrait, type TownAct } from "./town-acting";
 import { TownResidentMap } from "./town-resident-map";
+import { TownRoutines, worksInTown } from "./town-routines";
+import { prepareTownWork } from "./town-work-art";
+import { prepareResidentWalk } from "./resident-walk";
+import type { SceneId } from "./maps";
 import { townForeground } from "./town-foreground";
 import { townScene } from "./town-map";
 import { drawWishLights, townAttractionLayers, townPlaygroundCovers } from "./town-attraction-art";
 import type { GameId } from "./arcade-engines";
 import npcUrl from "./assets/town-npcs.webp";
 import { drawPartyProp } from "./party-art";
+import { TownPond } from "./town-pond";
+import { drawTownCrown, drawTownWeather, windAllowance } from "./scenery-wind";
 import {
   townCanopies,
   festivalProps,
@@ -30,8 +36,10 @@ export class Town {
   private sprites = new Image();
   private visited = new Set<string>();
   private time = 0;
+  private pond = new TownPond();
   private reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
   private residents = new TownResidentMap(townScene);
+  private lives = new TownRoutines();
   private placement?: ReturnType<typeof residentPlacement>;
   private act?: TownAct & { npc: TownNpc; after?: TownPage["after"] };
   constructor(
@@ -42,6 +50,7 @@ export class Town {
     private hooks: StoryHooks,
   ) {
     world.townMap = this.residents.scene;
+    this.enterScene(world.scene);
     this.sprites.src = npcUrl;
     try {
       const list = JSON.parse(
@@ -61,16 +70,32 @@ export class Town {
     };
     world.onTick = (dt, t) => {
       tick(dt, t);
-      this.time = t;
-      this.updateAct(dt);
-      const performer = this.act?.npc;
-      this.placement = performer && residentPlacement(performer, world.player, this.act);
-      this.residents.update(world.scene === "town" ? world.player : undefined, performer?.id, this.placement?.foot);
+      if (world.scene === "town") {
+        this.time = world.ambientTime;
+        if (!world.paused) this.updateAct(dt);
+        this.lives.tick(world.paused ? 0 : dt,world.currentPhase,world.player,world.visibleArea,
+          world.pendingInteractionId,this.act?.npcId,this.reducedMotion.matches);
+        const performer = this.act?.npc;
+        this.placement = performer && residentPlacement(performer, world.player, this.act);
+        this.residents.update(world.player,performer?.id,this.placement?.foot,this.lives.people);
+      }
       world.canvas.parentElement!.toggleAttribute("data-quarry-view",
         world.scene==="town" && world.player.x>1150 && world.player.y<260);
     };
   }
   get talkedIds(): ReadonlySet<string> { return this.visited; }
+  enterScene(scene:SceneId) {
+    this.act=undefined;
+    this.placement=undefined;
+    this.lives.enter(this.world.currentPhase);
+    this.residents.update(scene==="town"?this.world.player:undefined,undefined,undefined,this.lives.people);
+    if (scene === "town") {
+      prepareTownWork();
+      for (const npc of TOWN_NPCS) {
+        if (worksInTown(npc.id, this.world.currentPhase)) prepareResidentWalk(npc.id);
+      }
+    }
+  }
 
   reset() {
     this.act = undefined;
@@ -80,12 +105,15 @@ export class Town {
   interact(id: string) {
     if (this.world.scene !== "town" || !id.startsWith("npc-")) return false;
     const npc = TOWN_NPCS.find((n) => n.id === id.slice(4));
-    if (!npc) return false;
+    if (!npc || !this.residents.scene.spots.includes(this.residents.anchor(npc.id))) return false;
+    const person=this.lives.people.get(npc.id)!;
+    if (!worksInTown(npc.id,this.world.currentPhase) && this.act?.npcId!==npc.id) return false;
     if (!this.visited.has(npc.id)) {
       this.visited.add(npc.id);
       this.save();
     }
-    this.showPage(npc, residentOpening(npc.id, this.hooks.story(), this.inventory.hasBouquet()));
+    const at = {...npc,x:person.x,y:person.y};
+    this.showPage(at, residentOpening(npc.id, this.hooks.story(), this.inventory.hasBouquet()));
     return true;
   }
 
@@ -181,6 +209,9 @@ export class Town {
   }
   private layers(): DepthLayer[] {
     if (this.world.scene !== "town") return [];
+    const view = this.world.visibleArea;
+    const visible = (x: number, y: number) =>
+      x + 64 >= view.x && x - 64 <= view.x + view.w && y + 18 >= view.y && y - 76 <= view.y + view.h;
     return [
       ...townPlaygroundCovers(this.world),
       ...townForeground.map(part => ({
@@ -196,14 +227,14 @@ export class Town {
             Math.abs(this.world.player.x - t.x) < 62;
           c.save();
           if (behind) c.globalAlpha = 0.5;
-          this.world.drawMapFragment(c, t.points);
+          drawTownCrown(c,this.world,t.x,t.points,this.reducedMotion.matches);
           c.restore();
         },
       })),
-      ...festivalProps.map((p) => ({
+      ...festivalProps.filter(p => visible(p.x,p.y)).map((p) => ({
         y: p.y + 3,
         draw: (c: CanvasRenderingContext2D) =>
-          drawFestivalProp(c, p, this.time, (x, y, color) =>
+          drawFestivalProp(c, p, this.reducedMotion.matches ? 0 : this.time, (x, y, color) =>
             drawPartyProp(
               c,
               color === "#edca8b"
@@ -216,17 +247,23 @@ export class Town {
               24,
               51,
             ),
+            windAllowance(this.world),
           ),
       })),
       ...townAttractionLayers(this.time, this.reducedMotion.matches),
-      ...TOWN_NPCS.flatMap(n => townResidentLayers(
-        n, this.sprites, this.world, this.visited.has(n.id), this.time, this.act,
-        this.act?.npcId === n.id ? this.placement : undefined,
-      )),
+      ...TOWN_NPCS.flatMap(n => {
+        const person=this.lives.people.get(n.id)!;
+        if(person.status==="absent" || !visible(person.x,person.y)) return [];
+        const placed=this.act?.npcId===n.id ? this.act.npc : {...n,x:person.x,y:person.y};
+        return townResidentLayers(placed,this.sprites,this.world,this.visited.has(n.id),this.time,this.act,
+          this.act?.npcId===n.id ? this.placement : undefined,person,this.hooks.story().welcomeReceived);
+      }),
     ];
   }
   private drawSigns(c: CanvasRenderingContext2D) {
     if (this.world.scene !== "town") return;
+    this.pond.draw(c, this.world.visibleArea, this.time, this.reducedMotion.matches);
+    if (!this.reducedMotion.matches) drawTownWeather(c,this.world);
     drawTownSigns(c);
     drawWishLights(c, this.time, this.reducedMotion.matches);
   }

@@ -163,6 +163,7 @@ export const townScene: Scene = {
 for (const npc of TOWN_NPCS)
   townScene.walls.push({
     label: "镇民 · " + npc.name,
+    yieldsOnArrival: true,
     x: npc.x - 5,
     y: npc.y - 6,
     w: 10,

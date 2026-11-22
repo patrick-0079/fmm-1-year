@@ -1,6 +1,6 @@
 import { arriveHome, leaveHome, petFox, foxWords, type FoxCall, type FoxMemory } from "./fox-memory";
 import { foxDoor, foxNook } from "./room-props";
-import { sceneArt } from "./scene-art";
+import { drawIdlePose, sceneArt } from "./scene-art";
 import { foxCry } from "./sound";
 import type { World } from "./world";
 
@@ -10,6 +10,7 @@ export class RoomFox {
   private farewellAt: number | null = null;
   private call: FoxCall | null = null;
   private until = 0;
+  private interruptedRest = -1;
   private position = {x:foxNook.x,y:foxNook.y};
   constructor(private world: World, private memory: () => FoxMemory, private save: () => void) {
     this.bubble.className = "fox-bubble";
@@ -37,6 +38,7 @@ export class RoomFox {
     this.farewellAt = null;
     this.position = {x:foxNook.x,y:foxNook.y};
     this.call = null;
+    this.interruptedRest = -1;
     this.bubble.hidden = true;
   }
   arrive(fromTrap: boolean) {
@@ -105,6 +107,16 @@ export class RoomFox {
     const cell = sheet.width/3, h=27;
     c.save(); c.translate(x,y);
     c.fillStyle="#764e613b"; c.beginPath(); c.ellipse(0,0,9.5,2.5,0,0,Math.PI*2); c.fill();
+    const restTime = this.world.ambientTime + 9.8;
+    const cycle = Math.floor(restTime / 15.3), age = restTime % 15.3;
+    if (pose !== 0 || this.farewellAt !== null || this.call || this.memory().waitingForNote || still) {
+      this.interruptedRest = cycle;
+    } else if (age < 2.3 && this.interruptedRest !== cycle && sceneArt.foxRest.naturalWidth) {
+      const frame = age < .34 || age >= 2.01 ? 0 : age < .77 || age >= 1.75 ? 1 : 2;
+      drawIdlePose(c, sceneArt.foxRest, frame, 0, 0, 32);
+      c.restore();
+      return;
+    }
     if (!still) {
       if (running) c.translate(0,-Math.abs(Math.sin(t*21))*1.8);
       else if (pose===1 || pose===2) {

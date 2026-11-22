@@ -34,3 +34,13 @@ test("malformed location data cannot enter an unknown scene or disturb earned re
   assert.deepEqual(state.completed,["cake"]);
   assert.deepEqual(state.arcadeBests,{snake:7});
 });
+
+test("an empty shift mark is a valid saved position in town and both gardens", () => {
+  for (const [scene, id] of [["town","npc-walker"],["garden","garden-guest-suyan"]] as const) {
+    const mark = scenes[scene].spots.find(s => s.id === id)!;
+    const save = {scene, x:mark.x, y:mark.y, savedAt};
+    for (const flowers of [[],rainbowIds]) {
+      assert.deepEqual(readJourney(JSON.stringify(save),flowers),save);
+    }
+  }
+});

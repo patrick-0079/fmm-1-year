@@ -6,6 +6,9 @@ import bassUrl from "./assets/white-bass-v18.webp";
 import relicsUrl from "./assets/astrolabe-relics.webp";
 import astrolabePropsUrl from "./assets/astrolabe-mechanisms.webp";
 import foxUrl from "./assets/fufu-room-fox.webp";
+import foxRestUrl from "./assets/fox-tail-rest.webp";
+import balloonGuestUrl from "./assets/garden-balloon-guest.webp";
+import gardenerWorkUrl from "./assets/gardener-tending.webp";
 import picnicUrl from "./assets/qingtang-picnic.webp";
 import peachWalkUrl from "./assets/peach-walk.webp";
 import townQuarryUrl from "./assets/town-quarry.webp";
@@ -19,27 +22,39 @@ import patrickCampUrl from "./assets/patrick-camp.webp";
 import type { SceneId } from "./maps";
 export { keepsakesUrl, skiesUrl, relicsUrl };
 
-export const sceneArt = {playgroundAnimations:new Image(), keepsakes:new Image(), skies:new Image(), gate:new Image(), bass:new Image(), relics:new Image(), astrolabeProps:new Image(), fox:new Image(), picnic:new Image(), peachWalk:new Image(), quarry:new Image(), elders:new Image(), xiaoye:new Image(), xiaoyeEmbrace:new Image(), yeshenhua:new Image(), suyan:new Image(), townGuests:new Image(), patrickCamp:new Image()};
+export const sceneArt = {foxRest:new Image(), balloonGuest:new Image(), gardenerWork:new Image(), playgroundAnimations:new Image(), keepsakes:new Image(), skies:new Image(), gate:new Image(), bass:new Image(), relics:new Image(), astrolabeProps:new Image(), fox:new Image(), picnic:new Image(), peachWalk:new Image(), quarry:new Image(), elders:new Image(), xiaoye:new Image(), xiaoyeEmbrace:new Image(), yeshenhua:new Image(), suyan:new Image(), townGuests:new Image(), patrickCamp:new Image()};
 type Prop = keyof typeof sceneArt;
-const urls: Record<Prop,string> = {playgroundAnimations:playgroundAnimationsUrl, keepsakes:keepsakesUrl, skies:skiesUrl, gate:gateUrl, bass:bassUrl, relics:relicsUrl, astrolabeProps:astrolabePropsUrl, fox:foxUrl, picnic:picnicUrl, peachWalk:peachWalkUrl, quarry:townQuarryUrl, elders:elderResidentsUrl, xiaoye:xiaoyeUrl, xiaoyeEmbrace:xiaoyeEmbraceUrl, yeshenhua:yeshenhuaUrl, suyan:suyanUrl, townGuests:townGuestsUrl, patrickCamp:patrickCampUrl};
+const urls: Record<Prop,string> = {foxRest:foxRestUrl, balloonGuest:balloonGuestUrl, gardenerWork:gardenerWorkUrl, playgroundAnimations:playgroundAnimationsUrl, keepsakes:keepsakesUrl, skies:skiesUrl, gate:gateUrl, bass:bassUrl, relics:relicsUrl, astrolabeProps:astrolabePropsUrl, fox:foxUrl, picnic:picnicUrl, peachWalk:peachWalkUrl, quarry:townQuarryUrl, elders:elderResidentsUrl, xiaoye:xiaoyeUrl, xiaoyeEmbrace:xiaoyeEmbraceUrl, yeshenhua:yeshenhuaUrl, suyan:suyanUrl, townGuests:townGuestsUrl, patrickCamp:patrickCampUrl};
 const propsByScene: Record<SceneId,Prop[]> = {
   room:["skies","bass","fox"], garden:["keepsakes","gate","picnic","peachWalk","xiaoye","xiaoyeEmbrace","suyan"], challenge:["keepsakes","elders"],
   town:["gate","quarry","yeshenhua","townGuests"], meadow:["patrickCamp"], ruins:["relics","astrolabeProps","elders"],
 };
+const idleArtByScene: Partial<Record<SceneId, Prop>> = {
+  room: "foxRest", garden: "balloonGuest", challenge: "gardenerWork", town: "playgroundAnimations",
+};
 const requests = new Map<Prop,Promise<void>>();
-export function prepareProp(key: Prop) {
+export function prepareProp(key: Prop, priority: "high" | "low" = "high") {
   const pending=requests.get(key);
   if (pending) return pending;
   const image=sceneArt[key];
-  image.fetchPriority="high";
+  image.fetchPriority=priority;
   image.src=urls[key];
   const ready=image.decode().catch(error=>{ requests.delete(key); throw error; });
   requests.set(key,ready);
   return ready;
 }
 export function prepareSceneArt(scene: SceneId) {
-  if (scene === "town") void prepareProp("playgroundAnimations").catch(() => {});
-  return Promise.all(propsByScene[scene].map(prepareProp));
+  const idle = idleArtByScene[scene];
+  if (idle) void prepareProp(idle, "low").catch(() => {});
+  return Promise.all(propsByScene[scene].map(key => prepareProp(key)));
+}
+
+/** The three-frame ambient strips share a foot anchor at (96,180) in each 192px cell. */
+export function drawIdlePose(c: CanvasRenderingContext2D, sheet: HTMLImageElement,
+  frame: number, x: number, y: number, size: number) {
+  const cell = sheet.naturalHeight;
+  c.drawImage(sheet, frame * cell, 0, cell, cell,
+    x - size / 2, y - size * 180 / 192, size, size);
 }
 export const keepsakeFrames = {
   star: { x: 85, y: 175, w: 770, h: 515 },

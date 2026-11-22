@@ -15,6 +15,7 @@ import treeUrl from "./assets/apple-tree.webp";
 import dewUrl from "./assets/morning-dew-flower.webp";
 import roomArtUrl from "./assets/room-interactive.webp";
 import { drawRoomWindow } from "./window-sky";
+import { drawCurtainBreeze, drawFabricGround, fruitShift, windLevel } from "./scenery-wind";
 import { drawKeepsake } from "./scene-art";
 import { drawWildSprite } from "./wild-art";
 import { drawFirefly, fireflyDrift } from "./firefly-art";
@@ -111,7 +112,7 @@ export class Nature {
     }
     this.saveClock();
     this.world.available = (spot) => this.available(spot);
-    this.world.onEnvironment = (c, t) => this.draw(c, t);
+    this.world.onEnvironment = c => this.draw(c);
     this.world.onLighting = (c) => this.lighting(c);
     this.world.getDepthLayers = () => this.depthLayers();
     const tick = this.world.onTick;
@@ -328,6 +329,7 @@ export class Nature {
   }
   private tick(dt: number) {
     const clock = this.clock;
+    this.world.currentPhase = clock.phase;
     const meadow = this.world.scene === "meadow";
     const ruins = this.world.scene === "ruins";
     const target: Record<string, number[]> = {
@@ -366,13 +368,17 @@ export class Nature {
     this.lastUi = 0;
     this.tick(0);
   }
-  private draw(c: CanvasRenderingContext2D, t: number) {
+  private draw(c: CanvasRenderingContext2D) {
+    const t = this.reduce.matches ? 0 : this.world.ambientTime;
     if (this.world.scene === "room") {
-      drawRoomWindow(c, this.clock.phase, this.windowImage);
+      drawRoomWindow(c, this.clock.phase, this.windowImage, t);
+      if (!this.reduce.matches) drawCurtainBreeze(c,this.world);
       return;
     }
+    if (!this.reduce.matches && (this.world.scene === "ruins" || this.world.scene === "meadow"))
+      drawFabricGround(c,this.world);
     if (this.world.scene !== "garden" && this.world.scene !== "challenge") return;
-    drawCreek(c, creeks[this.world.scene], t);
+    drawCreek(c, creeks[this.world.scene], t, this.world.scene);
     const atlas = this.world.orchardSprites;
     if (this.world.scene === "challenge") {
       drawWildSprite(c, atlas, 2, 450, 110, 25);
@@ -447,20 +453,22 @@ export class Nature {
       ...gardenTrees[scene].map((tree) => ({
         y: tree.y + 23 * tree.scale,
         draw: (c: CanvasRenderingContext2D) =>
-          drawGardenTree(c, this.treeImage, tree),
+          drawGardenTree(c, this.treeImage, tree, this.treeBreeze(tree.x,tree.y)),
       })),
       {
         y: apple.y + 23,
         draw: (c: CanvasRenderingContext2D) => {
+          const breeze=this.reduce.matches ? 0 : windLevel(this.world,.95);
           drawGardenTree(c, this.treeImage, {
             x: apple.x,
             y: apple.y,
             scale: 1,
             tone: 0,
-          });
+          },breeze);
           for (let i = this.picked("apple"); i < 3; i++) {
             const x = apple.x + [-19, 17, -1][i], y = apple.y + [-3, -8, -23][i];
-            drawWildSprite(c, this.world.orchardSprites, 0, x, y, [14, 15, 13][i], i === 1);
+            const stem=fruitShift(x-apple.x+36,y-apple.y+43,breeze);
+            drawWildSprite(c, this.world.orchardSprites, 0, x+stem.x, y+stem.y, [14, 15, 13][i], i === 1);
           }
         },
       },
@@ -472,6 +480,12 @@ export class Nature {
         },
       }] : []),
     ];
+  }
+  private treeBreeze(x:number,y:number) {
+    if (this.reduce.matches) return 0;
+    if(this.world.scene==="garden" && x!==550 && x!==555) return 0;
+    if(this.world.scene==="challenge" && x!==153 && x!==143 && x!==278) return 0;
+    return windLevel(this.world,Math.max(0,(y-145)/300));
   }
   private lighting(c: CanvasRenderingContext2D) {
     if (this.world.scene === "meadow" || this.world.scene === "ruins") return;

@@ -1,3 +1,4 @@
+import { arriveOnShift, scheduledResident } from "./resident-visits";
 import { World, scenes } from "../src/world";
 import { SAVE_KEY, canStand, readProgress } from "../src/core";
 import { rainbowFlowers, meadowGate } from "../src/rainbow-flowers";
@@ -356,7 +357,7 @@ q("#check-guests").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();
   q(".reset-button").click(); q(".reset-confirm").click();
   await world.prepareScene("garden");
-  verifyGuests(world);
+  await verifyGuests(world);
   log("星星的拒绝、领取、重访、送别，霉霉的两个答案与棉棉，晴糖的三段台词逐字通过");
   await verifyGardenDiscovery(world);
   log("首次遇见两位长者、完整拥抱与中断拥抱，以及跨天拾取三个时段彩蛋的徽章均通过");
@@ -865,7 +866,8 @@ Object.assign(window, { contentQA: {
     closeStarReader(); closeStarBottle();
     await world.prepareScene(scene);
     const config=scene==="town"?world.townMap:scenes[scene];
-    world.switchScene(scene,at ?? (id?config.spots.find(s=>s.id===id)?.approach:config.spawn));
+    if (id && !at && scheduledResident(id)) await arriveOnShift(world,scene,id);
+    else world.switchScene(scene,at ?? (id?config.spots.find(s=>s.id===id)?.approach:config.spawn));
     world.setCueInput("keyboard");
     await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
   },

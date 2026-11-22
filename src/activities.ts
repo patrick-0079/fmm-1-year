@@ -159,6 +159,7 @@ export class Activities {
       if (document.hidden) this.blowing = false;
     });
   }
+  get dialogueOpen() { return this.dialogueAt !== undefined; }
   get active() {
     return !!this.mode;
   }

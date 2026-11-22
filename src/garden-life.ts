@@ -8,9 +8,13 @@ import cakeUrl from "./assets/cake-slice-v11.webp";
 import { drawCakeSlice } from "./cake-party";
 import { drawItem } from "./item-art";
 import { prepareProp, sceneArt } from "./scene-art";
+import { drawBalloonGuest } from "./garden-balloon-art";
 import { CompanionMotion } from "./companion-motion";
 import { canTravelBetween, type Point, type Progress } from "./core";
 import { PeachGait } from "./peach-gait";
+import { GardenResidents } from "./garden-residents";
+import { drawGardenGesture, prepareGardenGestures } from "./garden-gesture-art";
+import { drawResidentWalk, prepareResidentWalk } from "./resident-walk";
 
 type Choice = {title: string; run: () => void};
 type Pose = "idle" | "cat-look" | "cat-pet" | "shy" | "offer" | "smile";
@@ -20,24 +24,45 @@ const motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
 const reduced = () => motionPreference.matches;
 
 export class GardenLife {
+  readonly residents = new GardenResidents();
   private npcs = new Image();
   private cake = new Image();
   private age = 0;
   private time = 0;
   private pose: Pose = "idle";
+  private speaker: GardenGuest | null = null;
   private companion: Companion;
   constructor(private world: World, private activities: Activities, private inventory: Inventory,
     private memory: () => Pick<Progress,"decoratorMet"|"rabbitIntroduced">, private save: () => void) {
     this.npcs.src = npcUrl;
     this.cake.src = cakeUrl;
     this.companion = new Companion(world);
+    world.gardenMapFor=base=>this.residents.mapFor(base,world.currentPhase);
     const tick = world.onTick, layers = world.getDepthLayers;
-    world.onTick = (dt,t) => { tick(dt,t); this.age += dt; this.time = t; };
+    let visiting=false;
+    world.onTick = (dt,t) => {
+      tick(dt,t);
+      if (world.scene!=="garden") {
+        if(visiting){this.residents.leave();visiting=false;}
+        return;
+      }
+      if (!visiting) {
+        prepareGardenGestures();
+        gardenGuests.forEach(guest => prepareResidentWalk(guest.id));
+        prepareResidentWalk("suyan");
+        visiting=true;
+      }
+      this.age+=dt;this.time=world.ambientTime;
+      this.residents.tick(world.paused || world.suspended ? 0 : dt,world.currentPhase,world.player,
+        world.pendingInteractionId,reduced(),p=>{
+          const at=world.project(p);return at.x>=-20 && at.y>=-6 && at.x<=620 && at.y<=450;
+        },world.isPresentingDialogue());
+    };
     world.getDepthLayers = () => world.scene === "garden" ? [...layers(),...this.layers()] : layers();
   }
   interact(id: string) {
     const npc = gardenGuests.find(n => id === "garden-guest-"+n.id);
-    if (!npc || this.world.scene !== "garden") return false;
+    if (!npc || this.world.scene !== "garden" || !this.residents.interactable(npc.id)) return false;
     if (npc.id === "balloon-friend") this.cat(npc);
     if (npc.id === "decorator") this.decorator(npc);
     if (npc.id === "picnic-friend") this.picnic(npc);
@@ -49,8 +74,10 @@ export class GardenLife {
       if (!this.npcs.naturalWidth) return;
       const f=TOWN_FRAMES[npc.sprite], w=46*f.w/f.h;
       c.drawImage(this.npcs,f.x,f.y,f.w,f.h,(48-w)/2,5,w,46);
-    },npc,()=>{ this.pose="idle"; this.companion.catPetted=false; });
+    },this.residents.anchor(npc.id),()=>{ this.pose="idle"; this.speaker=null; this.companion.catPetted=false;this.residents.talking(npc.id,false); });
+    this.residents.talking(npc.id,true);
     this.pose=pose;
+    this.speaker=npc;
     this.age=0;
     this.companion.catPetted=pose==="cat-pet";
   }
@@ -117,36 +144,47 @@ export class GardenLife {
     }}],"shy");
   }
   private layers(): DepthLayer[] {
-    const layers: DepthLayer[]=gardenGuests.map(n=>({y:n.y,draw:c=>{
+    const layers: DepthLayer[]=gardenGuests.filter(n=>this.residents.visible(n.id)).map(n=>{
+      const actor=this.residents.get(n.id), {x,y}=actor.foot;
+      return {y,draw:c=>{
       if (!this.npcs.naturalWidth) return;
       const f=TOWN_FRAMES[n.sprite], s=43/337;
-      shadow(c,n.x,n.y,8);
+      shadow(c,x,y,8);
+      if (n.id === "balloon-friend" && sceneArt.balloonGuest.naturalWidth) {
+        drawBalloonGuest(c, actor, this.world.ambientTime, reduced() || this.speaker === n);
+        return;
+      }
+      if (actor.moving && !reduced() && this.speaker !== n &&
+        drawResidentWalk(c,n.id,actor.foot,actor.facing,actor.step,f.h*s)) return;
       const acting=n.id==="picnic-friend" && ["shy","offer","smile"].includes(this.pose);
       if (acting && !(this.pose==="shy" && this.age<.18 && !reduced())) {
         const frame=this.pose==="shy"?0:this.pose==="offer" && this.age<.52 && !reduced()?1:2;
         const lift=this.pose==="smile" && !reduced() ? Math.sin(Math.min(1,this.age/.55)*Math.PI)*1.2 : 0;
-        picnicSprite(c,frame,n.x,n.y-lift,44);
+        picnicSprite(c,frame,x,y-lift,44);
         if(this.pose==="smile" && this.age<.9 && !reduced()) {
           c.save(); c.globalAlpha=Math.sin(this.age/.9*Math.PI);
-          c.fillStyle="#fff8c7"; c.fillRect(n.x-4,n.y-22-lift,1.2,1.2);
-          c.fillRect(n.x+2,n.y-22-lift,1.2,1.2); c.restore();
+          c.fillStyle="#fff8c7"; c.fillRect(x-4,y-22-lift,1.2,1.2);
+          c.fillRect(x+2,y-22-lift,1.2,1.2); c.restore();
         }
       } else {
-        const bob=reduced()?0:Math.sin(this.time*.8+n.x)*.4;
-        c.drawImage(this.npcs,f.x,f.y,f.w,f.h,n.x-f.w*s/2,n.y-f.h*s+bob,f.w*s,f.h*s);
+        if(n.id!=="balloon-friend" &&
+          drawGardenGesture(c,n.id,actor,this.time,reduced() || this.speaker===n,f.h*s)) return;
+        c.drawImage(this.npcs,f.x,f.y,f.w,f.h,x-f.w*s/2,y-f.h*s,f.w*s,f.h*s);
       }
-    }}));
+    }};
+    });
     const [host,,sugar]=gardenGuests;
-    if (this.world.equipment.pet!=="petCat") layers.push({y:peachSpot.y,draw:c=>
+    if (this.residents.interactable("balloon-friend") && this.world.equipment.pet!=="petCat") layers.push({y:peachSpot.y,draw:c=>
       drawPet(c,"petCat",peachSpot.x,peachSpot.y,this.pose==="cat-pet",this.pose==="cat-look"?.085:0)});
-    if (this.memory().rabbitIntroduced && this.world.equipment.pet!=="petBunny") {
+    if (this.residents.interactable("decorator") && this.memory().rabbitIntroduced && this.world.equipment.pet!=="petBunny") {
       layers.push({y:host.y+4,draw:c=>drawPet(c,"petBunny",host.x-17,host.y+4,false)});
     }
-    layers.push({y:sugar.y+3,draw:c=>picnicSprite(c,3,sugar.x-20,sugar.y+3,20)});
-    if (this.pose==="offer" || this.pose==="smile") {
+    if(this.residents.interactable("picnic-friend")) layers.push({y:sugar.y+3,draw:c=>picnicSprite(c,3,sugar.x-20,sugar.y+3,20)});
+    if (this.speaker===sugar && (this.pose==="offer" || this.pose==="smile")) {
       const t=this.pose==="smile" || reduced() ? 1 : Math.min(1,this.age/.64);
-      layers.push({y:sugar.y+4,draw:c=>
-        drawCakeSlice(c,sugar.x-20+20*t,sugar.y-1-14*t-Math.sin(t*Math.PI)*4,.93,this.cake)});
+      const foot=this.residents.get("picnic-friend").foot;
+      layers.push({y:foot.y+4,draw:c=>
+        drawCakeSlice(c,sugar.x-20+(foot.x-sugar.x+20)*t,sugar.y-1+(foot.y-sugar.y-14)*t-Math.sin(t*Math.PI)*4,.93,this.cake)});
     }
     return layers;
   }

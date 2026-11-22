@@ -1,3 +1,4 @@
+import { arriveOnShift } from "./resident-visits";
 import type { World } from "../src/world";
 import { scenes } from "../src/maps";
 import { townEchoGate, ruinsExit } from "../src/ruins-map";
@@ -24,13 +25,13 @@ export async function verifyFieldTrip(world:World, log:(text:string)=>void) {
   world.visit(ruinsExit.id);await wait(()=>world.scene==="town" && !world.paused,"南阶没有送回矿场");
   assert(Math.hypot(world.player.x-townEchoGate.approach.x,world.player.y-townEchoGate.approach.y)<2,"返回点偏离洞口");
   log("从广场沿东北街自动寻路入洞，遗迹南阶返回废轨前");
-  const florist=scenes.town.spots.find(s=>s.id==="npc-florist")!;
-  world.switchScene("town",florist.approach);world.interact();assert(!hud.hidden,"镇民没有开口");
+  const florist=await arriveOnShift(world,"town","npc-florist");
+  world.interact();assert(!hud.hidden,"镇民没有开口");
   await walk("ArrowRight",()=>hud.hidden && world.player.x>florist.x+85);
   log("持续按方向键走远后小镇对白自动收起，移动仍在继续");
   await world.prepareScene("garden");
-  const star=scenes.garden.spots.find(s=>s.id==="garden-guest-balloon-friend")!;
-  world.switchScene("garden",star.approach);world.interact();press("轻轻抚摸奶油猫");
+  const star=await arriveOnShift(world,"garden","garden-guest-balloon-friend");
+  world.interact();press("轻轻抚摸奶油猫");
   const stale=Array.from(hud.querySelectorAll<HTMLButtonElement>(".activity-actions button")).find(b=>b.textContent==="带上奶油猫")!;
   const dest={x:390,y:323}, pos=world.project(dest), r=canvas.getBoundingClientRect();
   canvas.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,button:0,pointerType:"mouse",clientX:r.left+r.width*pos.x/600,clientY:r.top+r.height*pos.y/400}));

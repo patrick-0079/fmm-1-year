@@ -12,7 +12,10 @@ import { StarBottleView } from "./star-bottle";
 import { showQuietStarEffect } from "./quiet-star-effect";
 import { creditStarTexture } from "./credit-star-art";
 import { CampGuest } from "./camp-guest";
+import { MeadowJellies } from "./meadow-jellies";
+import { drawJelly, drawKettleSteam, prepareJellyBells } from "./meadow-jelly-art";
 import { sceneArt } from "./scene-art";
+import { drawFlexibleCover } from "./scenery-wind";
 import type { ResidentStory } from "./resident-story";
 
 type Credit = typeof producers[number];
@@ -46,6 +49,8 @@ export class NightMeadow {
   private reader: MeadowStarReader;
   private bottle: StarBottleView;
   private campGuest: CampGuest;
+  private jellies?: MeadowJellies;
+  private jellyArtRequested = false;
   private starSprites = new Map<string, HTMLImageElement>();
 
   private loadedStarSprite(url: string) {
@@ -84,6 +89,16 @@ export class NightMeadow {
       if (world.scene !== "meadow") return;
       this.campGuest.tick(dt, t);
       this.time += dt;
+      if (!this.jellyArtRequested) {
+        prepareJellyBells();
+        this.jellyArtRequested = true;
+      }
+      this.jellies ??= new MeadowJellies(producers);
+      this.jellies.setCollected(this.found());
+      const covered = world.paused || world.suspended;
+      const cue = world.activeCueId && world.config.spots.find(spot => spot.id === world.activeCueId);
+      const canMeet = !covered && !world.restState && !world.busy && !(cue && world.inInteractionRange(cue));
+      this.jellies.tick(covered ? 0 : dt, world.player, canMeet, this.reduced.matches);
       this.caption.style.setProperty("--quiet-star-play", dt === 0 ? "paused" : "running");
       if (this.memory && (this.memory.age += dt) >= this.memory.duration) this.clearCaption();
     };
@@ -95,6 +110,8 @@ export class NightMeadow {
   }
   leave() {
     this.campGuest.reset();
+    this.jellies?.interrupt();
+    this.jellyArtRequested = false;
     this.closeBottle();
     this.closeReader();
     this.clearCaption();
@@ -176,11 +193,20 @@ export class NightMeadow {
   }
   private layers(): DepthLayer[] {
     const atlas = this.world.meadowSprites, t = this.reduced.matches ? 0 : this.time;
+    const sceneryTime = this.world.ambientTime, still = this.reduced.matches;
     const layers: DepthLayer[] = [
-      {y: 168, draw: c => this.world.drawMapFragment(c, tentRoof)},
+      {y: 168, draw: c => drawFlexibleCover(c,this.world,tentRoof,still)},
+      {y: 145, draw: c => drawKettleSteam(c, sceneryTime, still)},
       {y: starJar.y, draw: c => drawWildSprite(c, atlas, 3, starJar.x, starJar.y, 17)},
       ...this.campGuest.layers(sceneArt.patrickCamp, this.reduced.matches),
     ];
+    const view = this.world.visibleArea;
+    this.jellies?.animals.forEach((animal, index) => {
+      if (!animal.visible) return;
+      const {x,y} = animal.at;
+      if (x+18 < view.x || x-18 > view.x+view.w || y+3 < view.y || y-42 > view.y+view.h) return;
+      layers.push({y, draw: c => drawJelly(c,index,animal,sceneryTime,still)});
+    });
     for (const sheep of flock) {
       const phase = (t + sheep.phase) % 24;
       // Graze in place, raise the head, wander a few steps, then graze again.

@@ -1,4 +1,5 @@
 import type { AchievementEvent } from "./achievement-events";
+import type { Phase } from "./day";
 import roomUrl from "./assets/room-interactive.webp";
 import gardenUrl from "./assets/garden-lanes-v18.webp";
 import challengeUrl from "./assets/courage-garden.webp";
@@ -32,8 +33,8 @@ import { drawGardenHazard } from "./garden-hazards";
 import { drawDoorRug } from "./door-rug";
 import {
   advancePath,
+  canArriveAt,
   advancePathDistance,
-  canStand,
   facingFromMovement,
   findPath,
   movePlayer,
@@ -43,7 +44,7 @@ import {
   type Hazard,
   type Point,
 } from "./core";
-import { bloomingGarden, scenes, type Hotspot, type SceneId } from "./maps";
+import { bloomingGarden, scenes, type Hotspot, type Scene, type SceneId } from "./maps";
 export { scenes, type SceneId } from "./maps";
 export interface RespawnEvent {
   trap: Hazard;
@@ -73,12 +74,19 @@ export interface ActorPresentation {
   lean?: number;
 }
 
+const avatarWalkCycle = [1, 0, 2, 0] as const;
+const avatarStepLength = 22;
+const avatarStride = avatarStepLength * 2;
+
 export class World {
   canvas: HTMLCanvasElement;
   private inputRegion: HTMLElement;
   private ctx: CanvasRenderingContext2D;
   scene: SceneId = "room";
   townMap = scenes.town;
+  gardenMapFor: (base: Scene) => Scene = base => base;
+  currentPhase: Phase = "day";
+  isPresentingDialogue: () => boolean = () => false;
   player: Point = { ...scenes.room.spawn };
   private camera: Point = { x: 0, y: 0 };
   private zoom = 1;
@@ -92,9 +100,15 @@ export class World {
   private path: Point[] = [];
   private exitWalk?: (now: number) => void;
   private targetEvent: string | null = null;
+  get pendingInteractionId() { return this.targetEvent; }
   facing: Facing = 0;
   private walking = false;
   private time = 0;
+  private scenerySeconds: Record<SceneId, number> = {
+    room: 0, garden: 0, challenge: 0, town: 0, ruins: 0, meadow: 0,
+  };
+  /** Local time for scenery. Leaving the map or covering it holds its pose. */
+  get ambientTime() { return this.scenerySeconds[this.scene]; }
   private last = 0;
   private frameId = 0;
   private reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -447,7 +461,7 @@ export class World {
   }
   prepareScene(scene: SceneId): Promise<void> {
     if (!this.canEnter(scene)) return Promise.reject(new Error("尚未集齐七色花"));
-    if (this.images.has(art[scene])) return Promise.resolve();
+    if (this.images.has(art[scene])) return prepareSceneArt(scene).then(() => {});
     const pending = this.mapRequests.get(scene);
     if (pending) return pending;
     const textures = sceneTextures[scene].filter(url=>!this.images.has(url)).map(async url => {
@@ -467,7 +481,7 @@ export class World {
   get echoWell() { return this.images.get(wellUrl); }
   get orchardSprites() { return this.images.get(orchardAtlasUrl); }
   private paintMap(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-    const background = (this.scene === "town" && this.townDetail) || this.images.get(art[this.scene]);
+    const background = this.sceneryArtwork;
     if (!background) return;
     const sx = background.naturalWidth / this.config.width,
       sy = background.naturalHeight / this.config.height;
@@ -518,9 +532,13 @@ export class World {
     this.paintMap(c, x, y, w, h);
     c.restore();
   }
+  get sceneryArtwork() {
+    return (this.scene === "town" && this.townDetail) || this.images.get(art[this.scene]);
+  }
   get config() {
     if (this.scene === "town") return this.townMap;
-    return this.scene === "garden" && this.canEnter("meadow") ? bloomingGarden : scenes[this.scene];
+    if (this.scene === "garden") return this.gardenMapFor(this.canEnter("meadow") ? bloomingGarden : scenes.garden);
+    return scenes[this.scene];
   }
   get visibleArea() {
     return {
@@ -586,11 +604,8 @@ export class World {
     this.scene = scene;
     if (scene === "town") this.loadTownDetail();
     const s = this.config;
-    this.player = {
-      ...(arrival && canStand(arrival, s.walls, s.bounds, s.floor, s.surfaces)
-        ? arrival
-        : s.spawn),
-    };
+    const landing = arrival && canArriveAt(arrival, s) ? arrival : s.spawn;
+    this.player = { x: landing.x, y: landing.y };
     this.facing = facing;
     this.nearbyId = "";
     this.hoveredSpotId = "";
@@ -638,8 +653,7 @@ export class World {
           const travelled = Math.min(1, Math.max(0, (now - started) / duration)) * distance;
           const step = advancePathDistance(this.player, remaining, travelled - covered, room);
           const dx = step.point.x - this.player.x, dy = step.point.y - this.player.y;
-          this.walking = Math.hypot(dx, dy) > .01;
-          if (this.walking) this.facing = facingFromMovement(this.facing, dx, dy);
+          this.advanceFeet(dx,dy,false);
           this.player = step.point;
           remaining = step.remaining;
           covered = travelled;
@@ -673,7 +687,9 @@ export class World {
     const dt = Math.min((timestamp - (this.last || timestamp)) / 1000, 0.05);
     this.last = timestamp;
     this.time = timestamp / 1000;
-    this.onTick(document.hidden || this.suspended ? 0 : dt, this.time);
+    const foregroundDt = document.hidden || this.suspended ? 0 : dt;
+    if (!this.paused) this.scenerySeconds[this.scene] += foregroundDt;
+    this.onTick(foregroundDt, this.time);
     if (this.exitWalk) this.exitWalk(timestamp);
     else if (!this.paused && !this.suspended && !document.hidden) this.update(dt);
     this.updateCamera();
@@ -701,6 +717,10 @@ export class World {
     }
     this.immunity = Math.max(0, this.immunity - dt);
     if (this.restState) return;
+    if (this.targetEvent && !this.config.spots.some(s => s.id === this.targetEvent && this.available(s))) {
+      this.path = [];
+      this.targetEvent = null;
+    }
     const before = { ...this.player };
     if (this.path.length) {
       const result = advancePath(this.player, this.path, dt, this.config);
@@ -731,13 +751,7 @@ export class World {
     }
     const dx = this.player.x - before.x,
       dy = this.player.y - before.y;
-    this.walking = Math.hypot(dx, dy) > 0.01;
-    this.stepDistance += Math.hypot(dx, dy);
-    if (this.stepDistance > 22) {
-      this.stepDistance = 0;
-      this.onStep();
-    }
-    if (this.walking) this.facing = facingFromMovement(this.facing, dx, dy);
+    this.advanceFeet(dx,dy,true);
     if (this.walking && !this.targetEvent) {
       const crossing = this.scene === "meadow" && enteredMoonCircle(before,this.player)
         ? "meadow-exit" : crossedEchoGate(this.scene,before,this.player) ?? crossedTownGate(this.scene,before,this.player)?.id;
@@ -774,6 +788,16 @@ export class World {
       this.nearbyId = nearby?.id ?? "";
       this.onNearby(nearby);
     }
+  }
+  private advanceFeet(dx: number, dy: number, audible: boolean) {
+    const distance = Math.hypot(dx, dy);
+    this.walking = distance > .01;
+    if (!this.walking) return;
+    this.facing = facingFromMovement(this.facing, dx, dy);
+    const next = this.stepDistance + distance;
+    if (audible && Math.floor(next / avatarStepLength) !== Math.floor(this.stepDistance / avatarStepLength))
+      this.onStep();
+    this.stepDistance = next % avatarStride;
   }
   private updateCamera() {
     this.zoom = this.focus?.zoom ?? (this.scene === "town" ? 0.9 : 1);
@@ -850,7 +874,7 @@ export class World {
         c,
         this.restState?.kind ?? "standing",
         presentation?.facing ?? this.facing,
-        this.walking ? 1 + (Math.floor(this.time * 7) % 2) : 0,
+        this.walking ? avatarWalkCycle[Math.floor(this.stepDistance * 4 / avatarStride)] : 0,
         this.equipment,
         this.avatarImages,
       );

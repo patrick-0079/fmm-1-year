@@ -6,6 +6,8 @@ import {
 } from "./core.ts";
 import type { Hotspot, Scene } from "./maps.ts";
 import { TOWN_NPCS } from "./town-data.ts";
+import type { TownResidentId } from "./town-dialogue.ts";
+import type { ResidentMotion } from "./town-routines.ts";
 
 function translated(wall: Obstacle, dx: number, dy: number): Obstacle {
   if (!dx && !dy) return wall;
@@ -21,19 +23,19 @@ function translated(wall: Obstacle, dx: number, dy: number): Obstacle {
 export class TownResidentMap {
   readonly scene: Scene;
   private fixedWalls: Obstacle[];
+  private fixedSpots: Hotspot[];
   private actors: {
-    id: string;
+    id: TownResidentId;
     home: Hotspot;
     spot: Hotspot;
     original: Obstacle;
     wall: Obstacle;
     yielding: boolean;
+    present: boolean;
   }[];
 
   constructor(base: Scene) {
-    this.actors = TOWN_NPCS.filter((npc) =>
-      ["cat", "bunny", "walker"].includes(npc.id),
-    ).map((npc) => {
+    this.actors = TOWN_NPCS.map((npc) => {
       const home = base.spots.find((s) => s.id === "npc-" + npc.id)!;
       const wall = base.walls.find((w) => w.label === "镇民 · " + npc.name)!;
       return {
@@ -43,11 +45,13 @@ export class TownResidentMap {
         original: wall,
         wall,
         yielding: false,
+        present: true,
       };
     });
     this.fixedWalls = base.walls.filter(
       (w) => !this.actors.some((a) => a.original === w),
     );
+    this.fixedSpots = base.spots.filter(s => !this.actors.some(a=>a.home===s));
     this.scene = {
       ...base,
       spots: base.spots.map(
@@ -57,13 +61,22 @@ export class TownResidentMap {
   }
 
   anchor(id: string): Hotspot {
-    return this.scene.spots.find((s) => s.id === "npc-" + id)!;
+    return this.actors.find(a=>a.id===id)!.spot;
   }
 
-  update(player?: Point, actorId?: string, foot?: Point) {
+  update(player?: Point, actorId?: string, foot?: Point, people?: ReadonlyMap<TownResidentId,ResidentMotion>) {
     let changed = false;
+    let rosterChanged = false;
+    const moved: typeof this.actors = [];
     for (const actor of this.actors) {
-      const at = actor.id === actorId && foot ? foot : actor.home;
+      const resident=people?.get(actor.id);
+      const present=!resident || resident.status==="present" || resident.status==="arriving" && resident.opacity>=.8;
+      if (present!==actor.present) {
+        actor.present=present;
+        rosterChanged=true;
+      }
+      if (!present) continue;
+      const at = actor.id === actorId && foot ? foot : resident ?? actor.home;
       if (actor.spot.x !== at.x || actor.spot.y !== at.y) {
         actor.spot.x = at.x;
         actor.spot.y = at.y;
@@ -73,6 +86,7 @@ export class TownResidentMap {
           at.y - actor.home.y,
         );
         changed = true;
+        moved.push(actor);
       }
       // A performer returning to their mark can land directly on the player.
       // Give way until the feet separate so movement and click routes still work.
@@ -82,12 +96,13 @@ export class TownResidentMap {
         changed = true;
       }
     }
-    if (!changed) return;
+    if (!changed && !rosterChanged) return;
+    if (rosterChanged) this.scene.spots = [...this.fixedSpots,...this.actors.filter(a=>a.present).map(a=>a.spot)];
     this.scene.walls = [
       ...this.fixedWalls,
-      ...this.actors.filter((a) => !a.yielding).map((a) => a.wall),
+      ...this.actors.filter((a) => a.present && !a.yielding).map((a) => a.wall),
     ];
-    for (const { home, spot } of this.actors) {
+    for (const { home, spot } of rosterChanged ? this.actors.filter(a=>a.present) : moved) {
       const shifted = {
         x: home.approach.x + spot.x - home.x,
         y: home.approach.y + spot.y - home.y,
