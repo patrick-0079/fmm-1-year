@@ -726,7 +726,7 @@ export function mountGame() {
     if (recent) {
       clearTimeout(flashTimer);
       flash.innerHTML = achievementStampMarkup(recent) + "<span><small></small><strong></strong></span>";
-      flash.querySelector("small")!.textContent = notices.length === 1 ? "周年成就册 · 新图章" : `周年成就册 · ${notices.length} 枚新图章`;
+      flash.querySelector("small")!.textContent = notices.length === 1 ? "周年徽章册 · 新徽章" : `周年徽章册 · ${notices.length} 枚新徽章`;
       flash.querySelector("strong")!.textContent = recent.name;
       flash.hidden = false;
       paintAchievementArt(flash);

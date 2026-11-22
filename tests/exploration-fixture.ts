@@ -348,7 +348,7 @@ q("#check-guests").addEventListener("click",()=>void run(async()=>{
   verifyGuests(world);
   log("星星的拒绝、领取、重访、送别，霉霉的两个答案与棉棉，晴糖的三段台词逐字通过");
   await verifyGardenDiscovery(world);
-  log("首次遇见两位长者、完整拥抱与中断拥抱，以及跨天拾取三个时段彩蛋的图章均通过");
+  log("首次遇见两位长者、完整拥抱与中断拥抱，以及跨天拾取三个时段彩蛋的徽章均通过");
 }));
 q("#check-fox").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();
@@ -381,7 +381,7 @@ q("#check-fox").addEventListener("click",()=>void run(async()=>{
   await go("garden");await go("room");expect(!state().roomFox.rebuffed,"出门没有中断安抚");
   world.visit(foxNook.id);await wait(()=>state().roomFox.rebuffed);
   key("e",true);key("e",false);expect(words("嗷～嗷呜") && state().roomFox.missed===0,"第二次安抚没有和好");
-  expect(["fox", "fox-peace"].every(id=>state().achievements.earned.includes(id)),"两次独立安抚后没有盖上狐狸图章");
+  expect(["fox", "fox-peace"].every(id=>state().achievements.earned.includes(id)),"两次独立安抚后没有盖上狐狸徽章");
   const before=JSON.stringify(state().roomFox), prepare=world.prepareScene.bind(world);
   world.prepareScene=()=>Promise.reject(Error("fixture: map unavailable"));
   try {
@@ -391,7 +391,7 @@ q("#check-fox").addEventListener("click",()=>void run(async()=>{
   } finally {world.prepareScene=prepare;}
   q(".reset-button").click();q(".reset-confirm").click();
   expect(state().roomFox.visit==="none" && state().roomFox.missed===0,"清档残留情绪");
-  expect(!state().achievements.earned.length && !state().achievements.facts.length,"清档保留了旧狐狸或便签图章");
+  expect(!state().achievements.earned.length && !state().achievements.facts.length,"清档保留了旧狐狸或便签徽章");
   log("门口送别、三次漏摸、复活延迟问候、第四次沉默、两次安抚、失败切图和清档均通过");
 }));
 q("#check-arcade-frame").addEventListener("click",()=>void run(async()=>{

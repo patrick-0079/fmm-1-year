@@ -7,7 +7,7 @@ const chapterTabs = { daily: "日常", letters: "来信", games: "游园", explo
 
 export const achievementBookMarkup = `<aside class="achievement-book" data-page-ui aria-labelledby="achievement-title">
   <header class="achievement-cover">
-    <div class="achievement-cover-title"><span>芙芙的</span><h2 id="achievement-title">周年成就册</h2></div>
+    <div class="achievement-cover-title"><span>芙芙的</span><h2 id="achievement-title">周年徽章册</h2></div>
     <span class="achievement-cover-emblem" aria-hidden="true"><canvas data-stamp-art="fox" width="32" height="32"></canvas></span>
   </header>
   <div class="achievement-page">
@@ -17,7 +17,7 @@ export const achievementBookMarkup = `<aside class="achievement-book" data-page-
 </aside>`;
 
 const concealed = (entry: AchievementEntry) => !!entry.hint && !entry.earned;
-const visibleName = (entry: AchievementEntry) => (concealed(entry) ? "未揭晓的图章" : entry.name);
+const visibleName = (entry: AchievementEntry) => (concealed(entry) ? "未揭晓的徽章" : entry.name);
 
 export function achievementStampMarkup(entry: AchievementEntry) {
   const unknown = concealed(entry);
@@ -40,7 +40,7 @@ function stampButton(entry: AchievementEntry, active: boolean, compact: boolean)
 
 function details(entry: AchievementEntry) {
   const hidden = concealed(entry);
-  return `<section class="achievement-detail" id="achievement-detail" aria-label="图章详情" tabindex="-1" data-focus="detail">
+  return `<section class="achievement-detail" id="achievement-detail" aria-label="徽章详情" tabindex="-1" data-focus="detail">
     <div class="achievement-detail-heading">${achievementStampMarkup(entry)}<div><small>${hidden ? "发现线索" : escapeHtml(entry.difficulty) + (entry.earned ? " · 已盖章" : "")}</small><h4>${escapeHtml(visibleName(entry))}</h4></div></div>
     <p>${escapeHtml(hidden ? entry.hint! : entry.description)}</p>
     ${
@@ -81,8 +81,8 @@ export function mountAchievementBook(onTravel: (destination: Travel) => void) {
     ].slice(0, 3);
     const count = rows.length;
     const content = [
-      `<div class="achievement-count"><span>已收集图章</span><strong>${earned.length}<span> / ${count}</span></strong></div>
-       <progress class="achievement-track" value="${earned.length}" max="${count || 1}" aria-label="图章收集进度"></progress>`,
+      `<div class="achievement-count"><span>已收集徽章</span><strong>${earned.length}<span> / ${count}</span></strong></div>
+       <progress class="achievement-track" value="${earned.length}" max="${count || 1}" aria-label="徽章收集进度"></progress>`,
     ];
     if (!open) {
       if (last)
@@ -91,12 +91,12 @@ export function mountAchievementBook(onTravel: (destination: Travel) => void) {
         );
       if (suggested.length)
         content.push(
-          `<section aria-label="成就建议"><h3>接下来可以做</h3><div class="achievement-suggestions">${suggested.map((row) => stampButton(row, false, true)).join("")}</div></section>`,
+          `<section aria-label="徽章建议"><h3>接下来可以做</h3><div class="achievement-suggestions">${suggested.map((row) => stampButton(row, false, true)).join("")}</div></section>`,
         );
-      else if (count) content.push('<p class="achievement-complete">四十四枚图章，周年册盖满啦。</p>');
+      else if (count) content.push('<p class="achievement-complete">四十四枚徽章，全部收集齐啦。</p>');
     }
     content.push(
-      `<button class="achievement-browse" type="button" data-book-toggle data-focus="toggle" aria-expanded="${open}" aria-controls="achievement-chapters"><span aria-hidden="true">${open ? "‹" : "✧"}</span>${open ? "合上成就册" : "翻开成就册"}<span aria-hidden="true">${open ? "" : "›"}</span></button>`,
+      `<button class="achievement-browse" type="button" data-book-toggle data-focus="toggle" aria-expanded="${open}" aria-controls="achievement-chapters"><span aria-hidden="true">${open ? "‹" : "✧"}</span>${open ? "合上徽章册" : "翻开徽章册"}<span aria-hidden="true">${open ? "" : "›"}</span></button>`,
     );
     if (open) {
       const page = achievementChapters.find((group) => group.id === chapter)!;
@@ -104,7 +104,7 @@ export function mountAchievementBook(onTravel: (destination: Travel) => void) {
       // Open the selected page directly beneath its row of stamps.
       const selectedIndex = entries.findIndex((row) => row.id === selected);
       const detailAfter = Math.min(entries.length - 1, Math.floor(selectedIndex / 3) * 3 + 2);
-      content.push(`<div id="achievement-chapters" class="achievement-chapters"><nav aria-label="成就章节">
+      content.push(`<div id="achievement-chapters" class="achievement-chapters"><nav aria-label="徽章章节">
         ${achievementChapters.map((group) => `<button type="button" data-book-chapter="${group.id}" data-focus="tab-${group.id}" aria-pressed="${group.id === chapter}" aria-label="${escapeHtml(group.title)}">${chapterTabs[group.id]}</button>`).join("")}
         </nav><div class="achievement-chapter-heading"><h3>${escapeHtml(page.title)}</h3><small>${entries.filter((row) => row.earned).length} / ${entries.length}</small></div>
         <div class="achievement-grid">${entries

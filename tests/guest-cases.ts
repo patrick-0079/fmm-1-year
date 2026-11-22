@@ -43,7 +43,7 @@ export function verifyGuests(world:World) {
   talk("decorator");choose("先让棉棉陪你");line("好呀，那我们在这里等你。逛累了就回来坐坐吧。");close();
   talk("decorator");choose("邀请棉棉同行");line("那就拜托你啦。棉棉，跟好芙芙哦！\n（获得垂耳兔棉棉）");close();
   assert(bag().equipped.pet==="petBunny" && bag().owned.includes("petCat"),"棉棉覆盖了桃桃的收藏");
-  assert(book().earned.includes("companions"),"分别邀请猫和兔后未收录旅伴图章");
+  assert(book().earned.includes("companions"),"分别邀请猫和兔后未收录旅伴徽章");
   talk("decorator");options("让棉棉歇一会儿","再聊聊庆典");choose("让棉棉歇一会儿");line("回来啦，棉棉。就在我旁边歇一会儿吧。");close();
   talk("picnic-friend");line("你…你好，芙芙大人…");options("没关系，不用紧张");choose("没关系，不用紧张");
   line("谢…谢谢你。（从一旁的篮子中拿出一个蛋糕）请务必…收下这个。吃甜食会让心情变好！");
@@ -91,8 +91,8 @@ export async function verifyGardenDiscovery(world: World) {
     world.standUp();
     close();
     await enter("challenge", egg);
-    assert(state().achievements.facts.includes(egg), "时段彩蛋没有计入成就：" + egg);
+    assert(state().achievements.facts.includes(egg), "时段彩蛋没有计入徽章：" + egg);
     close();
   }
-  assert(state().achievements.earned.includes("day-secrets"), "跨天发现三种彩蛋后未获得图章");
+  assert(state().achievements.earned.includes("day-secrets"), "跨天发现三种彩蛋后未获得徽章");
 }

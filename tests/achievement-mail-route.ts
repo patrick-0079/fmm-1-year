@@ -45,7 +45,7 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
     const id=author+"-anniversary-letter";
     const envelope=()=>q<HTMLButtonElement>(".game-letter-reader .mail-stack button.mail-envelope");
     for (let i=0; i<3 && envelope()?.dataset.memoryId!==id; i++) q(".mail-stack-next").click();
-    assert(envelope()?.dataset.memoryId===id && !has("letter-"+author), "拆封前的来信或图章不正确 "+author);
+    assert(envelope()?.dataset.memoryId===id && !has("letter-"+author), "拆封前的来信或徽章不正确 "+author);
     envelope().click();
     await wait(()=>has("letter-"+author), "正文展开时没有盖章 "+author);
     q(".mail-fold").click();
@@ -69,13 +69,13 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
     if (author==="xiaoye") await wait(()=>actions().some(b=>b.textContent?.startsWith(final)), "拥抱结束后没有递出信封");
     assert(letterCount()===count && !has("letter-"+author),author+" 在实际领取前提前盖章");
     choose(final);
-    await wait(()=>letterCount()===count+1 && has("letter-"+author),author+" 实际收信后没有增加图章与信件");
+    await wait(()=>letterCount()===count+1 && has("letter-"+author),author+" 实际收信后没有增加徽章与信件");
     close();
     log(author+" · 亲手推进递信流程，收到第 "+letterCount()+" 封信");
   }
   for (const [i,flower] of rainbowFlowers.entries()) {
     await visit(flower.scene,flower.id);
-    assert(state().rainbowFlowers.length===i+1 && has("rainbow")===(i===6),"七色花计数或成就时机错误 "+flower.name);
+    assert(state().rainbowFlowers.length===i+1 && has("rainbow")===(i===6),"七色花计数或徽章时机错误 "+flower.name);
   }
   log("七种特殊花按三张地图亲手采集，前六朵没有提前解锁，第七朵盖章");
   await visit("garden",meadowGate.id);
