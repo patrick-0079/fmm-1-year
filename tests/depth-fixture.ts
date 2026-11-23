@@ -6,7 +6,7 @@ import { gardenGateLamp } from "../src/garden-gate-lamp";
 import { townForeground } from "../src/town-foreground";
 import playgroundMasks from "../src/town-playground-masks.generated.json";
 import streetlightMasks from "../src/town-streetlight-outlines.json";
-import { townCanopies } from "../src/town-scenery";
+import { southEdgeCanopies, townCanopies } from "../src/town-scenery";
 import { gardenSign } from "../src/garden-sign";
 import { televisionSilhouette } from "../src/cinema-config";
 
@@ -32,6 +32,7 @@ interface DepthCase {
   // at DPR 1 on a 390 px screen; permit edge antialiasing, never an opaque fill.
   subpixelClear?:number[];
   actor?:{x:number;positions:number[]};
+  canopyEdge?:Point;
   existingOutline?:Point[];
   fragments?:Point[][];
   // Original-image pixel centres, checked at 3 rendered pixels per source
@@ -79,6 +80,20 @@ const cases:DepthCase[]=[
   }},
   {id:"flower-arch",scene:"town",depth:328,solid:[{x:236,y:262}],clear:[{x:234,y:295},{x:233,y:338}]},
   {id:"pond-arch",scene:"town",depth:909,solid:[{x:928,y:834}],clear:[{x:929,y:878},{x:926,y:916}]},
+  {id:"wheat-flower-arch",scene:"town",depth:887,solid:[{x:153,y:809},{x:130,y:844},{x:179,y:851}],clear:[{x:148,y:843},{x:161,y:878}],actor:{x:156,positions:[849,876,900]}},
+  {id:"wheat-gate-west-post",scene:"town",depth:889,solid:[{x:144,y:879}],clear:[{x:152,y:876},{x:137,y:876}]},
+  {id:"wheat-bench-south-roses",scene:"town",depth:1025,solid:[{x:172,y:995},{x:197,y:991}],clear:[{x:169,y:977},{x:190,y:974}]},
+  {id:"wheat-bench-back-rail",scene:"town",depth:998,solid:[{x:137,y:962}],clear:[{x:125,y:976},{x:140,y:996}]},
+  {id:"wheat-bench-seat",scene:"town",depth:998,solid:[{x:146,y:975}],clear:[{x:130,y:996},{x:147,y:987.5}]},
+  {id:"wheat-streetlight",scene:"town",depth:894,solid:[{x:391,y:822},{x:400,y:848}],clear:[{x:402,y:821},{x:412,y:851}]},
+  {id:"south-gate-streetlight",scene:"town",depth:997,solid:[{x:406,y:919},{x:416,y:943}],clear:[{x:416,y:919},{x:425,y:943}]},
+  {id:"pond-streetlight",scene:"town",depth:953,solid:[{x:585,y:891},{x:596,y:915}],clear:[{x:596,y:891},{x:609,y:915}]},
+  {id:"post-office-red-postbox",scene:"town",depth:622,solid:[{x:215,y:592},{x:215,y:609}],clear:[{x:226,y:605},{x:232,y:616}]},
+  {id:"rabbit-east-flower-planter",scene:"town",depth:614,solid:[{x:559,y:563},{x:569,y:600}],clear:[{x:550,y:553},{x:574,y:566}],actor:{x:562,positions:[575,607,628]}},
+  {id:"rabbit-east-square-planter",scene:"town",depth:625,solid:[{x:545,y:612}],clear:[{x:531,y:612},{x:560,y:619}]},
+  {id:"workshop-rose-pots",scene:"town",depth:472,solid:[{x:985,y:410},{x:974,y:461},{x:989,y:464}],clear:[{x:960,y:410},{x:1006,y:451}]},
+  {id:"workshop-stair-spruce",scene:"town",depth:643,solid:[{x:1032,y:611},{x:1035,y:625}],clear:[{x:1044,y:615},{x:1047,y:639}]},
+  {id:"workshop-stone-front",scene:"town",depth:619,solid:[{x:1007,y:588},{x:1027,y:593}],clear:[{x:1036,y:589},{x:1038,y:602}]},
   {id:"quarry-lintel",scene:"town",depth:91,solid:[{x:1428,y:31}],clear:[{x:1428,y:65},{x:1428,y:99}]},
   {id:"north-stair-pennants",scene:"town",depth:272,solid:[{x:525,y:200}],clear:[{x:536,y:209},{x:536,y:280}]},
   {id:"north-cottages-streetlight",scene:"town",depth:199,solid:[{x:1043,y:131},{x:1032,y:165}],clear:[{x:1055,y:165},{x:1043,y:208}]},
@@ -94,6 +109,9 @@ const cases:DepthCase[]=[
   {id:"workshop-rose-border-west",scene:"town",depth:560,solid:[{x:968,y:538},{x:962,y:546}],clear:[{x:985,y:525},{x:997,y:534}],actor:{x:972,positions:[525,540,574]}},
   {id:"workshop-rose-border-east",scene:"town",depth:578,solid:[{x:1009,y:561},{x:1019,y:564}],clear:[{x:1020,y:546},{x:1034,y:569}]},
   {id:"workshop-junction-lamp",scene:"town",depth:396,solid:[{x:939,y:316},{x:939,y:373}],clear:[{x:928,y:316},{x:959,y:374}],actor:{x:939,positions:[328,382,407]}},
+  {id:"workshop-patio-middle-top",scene:"town",depth:376,solid:[{x:1048,y:361}],clear:[{x:1048,y:357},{x:1048,y:363.5}],actor:{x:1050,positions:[362,372,388]}},
+  {id:"workshop-patio-east-middle-post",scene:"town",depth:395,solid:[{x:1111,y:389}],clear:[{x:1101,y:384},{x:1119,y:387}]},
+  {id:"workshop-patio-ivy-stone-face",scene:"town",depth:407,solid:[{x:1079,y:391}],clear:[{x:1079,y:373},{x:1091,y:382}]},
   {id:"bakery-stair-rise-3",scene:"town",depth:333,solid:[{x:777,y:323}],clear:[{x:775,y:328},{x:780,y:334}]},
   {id:"bakery-stair-post-knot",scene:"town",depth:268,solid:[{x:813,y:250}],clear:[{x:809,y:255},{x:819,y:252}]},
   {id:"flight-ring",scene:"town",depth:457,solid:[{x:696,y:356},{x:676,y:453}],clear:[{x:697,y:433},{x:694,y:472}],actor:{x:676,positions:[434,440,477]}},
@@ -104,6 +122,8 @@ const cases:DepthCase[]=[
   {id:"garden-sign",scene:"garden",depth:479,solid:[{x:191,y:415},{x:208,y:415}],clear:[{x:197,y:420},{x:205,y:471}],existingOutline:gardenSign,fragments:[gardenSign]},
   {id:"garden-screen",scene:"garden",depth:273,solid:[{x:708,y:163},{x:721,y:164}],clear:[{x:716,y:169},{x:680,y:175}],existingOutline:televisionSilhouette,fragments:[televisionSilhouette]},
   {id:"town-west-tree",scene:"town",depth:432,solid:[{x:340,y:350},{x:320,y:370}],clear:[{x:330,y:331},{x:345,y:334}],existingOutline:townCanopies[0].points,fragments:[townCanopies[0].points]},
+  {id:"south-road-west-crowns",scene:"town",depth:1025,solid:[{x:533,y:966},{x:579,y:978}],clear:[{x:560,y:970},{x:595,y:984}],canopyEdge:{x:607,y:995},existingOutline:southEdgeCanopies[0].points,fragments:[southEdgeCanopies[0].points]},
+  {id:"south-road-east-crowns",scene:"town",depth:1025,solid:[{x:737,y:968},{x:804,y:1001}],clear:[{x:775,y:970},{x:791,y:991}],canopyEdge:{x:822,y:991},existingOutline:southEdgeCanopies[1].points,fragments:[southEdgeCanopies[1].points]},
 ];
 const run=document.querySelector<HTMLButtonElement>("#depth-run")!;
 const summary=document.querySelector<HTMLElement>("#depth-summary")!;
@@ -178,6 +198,16 @@ async function verify(test:DepthCase){
     record.behind=points.map(sample);photo("脚底在柱后：拱顶遮挡；门洞保留（其他前景树仍会遮挡）");
     world.getDepthLayers=()=>[...saved.layers(),probe(test.depth+1)];drawNow();
     record.front=points.map(sample);photo("脚底在柱前：拱门不再遮挡；其他前景保留");
+    if(test.canopyEdge){
+      world.player=test.canopyEdge;
+      world.getDepthLayers=()=>[...saved.layers(),probe(test.depth-1)];drawNow();
+      for(const [i,point] of test.solid.entries()){
+        const faded=sample(point),leaf=record.behind[i];
+        assert(faded.rgb.every((channel,j)=>Math.abs(channel-(leaf.rgb[j]+rgb[j])/2)<8),
+          "走到树冠边缘时应能透过树叶看见人物");
+      }
+      world.player={...saved.player};
+    }
     if(baked){
       const shape=new Path2D(baked.path);
       world.getDepthLayers=()=>[{y:baked.depth,draw:c=>world.drawMapCover(c,baked,shape)},probe(test.depth-1)];

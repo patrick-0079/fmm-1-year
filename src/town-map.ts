@@ -5,6 +5,7 @@ import { townEchoGate } from "./ruins-map.ts";
 import { postObstacles } from "./post-streets.ts";
 import { fenceSegments } from "./fences.ts";
 import { townSurfaces } from "./town-surfaces.ts";
+import { southStreetWalls } from "./town-south-streets.ts";
 import { townTerraceWalls } from "./town-terraces.ts";
 import { townCanopies, festivalProps } from "./town-scenery.ts";
 import { townGates, gatePosts, gateSpot } from "./gate-layout.ts";
@@ -12,7 +13,7 @@ export const townScene: Scene = {
   title: "晚安周年小镇",
   width: 1536,
   height: 1024,
-  bounds: { x: 45, y: 45, w: 1440, h: 950 },
+  bounds: { x: 45, y: 45, w: 1440, h: 979 },
   spawn: { x: 620, y: 596 },
   surfaces: townSurfaces,
   floor: [
@@ -30,14 +31,14 @@ export const townScene: Scene = {
     [1470, 910],
     [1170, 970],
     [1000, 935],
-    [800, 1000],
-    [420, 1005],
-    [365, 910],
-    [85, 850],
+    [850, 1024],
+    [100, 1024],
+    [60, 855],
     [50, 560],
     [70, 340],
   ].map(([x, y]) => ({ x, y })),
   walls: [
+    ...southStreetWalls,
     ...townTerraceWalls,
     ...townAttractionBases,
     {label:"旧矿车车轮",x:1306,y:83,w:38,h:12},
@@ -48,10 +49,11 @@ export const townScene: Scene = {
     { label: "月兔台前的红邮筒", x: 535, y: 614, w: 19, h: 12 },
     { label: "月兔台前的花盆", x: 550, y: 604, w: 20, h: 12 },
     { label: "月兔台东侧路灯", x: 578, y: 583, w: 12, h: 13 },
-    { label: "花店主屋", points: [[128,100],[416,101],[420,218],[399,239],[314,241],
-      [289,238],[277,242],[209,240],[180,233],[128,229]].map(([x,y])=>({x,y})) },
-    { label: "烘焙屋", points: [[639,97],[839,87],[865,163],[850,225],[808,238],
-      [731,241],[697,234],[653,229],[643,218]].map(([x,y])=>({x,y})) },
+    { label: "花店主屋", points: [[128,100],[416,101],[420,218],[399,239],[300,241],
+      [283,240],[279,224],[250,222],[242,227],[239,239],[209,238],[180,233],
+      [128,229]].map(([x,y])=>({x,y})) },
+    { label: "烘焙屋", points: [[639,97],[839,87],[865,163],[847,219],[808,237],
+      [731,238],[722,233],[721,226],[700,225],[697,233],[653,229],[643,218]].map(([x,y])=>({x,y})) },
     {
       label: "星饰工坊",
       points: [
@@ -63,12 +65,21 @@ export const townScene: Scene = {
         [1201, 214],
         [1263, 254],
         [1280, 323],
-        [1291, 370],
-        [1280, 391],
-        [1211, 401],
-        [1150, 401],
-        [1113, 377],
-        [1068, 377],
+        [1280, 378],
+        [1263, 381],
+        [1244, 388],
+        [1236, 387],
+        [1231, 380],
+        [1205, 380],
+        [1199, 394],
+        [1170, 394],
+        [1144, 383],
+        [1108, 373],
+        [1098, 368],
+        [1096, 359],
+        [1081, 356],
+        [1074, 356],
+        [1065, 352],
         [1045, 349],
       ].map(([x, y]) => ({ x, y })),
     },
@@ -82,12 +93,10 @@ export const townScene: Scene = {
     { label: "晚安电台", points: [[1260,655],[1438,651],[1438,783],[1395,798],
       [1352,811],[1302,811],[1262,803],[1244,795],[1242,753]].map(([x,y])=>({x,y})) },
     { label: "周年纪念馆", x: 905, y: 0, w: 253, h: 112 },
-    ...townCanopies.map((t) => ({
+    ...townCanopies.map(({x,y}) => ({
       label: "小镇树干",
-      x: t.x - 8,
-      y: t.y - 10,
-      w: 16,
-      h: 15,
+      points: [[x-7,y-8],[x+7,y-8],[x+7,y-3],[x+5,y],
+        [x+1,y+1],[x-5,y],[x-7,y-3]].map(([x,y])=>({x,y})),
     })),
     ...festivalProps
       .filter((p) => p.kind === "balloons")
@@ -133,10 +142,8 @@ export const townScene: Scene = {
     ...fenceSegments("广场东侧花坛上段", [[835,422],[849,429],[872,425],[898,424]]),
     ...fenceSegments("广场东侧花坛下段", [[874,492],[849,508],[817,520],[799,528]]),
     ...fenceSegments("南侧池塘栅栏", [
-      [566, 889],
-      [586, 925],
-      [692, 949],
-      [800, 946],
+      [507,881],[520,899],[537,913],[561,926],[584,936],[612,944],
+      [660,944],[693,945],[748,949],[803,954],
     ]),
   ],
   hazards: [],

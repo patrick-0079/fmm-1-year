@@ -1,8 +1,10 @@
 import type { Point } from "./core.ts";
 import { bakeryPennants, bakeryPostKnot } from "./bakery-pennants.ts";
+import { streetProps } from "./town-street-props.ts";
 import {
   workshopBluePostbox, workshopWestFlowers, workshopEastFlowers,
   workshopLampMast, workshopLampWestFlag, workshopLampEastFlag,
+  workshopPatio,
 } from "./workshop-contours.ts";
 
 export interface TownForeground {
@@ -91,6 +93,7 @@ export const playgroundForeground = [
 /** Native 1536 × 1024 map coordinates. These concave silhouettes leave the
  * stair openings untouched; repainting their bounding rectangles erases walkers. */
 export const townForeground: TownForeground[] = [
+  ...[...streetProps, ...workshopPatio].map(({ id, depth, outline }) => shape(id, depth, outline)),
   shape("workshop-blue-postbox", 526, workshopBluePostbox),
   shape("workshop-rose-border-west", 560, workshopWestFlowers),
   shape("workshop-rose-border-east", 578, workshopEastFlowers),

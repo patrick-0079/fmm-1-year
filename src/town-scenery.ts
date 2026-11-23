@@ -1,5 +1,5 @@
 import type { Point } from "./core.ts";
-import { townCanopyOutlines } from "./town-canopy-contours.ts";
+import { southEdgeCanopyOutlines, townCanopyOutlines } from "./town-canopy-contours.ts";
 import { pennantLift } from "./town-idle-motion.ts";
 
 const points = (p: number[][]): Point[] => p.map(([x, y]) => ({ x, y }));
@@ -9,6 +9,12 @@ export const townCanopies = [
   [597,721],[982,681],[975,747],[1076,790],[578,839],[541,899],
   [1033,976],[262,449],
 ].map(([x,y],index)=>({x,y,points:points(townCanopyOutlines[index])}));
+
+// These crowns hang over the south street from beyond the picture. Only the
+// grounded trees above contribute trunks to the map's collision geometry.
+export const southEdgeCanopies = southEdgeCanopyOutlines.map((outline, index) => ({
+  x: [543, 758][index], y: 1025, points: points(outline),
+}));
 
 export const festivalProps = [
   { kind: "balloons", x: 628, y: 415 },

@@ -1,9 +1,4 @@
-import {
-  canStand,
-  canTravelBetween,
-  PLAYER_RADIUS,
-  touchingHazard,
-} from "./collision.ts";
+import { canStand, canTravelBetween } from "./collision.ts";
 import { rainbowIds } from "./rainbow-flowers.ts";
 import { readEchoMemory, type EchoMemory } from "./echoes.ts";
 import { readAstrolabe, type AstrolabeState } from "./astrolabe.ts";
@@ -288,34 +283,38 @@ export function findPath(
   geometry: Geometry,
   hazards: Hazard[] = [],
 ): Point[] | null {
-  if (
-    !canStand(
-      start,
-      geometry.walls,
-      geometry.bounds,
-      geometry.floor,
-      geometry.surfaces,
-    )
-  )
-    return null;
+  const valid = (point: Point) => canTravelBetween(point, point, geometry, hazards);
+  const travel = (a: Point, b: Point) => canTravelBetween(a, b, geometry, hazards);
+  if (!valid(start)) return null;
+  const goalIsClear = valid(goal);
+  if (goalIsClear && travel(start, goal)) return [{ ...goal }];
+  const route = gridRoute(start, goal, geometry.bounds, valid, travel, goalIsClear);
+  const last = route?.at(-1);
+  if (!goalIsClear || (last?.x === goal.x && last.y === goal.y)) return route;
+
+  // A narrow gate can leave a few grid cells on the small side of the gate.
+  // Searching from the open street lets the existing off-grid endpoint search
+  // connect those cells. Only reverse a path that reaches the exact foot point.
+  const back = gridRoute(goal, start, geometry.bounds, valid, travel, true);
+  const end = back?.at(-1);
+  if (back && end?.x === start.x && end.y === start.y) {
+    return [...back.slice(0, -1).reverse(), { ...goal }];
+  }
+  return route;
+}
+
+function gridRoute(
+  start: Point, goal: Point, bounds: Rect,
+  valid: (point: Point) => boolean, travel: (a: Point, b: Point) => boolean,
+  goalIsClear: boolean,
+): Point[] | null {
   const step = 8,
-    cols = Math.ceil((geometry.bounds.x + geometry.bounds.w) / step) + 1;
-  const rows = Math.ceil((geometry.bounds.y + geometry.bounds.h) / step) + 1;
+    cols = Math.ceil((bounds.x + bounds.w) / step) + 1;
+  const rows = Math.ceil((bounds.y + bounds.h) / step) + 1;
   const center = (id: number): Point => ({
     x: (id % cols) * step + 4,
     y: Math.floor(id / cols) * step + 4,
   });
-  const valid = (point: Point) =>
-    canStand(
-      point,
-      geometry.walls,
-      geometry.bounds,
-      geometry.floor,
-      geometry.surfaces,
-    ) && !touchingHazard(point, hazards, PLAYER_RADIUS + 2);
-  const travel = (a: Point, b: Point) => canTravelBetween(a, b, geometry, hazards);
-  const goalIsClear = valid(goal);
-  if (goalIsClear && travel(start, goal)) return [{ ...goal }];
   const directGoal = cols * rows;
   const link = (endpoint: Point, reachable: (id: number) => boolean, shortcut?: Point) =>
     connectOffGrid(endpoint, p => {

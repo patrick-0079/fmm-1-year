@@ -62,10 +62,10 @@ test("the workshop mailbox, descending rose bed and lamp restore only the painte
     assert.ok(!polygonContains({x:cx,y:cy},layer.points),id+" should leave the gap open");
   }
   const town = scenes.town;
-  for (const [x,y] of [[972,538],[987,544],[976,518],[939,393]])
+  for (const [x,y] of [[972,538],[987,544],[953,518],[960,523],[976,518],[939,393]])
     assert.ok(!canStand({x,y},town.walls,town.bounds,town.floor,town.surfaces));
   const lanes = [
-    [[953,518],[960,515],[960,523]],
+    [[949,506],[953,507],[958,504]],
     [[990,530],[998,530],[1005,538],[1026,550]],
     [[781,283],[789,319],[803,324]],
   ];

@@ -160,7 +160,8 @@ export class InteractionPrompt {
     const obstacles = state.nearbyTargets?.length
       ? [...this.obstacles, ...state.nearbyTargets]
       : this.obstacles;
-    const next = placeInteractionPrompt(this.viewport, this.size, state.anchor, state.playerBox, state.objectBox, obstacles);
+    const next = placeInteractionPrompt(this.viewport, this.size, state.anchor, state.playerBox, state.objectBox,
+      obstacles, state.mode === "touch");
     this.labelBox = { x: next.x, y: next.y, ...this.size };
     const key = [next.x, next.y, next.edge, next.tip].join(",");
     if (key === this.position) return;

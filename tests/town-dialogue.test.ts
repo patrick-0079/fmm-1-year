@@ -62,7 +62,7 @@ test("the three anniversary guests are reachable from town entrances and do not 
   for (const [id, x, y, approach] of [
     ["xiaoyou", 436, 892, {x: 467, y: 916}],
     ["guli", 862, 324, {x: 830, y: 345}],
-    ["qianxiao", 1220, 514, {x: 1192, y: 539}],
+    ["qianxiao", 1198, 509, {x: 1183, y: 521}],
   ] as const) {
     const spot = map.spots.find(s => s.id === "npc-" + id)!;
     assert.deepEqual([spot.x, spot.y], [x, y]);

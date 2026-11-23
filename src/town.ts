@@ -18,12 +18,15 @@ import type { GameId } from "./arcade-engines";
 import npcUrl from "./assets/town-npcs.webp";
 import { drawPartyProp } from "./party-art";
 import { TownPond } from "./town-pond";
-import { drawTownCrown, drawTownWeather, windAllowance } from "./scenery-wind";
+import { drawTownCrown, drawTownWeather, sceneryBounds, windAllowance } from "./scenery-wind";
 import {
-  townCanopies,
+  southEdgeCanopies, townCanopies,
   festivalProps,
   drawFestivalProp,
 } from "./town-scenery";
+const treeCrowns = [...townCanopies, ...southEdgeCanopies].map(tree => ({
+  ...tree, bounds: sceneryBounds(tree.points),
+}));
 export const TOWN_TALKED_KEY = "fufu-town-talked-v1";
 interface StoryHooks {
   story: () => ResidentStory;
@@ -258,13 +261,14 @@ export class Town {
       x + 64 >= view.x && x - 64 <= view.x + view.w && y + 18 >= view.y && y - 76 <= view.y + view.h;
     return [
       ...townMapCovers(this.world),
-      ...townCanopies.map((t) => ({
+      ...treeCrowns.map((t) => ({
         y: t.y,
         draw: (c: CanvasRenderingContext2D) => {
           const behind =
             this.world.player.y < t.y &&
-            this.world.player.y > Math.min(...t.points.map((p) => p.y)) - 4 &&
-            Math.abs(this.world.player.x - t.x) < 62;
+            this.world.player.y > t.bounds.y - 4 &&
+            this.world.player.x > t.bounds.x - 8 &&
+            this.world.player.x < t.bounds.x + t.bounds.w + 8;
           c.save();
           if (behind) c.globalAlpha = 0.5;
           drawTownCrown(c,this.world,t.x,t.points,this.reducedMotion.matches);

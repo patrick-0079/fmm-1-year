@@ -111,7 +111,7 @@ const gardenCrown = patch(
 );
 gardenCrown.material = "leaves";
 const silhouetteBounds = new WeakMap<Point[], Rect>();
-function boundsOf(points: Point[]) {
+export function sceneryBounds(points: Point[]) {
   let area = silhouetteBounds.get(points);
   if (!area) {
     const x = Math.min(...points.map((p) => p.x)),
@@ -145,7 +145,7 @@ function makeTile(
 ): Tile {
   const sx = art.naturalWidth / width,
     sy = art.naturalHeight / height;
-  const full = recipe === gardenCrown ? { x: 0, y: 0, w: width, h: height } : outline && boundsOf(outline);
+  const full = recipe === gardenCrown ? { x: 0, y: 0, w: width, h: height } : outline && sceneryBounds(outline);
   const x0 = full ? full.x : Math.min(...recipe.folds.map(([x, , rx]) => x - rx));
   const y0 = full ? full.y : Math.min(...recipe.folds.map(([, y, , ry]) => y - ry));
   const x1 = full ? full.x + full.w : Math.max(...recipe.folds.map(([x, , rx]) => x + rx));
@@ -358,7 +358,7 @@ export function drawFabricGround(c: CanvasRenderingContext2D, world: World) {
   mapTile(c, world, recipe, windLevel(world, 0.5));
 }
 export function drawFlexibleCover(c: CanvasRenderingContext2D, world: World, outline: Point[], still: boolean) {
-  if (!overlaps(boundsOf(outline), world.visibleArea)) return;
+  if (!overlaps(sceneryBounds(outline), world.visibleArea)) return;
   const step = still ? 0 : Math.round(windLevel(world, 0.5) * 6),
     art = world.sceneryArtwork;
   if (!art?.naturalWidth || (!step && world.scene !== "ruins")) {
@@ -392,7 +392,7 @@ export function drawTownCrown(
   outline: Point[],
   still: boolean,
 ) {
-  if (!overlaps(boundsOf(outline), world.visibleArea)) return;
+  if (!overlaps(sceneryBounds(outline), world.visibleArea)) return;
   const recipe = canopyPatches.get(x),
     art = world.sceneryArtwork;
   const step = recipe && !still ? Math.round(windLevel(world, x === 339 ? 0 : x === 659 ? 0.48 : 0.86) * 6) : 0;

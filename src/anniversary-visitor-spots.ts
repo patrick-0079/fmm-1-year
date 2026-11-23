@@ -27,7 +27,7 @@ function visitor(key: VisitorKey, name: string, scene: SceneId, row: number, siz
 
 // These all-day encounters have their own identities outside the scheduled resident roster.
 export const anniversaryVisitors = [
-  visitor("zhenghao", "正号", "town", 0, 36, 798, 955, 777, 958, 25, 30, 10),
+  visitor("zhenghao", "正号", "town", 0, 36, 798, 963, 777, 962, 25, 30, 10),
   visitor("rabe", "Rabe", "challenge", 1, 56, 531, 491, 501, 487, 43, 49, 12),
   visitor("dianziyang", "电子羊", "town", 2, 40, 982, 273, 958, 283, 32, 33, 12),
   visitor("pigeon", "鸽子", "garden", 3, 29, 710, 144, 686, 149, 23, 24, 8),

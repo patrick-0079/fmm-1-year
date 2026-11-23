@@ -54,3 +54,29 @@ test("walking around the campfire, kettle and star jar leaves the open meadow ac
   assert.ok(!canTravelBetween(a,b,scenes.meadow));
   assert.deepEqual(findPath(a,b,scenes.meadow)?.at(-1), b);
 });
+
+test("the desk leg and chair leave a lane on the bare boards to the east", () => {
+  checkFeet("room", [[77,244],[88,179]], [[62,249],[98,222]]);
+  assert.ok(canTravelBetween({x:105,y:244},{x:77,y:244},scenes.room));
+});
+
+test("garden lamp bases, porch planters and the arch feet stop shoes while the adjacent paths stay open", () => {
+  checkFeet("garden",
+    [[302,512],[141,369],[401,433],[479,438],[790,350]],
+    [[300,500],[155,475],[142,351],[385,425],[497,425],[411,161],[471,161],
+      [284,135],[613,135],[623,106],[788,334],[601,298],[275,270],[802,266],[634,271],
+      [602,483],[789,469],[357,398],[526,399]]);
+  assert.ok(canTravelBetween({x:331,y:511},{x:300,y:511},scenes.garden));
+  assert.ok(canTravelBetween({x:111,y:350},{x:124,y:350},scenes.garden));
+});
+
+test("the last stones on the courage trail and the tiles beside both ruined arcades stay connected", () => {
+  checkFeet("challenge", [[440,94],[450,91]], [[450,82]]);
+  assert.ok(canTravelBetween({x:440,y:125},{x:440,y:94},scenes.challenge));
+  checkFeet("ruins", [[226,267],[674,267],[254,171],[646,171]], [[211,270],[690,270]]);
+  for (const x of [226,674]) {
+    const north = {x,y:263}, south = {x,y:295};
+    assert.ok(canTravelBetween(north,south,scenes.ruins));
+    assert.ok(canTravelBetween(south,north,scenes.ruins));
+  }
+});
