@@ -3,7 +3,7 @@ import { join, relative, sep } from "node:path";
 
 const imageKeys = ["flap", "pocket", "lining", "paper", "seal", "motif"];
 const colorKeys = ["flapTint", "pocketTint", "liningTint", "paperTint", "ink", "accent"];
-const keys = new Set(["title", "neutralStock", "paperSlices", "motifPlacement", ...imageKeys, ...colorKeys]);
+const keys = new Set(["title", "neutralStock", "paperSlices", "paperCornersOnly", "motifPlacement", ...imageKeys, ...colorKeys]);
 const imageExtension = /\.(?:png|webp|jpg|jpeg|avif)$/;
 const isObject = value => value !== null && typeof value === "object" && !Array.isArray(value);
 
@@ -41,6 +41,10 @@ export async function validateStationery(directory, letterIds) {
         !slices.every(size => Number.isSafeInteger(size) && size > 0)) {
         fail(`${label}.paperSlices 需要依次填写上、右、下、左四个正整数像素值。`);
       }
+    }
+    if (Object.hasOwn(theme, "paperCornersOnly") &&
+        (typeof theme.paperCornersOnly !== "boolean" || (theme.paperCornersOnly && !theme.paperSlices))) {
+      fail(`${label}.paperCornersOnly 需要布尔值，并在启用时提供 paperSlices。`);
     }
     for (const key of Object.keys(theme)) {
       if (!keys.has(key)) fail(`${label} 含有未识别的字段 ${key}。`);

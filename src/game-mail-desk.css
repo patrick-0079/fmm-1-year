@@ -136,6 +136,27 @@
   border-image-width: var(--mail-paper-widths);
   border-image-repeat: stretch;
 }
+.mail-sheet[data-paper-corners-only] {
+  background-image: radial-gradient(ellipse at 50% 38%, #fff8, transparent 80%), linear-gradient(135deg, #c1c9e638, #abb7dc4d);
+}
+/* Keep the ornaments at their source proportions. The stock behind them is
+   continuous even when the artwork only leaves a few rows between corners. */
+.mail-sheet[data-paper-corners-only]::before {
+  mask-image:
+    linear-gradient(to right, #000 calc(var(--margin-art) * .78), transparent var(--margin-art),
+      transparent calc(100% - var(--mail-paper-right-corner)), #000 calc(100% - var(--mail-paper-right-corner) * .78)),
+    linear-gradient(to bottom, #000 calc(var(--mail-paper-top-corner) * .78), transparent var(--mail-paper-top-corner),
+      transparent calc(100% - var(--mail-paper-bottom-corner)), #000 calc(100% - var(--mail-paper-bottom-corner) * .78));
+  mask-composite: intersect;
+}
+.mail-sheet[data-paper-corners-only]::after {
+  content: "";
+  position: absolute;
+  inset: clamp(2px, .5cqw, 5px);
+  z-index: -2;
+  border: 1px solid color-mix(in srgb, var(--mail-accent) 55%, transparent);
+  pointer-events: none;
+}
 @container mail-desk (min-width: 541px) {
   .mail-sheet.has-writing-room:not([data-paper-slices])::before {
     border: 0;

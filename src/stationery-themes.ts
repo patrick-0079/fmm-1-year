@@ -5,6 +5,7 @@ type Stationery = typeof config.default & {
   motifPlacement?: string;
   neutralStock?: boolean;
   paperSlices?: readonly number[];
+  paperCornersOnly?: boolean;
 };
 const themes: Readonly<Record<string, Partial<Stationery>>> = config.themes;
 const images = import.meta.glob<string>("../ref/来信/信笺/**/*.{webp,png,jpg,jpeg,avif}", {
@@ -25,10 +26,14 @@ export function applyStationeryTheme(element: HTMLElement, letterId?: string) {
   element.toggleAttribute("data-neutral-stock", theme.neutralStock === true);
   const slices = theme.paperSlices;
   element.toggleAttribute("data-paper-slices", Boolean(slices));
+  element.toggleAttribute("data-paper-corners-only", Boolean(slices && theme.paperCornersOnly));
   element.style.setProperty("--mail-paper-slices", slices ? slices.join(" ") + " fill" : "");
   // Scale all four sides from the same source-pixel ratio as the left margin.
   const widths = slices?.map(size => `calc(var(--margin-art) * ${size} / ${slices[3]})`);
   element.style.setProperty("--mail-paper-widths", widths?.join(" ") ?? "");
+  element.style.setProperty("--mail-paper-top-corner", widths?.[0] ?? "");
+  element.style.setProperty("--mail-paper-right-corner", widths?.[1] ?? "");
+  element.style.setProperty("--mail-paper-bottom-corner", widths?.[2] ?? "");
   for (const layer of layers) {
     const file = theme[layer];
     const url = file && images["../ref/来信/信笺/" + file];
