@@ -231,6 +231,9 @@ export class NightMeadow {
         const pulse = (1 + Math.sin(t * 1.5 + i)) / 2;
         const size = 19;
         const foot = y - 1 - pulse;
+        c.save();
+        // The cross flickers in the grass and is steady once collected.
+        if (shape === "cross") c.globalAlpha *= still ? .86 : .58 + .42 * pulse;
         glow(c, x, y - 8, light.radius + pulse * 3, light.halo);
         const custom = person.sprite && this.loadedStarSprite(person.sprite);
         const sprite = custom || (shape && creditStarTexture(shape));
@@ -240,6 +243,7 @@ export class NightMeadow {
           c.drawImage(sprite, Math.round(x - width / 2), Math.round(foot - height), width, height);
         } else drawWildSprite(c, atlas, 2, x, foot, size);
         glint(c, x + 10, y - 15 - pulse * 2, 1.5, light.glint);
+        c.restore();
       }});
     }
     return layers;

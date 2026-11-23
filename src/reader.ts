@@ -82,7 +82,7 @@ export class MapReader {
   }
   private canScroll(target: EventTarget | null, delta: number) {
     const scroller = target instanceof Element ? target.closest<HTMLElement>(".collection-list,.memory-detail,.photo-original-stage") : null;
-    if (!scroller || !this.root.contains(scroller)) return false;
+    if (!scroller || !this.root.contains(scroller) || scroller.closest(".mail-sheet")) return false;
     return delta < 0 ? scroller.scrollTop > 0 : delta > 0 && scroller.scrollTop + scroller.clientHeight < scroller.scrollHeight - 1;
   }
   private scrollReading(event: KeyboardEvent) {

@@ -66,6 +66,18 @@
   height: 55%;
   background: var(--mail-motif-image) left bottom / contain no-repeat;
 }
+.mail-corner-motif { display: none; }
+[data-motif-upper-right] .mail-pocket::after { content: none; }
+[data-motif-upper-right] .mail-corner-motif {
+  position: absolute;
+  display: block;
+  top: 9%;
+  right: 7%;
+  width: 20%;
+  height: 37%;
+  background: var(--mail-motif-image) center / contain no-repeat;
+  backface-visibility: hidden;
+}
 .mail-envelope-object .mail-flap {
   z-index: 3;
   inset: 0 0 auto;

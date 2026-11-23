@@ -11,6 +11,8 @@ import star8 from "../ref/花海星星/star-rabe.json" with { type: "json" };
 import star9 from "../ref/花海星星/star-xiaoyou.json" with { type: "json" };
 import star10 from "../ref/花海星星/star-guli.json" with { type: "json" };
 import star11 from "../ref/花海星星/star-qianxiao.json" with { type: "json" };
+import star12 from "../ref/花海星星/dianziyang/star.json" with { type: "json" };
+import star13 from "../ref/花海星星/xiaoaimen/star.json" with { type: "json" };
 
 export const starIndex = [
   { record: star0, x: 485, y: 335 },
@@ -25,4 +27,6 @@ export const starIndex = [
   { record: star9, x: 301, y: 414 },
   { record: star10, x: 615, y: 187 },
   { record: star11, x: 797, y: 468 },
+  { record: star12, x: 58, y: 431, sprite: new URL("../ref/花海星星/dianziyang/sheep.webp?no-inline", import.meta.url).href },
+  { record: star13, x: 183, y: 477, sprite: new URL("../ref/花海星星/xiaoaimen/kitten.webp?no-inline", import.meta.url).href },
 ] as const;

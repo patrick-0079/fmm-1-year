@@ -57,11 +57,14 @@ const letters = [
   letter("yeshenhua", deliveryIds["radio-host"], "夜神华 · 夹在节目单里", "普通", "和夜神华聊完一个话题，查看节目单并收下信。"),
   letter("kerry", "kerry-anniversary-letter", "Kerry · 灵验的祝福", "简单", "拆开 Kerry 的周年来信，让正文在眼前展开。"),
   letter("suyan", deliveryIds.suyan, "苏颜 · 很多很多颗心", "简单", "和苏颜聊到小花封口，收下她手里的信。"),
-  letter("rabe", "rabe-anniversary-letter", "Rabe · 深夜有了去处", "简单", "拆开 Rabe 的周年来信，让正文在眼前展开。"),
+  letter("rabe", deliveryIds.rabe, "Rabe · 深夜有了去处", "简单", "向 Rabe 收下信，再拆开读到正文。"),
   letter("xiaoyou", deliveryIds.xiaoyou, "一橙橘小佑 · 果篮底的心意", "普通", "尝过橘子，查看果篮，收下小佑包好的信。"),
   letter("guli", deliveryIds.guli, "故里 · 从鱼尾拆开", "普通", "看过鱼别针，问起故里手里的东西并收下信。"),
   letter("post", deliveryIds.post, "红笺 · 晚安寄到了", "普通", "在小镇邮局和红笺聊到她把信投出去。"),
   letter("patrick", deliveryIds.patrick, "派大星 · 火边留下的信", "探索", "在花海的营火旁亲手拾起派大星留下的信。", "草地上有些心意，要等人走近才看得见。"),
+  letter("dianziyang", deliveryIds.dianziyang, "电子羊 · 新一年的存档点", "普通", "和电子羊相遇，收下它递来的周年信。"),
+  letter("pigeon", deliveryIds.pigeon, "鸽子 · 咕咕有信", "普通", "和鸽子相遇，收下它捎来的周年信。"),
+  letter("xiaoaimen", "xiaoaimen-anniversary-letter", "小艾门 · 一枚红爪印", "简单", "拆开小艾门的周年来信，让正文在眼前展开。"),
 ];
 
 const gameRows: ReadonlyArray<{ id: GameId; name: string; difficulty: Difficulty; goal: number; verb: string; unit: string }> = [
@@ -252,6 +255,7 @@ export function reconcileAchievements(progress: Progress, context: AchievementCo
     const id = letter.letterId!;
     const got = id === deliveryIds.post ? story.postDelivered
       : id === deliveryIds.patrick ? story.patrickDelivered
+      : id === deliveryIds.rabe ? story.npcLetters[id] === "read"
       : story.publicLettersRead.includes(id) || !!story.npcLetters[id as keyof typeof story.npcLetters];
     meters.set(letter.id, yesNo(got));
   }

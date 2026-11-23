@@ -1,5 +1,6 @@
 import { arriveOnShift, scheduledResident } from "./resident-visits";
 import { achievementDefinitions } from "../src/achievements";
+import { producers } from "../src/star-catalog";
 import { bassScore } from "../src/bass-score";
 import { SAVE_KEY, readProgress } from "../src/core";
 import { echoAltar, echoPool, ringSpots, moonPlate, mirrorSpots } from "../src/ruins-map";
@@ -145,7 +146,7 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   await verifyLetterAndMeadowStamps(world, log);
   closeActivity();
   await collectStars();
-  log("十二颗落星逐一按键拾起，署名与寄语核对，重复互动未增加收藏");
+  log(`${producers.length} 颗落星逐一按键拾起，署名与寄语核对，重复互动未增加收藏`);
   for (const npc of TOWN_NPCS) {
     await interactAt("town", "npc-" + npc.id);
     expect(JSON.parse(localStorage.getItem(TOWN_TALKED_KEY) ?? "[]").includes(npc.id), "没有记下与 " + npc.name + " 的会面");
@@ -167,7 +168,8 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   for (const name of ["叶","铃","星"]) await choose("轻敲「" + name + "」");
   await interactAt("ruins", echoPool.id);
   closeActivity();
-  const missing = achievementDefinitions.filter(d => !d.id.startsWith("days-") && !earned(d.id));
+  const ordinary = achievementDefinitions.filter(d => !d.id.startsWith("days-"));
+  const missing = ordinary.filter(d => !earned(d.id));
   expect(missing.length === 0, "尚未获得 " + missing.map(d => d.name).join("、"));
-  log("同一份新档累计已取得全部 41 枚非计时徽章，小游戏、收信、花海与两条独立遗迹支线可并存");
+  log(`同一份新档累计已取得全部 ${ordinary.length} 枚非计时徽章，小游戏、收信、花海与两条独立遗迹支线可并存`);
 }

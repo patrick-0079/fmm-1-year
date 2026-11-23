@@ -90,17 +90,38 @@ async function verifyLongLetterStack(reader: HTMLElement) {
     await waitForReading(() => body.dataset.openLetterId === "letter-1", "未读信无法打开");
     if (receipts.join() !== "letter-1") throw new Error("读一封信改变了其他信的状态");
     const viewport = body.querySelector<HTMLElement>(".mail-sheet .memory-detail")!;
-    viewport.dispatchEvent(new KeyboardEvent("keydown", {key: "End", bubbles: true, cancelable: true}));
+    const pageNumber = body.querySelector(".mail-page-count")!;
+    const previous = body.querySelector<HTMLButtonElement>(".mail-page-prev")!;
+    const next = body.querySelector<HTMLButtonElement>(".mail-page-next")!;
     const text = viewport.querySelector(".letter-text")!.firstChild as Text;
-    const finalCharacter = document.createRange();
-    finalCharacter.setStart(text, text.length - 1);
-    finalCharacter.setEnd(text, text.length);
-    await waitForReading(() => {
-      const glyph = finalCharacter.getBoundingClientRect(), page = viewport.getBoundingClientRect();
+    function containsCharacter(offset: number) {
+      const range = document.createRange();
+      range.setStart(text, offset);
+      range.setEnd(text, offset + 1);
+      const glyph = range.getBoundingClientRect(), page = viewport.getBoundingClientRect();
       return glyph.width > 0 && glyph.left >= page.left - 1 && glyph.right <= page.right + 1 &&
         glyph.top >= page.top - 1 && glyph.bottom <= page.bottom + 1;
-    }, "翻到长信末页后最后一个字仍在纸面之外");
-    const pageNumber = body.querySelector(".mail-page-count")!;
+    }
+    if (!pageNumber.textContent?.startsWith("1 / ") || !containsCharacter(0) ||
+      previous.textContent !== "上一页" || next.textContent !== "下一页")
+      throw new Error("第一页出现时没有显示首字和底部翻页按钮");
+    if (previous.getBoundingClientRect().top < viewport.getBoundingClientRect().bottom - 1 ||
+      !["clip", "hidden"].includes(getComputedStyle(viewport).overflowY))
+      throw new Error("翻页按钮遮住正文或正文仍可滚动");
+    next.click();
+    const beforeResize = pageNumber.textContent;
+    const anchor = Array.from({length:text.length}, (_, offset) => offset).find(containsCharacter);
+    if (!beforeResize?.startsWith("2 / ") || anchor === undefined || anchor === 0)
+      throw new Error("点下一页后没有翻到新的文字");
+    const originalHeight = viewport.clientHeight;
+    viewport.style.flex = `0 0 ${Math.max(28, originalHeight * .55)}px`;
+    await waitForReading(() => pageNumber.textContent !== beforeResize && containsCharacter(anchor),
+      "正文区重新排版时丢失了原页开头的文字");
+    viewport.style.removeProperty("flex");
+    await waitForReading(() => pageNumber.textContent === beforeResize && containsCharacter(anchor),
+      "恢复视口后没有回到原来的阅读位置");
+    viewport.dispatchEvent(new KeyboardEvent("keydown", {key: "End", bubbles: true, cancelable: true}));
+    await waitForReading(() => containsCharacter(text.length - 1), "翻到长信末页后最后一个字仍在纸面之外");
     const lastPage = pageNumber.textContent;
     const active = document.activeElement;
     const extra = {id: "new-arrival", title: "新来信", author: "新来宾", text: "晚安。"};
@@ -130,6 +151,8 @@ async function verifyLongLetterStack(reader: HTMLElement) {
     if (!flying.hidden && flying.dataset.stationeryTheme !== kerry)
       throw new Error("抽出的信封丢失了作者的信笺样式");
     await waitForReading(() => body.dataset.openLetterId === kerry, "定制信笺没有展开");
+    if (pageNumber.textContent !== "1 / 1" || !body.querySelector<HTMLElement>(".mail-leaves")!.hidden)
+      throw new Error("下一封短笺未回到第一页或仍出现翻页控件");
     if (body.querySelector<HTMLElement>(".mail-sheet")!.dataset.stationeryTheme !== kerry)
       throw new Error("信纸展开后使用了其他来信的样式");
     body.querySelector<HTMLButtonElement>(".mail-fold")!.click();
@@ -168,6 +191,12 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
       q(".game-letter-reader .reader-close").click();
       world.onInteract("letters");
       expect(front()?.dataset.memoryId === id && front().dataset.sealed === "true", "拆信中途退出消耗了蜡封");
+      front().click();
+      await waitForReading(() => !!reader.querySelector('[data-mail-state="opening"] .mail-sheet:not([hidden])'),
+        "没有看到信纸展开阶段");
+      q(".game-letter-reader .reader-close").click();
+      world.onInteract("letters");
+      expect(front()?.dataset.memoryId === id && front().dataset.sealed === "true", "正文尚未展开就记录了已读");
     }
     const envelope = front();
     const id = envelope?.dataset.memoryId;

@@ -79,7 +79,7 @@ const scripts = {
     author: { speaker: "作者的话", text: "其实是因为芙芙本身就很好，所以才能吸引到很好的芙妮宝们！你做的比自己想象的更好更多，现在的结果并不是运气使然，而是因为芙芙值得被爱。", choices: [programme] },
     "cow-horns": { text: "嘿嘿，谢谢！我给它们系了紫色的小丝带。走路时会先看看树枝，免得把丝带挂住。", choices: [programme, ["再聊聊电台", "start"]] },
     "cow-stroll": { text: "去草地上散一小会儿步，听听风吹过叶子的声音。再把麦克风摆正，给大家送一声软软的晚安。", choices: [programme, ["再聊聊电台", "start"]] },
-    "offer-letter": { text: "等一下，这封信夹在我的节目单里，差点被我带上台。封口的小牛角印章是我自己盖的。给你！", letter: handedLetters["radio-host"] },
+    "offer-letter": { text: "等一下，这封信夹在我的节目单里，差点被我带上台。封口的枫叶蜡印是我自己盖的。给你！", letter: handedLetters["radio-host"] },
   },
   books: {
     start: { text: "安好，敢问君可是来借阅书卷？", choices: [["我路过看到这间书屋，便来瞧瞧看。", "marked"]] },

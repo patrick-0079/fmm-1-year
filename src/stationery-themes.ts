@@ -2,6 +2,7 @@ import config from "../ref/来信/信笺/config.json";
 
 type Stationery = typeof config.default & {
   motif?: string;
+  motifPlacement?: string;
   neutralStock?: boolean;
   paperSlices?: readonly number[];
 };
@@ -20,6 +21,7 @@ export function applyStationeryTheme(element: HTMLElement, letterId?: string) {
   const custom = letterId && Object.hasOwn(themes, letterId) ? themes[letterId] : undefined;
   const theme: Stationery = { ...config.default, ...custom };
   element.dataset.stationeryTheme = custom ? letterId : "default";
+  element.toggleAttribute("data-motif-upper-right", theme.motifPlacement === "upper-right");
   element.toggleAttribute("data-neutral-stock", theme.neutralStock === true);
   const slices = theme.paperSlices;
   element.toggleAttribute("data-paper-slices", Boolean(slices));

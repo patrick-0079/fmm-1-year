@@ -13,6 +13,7 @@ import { bassStand, foxNook } from "./room-props.ts";
 import { elderPlaces } from "./elders-data.ts";
 import { xiaoyeSpot, xiaoyeFootprint } from "./xiaoye-data.ts";
 import { suyanSpot, suyanFootprint } from "./suyan-data.ts";
+import { anniversaryVisitors } from "./anniversary-visitor-spots.ts";
 import type { InteractionCue } from "./interaction-cues.ts";
 export type SceneId = "room" | "garden" | "challenge" | "town" | "meadow" | "ruins";
 export interface Hotspot {
@@ -380,7 +381,11 @@ export const scenes: Record<SceneId, Scene> = {
       [786,151],[802,171],[822,181],[833,202],[821,226],[810,242],[803,259],
       [809,287],[825,306],[831,325],[824,347],[817,370],[810,399],[815,415],
       [799,439],[778,456],[752,467],[729,466],[713,482],[682,498],[652,500],
-      [632,511],[608,501],[588,498],[557,506],[531,508],[507,519],[497,549],
+      [632,511],[608,501],[588,498],[571,489],[566,491],[559,496],[555,500],
+      [550,496],[545,496],[542,493],[539,495],[536,491],[533,493],[529,496],
+      [525,497],[521,494],[517,487],[512,493],[508,497],[505,504],
+      [505,511],[497,511],[492,515],[488,518],[490,522],[486,526],
+      [487,537],[492,543],[497,549],
       [496,574],[398,574],[402,547],[403,523],[390,512],[366,514],[341,507],
       [321,498],[307,505],[282,508],[263,497],[239,497],[221,488],[200,486],
       [185,475],[168,461],[148,455],[122,446],[111,431],[95,426],[84,407],
@@ -454,6 +459,15 @@ scenes.garden.spots.push(xiaoyeSpot);
 scenes.garden.walls.push(xiaoyeFootprint);
 scenes.garden.spots.push(suyanSpot);
 scenes.garden.walls.push(suyanFootprint);
+for (const {key, scene, spot, footWidth} of anniversaryVisitors) {
+  scenes[scene].spots.push(spot);
+  const label = "周年来宾 · " + spot.title;
+  // The sheep's hooves face across the sloping mine lane. Its fleece hangs
+  // over the path, but the player can walk along that edge.
+  scenes[scene].walls.push(key === "dianziyang"
+    ? polygon(label, [[-6,-3],[-3,-5],[2,-5],[4,-3],[0,-1],[-4,0]].map(([x,y]) => [spot.x+x, spot.y+y]))
+    : {label, x: spot.x - footWidth / 2, y: spot.y - 3, w: footWidth, h: 5});
+}
 for (const scene of ["challenge", "ruins"] as const) {
   const elder = elderPlaces[scene];
   scenes[scene].spots.push(elder);

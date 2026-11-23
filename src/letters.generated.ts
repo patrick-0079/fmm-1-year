@@ -6,8 +6,11 @@ export const deliveryIds = {
   "xiaoye": "xiaoye-anniversary-letter",
   "radio-host": "yeshenhua-anniversary-letter",
   "suyan": "suyan-anniversary-letter",
+  "rabe": "rabe-anniversary-letter",
   "xiaoyou": "xiaoyou-anniversary-letter",
   "guli": "guli-anniversary-letter",
   "post": "post-anniversary-letter",
-  "patrick": "patrick-anniversary-letter"
+  "patrick": "patrick-anniversary-letter",
+  "dianziyang": "dianziyang-anniversary-letter",
+  "pigeon": "pigeon-anniversary-letter"
 } as const;

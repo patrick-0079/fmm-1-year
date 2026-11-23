@@ -6,7 +6,7 @@ import { mergeCollections } from "../src/shared-collections.ts";
 
 test("two tabs combine read receipts, acquired mail and story milestones without resealing letters", () => {
   const a = readProgress(null).residents, b = readProgress(null).residents;
-  markLetterRead(a, "rabe-anniversary-letter");
+  markLetterRead(a, "xiaoaimen-anniversary-letter");
   collectHandedLetter(a, handedLetters.guli);
   markLetterRead(a, handedLetters.guli);
   collectHandedLetter(b, handedLetters.guli);

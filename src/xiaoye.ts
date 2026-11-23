@@ -93,7 +93,7 @@ export class Xiaoye {
   }
 
   private offerLetter() {
-    this.dialogue("（小叶子用绒爪托起一封信，信角上盖着一枚小爪印。）", [
+    this.dialogue("（小叶子用绒爪托起一封信，封口有一枚红色爱心蜡封。）", [
       letterChoice(this.mail, handedLetters.xiaoye, () => this.offerLetter()),
     ]);
   }

@@ -509,7 +509,31 @@ const art: Record<string, (c: Ink) => void> = {
   "sealed-letter"(c) {
     token(c, "letter", 16, 16, 22);
   },
+  "letter-dianziyang"(c) {
+    // A fluffy fringe over two round ears, with a little star on the collar.
+    oval(c, 6, 14, 4, 3, ink);
+    oval(c, 26, 14, 4, 3, ink);
+    oval(c, 6, 14, 3, 2, "#d8ada2");
+    oval(c, 26, 14, 3, 2, "#d8ada2");
+    oval(c, 16, 15, 9, 10, ink);
+    oval(c, 16, 16, 8, 8, "#d9b9a2");
+    const curls = [[9, 10], [12, 7], [17, 6], [21, 8], [24, 11]];
+    for (const [x, y] of curls) {
+      oval(c, x, y, 4, 4, ink);
+    }
+    for (const [x, y] of curls) {
+      oval(c, x, y, 3, 3, cream);
+    }
+    rect(c, 11, 16, 2, 2, ink);
+    rect(c, 20, 16, 2, 2, ink);
+    line(c, ink, [14, 20], [16, 21], [18, 20]);
+    line(c, leaf, [10, 23], [16, 25], [22, 23]);
+    spark(c, 16, 27, gold);
+    rect(c, 16, 26, 1, 2, cream);
+  },
 };
+
+export const hasDrawnStamp = (id: string) => Object.hasOwn(art, id);
 
 export function paintAchievementArt(root: HTMLElement) {
   for (const canvas of root.querySelectorAll<HTMLCanvasElement>("canvas[data-stamp-art]")) {

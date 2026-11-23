@@ -6,7 +6,7 @@ import { readResidentStory, mailboxLetters, postLetter, postUnread, POST_LETTER_
   collectHandedLetter, grantDebugLetters, handedLetters, letterChoice, markLetterRead, patrickLetter, unreadLetterIds } from "../src/resident-story.ts";
 import { allLetters } from "../src/letters.ts";
 
-const legacyPublic = ["kerry-anniversary-letter", "rabe-anniversary-letter"];
+const starterLetters = ["kerry-anniversary-letter", "xiaoaimen-anniversary-letter"];
 
 test("debug receipt grants a chosen letter or fills the mailbox while preserving existing read receipts", () => {
   const story = readResidentStory();
@@ -37,20 +37,20 @@ test("debug receipt grants a chosen letter or fills the mailbox while preserving
 test("public letters arrive sealed; reading and migration only open the expected envelopes", () => {
   const fresh = readProgress(null).residents;
   const publicIds = mailboxLetters(fresh).map(letter => letter.id);
-  for (const id of legacyPublic) assert.ok(publicIds.includes(id));
+  assert.deepEqual(publicIds, starterLetters);
   for (const id of [...Object.values(handedLetters), postLetter.id]) assert.ok(!publicIds.includes(id));
   assert.deepEqual(unreadLetterIds(fresh), publicIds);
-  assert.equal(markLetterRead(fresh, legacyPublic[0]), true);
-  assert.equal(markLetterRead(fresh, legacyPublic[0]), false);
+  assert.equal(markLetterRead(fresh, starterLetters[0]), true);
+  assert.equal(markLetterRead(fresh, starterLetters[0]), false);
   const resumed = readProgress(JSON.stringify({ residents: fresh })).residents;
-  const remaining = publicIds.filter(id => id !== legacyPublic[0]);
+  const remaining = publicIds.filter(id => id !== starterLetters[0]);
   assert.deepEqual(unreadLetterIds(resumed), remaining);
   for (const id of remaining) assert.equal(markLetterRead(resumed, id), true);
   assert.deepEqual(unreadLetterIds(readProgress(JSON.stringify({ residents: resumed })).residents), []);
   assert.deepEqual(unreadLetterIds(readProgress(null).residents), publicIds);
   const old = readProgress('{"visited":["letters"],"decoratorMet":true}').residents;
   assert.deepEqual(mailboxLetters(old).map(letter => letter.id), publicIds);
-  assert.deepEqual(unreadLetterIds(old), publicIds.filter(id => !legacyPublic.includes(id)));
+  assert.deepEqual(unreadLetterIds(old), ["xiaoaimen-anniversary-letter"]);
   const delivered = readResidentStory({...old, postDelivered: true});
   assert.equal(mailboxLetters(delivered).filter(letter => letter.id === postLetter.id).length, 1);
   assert.equal(postUnread(delivered), true);
@@ -66,7 +66,7 @@ test("each NPC letter is added once, remains unread until opened, and survives a
   const originalIds = mailboxLetters(state).map(({id}) => id);
   for (const id of originalIds) markLetterRead(state, id);
   const npcIds = [handedLetters.xiaoye, handedLetters["radio-host"], handedLetters.suyan,
-    handedLetters.xiaoyou, handedLetters.guli];
+    handedLetters.xiaoyou, handedLetters.guli, handedLetters.rabe, handedLetters.dianziyang, handedLetters.pigeon];
   for (const id of [...npcIds].reverse()) {
     assert.equal(markLetterRead(state, id), false);
     assert.equal(collectHandedLetter(state, id)?.id, id);

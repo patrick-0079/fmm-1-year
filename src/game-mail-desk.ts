@@ -12,7 +12,7 @@ export interface LetterList {
 }
 
 const envelopeArt = `<span class="mail-envelope-art" aria-hidden="true"><span class="mail-envelope-object">
-  <i class="mail-paper"></i><i class="mail-pocket"></i><i class="mail-flap"></i><i class="mail-seal"></i>
+  <i class="mail-paper"></i><i class="mail-pocket"></i><i class="mail-flap"><span class="mail-corner-motif"></span></i><i class="mail-seal"></i>
 </span></span>`;
 
 /** The ink stays on the paper it was printed on as the flap turns or the sheet slides out. */
@@ -176,7 +176,10 @@ export function renderGameMailDesk(
       motion.cancel();
       motion = undefined;
     }
-    paperMotion?.cancel();
+    if (paperMotion) {
+      paperMotion.onfinish = null;
+      paperMotion.cancel();
+    }
     paperMotion = undefined;
     flight.hidden = true;
     delete flight.dataset.direction;
@@ -199,7 +202,6 @@ export function renderGameMailDesk(
   function showLetter(item: Memory) {
     const fromPaper = flight.hidden ? undefined : flightPaper.getBoundingClientRect();
     clearMotion();
-    body.dataset.mailState = "reading";
     applyStationeryTheme(sheet, item.id);
     sheet.querySelector("h4")!.textContent = item.title;
     const signature = sheet.querySelector<HTMLElement>(".mail-signature")!;
@@ -207,18 +209,29 @@ export function renderGameMailDesk(
     signature.hidden = !item.author;
     stack.hidden = true;
     sheet.hidden = false;
-    sheet.dataset.memoryId = body.dataset.openLetterId = item.id;
+    sheet.dataset.memoryId = item.id;
     pages.open(item.text ?? "");
+    const beginReading = () => {
+      if (active !== item || !body.isConnected || document.hidden || body.closest("[hidden],[inert]")) {
+        returnToStack(false);
+        return;
+      }
+      sheet.inert = false;
+      body.dataset.mailState = "reading";
+      body.dataset.openLetterId = item.id;
+      page.focus({ preventScroll: true });
+      if (unread.delete(item.id)) {
+        showFront();
+        letters.onRead(item.id);
+      }
+    };
     if (fromPaper?.width && fromPaper.height && !reducedMotion.matches) {
+      sheet.inert = true;
       paperMotion = sheet.animate([
         { transform: transformTo(sheet.getBoundingClientRect(), fromPaper) }, { transform: "none" },
       ], { duration: 130, easing: "ease-out" });
-    }
-    page.focus({ preventScroll: true });
-    if (unread.delete(item.id)) {
-      showFront();
-      letters.onRead(item.id);
-    }
+      paperMotion.onfinish = beginReading;
+    } else beginReading();
   }
 
   function travel(item: Memory, direction: "open" | "return") {

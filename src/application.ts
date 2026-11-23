@@ -20,6 +20,7 @@ import { GardenCinema } from "./cinema";
 import { GardenLife } from "./garden-life";
 import { Xiaoye } from "./xiaoye";
 import { Suyan } from "./suyan";
+import { AnniversaryVisitors } from "./anniversary-visitors";
 import { ARCADES } from "./town-data";
 import { reservedShortcut } from "./input";
 import type { GameId } from "./arcade-engines";
@@ -335,6 +336,7 @@ export function mountGame() {
     () => progress.echoes.listened, save);
   const ruins = new EchoRuins(world, activities, () => progress.echoes, () => { save(); starQuest.refresh(); });
   const elders = new Elders(world, activities, () => progress, save, () => starQuest.openNotebook());
+  const anniversaryVisitors = new AnniversaryVisitors(world, activities, mail);
   const bass = new RoomBass(world, () => progress.bassSongPlayed, () => {
     if (!progress.bassSongPlayed) { progress.bassSongPlayed = true; save(); }
   }, () => ({ enabled: progress.bassSound, volume: progress.volume, muted: progress.muted }), () => {
@@ -373,13 +375,14 @@ export function mountGame() {
     const verb = cue?.verb ?? (world.restState ? "起身" : "互动");
     if (touchAction.textContent !== verb) touchAction.textContent = verb;
     if (!spot || !cue) { prompt.update(null); return; }
-    // The town's flower and dialogue labels can otherwise sit over a small
-    // playground target on a phone. Keep both targets available to touch.
-    const nearbyTargets = world.scene === "town"
+    // A phone-sized label beside the south gate can cover Rabe, just as a
+    // town conversation can cover a playground. Keep the neighbouring art tappable.
+    const nearbyTargets = world.scene === "town" || world.scene === "garden" || world.scene === "challenge"
       ? world.config.spots.filter(other => other.id !== spot.id &&
-        (cue.kind === "game" || other.id.startsWith("arcade-")) &&
+        (spot.id.startsWith("visitor-") || other.id.startsWith("visitor-") ||
+          (world.scene === "town" && (cue.kind === "game" || other.id.startsWith("arcade-")))) &&
         Math.abs(other.x - spot.x) < 160 && Math.abs(other.y - spot.y) < 120 && world.available(other))
-        .map(other => cueBox(other, resolveCue(other, "town").objectBox))
+        .map(other => cueBox(other, resolveCue(other, world.scene).objectBox))
       : undefined;
     prompt.update({
       id: spot.id, action: cue.action, verb: cue.verb, kind: cue.kind,
@@ -568,7 +571,7 @@ export function mountGame() {
       ]);
       return;
     }
-    if (suyan.interact(id) || xiaoye.interact(id) || gardenLife.interact(id) || elders.interact(id)) return;
+    if (anniversaryVisitors.interact(id) || suyan.interact(id) || xiaoye.interact(id) || gardenLife.interact(id) || elders.interact(id)) return;
     if (town.interact(id)) {
       if (refreshAchievements?.()) persist();
       return;

@@ -5,8 +5,8 @@ import { campLetterSpot } from "../src/meadow-ground";
 import { mailboxLetters } from "../src/resident-story";
 import { scenes, type SceneId, type World } from "../src/world";
 
-/** New save, all seven actual NPC deliveries, first-open for both public letters,
- * and seven normal flower pickups. Travel to the interaction approach is shortened. */
+/** Real deliveries, first reading and seven normal flower pickups on a new save.
+ * Travel to the interaction approach is shortened. */
 export async function verifyLetterAndMeadowStamps(world: World, log: (line: string) => void) {
   const q = <E extends HTMLElement = HTMLElement>(selector: string) => document.querySelector<E>(selector)!;
   const state = () => readProgress(localStorage.getItem(SAVE_KEY));
@@ -43,7 +43,7 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
   };
   assert(letterCount()===2 && !state().achievements.earned.some(id=>id.startsWith("letter-")), "请从仅有两封信的新档开始来信路线");
   await visit("room","letters");
-  for (const author of ["kerry","rabe"]) {
+  for (const author of ["kerry","xiaoaimen"]) {
     const id=author+"-anniversary-letter";
     const envelope=()=>q<HTMLButtonElement>(".game-letter-reader .mail-stack button.mail-envelope");
     for (let i=0; i<3 && envelope()?.dataset.memoryId!==id; i++) q(".mail-stack-next").click();
@@ -62,6 +62,9 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
     ["town","npc-xiaoyou","xiaoyou",["收下橘子","尝一瓣","看看果篮"]],
     ["town","npc-guli","guli",["看看小鱼","你手里的是什么？"]],
     ["town","npc-post","post",["不是哦"]],
+    ["challenge","visitor-rabe","rabe",[]],
+    ["town","visitor-dianziyang","dianziyang",[]],
+    ["garden","visitor-pigeon","pigeon",[]],
   ];
   for (const [scene,id,author,steps] of routes) {
     const count = letterCount();
@@ -71,7 +74,15 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
     if (author==="xiaoye") await wait(()=>actions().some(b=>b.textContent?.startsWith(final)), "拥抱结束后没有递出信封");
     assert(letterCount()===count && !has("letter-"+author),author+" 在实际领取前提前盖章");
     choose(final);
-    await wait(()=>letterCount()===count+1 && has("letter-"+author),author+" 实际收信后没有增加徽章与信件");
+    await wait(()=>letterCount()===count+1,author+" 实际收信后信箱数量未增加");
+    if (author==="rabe") {
+      assert(!has("letter-rabe"),"Rabe 的信尚未拆开就已盖章");
+      choose("现在读信");
+      await wait(()=>has("letter-rabe") && !q(".game-letter-reader .mail-sheet").hidden,"Rabe 的信正文出现后没有盖章");
+      q(".game-letter-reader .reader-close").click();
+    } else {
+      await wait(()=>has("letter-"+author),author+" 实际收信后没有盖章");
+    }
     close();
     log(author+" · 亲手推进递信流程，收到第 "+letterCount()+" 封信");
   }
@@ -92,10 +103,10 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
   world.onTick(.016,t+30.05);
   assert(has("camp") && !has("letter-patrick") && !world.available(campLetterSpot),"到访、落信与拾信应为三个独立时刻");
   for (let i=1;i<=23;i++) world.onTick(.1,t+30.05+i*.1);
-  assert(world.available(campLetterSpot) && !has("letter-patrick") && letterCount()===8,"放下信时已有拾信章或信件消失");
+  assert(world.available(campLetterSpot) && !has("letter-patrick") && letterCount()===11,"放下信时已有拾信章或信件消失");
   world.standUp();
   await visit("meadow",campLetterSpot.id);
-  assert(has("letter-patrick") && letterCount()===9 && !world.available(campLetterSpot),"拾起派大星的信没有收录");
-  assert(state().achievements.earned.filter(id=>id.startsWith("letter-")).length===9,"九封信与九枚来信章没有对应");
-  log("营火满 30 秒只盖到访章，落在草地时仍有 8 封，亲手拾起后 9 封来信、9 枚印章");
+  assert(has("letter-patrick") && letterCount()===12 && !world.available(campLetterSpot),"拾起派大星的信没有收录");
+  assert(state().achievements.earned.filter(id=>id.startsWith("letter-")).length===12,"十二封信与十二枚来信章没有对应");
+  log("营火满 30 秒只盖到访章，落在草地时仍有 11 封，亲手拾起后 12 封来信、12 枚印章");
 }

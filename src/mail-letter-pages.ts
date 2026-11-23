@@ -7,22 +7,47 @@ export function mountMailPages(sheet: HTMLElement) {
   const navigation = document.createElement("nav");
   navigation.className = "mail-leaves";
   navigation.setAttribute("aria-label", "信纸翻页");
-  navigation.innerHTML = `<button type="button" class="mail-page-prev" aria-label="上一页" title="上一页 · ←"></button>
+  navigation.innerHTML = `<button type="button" class="mail-page-prev" title="上一页 · ←">上一页</button>
     <span class="mail-page-count" aria-live="polite" aria-atomic="true"></span>
-    <button type="button" class="mail-page-next" aria-label="下一页" title="下一页 · →"></button>`;
+    <button type="button" class="mail-page-next" title="下一页 · →">下一页</button>`;
   sheet.append(navigation);
   const previous = navigation.querySelector<HTMLButtonElement>(".mail-page-prev")!;
   const next = navigation.querySelector<HTMLButtonElement>(".mail-page-next")!;
   const counter = navigation.querySelector<HTMLElement>(".mail-page-count")!;
-  let width = 0, count = 1, index = 0;
+  let width = 0, count = 1, index = 0, bookmark = 0;
 
-  function show(page: number) {
+  // Keep a character on the page through font, orientation and viewport changes.
+  // Use the rendered column width here: an opening sheet may still be scaling.
+  function pageAtOffset(node: Text, offset: number) {
+    const glyph = document.createRange();
+    glyph.setStart(node, offset);
+    glyph.setEnd(node, offset + 1);
+    const bounds = text.getBoundingClientRect();
+    const box = glyph.getBoundingClientRect();
+    return Math.max(0, Math.min(count - 1, Math.floor((box.left + box.width / 2 - bounds.left) / bounds.width)));
+  }
+
+  function firstOffset(page: number) {
+    const node = text.firstChild;
+    if (!page || !(node instanceof Text)) return 0;
+    let low = 0, high = node.length;
+    while (low < high) {
+      const mid = Math.floor((low + high) / 2);
+      if (pageAtOffset(node, mid) < page) low = mid + 1;
+      else high = mid;
+    }
+    return Math.min(low, node.length - 1);
+  }
+
+  function show(page: number, remember = true) {
     index = Math.min(count - 1, Math.max(0, page));
+    if (remember) bookmark = firstOffset(index);
     text.style.transform = `translateX(${-index * width}px)`;
     navigation.hidden = count <= 1;
     previous.setAttribute("aria-disabled", String(index === 0));
     next.setAttribute("aria-disabled", String(index === count - 1));
-    counter.textContent = `${index + 1} / ${count}`;
+    const label = `${index + 1} / ${count}`;
+    if (counter.textContent !== label) counter.textContent = label;
     counter.setAttribute("aria-label", `第 ${index + 1} 页，共 ${count} 页`);
   }
 
@@ -32,7 +57,6 @@ export function mountMailPages(sheet: HTMLElement) {
     // independent of the transient on-screen width during that animation.
     width = Number.parseFloat(getComputedStyle(text).width);
     if (!width || !viewport.clientHeight) return;
-    const oldCount = count;
     count = Math.max(1, Math.ceil((text.scrollWidth - 1) / width));
     // Short notes can expose the whole painted margin. Longer letters use the
     // same paper with a narrower illustrated frame around the writing area.
@@ -46,9 +70,8 @@ export function mountMailPages(sheet: HTMLElement) {
       writingRoom = end.getBoundingClientRect().bottom < rect.top + rect.height * .47;
     }
     sheet.classList.toggle("has-writing-room", writingRoom);
-    // Keep the same part of a long letter when the device is rotated.
-    const page = oldCount > 1 ? Math.round(index / (oldCount - 1) * (count - 1)) : 0;
-    show(page);
+    const node = text.firstChild;
+    show(bookmark && node instanceof Text ? pageAtOffset(node, bookmark) : 0, false);
   }
 
   previous.addEventListener("click", () => show(index - 1));
@@ -73,7 +96,7 @@ export function mountMailPages(sheet: HTMLElement) {
   document.fonts.addEventListener("loadingdone", measure);
   return {
     open(body: string) {
-      index = 0;
+      bookmark = 0;
       text.textContent = body;
       measure();
     },
