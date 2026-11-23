@@ -23,7 +23,7 @@ export const townLives: Record<TownResidentId, Shift> = {
   walker: { shift:"afternoon", stops:[p(558,718)], doorway:[p(474,815)] },
   xiaoyou: { shift:"afternoon", stops:[p(451,905)], doorway:[p(448,925)] },
   cat: { shift:"afternoon", stops:[p(1184,127)], doorway:[p(1128,157)] },
-  bunny: { shift:"evening", stops:[], doorway:[p(766,523)] },
+  bunny: { shift:"evening", stops:[], doorway:[p(755,523)] },
   guli: { shift:"evening", stops:[p(948,332),p(968,352)], doorway:[p(820,324),p(780,316),p(777,289),p(772,270),p(756,252),p(715,245)] },
   qianxiao: { shift:"evening", stops:[p(1198,522)], doorway:[p(1170,469),p(1166,448),p(1161,422),p(1151,408)] },
   "radio-host": { shift:"evening", stops:[], doorway:[p(1288,817)] },

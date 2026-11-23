@@ -11,6 +11,7 @@ import restUrl from "./assets/fufu-rest-poses.webp";
 import wreathUrl from "./assets/flower-wreath.webp";
 import townUrl from "./assets/anniversary-town-v13.webp";
 import townDetailUrl from "./assets/anniversary-town-hd-v13.webp";
+import { mapFragment } from "./map-fragment";
 import { dockOpening } from "./town-terraces";
 import meadowUrl from "./assets/night-meadow-v16.webp";
 import ruinsUrl from "./assets/echo-ruins.webp";
@@ -530,17 +531,8 @@ export class World {
     c.restore();
   }
   drawMapFragment(c: CanvasRenderingContext2D, points: Point[]) {
-    const x = Math.floor(Math.min(...points.map((p) => p.x))),
-      y = Math.floor(Math.min(...points.map((p) => p.y))),
-      w = Math.ceil(Math.max(...points.map((p) => p.x))) - x,
-      h = Math.ceil(Math.max(...points.map((p) => p.y))) - y;
-    c.save();
-    c.beginPath();
-    points.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
-    c.closePath();
-    c.clip();
-    this.paintMap(c, x, y, w, h);
-    c.restore();
+    const fragment = mapFragment(points);
+    this.drawMapCover(c, fragment, fragment.mask);
   }
   drawMapCover(c: CanvasRenderingContext2D, { x, y, w, h }: { x: number; y: number; w: number; h: number }, mask: Path2D) {
     c.save();

@@ -1,4 +1,5 @@
 import type { DepthLayer, World } from "./world";
+import { mapFragment } from "./map-fragment";
 import { townForeground } from "./town-foreground";
 import playgrounds from "./town-playground-masks.generated.json";
 import streetlights from "./town-streetlight-outlines.json";
@@ -7,15 +8,7 @@ import streetlights from "./town-streetlight-outlines.json";
 // Cache paths and source rectangles once. Only visible fragments enter the sort.
 const covers = [
   ...[...playgrounds, ...streetlights].map(({ path, ...region }) => ({ ...region, mask: new Path2D(path) })),
-  ...townForeground.map(({ y: depth, points }) => {
-    const xs = points.map(p => p.x), ys = points.map(p => p.y);
-    const x = Math.floor(Math.min(...xs)), y = Math.floor(Math.min(...ys));
-    const mask = new Path2D();
-    mask.moveTo(points[0].x, points[0].y);
-    for (const p of points.slice(1)) mask.lineTo(p.x, p.y);
-    mask.closePath();
-    return { x, y, w: Math.ceil(Math.max(...xs)) - x, h: Math.ceil(Math.max(...ys)) - y, depth, mask };
-  }),
+  ...townForeground.map(({ y: depth, points }) => ({ ...mapFragment(points), depth })),
 ];
 
 export function townMapCovers(world: World): DepthLayer[] {

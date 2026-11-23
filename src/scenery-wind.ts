@@ -388,16 +388,38 @@ function movingCover(
 export function drawTownCrown(
   c: CanvasRenderingContext2D,
   world: World,
-  x: number,
-  outline: Point[],
+  tree: Point & { points: Point[] },
   still: boolean,
 ) {
-  if (!overlaps(sceneryBounds(outline), world.visibleArea)) return;
-  const recipe = canopyPatches.get(x),
-    art = world.sceneryArtwork;
-  const step = recipe && !still ? Math.round(windLevel(world, x === 339 ? 0 : x === 659 ? 0.48 : 0.86) * 6) : 0;
-  if (recipe && art?.naturalWidth && step) movingCover(c, world, outline, art, recipe, step);
-  else world.drawMapFragment(c, outline);
+  const bounds = sceneryBounds(tree.points);
+  if (!overlaps(bounds, world.visibleArea)) return;
+  const recipe = canopyPatches.get(tree.x), art = world.sceneryArtwork;
+  const step = recipe && !still ? Math.round(windLevel(world, tree.x === 339 ? 0 : tree.x === 659 ? .48 : .86) * 6) : 0;
+  const paint = () => {
+    if (recipe && art?.naturalWidth && step) movingCover(c, world, tree.points, art, recipe, step);
+    else world.drawMapFragment(c, tree.points);
+  };
+  const face = { x:world.player.x, y:world.player.y - 30 };
+  if (world.actorHidden || world.player.y >= tree.y ||
+      !overlaps(bounds, {x:face.x-12, y:face.y-11, w:24, h:22})) {
+    paint();
+    return;
+  }
+  // Keep the canopy solid over feet and scenery while leaving the player’s
+  // face legible. Both passes use the same pose, including during a gust.
+  const faceMask = new Path2D();
+  faceMask.ellipse(face.x, face.y, 12, 11, 0, 0, Math.PI * 2);
+  const outside = new Path2D(faceMask);
+  outside.rect(bounds.x-3, bounds.y-3, bounds.w+6, bounds.h+6);
+  c.save();
+  c.clip(outside, "evenodd");
+  paint();
+  c.restore();
+  c.save();
+  c.clip(faceMask);
+  c.globalAlpha *= .5;
+  paint();
+  c.restore();
 }
 function smoke(c: CanvasRenderingContext2D, x: number, y: number, time: number, bakery: boolean, gust: number) {
   // The farther wisp starts before the smaller, denser foreground curl.

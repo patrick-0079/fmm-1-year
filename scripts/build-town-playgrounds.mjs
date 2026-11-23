@@ -4,7 +4,7 @@ import sharp from "sharp";
 import {
   blockBoard, flightPad, flightRings, rabbitPlatforms, townAttractionBases, wishLawn,
 } from "../src/town-attraction-layout.ts";
-import { townForeground } from "../src/town-foreground.ts";
+import { townArtworkForeground as townForeground } from "../src/town-foreground.ts";
 import { townCanopies } from "../src/town-scenery.ts";
 import { bakeryPennants } from "../src/bakery-pennants.ts";
 import "./build-town-pond-mask.mjs";

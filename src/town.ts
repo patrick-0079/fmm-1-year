@@ -17,16 +17,20 @@ import { drawWishLights, townAttractionLayers } from "./town-attraction-art";
 import type { GameId } from "./arcade-engines";
 import npcUrl from "./assets/town-npcs.webp";
 import { drawPartyProp } from "./party-art";
+import { northEastCanopies } from "./town-northeast-foliage";
+import { southWestCanopies } from "./town-southwest-foliage";
 import { TownPond } from "./town-pond";
-import { drawTownCrown, drawTownWeather, sceneryBounds, windAllowance } from "./scenery-wind";
+import { drawTownCrown, drawTownWeather, windAllowance } from "./scenery-wind";
 import {
   southEdgeCanopies, townCanopies,
   festivalProps,
   drawFestivalProp,
 } from "./town-scenery";
-const treeCrowns = [...townCanopies, ...southEdgeCanopies].map(tree => ({
-  ...tree, bounds: sceneryBounds(tree.points),
-}));
+// The quarry painting replaces part of the original northeast hillside.
+const treeCrowns = [
+  ...townCanopies.filter(tree => !northEastCanopies.some(t => t.x === tree.x && t.y === tree.y)),
+  ...southEdgeCanopies, ...southWestCanopies, ...northEastCanopies,
+];
 export const TOWN_TALKED_KEY = "fufu-town-talked-v1";
 interface StoryHooks {
   story: () => ResidentStory;
@@ -263,17 +267,7 @@ export class Town {
       ...townMapCovers(this.world),
       ...treeCrowns.map((t) => ({
         y: t.y,
-        draw: (c: CanvasRenderingContext2D) => {
-          const behind =
-            this.world.player.y < t.y &&
-            this.world.player.y > t.bounds.y - 4 &&
-            this.world.player.x > t.bounds.x - 8 &&
-            this.world.player.x < t.bounds.x + t.bounds.w + 8;
-          c.save();
-          if (behind) c.globalAlpha = 0.5;
-          drawTownCrown(c,this.world,t.x,t.points,this.reducedMotion.matches);
-          c.restore();
-        },
+        draw: (c: CanvasRenderingContext2D) => drawTownCrown(c, this.world, t, this.reducedMotion.matches),
       })),
       ...festivalProps.filter(p => visible(p.x,p.y)).map((p) => ({
         y: p.y + 3,

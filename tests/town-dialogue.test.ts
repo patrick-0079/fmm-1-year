@@ -61,7 +61,7 @@ test("the three anniversary guests are reachable from town entrances and do not 
   const entrances = [map.spawn, ...map.spots.filter(spot => spot.portal).map(spot => spot.approach)];
   for (const [id, x, y, approach] of [
     ["xiaoyou", 436, 892, {x: 467, y: 916}],
-    ["guli", 862, 324, {x: 830, y: 345}],
+    ["guli", 862, 324, {x: 840, y: 329}],
     ["qianxiao", 1198, 509, {x: 1183, y: 521}],
   ] as const) {
     const spot = map.spots.find(s => s.id === "npc-" + id)!;

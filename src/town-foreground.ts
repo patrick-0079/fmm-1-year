@@ -1,3 +1,6 @@
+import { northEastFoliage } from "./town-northeast-foliage.ts";
+import { southWestFoliage } from "./town-southwest-foliage.ts";
+import { plazaForeground } from "./town-plaza.ts";
 import type { Point } from "./core.ts";
 import { bakeryPennants, bakeryPostKnot } from "./bakery-pennants.ts";
 import { streetProps } from "./town-street-props.ts";
@@ -38,6 +41,14 @@ const streetLamp = (id: string, x: number, top: number, foot: number, width: num
   return [part("", lampMast), ...flags.map(direction => part(direction < 0 ? "-west-flag" : "-east-flag", lampFlag, direction))];
 };
 
+const rabbitHedgeEdge = [
+  [384,532],[393,533],[396,531.5],[401,532.5],[404.5,534.5],[407,537.5],
+  [410.5,539],[411.5,541.4],[410.5,544],[409,545],[411.5,547],
+  [413.2,548],[414.5,550],[415.5,552],[414.5,554.5],[412.8,556.6],
+  [412,558],[414.5,558.5],[415.5,560],[414.5,561.2],[413.5,563],
+  [415.5,563.8],[417.4,565],[419,567],[418,568.2],
+];
+
 export const playgroundForeground = [
   ...streetLamp("wish-crossing-lamp", 582, 356, 444, 1.06, [-1, 1]),
   ...streetLamp("block-board-lamp", 1170, 458, 547, 1.02, [-1, 1]),
@@ -57,11 +68,7 @@ export const playgroundForeground = [
     [659,501],[650,495],[644,487],[635,482],[632,475],
   ]),
   shape("rabbit-west-flowers", 616, [
-    [384,532],[393,533],[396,531.5],[401,532.5],[404.5,534.5],[407,537.5],
-    [410.5,539],[411.5,541.4],[410.5,544],[409,545],[411.5,547],
-    [413.2,548],[414.5,550],[415.5,552],[414.5,554.5],[412.8,556.6],
-    [412,558],[414.5,558.5],[415.5,560],[414.5,561.2],[413.5,563],
-    [415.5,563.8],[417.4,565],[419,567],[418,568.2],[419,569.5],
+    ...rabbitHedgeEdge,[419,569.5],
     [418.3,571.5],[417,573],[415.2,574.5],[416.5,576],[418.5,576],
     [420.8,577],[422,578.7],[422,580.5],[420.5,581.7],[421.3,583],
     [423.5,584.5],[423,586],[421,587.7],[422,589],[424,590],[426,591.5],
@@ -92,7 +99,7 @@ export const playgroundForeground = [
 
 /** Native 1536 × 1024 map coordinates. These concave silhouettes leave the
  * stair openings untouched; repainting their bounding rectangles erases walkers. */
-export const townForeground: TownForeground[] = [
+export const townArtworkForeground: TownForeground[] = [
   ...[...streetProps, ...workshopPatio].map(({ id, depth, outline }) => shape(id, depth, outline)),
   shape("workshop-blue-postbox", 526, workshopBluePostbox),
   shape("workshop-rose-border-west", 560, workshopWestFlowers),
@@ -307,4 +314,16 @@ export const townForeground: TownForeground[] = [
     [530,241],[529,244],[527,243],[524,240],[522,240],[519,243],
     [517,244],[516,243],[516.5,219],[515,218],[515,216],[517,216],
   ]),
+];
+
+// The bake uses the original artwork layers. In play the sloping rose border
+// is sorted along its planted edge on the finished map.
+export const townForeground: TownForeground[] = [
+  ...townArtworkForeground.filter(part => part.id !== "flight-front-flowers" && part.id !== "rabbit-west-flowers"),
+  // The lower flowering tree stands in front of this hedge at its own roots.
+  shape("rabbit-west-hedge", 582, [...rabbitHedgeEdge,
+    [417,568],[410,565],[408,565.5],[401,572],[396.5,570],[388,582],[384,582]]),
+  ...plazaForeground,
+  ...southWestFoliage,
+  ...northEastFoliage,
 ];
