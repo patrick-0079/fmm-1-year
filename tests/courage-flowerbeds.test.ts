@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { courageFlowerbeds, courageFlowerRoots } from "../src/courage-flowerbeds.ts";
 import { canStand, findPath, obstacleContainsFoot, polygonContains } from "../src/core.ts";
-import { creeks } from "../src/landscape.ts";
+import { creeks } from "../src/creek-layout.ts";
 import { scenes } from "../src/maps.ts";
 import { rainbowFlowers } from "../src/rainbow-flowers.ts";
 

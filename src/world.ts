@@ -4,6 +4,7 @@ import roomUrl from "./assets/room-interactive.webp";
 import gardenUrl from "./assets/anniversary-garden-tree-free.webp";
 import appleBasketUrl from "./assets/apple-basket.webp";
 import challengeUrl from "./assets/courage-garden.webp";
+import creekPropsUrl from "./assets/garden-creek-props.webp";
 import spriteUrl from "./assets/nemu-sprites.webp";
 import restUrl from "./assets/fufu-rest-poses.webp";
 import wreathUrl from "./assets/flower-wreath.webp";
@@ -62,7 +63,8 @@ const art = {
 };
 const sceneTextures: Record<SceneId, string[]> = {
   room: [roomUrl, spriteUrl, restUrl, wreathUrl, rewardsUrl],
-  garden: [gardenUrl, appleBasketUrl, orchardAtlasUrl], challenge: [challengeUrl, orchardAtlasUrl, trapsUrl, courageFlowerUrl],
+  garden: [gardenUrl, appleBasketUrl, orchardAtlasUrl, creekPropsUrl],
+  challenge: [challengeUrl, orchardAtlasUrl, trapsUrl, courageFlowerUrl, creekPropsUrl],
   town: [townUrl], meadow: [meadowUrl, meadowAtlasUrl], ruins: [ruinsUrl, wellUrl],
 };
 export interface DepthLayer {
@@ -490,6 +492,7 @@ export class World {
   get echoWell() { return this.images.get(wellUrl); }
   get orchardSprites() { return this.images.get(orchardAtlasUrl); }
   get appleBasket() { return this.images.get(appleBasketUrl); }
+  get creekProps() { return this.images.get(creekPropsUrl); }
   private paintMap(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
     const background = this.sceneryArtwork;
     if (!background) return;

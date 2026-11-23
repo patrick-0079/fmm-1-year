@@ -1,5 +1,6 @@
 import type { Geometry, Hazard, Point } from "./core.ts";
-import { challengeTrees, creeks } from "./landscape.ts";
+import { challengeTrees } from "./landscape.ts";
+import { creeks } from "./creek-layout.ts";
 import { courageFlowerRoots } from "./courage-flowerbeds.ts";
 import { townScene } from "./town-map.ts";
 import { fenceSegments } from "./fences.ts";

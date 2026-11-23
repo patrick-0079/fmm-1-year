@@ -9,8 +9,9 @@ import type { Activities } from "./activities";
 import type { Inventory } from "./inventory";
 import type { World } from "./world";
 import type { Hotspot } from "./maps";
-import { challengeTrees, creeks } from "./landscape";
-import { drawCreek, drawGardenTree } from "./landscape-renderer";
+import { challengeTrees } from "./landscape";
+import { drawGardenTree } from "./landscape-renderer";
+import { creekDepthLayers, drawCreek } from "./creek-art";
 import benchUrl from "./assets/garden-bench.webp";
 import treeUrl from "./assets/apple-tree.webp";
 import dewUrl from "./assets/morning-dew-flower.webp";
@@ -382,7 +383,7 @@ export class Nature {
       drawFabricGround(c,this.world);
     if (this.world.scene !== "garden" && this.world.scene !== "challenge") return;
     const light = daylightMix(this.clock.hours);
-    drawCreek(c, creeks[this.world.scene], t, this.world.scene, light);
+    drawCreek(c, this.world.creekProps, this.world.scene, t, light);
     drawGardenSurfaceLight(c, this.world.scene, light);
     const atlas = this.world.orchardSprites;
     if (this.world.scene === "challenge") {
@@ -420,17 +421,6 @@ export class Nature {
         }
       }
     }
-    // Visible little ripples on the perimeter stream, never on walkable grass.
-    c.strokeStyle = this.clock.phase === "night" ? "#a8d5f2aa" : "#e0f6eaaa";
-    c.lineWidth = 1;
-    for (let i = 0; i < 7; i++) {
-      const sx = this.world.scene === "garden" ? 850 : 65,
-        sy = 140 + i * 46 + Math.sin(t + i) * 3;
-      c.beginPath();
-      c.moveTo(sx - 7, sy);
-      c.lineTo(sx + 7, sy);
-      c.stroke();
-    }
   }
   private depthLayers() {
     if (this.world.scene === "room") return [{
@@ -447,8 +437,10 @@ export class Nature {
     const scene = this.world.scene,
       apple = this.world.config.spots.find((s) => s.id === "apple")!,
       bench = this.world.config.spots.find((s) => s.id === "rest");
+    const creek = creekDepthLayers(scene, this.world.creekProps);
     if (scene === "garden") {
       return [
+        ...creek,
         ...gardenForeground.map(part => ({y:part.y, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,part.points)})),
         { y: apple.y + 4, draw: (c: CanvasRenderingContext2D) => {
           const basket = this.world.appleBasket;
@@ -469,6 +461,7 @@ export class Nature {
       ];
     }
     return [
+      ...creek,
       ...challengeTrees.map((tree) => ({
         y: tree.y + 23 * tree.scale,
         draw: (c: CanvasRenderingContext2D) =>

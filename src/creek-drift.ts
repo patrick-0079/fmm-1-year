@@ -1,4 +1,4 @@
-type Garden = "garden" | "challenge";
+import { creekRowAt, creeks, type CreekScene } from "./creek-layout.ts";
 export interface Drift {
   kind: "rose" | "pearl" | "leaf";
   x: number;
@@ -8,33 +8,31 @@ export interface Drift {
   opacity: number;
 }
 
-// Centreline samples run continuously under each of the two wooden bridges.
-const banks: Record<Garden, readonly (readonly [number, number])[]> = {
-  garden: [[586,160],[593,196],[583,230],[587,247],[587,273],[599,302],[595,329],[586,353]],
-  challenge: [[232,115],[232,169],[218,210],[224,258],[242,297],[242,334],[238,370],[218,408],[224,449],[212,502]],
+// Keep the lane continuous under the bridge, using the same bends as the banks.
+const lanes = {
+  garden: [...creeks.garden.head, ...creeks.garden.tail],
+  challenge: [...creeks.challenge.head, ...creeks.challenge.tail],
 };
 
-function floating(scene: Garden, kind: Drift["kind"], age: number, duration: number): Drift | undefined {
+function floating(scene: CreekScene, kind: Drift["kind"], age: number, duration: number): Drift | undefined {
   if (age < 0 || age > duration) return;
-  const lane = banks[scene], progress = age / duration;
+  const lane = lanes[scene], progress = age / duration;
   // Faster in the narrow middle channel, easier at either end.
   const eased = progress - .075 * Math.sin(progress * 2 * Math.PI);
-  const y = lane[0][1] + (lane[lane.length - 1][1] - lane[0][1]) * eased;
-  const index = lane.findIndex(([, cy]) => cy >= y);
-  const [ax, ay] = lane[Math.max(0, index - 1)];
-  const [bx, by] = lane[Math.max(1, index)];
-  const mix = (y - ay) / (by - ay);
+  const y = lane[0].y + (lane[lane.length - 1].y - lane[0].y) * eased;
+  const before = creekRowAt(lane, y - 2), after = creekRowAt(lane, y + 2);
+  const spine = creekRowAt(lane, y);
   const wave = Math.sin(age * .7 + (kind === "pearl" ? 1.4 : 0));
   const offset = kind === "rose" ? -3.2 : kind === "pearl" ? 3.4 : 0;
   return {
-    kind, y, x: ax + (bx - ax) * mix * mix * (3 - 2 * mix) + offset + wave * 1.7,
-    angle: Math.atan2(by - ay, bx - ax) - (kind === "leaf" ? .08 : .75) + wave * .34,
+    kind, y, x: spine.x + (offset + wave * 1.7) * Math.min(1, spine.halfWidth / 8),
+    angle: Math.atan2(4, after.x - before.x) - (kind === "leaf" ? .08 : .75) + wave * .34,
     turn: kind === "rose" ? Math.cos((progress - .19) * Math.PI * 3) : 1,
     opacity: Math.min(1, age * 2, (duration - age) * 2),
   };
 }
 
-export function creekDrift(scene: Garden, time: number): Drift[] {
+export function creekDrift(scene: CreekScene, time: number): Drift[] {
   if (scene === "challenge") {
     const leaf = floating(scene, "leaf", (time + 3.5) % 19, 15);
     return leaf ? [leaf] : [];

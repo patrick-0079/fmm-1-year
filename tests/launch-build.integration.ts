@@ -46,7 +46,7 @@ test("switching full → invitation → full cleans the deployed directory", asy
   assert.ok(explicit.files.some(name => name.startsWith("assets/anniversary-town-hd-v13-")));
   assert.ok(explicit.files.some(name => name.startsWith("assets/town-playground-animation-")));
   const gameArt = ["town-work-poses", "garden-guest-routines", "gardener-hat", "guardian-moonstone", "meadow-jelly-bells",
-    "anniversary-garden-tree-free", "apple-basket", "courage-tall-flowers"];
+    "anniversary-garden-tree-free", "apple-basket", "courage-tall-flowers", "garden-creek-props"];
   const walkSheets = await readdir(new URL("../src/assets/resident-walk/", import.meta.url));
   for (const sheet of walkSheets) {
     const prefix = "assets/" + sheet.slice(0, -5) + "-";

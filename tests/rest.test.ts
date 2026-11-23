@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { bedRest, benchRest, HOME_BED } from "../src/rest.ts";
 import { scenes } from "../src/maps.ts";
-import { creeks } from "../src/landscape.ts";
+import { creeks } from "../src/creek-layout.ts";
 import { canStand, canTravelBetween, readProgress } from "../src/core.ts";
 test("the single respawn destination is the bed, with a safe exit from its solid furniture", () => {
   const rest = bedRest(),

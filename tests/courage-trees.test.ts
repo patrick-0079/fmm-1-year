@@ -3,7 +3,8 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { canTravelBetween, obstacleContainsFoot, polygonContains } from "../src/core.ts";
-import { creeks, challengeTrees } from "../src/landscape.ts";
+import { challengeTrees } from "../src/landscape.ts";
+import { creeks } from "../src/creek-layout.ts";
 import { scenes } from "../src/maps.ts";
 
 const garden = scenes.challenge;

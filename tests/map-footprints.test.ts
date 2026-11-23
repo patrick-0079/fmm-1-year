@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { canStand, canTravelBetween, findPath } from "../src/core.ts";
 import { scenes, type SceneId } from "../src/maps.ts";
-import { creeks } from "../src/landscape.ts";
+import { creeks } from "../src/creek-layout.ts";
 import { lightBrick, mirrorSpots } from "../src/ruins-map.ts";
 
 function checkFeet(id: SceneId, open: number[][], solid: number[][]) {

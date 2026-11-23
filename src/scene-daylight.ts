@@ -1,7 +1,7 @@
 import type { Phase } from "./day.ts";
 import type { DaylightMix } from "./daylight-mix.ts";
 import { sceneLights } from "./lights.ts";
-import { creeks } from "./landscape.ts";
+import { creeks } from "./creek-layout.ts";
 
 type Scene = "room" | "garden" | "challenge";
 type Palette = readonly [sky: string, middle: string, shade: string, lamp: number];
@@ -168,7 +168,7 @@ export function drawGardenSurfaceLight(c: CanvasRenderingContext2D, scene: "gard
     c.imageSmoothingEnabled = true;
     c.save();
     c.beginPath();
-    c.rect(b.x + 2, b.y + 2, b.w - 4, b.h - 7);
+    c.rect(b.x + 9, b.y + 9, b.w - 18, b.h - 14);
     c.clip();
     c.globalAlpha *= .78;
     // A cooler reflection falls across the opposite end of the deck.

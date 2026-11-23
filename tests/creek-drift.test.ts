@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { polygonContains } from "../src/collision.ts";
+import { canTravelBetween, polygonContains } from "../src/collision.ts";
 import { creekDrift } from "../src/creek-drift.ts";
-import { creeks } from "../src/landscape.ts";
+import { creeks } from "../src/creek-layout.ts";
+import { scenes } from "../src/maps.ts";
 
 for (const scene of ["garden", "challenge"] as const) {
   test(`${scene} floats travel through the two waterways and beneath the actual bridge`, () => {
@@ -36,4 +37,18 @@ test("the paler petal starts later but emerges downstream first", () => {
   }
   assert.ok(firstAppearance.get("rose")! < firstAppearance.get("pearl")!);
   assert.ok(firstEmergence.get("pearl")! < firstEmergence.get("rose")!);
+});
+
+test("both walkable bridge decks remain open, while the banks and rails block feet", () => {
+  for (const scene of ["garden", "challenge"] as const) {
+    const { bridge, head } = creeks[scene];
+    const { x, y, w, h } = bridge;
+    const middle = y + h / 2;
+    const west = { x: x - 9, y: middle }, east = { x: x + w + 8, y: middle };
+    assert.ok(canTravelBetween(west, east, scenes[scene]), scene);
+    assert.ok(canTravelBetween(east, west, scenes[scene]), scene);
+    const stream = head[Math.floor(head.length * .55)];
+    assert.ok(!canTravelBetween({ x: stream.x - 19, y: stream.y }, { x: stream.x + 19, y: stream.y }, scenes[scene]), scene);
+    assert.ok(!canTravelBetween({ x: x + w / 2, y: middle }, { x: x + w / 2, y: y + 1 }, scenes[scene]), scene);
+  }
 });
