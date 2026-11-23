@@ -17,6 +17,8 @@ import { drawWishLights, townAttractionLayers } from "./town-attraction-art";
 import type { GameId } from "./arcade-engines";
 import npcUrl from "./assets/town-npcs.webp";
 import { drawPartyProp } from "./party-art";
+import { northStreetCanopies } from "./town-north-street-details";
+import { workshopCanopies } from "./town-workshop-vegetation";
 import { northEastCanopies } from "./town-northeast-foliage";
 import { southWestCanopies } from "./town-southwest-foliage";
 import { TownPond } from "./town-pond";
@@ -29,7 +31,7 @@ import {
 // The quarry painting replaces part of the original northeast hillside.
 const treeCrowns = [
   ...townCanopies.filter(tree => !northEastCanopies.some(t => t.x === tree.x && t.y === tree.y)),
-  ...southEdgeCanopies, ...southWestCanopies, ...northEastCanopies,
+  ...southEdgeCanopies, ...southWestCanopies, ...northEastCanopies, ...workshopCanopies, ...northStreetCanopies,
 ];
 export const TOWN_TALKED_KEY = "fufu-town-talked-v1";
 interface StoryHooks {

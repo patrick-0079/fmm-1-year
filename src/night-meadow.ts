@@ -15,10 +15,15 @@ import { CampGuest } from "./camp-guest";
 import { MeadowJellies } from "./meadow-jellies";
 import { drawJelly, drawKettleSteam, prepareJellyBells } from "./meadow-jelly-art";
 import { sceneArt } from "./scene-art";
+import sceneryOutlines from "./meadow-scenery-outlines.json";
+import { prepareMapCovers, visibleMapCovers } from "./map-covers";
 import { drawFlexibleCover } from "./scenery-wind";
 import type { ResidentStory } from "./resident-story";
 
 type Credit = typeof producers[number];
+// These silhouettes sample the night painting itself. The kettle handle and
+// the gaps between the boundary branches stay open in front of a walker.
+const sceneryCovers = prepareMapCovers(sceneryOutlines);
 const sparkColors = ["#ffe6a0", "#f5d4bc", "#cee8cf", "#dae0ef"];
 const meadowStarLight = { halo: "#ffda80", glint: "#fff3c5", radius: 22 };
 const starLights = {
@@ -199,6 +204,7 @@ export class NightMeadow {
       {y: 145, draw: c => drawKettleSteam(c, sceneryTime, still)},
       {y: starJar.y, draw: c => drawWildSprite(c, atlas, 3, starJar.x, starJar.y, 17)},
       ...this.campGuest.layers(sceneArt.patrickCamp, this.reduced.matches),
+      ...visibleMapCovers(this.world, sceneryCovers),
     ];
     const view = this.world.visibleArea;
     this.jellies?.animals.forEach((animal, index) => {

@@ -4,11 +4,13 @@ import { creeks } from "./creek-layout.ts";
 import { courageFlowerRoots } from "./courage-flowerbeds.ts";
 import { townScene } from "./town-map.ts";
 import { fenceSegments } from "./fences.ts";
+import { gardenPlantingBeds } from "./garden-planting-beds.ts";
 import { gardenGuests } from "./garden-guests.ts";
 import { townGates, gatePosts, gateSpot } from "./gate-layout.ts";
 import { rainbowFlowers, rainbowSpot, meadowGate, meadowGatePosts } from "./rainbow-flowers.ts";
 import { meadowScene } from "./meadow-map.ts";
 import { ruinsScene } from "./ruins-map.ts";
+import { roomGiftBases } from "./room-furniture.ts";
 import { bassStand, foxNook } from "./room-props.ts";
 import { elderPlaces } from "./elders-data.ts";
 import { xiaoyeSpot, xiaoyeFootprint } from "./xiaoye-data.ts";
@@ -118,17 +120,7 @@ export const scenes: Record<SceneId, Scene> = {
       polygon("草编圆篮", [[18,292],[32,281],[53,278],[70,285],[80,297],[78,310],[66,320],[45,324],[23,318],[17,309]]),
       // The balloons float above the boards. Their tied ends rest against the skirting.
       polygon("气球系绳处", [[23,371],[54,367],[90,370],[99,378],[21,380]]),
-      polygon("礼物堆", [
-        [519, 278],
-        [551, 266],
-        [577, 281],
-        [584, 318],
-        [583, 379],
-        [537, 379],
-        [506, 362],
-        [486, 338],
-        [497, 309],
-      ]),
+      ...roomGiftBases,
     ],
     hazards: [],
     spots: [
@@ -252,6 +244,7 @@ export const scenes: Record<SceneId, Scene> = {
       { label: "左侧长椅", x: 85, y: 251, w: 47, h: 24 },
       { label: "气球摊西侧灯串柱", x: 135, y: 238, w: 6, h: 9 },
       polygon("小电视路牌底座", [[185,459],[211,459],[216,473],[212,482],[185,482],[180,474]]),
+      ...gardenPlantingBeds,
       polygon("打卡站花盆", [[124,463],[143,463],[145,469],[141,478],[127,478],[122,471]]),
       polygon("打卡站行李", [[155,472],[171,468],[180,476],[178,486],[157,486]]),
       { label: "打卡站长椅", x: 229, y: 469, w: 45, h: 20 },
@@ -389,8 +382,8 @@ export const scenes: Record<SceneId, Scene> = {
     // The north edge ends at the flowering hedge; only the southern gate is an exit.
     floor: [
       [96,135],[109,114],[128,96],[157,87],[164,72],[193,68],[224,72],
-      [248,78],[282,77],[319,87],[351,97],[392,97],[407,91],[425,86],
-      [445,84],[465,88],[482,94],[491,97],[524,94],[557,89],[588,85],[620,80],
+      [248,78],[282,77],[319,87],[351,97],[392,92],[407,86],[425,82],
+      [445,79],[462,80],[477,85],[491,92],[524,94],[557,89],[588,85],[620,80],
       [648,72],[675,65],[705,65],[730,81],[749,98],[775,106],[784,124],
       [786,151],[802,171],[822,181],[833,202],[821,226],[810,242],[803,259],
       [809,287],[825,306],[831,325],[824,347],[817,370],[810,399],[815,415],

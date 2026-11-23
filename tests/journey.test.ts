@@ -16,9 +16,12 @@ test("resuming respects existing collision, hazards and the seven-flower lock", 
     assert.deepEqual(restore("challenge", pos),{scene:"challenge",...scenes.challenge.spawn,savedAt});
 });
 test("saved positions remain safe after removing the anniversary bench and closing the north gate", () => {
-  const oldNorth = readJourney(JSON.stringify({scene:"challenge",x:450,y:86,savedAt}),[]);
+  const oldNorth = readJourney(JSON.stringify({scene:"challenge",x:450,y:78,savedAt}),[]);
   assert.deepEqual(oldNorth,{scene:"challenge",...scenes.challenge.spawn,savedAt},
-    "a save inside the former north opening returns to the safe south entrance");
+    "a save inside the planted north hedge returns to the safe south entrance");
+  const northPaving = {scene:"challenge",x:450,y:86,savedAt};
+  assert.deepEqual(readJourney(JSON.stringify(northPaving),[]),northPaving,
+    "a save on the pale paving in front of that hedge keeps its position");
   for (const flowers of [[],rainbowIds]) {
     const oldBenchExit = {scene:"garden",x:385,y:447,savedAt};
     assert.deepEqual(readJourney(JSON.stringify(oldBenchExit),flowers),oldBenchExit,

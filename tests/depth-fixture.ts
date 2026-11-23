@@ -2,12 +2,20 @@ import { World, type DepthLayer } from "../src/world";
 import type { Point } from "../src/core";
 import type { SceneId } from "../src/maps";
 import { gardenForeground } from "../src/garden-foreground";
+import { courageBorder } from "../src/courage-border";
+import { roomFurniture } from "../src/room-furniture";
+import { ruinsForeground } from "../src/ruins-foreground";
 import { gardenGateLamp } from "../src/garden-gate-lamp";
 import { townForeground } from "../src/town-foreground";
 import playgroundMasks from "../src/town-playground-masks.generated.json";
 import streetlightMasks from "../src/town-streetlight-outlines.json";
+import waterfrontMasks from "../src/town-waterfront-masks.json";
+import gardenDetails from "../src/garden-street-details.json";
+import meadowScenery from "../src/meadow-scenery-outlines.json";
+import { workshopCanopies } from "../src/town-workshop-vegetation";
 import { southEdgeCanopies, townCanopies } from "../src/town-scenery";
 import { gardenSign } from "../src/garden-sign";
+import { rainbowFlowers } from "../src/rainbow-flowers";
 import { televisionSilhouette } from "../src/cinema-config";
 
 // This standalone page uses the complete game but never writes its real saves.
@@ -17,6 +25,7 @@ Object.defineProperty(window,"localStorage",{value:{
   setItem:(key:string,value:string)=>sessionStorage.setItem(prefix+key,value),
   removeItem:(key:string)=>sessionStorage.removeItem(prefix+key),
 }});
+localStorage.setItem("nemu-anniversary-v1", JSON.stringify({rainbowFlowers:rainbowFlowers.map(f => f.id)}));
 let world!:World;
 const originalLoad=World.prototype.load;
 World.prototype.load=function(){world=this;World.prototype.load=originalLoad;return originalLoad.call(this);};
@@ -44,12 +53,29 @@ interface DepthCase {
 const gardenScale=900/1536;
 const gp=(x:number,y:number):Point=>({x:x*gardenScale,y:y*gardenScale});
 const pixel=(x:number,y:number)=>gp(x+.5,y+.5);
+const foregroundByScene = { room:roomFurniture, garden:gardenForeground, town:townForeground,
+  challenge:courageBorder, ruins:ruinsForeground, meadow:[] };
+const masksByScene = {
+  town: [...playgroundMasks, ...streetlightMasks, ...waterfrontMasks],
+  garden: gardenDetails,
+  meadow: meadowScenery,
+};
 const cases:DepthCase[]=[
+  {id:"gift-hatbox",scene:"room",depth:305,solid:[{x:550,y:273}],clear:[{x:502,y:261},{x:524,y:263}]},
+  {id:"gardener-gate-lamp-and-flowers",scene:"challenge",depth:559,solid:[{x:382,y:498}],clear:[{x:408,y:484},{x:419,y:484}]},
+  {id:"south-stair-west-jamb",scene:"ruins",depth:553,solid:[{x:391,y:506}],clear:[{x:450,y:511},{x:450,y:480}]},
+  {id:"photo-east-border",scene:"garden",depth:483,solid:[{x:231,y:439}],clear:[{x:235,y:418},{x:212,y:433}]},
+  {id:"photo-south-boulder",scene:"garden",depth:528,solid:[{x:144,y:510}],clear:[{x:140,y:500},{x:162,y:511}]},
+  {id:"dock-north-post",scene:"town",depth:895.8,solid:[{x:870,y:877}],clear:[{x:864,y:866},{x:877,y:870}]},
+  {id:"wheat-stair-solitary-post",scene:"town",depth:740,solid:[{x:156,y:725}],clear:[{x:146,y:721},{x:165,y:725}]},
+  {id:"blocks-pine",scene:"town",depth:607,solid:[{x:1124,y:544}],clear:[{x:1109,y:523},{x:1136,y:520}],existingOutline:workshopCanopies[0].points,fragments:[workshopCanopies[0].points]},
+  {id:"camp-kettle",scene:"meadow",depth:145,solid:[{x:250,y:117.5},{x:253,y:135}],clear:[{x:251,y:123},{x:238,y:141}]},
+  {id:"campfire",scene:"meadow",depth:170,solid:[{x:231,y:146},{x:221,y:162}],clear:[{x:207,y:146}]},
   {id:"south-rose-arch",scene:"garden",depth:976*gardenScale,solid:[gp(750,830)],clear:[gp(750,900),gp(750,984)],actor:{x:750*gardenScale,positions:[860,950,980].map(y=>y*gardenScale)},edges:{
     solid:[[753,820],[751,829],[735,833],[747,849],[769,851],[764,845]].map(([x,y])=>pixel(x,y)),
     clear:[[736,816],[738,815],[741,816],[745,816],[725,822],[735,820],[728,820],[799,871],[807,884],[805,893],[802,935],[798,866]].map(([x,y])=>pixel(x,y)),
   }},
-  {id:"west-rose-crown",scene:"garden",depth:760*gardenScale,solid:[gp(218,676)],clear:[gp(211,725),gp(211,782)],actor:{x:210*gardenScale,positions:[714,750,790].map(y=>y*gardenScale)},edges:{
+  {id:"west-rose-crown",scene:"garden",depth:760*gardenScale,solid:[gp(218,676)],clear:[gp(211,725),gp(197,775)],actor:{x:210*gardenScale,positions:[714,750,790].map(y=>y*gardenScale)},edges:{
     solid:[[204,680],[216,677],[222,667],[215,664],[201,694],[224,696]].map(([x,y])=>pixel(x,y)),
     clear:[[204,660],[205,663],[202,665],[217,660],[215,661],[217,661],[213,693],[233,700]].map(([x,y])=>pixel(x,y)),
   }},
@@ -175,8 +201,9 @@ function sampleEdges(outlines:Point[][],landmarks:NonNullable<DepthCase["edges"]
   return {image:canvas.toDataURL(),solid:landmarks.solid.map(read),clear:landmarks.clear.map(read)};
 }
 async function verify(test:DepthCase){
-  const foreground=test.scene==="town"?townForeground:gardenForeground;
-  const baked=test.scene==="town"?playgroundMasks.find(mask=>mask.id===test.id)??streetlightMasks.find(mask=>mask.id===test.id):undefined;
+  const foreground=foregroundByScene[test.scene];
+  const masks = test.scene === "town" || test.scene === "garden" || test.scene === "meadow" ? masksByScene[test.scene] : [];
+  const baked = masks.find(mask => mask.id === test.id);
   const target=baked ? {
     id:baked.id,y:baked.depth,points:[{x:baked.x,y:baked.y},{x:baked.x+baked.w,y:baked.y+baked.h}],
   } : test.existingOutline?{id:test.id,y:test.depth,points:test.existingOutline}:foreground.find(f=>f.id===test.id);

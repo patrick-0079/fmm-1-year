@@ -1,4 +1,5 @@
 import type { Point } from "./core.ts";
+import { northStreetPaving } from "./town-north-street-details.ts";
 import { townTerraces } from "./town-terraces.ts";
 import { postStreets } from "./post-streets.ts";
 import { southStreets } from "./town-south-streets.ts";
@@ -143,6 +144,7 @@ export const townSurfaces: Point[][] = [
   ...southStreets,
   ...lanes.map(ribbon),
   ...townTerraces,
+  ...northStreetPaving,
   // The uphill street splits around the tall tree and turns past the workshop.
   poly([[891,514],[909,464],[919,429],[934,407],[951,399],[962,397],
     [957,381],[955,367],[949,347],[937,337],[923,329],[912,326],[900,321],

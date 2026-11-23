@@ -697,7 +697,6 @@ export class Activities {
   private draw(c: CanvasRenderingContext2D, t: number) {
     c.save();
     if (this.world.scene === "room") {
-      this.drawCake(c, t);
       if (this.mode === "gifts") {
         drawUnwrappingGift(c, this.gift, t, matchMedia("(prefers-reduced-motion: reduce)").matches);
         this.world.drawAvatarAt(c, 503, 318, 1);
@@ -795,7 +794,8 @@ export class Activities {
     }
     c.restore();
   }
-  private drawCake(c: CanvasRenderingContext2D, t: number) {
+  drawCake(c: CanvasRenderingContext2D, t: number) {
+    c.save();
     if (this.cakeImage.complete && this.cakeImage.naturalWidth)
       c.drawImage(this.cakeImage, 267, 177, 66, 62);
     if (this.cakeStage === 0) {
@@ -928,5 +928,6 @@ export class Activities {
         270,
       );
     }
+    c.restore();
   }
 }

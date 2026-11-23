@@ -9,6 +9,7 @@ import type { Activities } from "./activities";
 import type { Inventory } from "./inventory";
 import type { World } from "./world";
 import type { Hotspot } from "./maps";
+import { courageBorder } from "./courage-border";
 import { challengeTrees } from "./landscape";
 import { drawGardenTree } from "./landscape-renderer";
 import { creekDepthLayers, drawCreek } from "./creek-art";
@@ -21,10 +22,15 @@ import { drawCurtainBreeze, drawFabricGround, fruitShift, windLevel } from "./sc
 import { drawKeepsake } from "./scene-art";
 import { drawWildSprite } from "./wild-art";
 import { drawFirefly, fireflyDrift } from "./firefly-art";
+import gardenDetails from "./garden-street-details.json";
+import { prepareMapCovers, visibleMapCovers } from "./map-covers";
 import { gardenForeground } from "./garden-foreground";
 import { gardenGateLamp } from "./garden-gate-lamp";
 import { gardenSign } from "./garden-sign";
+import { roomFurniture } from "./room-furniture";
 import { roomBalloons } from "./room-foreground";
+const gardenCovers = prepareMapCovers(gardenDetails);
+
 interface NatureSave {
   picked: Record<string, number>;
   apple: number;
@@ -423,15 +429,18 @@ export class Nature {
     }
   }
   private depthLayers() {
-    if (this.world.scene === "room") return [{
-      y: 377, draw: (c: CanvasRenderingContext2D) => {
+    if (this.world.scene === "room") return [
+      ...roomFurniture.filter(p => p.id !== "bed" || this.world.restState?.kind !== "lying")
+        .map(p => ({y:p.y, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,p.points)})),
+      {y:249, draw:(c:CanvasRenderingContext2D) => this.activities.drawCake(c, performance.now() / 1000)},
+      {y:377, draw:(c:CanvasRenderingContext2D) => {
         c.save();
         const feet = this.world.player;
         if (feet.x < 110 && feet.y > 295 && feet.y < 377) c.globalAlpha *= 0.68;
         for (const silhouette of roomBalloons) this.world.drawMapFragment(c, silhouette);
         c.restore();
-      },
-    }];
+      }},
+    ];
     if (this.world.scene !== "garden" && this.world.scene !== "challenge")
       return [];
     const scene = this.world.scene,
@@ -441,6 +450,7 @@ export class Nature {
     if (scene === "garden") {
       return [
         ...creek,
+        ...visibleMapCovers(this.world, gardenCovers),
         ...gardenForeground.map(part => ({y:part.y, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,part.points)})),
         { y: apple.y + 4, draw: (c: CanvasRenderingContext2D) => {
           const basket = this.world.appleBasket;
@@ -462,6 +472,7 @@ export class Nature {
     }
     return [
       ...creek,
+      ...courageBorder.map(({y,points}) => ({y, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,points)})),
       ...challengeTrees.map((tree) => ({
         y: tree.y + 23 * tree.scale,
         draw: (c: CanvasRenderingContext2D) =>
@@ -485,7 +496,7 @@ export class Nature {
         },
       },
       ...(bench ? [{
-        y: bench.y - 4,
+        y: this.world.restState?.kind === "sitting" ? bench.y : bench.y + 17,
         draw: (c: CanvasRenderingContext2D) => {
           if (this.benchImage.complete && this.benchImage.naturalWidth)
             c.drawImage(this.benchImage, bench.x - 38, bench.y - 25, 76, 46);

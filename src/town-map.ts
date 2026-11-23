@@ -6,6 +6,9 @@ import { postObstacles } from "./post-streets.ts";
 import { fenceSegments } from "./fences.ts";
 import { townSurfaces } from "./town-surfaces.ts";
 import { southStreetWalls } from "./town-south-streets.ts";
+import { southWestPostWalls } from "./town-southwest-posts.ts";
+import { northStreetWalls } from "./town-north-street-details.ts";
+import { workshopVegetationWalls } from "./town-workshop-vegetation.ts";
 import { northEastFoliageWalls } from "./town-northeast-foliage.ts";
 import { southWestFoliageWalls } from "./town-southwest-foliage.ts";
 import { plazaWalls } from "./town-plaza.ts";
@@ -136,7 +139,7 @@ export const townScene: Scene = {
     ...fenceSegments("邮局右侧栅栏", [
       [334,617],[339,634],[346,646],[356,656],
     ]),
-    ...plazaWalls,
+    ...plazaWalls, ...southWestPostWalls, ...workshopVegetationWalls, ...northStreetWalls,
     ...southWestFoliageWalls,
     ...northEastFoliageWalls,
     ...fenceSegments("南侧池塘栅栏", [

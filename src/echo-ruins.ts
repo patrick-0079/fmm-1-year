@@ -1,3 +1,6 @@
+import { ruinsForeground } from "./ruins-foreground";
+import { visibleMapCovers } from "./map-covers";
+import { mapFragment } from "./map-fragment";
 import { arcadesIn } from "./town-data";
 import { echoes, melody, playEcho, trialEcho, type Echo, type EchoMemory } from "./echoes";
 import { townEchoGate, echoAltar, echoPool, ruinsExit, stairLintel } from "./ruins-map";
@@ -10,6 +13,7 @@ import { drawFlexibleCover } from "./scenery-wind";
 
 const symbols: Record<Echo, PixelMotif> = {leaf:"sprout", bell:"bell", star:"star"};
 const trials = arcadesIn("ruins");
+const masonry = ruinsForeground.map(({ y: depth, points }) => ({ ...mapFragment(points), depth }));
 const options: Echo[] = ["star","leaf","bell"];
 const letter = "旧收音机亮起了第 365 盏灯。「芙芙，这一晚，换我们陪你把晚安说完。」";
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
@@ -128,6 +132,7 @@ export class EchoRuins {
     if (this.world.scene !== "ruins") return [];
     const state=this.memory();
     return [
+      ...visibleMapCovers(this.world, masonry),
       ...trials.map(([id, game]) => ({y:game.y, draw:(c:CanvasRenderingContext2D)=>{
         const note=trialEcho[id as keyof typeof trialEcho];
         this.carving(c,game.x,game.y,note,state.found.includes(note));

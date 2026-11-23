@@ -1,3 +1,6 @@
+import { southWestPosts } from "./town-southwest-posts.ts";
+import { northStreetForeground } from "./town-north-street-details.ts";
+import { workshopFoliage } from "./town-workshop-vegetation.ts";
 import { northEastFoliage } from "./town-northeast-foliage.ts";
 import { southWestFoliage } from "./town-southwest-foliage.ts";
 import { plazaForeground } from "./town-plaza.ts";
@@ -319,11 +322,11 @@ export const townArtworkForeground: TownForeground[] = [
 // The bake uses the original artwork layers. In play the sloping rose border
 // is sorted along its planted edge on the finished map.
 export const townForeground: TownForeground[] = [
-  ...townArtworkForeground.filter(part => part.id !== "flight-front-flowers" && part.id !== "rabbit-west-flowers"),
+  ...townArtworkForeground.filter(part => part.id !== "flight-front-flowers" && part.id !== "rabbit-west-flowers" && part.id !== "wish-lawn-stone-wall"),
   // The lower flowering tree stands in front of this hedge at its own roots.
   shape("rabbit-west-hedge", 582, [...rabbitHedgeEdge,
     [417,568],[410,565],[408,565.5],[401,572],[396.5,570],[388,582],[384,582]]),
-  ...plazaForeground,
+  ...plazaForeground, ...southWestPosts, ...workshopFoliage, ...northStreetForeground,
   ...southWestFoliage,
   ...northEastFoliage,
 ];
