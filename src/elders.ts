@@ -4,6 +4,7 @@ import type { Progress } from "./core";
 import { elderLines, elderPlaces, guardianGreeting, type ElderPage, type ElderPose } from "./elders-data";
 import { drawIdlePose, sceneArt } from "./scene-art";
 import { drawElderIdle, prepareGardenGestures } from "./garden-gesture-art";
+import { gardenChatTopics, showGardenChat } from "./garden-chat-topics";
 
 type ElderScene = keyof typeof elderPlaces;
 type Choice = { title: string; run: () => void };
@@ -86,22 +87,51 @@ export class Elders {
   interact(id: string) {
     const scene = this.world.scene;
     if ((scene !== "challenge" && scene !== "ruins") || id !== elderPlaces[scene].id) return false;
+    if (this.page && this.activities.dialogueOpen) return true;
+    if (this.world.busy || this.world.paused || this.world.suspended) return true;
     const state = this.progress();
     const page = scene === "challenge" ? "gardenWelcome" : guardianGreeting(state.astrolabe, state.residents.guardianInvited);
-    this.say(scene, page);
+    // The gardener remembers finishing his welcome. The guardian's original
+    // invitation has its own receipt; his later celebration happens once.
+    const introduce = scene === "challenge" ? !this.world.chats.introduced(id) :
+      !state.residents.guardianInvited || (page === "solved" && !this.world.chats.introduced(id));
+    if (introduce) this.say(scene, page);
+    else {
+      const gardener = scene === "challenge";
+      const key = gardener ? "elder-gardener" : "elder-guardian";
+      const options: Choice[] = gardener ? [
+        {title: "再聊聊勇气花园", run: () => this.say(scene, "gardenWelcome")},
+      ] : [
+        {title: "翻开遗迹手记", run: this.openNotebook},
+        {title: page === "solved" ? "聊聊星纹砖" : "问问遗迹的线索", run: () => this.say(scene, page)},
+      ];
+      const topic = this.world.chats.next(key, gardenChatTopics[key], this.world.currentPhase);
+      showGardenChat(topic, (text, choices) => this.display(scene, gardener ? "gardenWelcome" : "challenge", text, choices), options);
+    }
     this.world.onAchievementEvent(scene === "challenge" ? "elder-gardener" : "elder-guardian");
     return true;
   }
 
   private say(scene: ElderScene, page: ElderPage) {
-    const npc = elderPlaces[scene], line = elderLines[page], choices: Choice[] = [];
+    const line = elderLines[page], choices: Choice[] = [];
     const residents = this.progress().residents;
     const givingBook = !residents.guardianInvited && (page === "blessing" || page === "solved");
     const text = givingBook ? line.text + " 这本《遗迹手记》送给你。路上见过的痕迹，都可以记在里面。" : line.text;
     const reply = line.reply;
     if (reply) choices.push({ title: reply.title, run: () => this.say(scene, reply.next) });
     if (line.showNotebook) choices.push({ title: "翻开遗迹手记", run: this.openNotebook });
-    this.activities.dialogue(npc.title, text, choices, c => drawSprite(c, line.pose, 24, 51, 54, givingBook), npc, () => {
+    this.display(scene, page, text, choices, givingBook);
+    if (page === "gardenWish" || page === "solved") this.world.chats.introduce(elderPlaces[scene].id);
+    if (givingBook) {
+      residents.guardianInvited = true;
+      this.save();
+      this.world.onToast("获得《遗迹手记》 · 已收入背包");
+    }
+  }
+
+  private display(scene: ElderScene, page: ElderPage, text: string, choices: Choice[], givingBook = false) {
+    const npc = elderPlaces[scene];
+    this.activities.dialogue(npc.title, text, choices, c => drawSprite(c, elderLines[page].pose, 24, 51, 54, givingBook), npc, () => {
       this.page = null;
       this.giftingBook = false;
       if (scene === "challenge") this.tending = true;
@@ -109,11 +139,6 @@ export class Elders {
     this.page = page;
     this.giftingBook = givingBook;
     this.poseAge = 0;
-    if (givingBook) {
-      residents.guardianInvited = true;
-      this.save();
-      this.world.onToast("获得《遗迹手记》 · 已收入背包");
-    }
   }
 
   private gardenerDistance() {

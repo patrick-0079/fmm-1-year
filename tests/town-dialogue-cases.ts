@@ -5,6 +5,7 @@ import { TOWN_NPCS, ARCADES } from "../src/town-data";
 import { canStand } from "../src/core";
 import { INVENTORY_KEY, readInventory } from "../src/items";
 import type { TownResidentId } from "../src/town-dialogue";
+import { townChatTopics } from "../src/town-chat-topics";
 
 /** Interactions run in the normal game, using this fixture's isolated browser save. */
 export async function verifyTownResidents(world: World, log: (line: string) => void) {
@@ -17,6 +18,11 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
     return found;
   };
   const choose = (title: string) => button(title).click();
+  const daily = (id: TownResidentId) => {
+    const book = townChatTopics[id];
+    return [...Object.values(book.phases), ...book.familiar].some(topic =>
+      (typeof topic === "string" ? topic : topic.text) === status());
+  };
   const close = () => hud.querySelector<HTMLButtonElement>(".activity-close")!.click();
   const wait = async (condition: () => boolean, message: string) => {
     const deadline = performance.now() + 75000;
@@ -39,12 +45,13 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
   await talk("post"); choose("不是哦，我只是凑巧走到这的"); close();
   await talk("post"); choose("不是哦，我只是凑巧走到这的"); choose("继续");
   assert(status().includes("属于你的缘分到了"), "邮差少了最后的叮嘱");
-  await talk("post"); assert(status().includes("那封信已经到了"), "没有记录已投信");
+  choose("一会儿再看"); assert(status().includes("那封信已经到了"), "邮差当次投递少了未读叮嘱");
+  await talk("post"); assert(daily("post"), "已投递后重访邮差没有进入日常");
   await talk("welcome"); key("e", true); key("e", true, true);
   assert(status() === "......" && button("你好？？"), "按住 E 跳过了第二次呼喊");
   key("e", false); key("e", true); key("e", false); choose("你在这里干什么呀？");
   assert(readInventory(localStorage.getItem(INVENTORY_KEY)).owned.includes("anniversaryPin"), "纪念胸针没有进入真实背包");
-  await talk("welcome"); assert(status().includes("欢迎回来"), "迎宾员重访重复赠礼");
+  await talk("welcome"); assert(daily("welcome"), "迎宾员重访重复赠礼");
   log("红笺可中途离开，确认投递后记得信件；银铃需要两次独立呼喊，最后才赠送胸针");
 
   await talk("florist"); choose("继续"); close();
@@ -53,8 +60,10 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
   const bag = document.querySelector<HTMLElement>(".inventory-panel")!;
   assert(!bag.hidden && bag.dataset.tab==="keepsakes" && bag.querySelector(".bouquet-detail")?.textContent?.includes("真诚不变的爱"), "背包没有显示洋桔梗的赠语");
   bag.querySelector<HTMLButtonElement>(".bag-close")!.click();
-  for (const question of ["是什么呀？", "是脑子吗...阿巴阿巴（bushi）"]) {
-    await talk("maker"); choose("谢谢，但是你为什么要说英文？"); choose(question);
+  for (const [index, question] of ["是什么呀？", "是脑子吗...阿巴阿巴（bushi）"].entries()) {
+    await talk("maker");
+    if (index) { assert(daily("maker"), "紫凌应进入日常"); choose("聊聊你的手艺"); }
+    choose("谢谢，但是你为什么要说英文？"); choose(question);
     assert(status().includes("可以打开背包"), "缺少实际换装指引"); choose("打开背包");
     assert(hud.hidden && !bag.hidden && bag.dataset.tab==="wardrobe" && bag.querySelector("[data-select]"), "工匠没有打开配饰列表"); bag.querySelector<HTMLButtonElement>(".bag-close")!.click();
     assert(!world.suspended && !world.paused, "收起背包后无法行动");
@@ -62,12 +71,12 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
   await talk("baker"); choose("是我哦。"); choose("这是给我的吗？"); choose("帮我留一下");
   await talk("baker"); assert(status().includes("给你留的第一块"), "栗栗没有留住蛋糕");
   choose("现在尝一口"); close(); await talk("baker"); choose("现在尝一口"); choose("跳过演出");
-  await talk("baker"); assert(status().includes("画了小草莓的白板"), "栗栗没有记住吃过的蛋糕");
+  await talk("baker"); assert(daily("baker"), "栗栗没有记住吃过的蛋糕");
   log("青芽花束进入纪念物页；紫凌两条分支都能开包、关包后恢复操作；栗栗保管蛋糕并支持跳过演出");
 
   await talk("walker"); choose("我没见过哦"); assert(!hud.querySelector(".activity-actions button"), "蓝莓第一个答案还有第二问");
   for (const answer of ["没关系哦，你很可爱呢", "有关系！（逗她）"]) {
-    await talk("walker"); choose("我就是哦~"); choose(answer);
+    await talk("walker"); choose("聊聊庆典那天"); choose("我就是哦~"); choose(answer);
     assert(status().includes(answer.startsWith("没") ? "脸红" : "姐姐我错啦"), "蓝莓答错分支");
   }
   await talk("bunny"); choose("你是哪家的宝宝？");
@@ -82,7 +91,7 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
   choose("我收到啦，你的怀抱很温暖。"); assert(status().includes("好一会才放开"), "绒月的末句缺失");
   await talk("photo-visitor"); choose("（乖乖不动）"); choose("没事，能帮到你我很开心");
   assert(status() === "请你以后也常来做我的模特！", "摄影师第一条分支有误");
-  await talk("photo-visitor"); choose("（就动就动）"); choose("好吧，那我不动了"); assert(status().startsWith("嗐，"), "摄影师第二条分支有误");
+  await talk("photo-visitor"); choose("再拍一次"); choose("（就动就动）"); choose("好吧，那我不动了"); assert(status().startsWith("嗐，"), "摄影师第二条分支有误");
   await talk("radio-host"); choose("用很多的真心和爱去认真对待听众就好啦"); assert(status() === "我记下了，我会努力的！", "电台回应有误");
   await talk("radio-host"); choose("其实我没有什么经验，我很幸运遇到了一群爱我的人。");
   assert(hud.querySelector(".dialogue-name")!.textContent === "作者的话" && status().endsWith("芙芙值得被爱。"), "署名或作者全文丢失");

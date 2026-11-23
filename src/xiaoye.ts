@@ -9,6 +9,7 @@ import { XiaoyeHug, xiaoyeFrame, xiaoyeFrames, xiaoyeHugText, xiaoyeLanternOn,
 import { embracePose, boundedEmbraceFoot, isEmbraceApproach, EMBRACE_BODY_GAP, EMBRACE_SHOULDER_Y } from "./xiaoye-embrace";
 import { embraceFrames, EMBRACE_ART_SCALE } from "./xiaoye-embrace-art";
 import { handedLetters, letterChoice, type LetterHandoff } from "./resident-story";
+import { gardenChatTopics, showGardenChat } from "./garden-chat-topics";
 
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
 const HEIGHT = 60;
@@ -39,7 +40,10 @@ export class Xiaoye {
         this.idleMirrored = mirrored;
         if (!finished) this.activities.dismissDialogue(xiaoyeSpot);
         else {
-          if (!this.mail.received(handedLetters.xiaoye)) this.offerLetter();
+          if (this.mail.received(handedLetters.xiaoye)) {
+            const topic = world.chats.next(xiaoyeSpot.id, gardenChatTopics["xiaoye-plush"], this.phase());
+            showGardenChat(topic, this.dialogue.bind(this));
+          } else this.offerLetter();
           world.onAchievementEvent("xiaoye-plush");
         }
       }
@@ -92,9 +96,9 @@ export class Xiaoye {
     return true;
   }
 
-  private offerLetter() {
-    this.dialogue("（小叶子用绒爪托起一封信，封口有一枚红色爱心蜡封。）", [
-      letterChoice(this.mail, handedLetters.xiaoye, () => this.offerLetter()),
+  private offerLetter(received = false) {
+    this.dialogue(received ? "（小叶子等你把信收好，才轻轻放下爪子。）" : "（小叶子用绒爪托起一封信，封口有一枚红色爱心蜡封。）", [
+      letterChoice(this.mail, handedLetters.xiaoye, () => this.offerLetter(true)),
     ]);
   }
 

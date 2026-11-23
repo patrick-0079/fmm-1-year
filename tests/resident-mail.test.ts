@@ -112,6 +112,24 @@ test("showing a choice does not collect or read its letter", () => {
   assert.deepEqual(unreadLetterIds(story), []);
 });
 
+test("a pending offer switches to reading when a second window has already delivered it", () => {
+  const story = readResidentStory();
+  const id = handedLetters.suyan;
+  let refreshes = 0;
+  const mail = {
+    received: () => !!story.npcLetters[id],
+    collect: () => assert.fail("already delivered"),
+    read: () => assert.fail("opening the reply must leave the seal intact"),
+  };
+  const offer = letterChoice(mail, id, () => { refreshes++; });
+  collectHandedLetter(story, id);
+  offer.run();
+  offer.run();
+  assert.equal(refreshes, 1);
+  assert.equal(letterChoice(mail, id, () => {}).title, "现在读信");
+  assert.equal(story.npcLetters[id], "unread");
+});
+
 test("the finished post letter upgrades the old placeholder receipt once without changing its save ID", () => {
   assert.ok(POST_LETTER_REVISION > 1);
   assert.equal(postLetter.id, "post-anniversary-letter");

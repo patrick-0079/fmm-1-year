@@ -12,9 +12,10 @@ import { drawBalloonGuest } from "./garden-balloon-art";
 import { CompanionMotion } from "./companion-motion";
 import { canTravelBetween, type Point, type Progress } from "./core";
 import { PeachGait } from "./peach-gait";
-import { GardenResidents } from "./garden-residents";
+import { gardenWorking, GardenResidents } from "./garden-residents";
 import { drawGardenGesture, prepareGardenGestures } from "./garden-gesture-art";
 import { drawResidentWalk, prepareResidentWalk } from "./resident-walk";
+import { gardenChatTopics, showGardenChat } from "./garden-chat-topics";
 
 type Choice = {title: string; run: () => void};
 type Pose = "idle" | "cat-look" | "cat-pet" | "shy" | "offer" | "smile";
@@ -63,11 +64,18 @@ export class GardenLife {
   interact(id: string) {
     const npc = gardenGuests.find(n => id === "garden-guest-"+n.id);
     if (!npc || this.world.scene !== "garden" || !this.residents.interactable(npc.id)) return false;
+    if (this.speaker === npc && this.activities.dialogueOpen) return true;
+    if (this.world.busy || this.world.paused || this.world.suspended || !gardenWorking(npc.id, this.world.currentPhase)) return true;
     if (npc.id === "balloon-friend") this.cat(npc);
     if (npc.id === "decorator") this.decorator(npc);
     if (npc.id === "picnic-friend") this.picnic(npc);
     this.world.onAchievementEvent(`garden-guest-${npc.id}`);
     return true;
+  }
+  private chat(npc: GardenGuest, choices: Choice[], pose: Pose = "idle") {
+    const key = `garden-guest-${npc.id}` as const;
+    const topic = this.world.chats.next(key, gardenChatTopics[key], this.world.currentPhase);
+    showGardenChat(topic, (text, options) => this.say(npc, text, options, pose), choices);
   }
   private say(npc: GardenGuest, text: string, choices: Choice[] = [], pose: Pose = "idle") {
     this.activities.dialogue(npc.name+" · "+npc.role,text,choices,c=>{
@@ -83,9 +91,8 @@ export class GardenLife {
   }
   private cat(n: GardenGuest) {
     const owns = this.inventory.has("petCat");
-    this.say(n,owns ? "桃桃认出你啦！你想再摸摸它吗？" :
-      "快看呀，那里有只可爱的奶油猫！它的肚皮看起来软乎乎的。你想摸摸它吗？",[
-      {title:"轻轻抚摸奶油猫",run:()=>{
+    const pet = {title:"轻轻抚摸奶油猫",run:()=>{
+        this.world.chats.introduce("garden-guest-balloon-friend");
         if (owns && this.inventory.followingPet === "petCat") {
           this.say(n,"桃桃看起来玩得很开心。要继续一起走，还是让它在我这里歇一会儿？",[
             {title:"继续一起走",run:()=>{ this.inventory.setCompanion("petCat",true); this.say(n,"去吧，桃桃已经跟好啦。"); }},
@@ -103,8 +110,12 @@ export class GardenLife {
           }},
           {title:"不带上奶油猫",run:()=>this.say(n,catRest)},
         ],"cat-pet");
-      }},
-    ],"cat-look");
+    }};
+    const actions: Choice[] = [pet];
+    if (owns) actions.push({ title: "问问桃桃", run: () =>
+      this.say(n, "桃桃认出你啦！你想再摸摸它吗？", [pet], "cat-look") });
+    if (owns || this.world.chats.introduced("garden-guest-balloon-friend")) this.chat(n, actions, "cat-look");
+    else this.say(n, "快看呀，那里有只可爱的奶油猫！它的肚皮看起来软乎乎的。你想摸摸它吗？", actions, "cat-look");
   }
   private intro(n: GardenGuest) {
     const answer=(text:string)=>{
@@ -119,7 +130,8 @@ export class GardenLife {
   }
   private decorator(n: GardenGuest) {
     if (!this.memory().decoratorMet) { this.intro(n); return; }
-    if (!this.memory().rabbitIntroduced) { this.memory().rabbitIntroduced=true; this.save(); }
+    const introduceRabbit = !this.memory().rabbitIntroduced;
+    if (introduceRabbit) { this.memory().rabbitIntroduced=true; this.save(); }
     const options: Choice[] = [];
     if (this.inventory.followingPet==="petBunny") {
       options.push({title:"让棉棉歇一会儿",run:()=>{
@@ -133,15 +145,25 @@ export class GardenLife {
       }},{title:"先让棉棉陪你",run:()=>this.say(n,"好呀，那我们在这里等你。逛累了就回来坐坐吧。")});
     }
     options.push({title:"再聊聊庆典",run:()=>this.intro(n)});
-    this.say(n,"你又来啦！这是棉棉，它也想看看我挂好的彩旗。",options);
+    if (introduceRabbit) this.say(n,"你又来啦！这是棉棉，它也想看看我挂好的彩旗。",options);
+    else this.chat(n, options);
   }
   private picnic(n: GardenGuest) {
+    if (this.world.chats.introduced("garden-guest-picnic-friend")) {
+      this.chat(n, [{title: "一起吃蛋糕", run: () => this.offerCake(n)}]);
+      return;
+    }
     this.say(n,"你…你好，芙芙大人…",[{title:"没关系，不用紧张",run:()=>{
-      this.say(n,"谢…谢谢你。（从一旁的篮子中拿出一个蛋糕）请务必…收下这个。吃甜食会让心情变好！",[
-        {title:"如果可以的话，请和我们一起享用这个蛋糕",run:()=>
-          this.say(n,"真…真的吗？（眼睛闪过不易察觉的欣喜）我…一定会去的…谢谢你！",[],"smile")},
-      ],"offer");
+      this.offerCake(n);
     }}],"shy");
+  }
+  private offerCake(n: GardenGuest) {
+    this.say(n,"谢…谢谢你。（从一旁的篮子中拿出一个蛋糕）请务必…收下这个。吃甜食会让心情变好！",[
+      {title:"如果可以的话，请和我们一起享用这个蛋糕", run: () => {
+        this.say(n,"真…真的吗？（眼睛闪过不易察觉的欣喜）我…一定会去的…谢谢你！",[],"smile");
+        this.world.chats.introduce("garden-guest-picnic-friend");
+      }},
+    ],"offer");
   }
   private layers(): DepthLayer[] {
     const layers: DepthLayer[]=gardenGuests.filter(n=>this.residents.visible(n.id)).map(n=>{

@@ -39,7 +39,7 @@ test("scanning a new public letter makes it readable and independently sealed ac
   t.after(() => rm(root, { recursive: true, force: true }));
   const sources = join(root, "来信");
   await cp(new URL("../ref/来信/", import.meta.url), sources, { recursive: true });
-  for (const name of ["resident-story.ts", "letters.ts"]) {
+  for (const name of ["resident-story.ts", "resident-chats.ts", "letters.ts"]) {
     await copyFile(new URL("../src/" + name, import.meta.url), join(root, name));
   }
   const letter = { id: "new-public-test-letter", title: "花园来信", author: "第二位送信人", text: "花开了！\n\n晚安。" };

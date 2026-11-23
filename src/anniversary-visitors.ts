@@ -5,6 +5,7 @@ import { handedLetters, letterChoice, type LetterHandoff } from "./resident-stor
 import { sceneArt } from "./scene-art";
 import type { World } from "./world";
 import { southGatePlanting } from "./courage-south-gate";
+import { gardenChatTopics, introduceSender, senderIntroductions, showGardenChat } from "./garden-chat-topics";
 
 const greetings = {
   rabe: "晚安，芙芙。小药箱里有绷带，也有一封想交给你的信。",
@@ -157,6 +158,7 @@ export class AnniversaryVisitors {
   interact(id: string) {
     const visitor = anniversaryVisitors.find(v => v.spot.id === id && v.scene === this.world.scene);
     if (!visitor) return false;
+    if (this.active?.visitor === visitor && this.activities.dialogueOpen) return true;
     if (this.world.busy || this.world.paused || this.world.suspended) return true;
     if (visitor.key === "zhenghao") {
       const spot = visitor.spot;
@@ -165,18 +167,31 @@ export class AnniversaryVisitors {
         this.world.visit(spot.id);
         return true;
       }
-      this.say(visitor, "hello", "（正号蹲得端端正正，前爪底下露出一条小鱼。）", [{
-        title: "摸摸正号", run: () => this.say(visitor, "pet",
-          "（正号眯起眼睛，贴着你的手心蹭了蹭。小铃铛轻轻晃了两下，它又坐回小鱼旁边。）", []),
-      }]);
-    } else this.offer(visitor, "hello");
+      const stroke = {title: "摸摸正号", run: () => {
+        this.say(visitor, "pet", "（正号眯起眼睛，贴着你的手心蹭了蹭。小铃铛轻轻晃了两下，它又坐回小鱼旁边。）", []);
+        this.world.chats.introduce(id);
+      }};
+      if (!this.world.chats.introduced(id)) {
+        this.say(visitor, "hello", "（正号蹲得端端正正，前爪底下露出一条小鱼。）", [stroke]);
+      } else {
+        const topic = this.world.chats.next(id, gardenChatTopics["visitor-zhenghao"], this.world.currentPhase);
+        showGardenChat(topic, (text, choices) => this.say(visitor, text === topic.text ? "hello" : "pet", text, choices), [stroke]);
+      }
+    } else {
+      const key = `visitor-${visitor.key}` as const;
+      const speak = (text: string, choices: {title: string; run: () => void}[]) => this.say(visitor, "hello", text, choices);
+      if (this.mail.received(handedLetters[visitor.key])) {
+        showGardenChat(this.world.chats.next(id, gardenChatTopics[key], this.world.currentPhase), speak);
+      } else introduceSender(senderIntroductions[key], speak, () => this.offer(visitor, "hello"));
+    }
     return true;
   }
 
   private offer(visitor: AnniversaryVisitor, action: Action) {
     const key = visitor.key;
     if (key === "zhenghao") return;
-    this.say(visitor, action, greetings[key], [
+    const text = action === "give" ? "（芙芙把收到的信轻轻放进背包。）" : greetings[key];
+    this.say(visitor, action, text, [
       letterChoice(this.mail, handedLetters[key], () => this.offer(visitor, "give")),
     ]);
   }

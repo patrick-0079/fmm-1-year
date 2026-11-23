@@ -2,8 +2,9 @@ import type { World, DepthLayer } from "./world";
 import type { Inventory } from "./inventory";
 import type { Activities } from "./activities";
 import { TOWN_NPCS, type TownNpc } from "./town-data";
-import { residentOpening, townDialogues, type TownPage } from "./town-dialogue";
-import { letterChoice, type LetterHandoff, type ResidentStory } from "./resident-story";
+import { residentOpening, townDailyActions, townDialogues, type TownPage } from "./town-dialogue";
+import { townChatTopics } from "./town-chat-topics";
+import { handedLetters, letterChoice, postUnread, type LetterHandoff, type ResidentStory } from "./resident-story";
 import { townResidentLayers, residentPlacement, drawResidentPortrait, type TownAct } from "./town-acting";
 import { TownResidentMap } from "./town-resident-map";
 import { TownRoutines, worksInTown } from "./town-routines";
@@ -27,6 +28,7 @@ export const TOWN_TALKED_KEY = "fufu-town-talked-v1";
 interface StoryHooks {
   story: () => ResidentStory;
   mail: LetterHandoff;
+  readPost: (onReturn: () => void) => void;
   save: () => void;
   notify: (text: string) => void;
 }
@@ -109,14 +111,18 @@ export class Town {
     if (this.world.scene !== "town" || !id.startsWith("npc-")) return false;
     const npc = TOWN_NPCS.find((n) => n.id === id.slice(4));
     if (!npc || !this.residents.scene.spots.includes(this.residents.anchor(npc.id))) return false;
+    // A second tap on the same actor leaves their current page and shift intact.
+    if (this.act?.npcId === npc.id && this.activities.dialogueOpen) return true;
     const person=this.lives.people.get(npc.id)!;
-    if (!worksInTown(npc.id,this.world.currentPhase) && this.act?.npcId!==npc.id) return false;
+    if (!worksInTown(npc.id,this.world.currentPhase)) return false;
     if (!this.visited.has(npc.id)) {
       this.visited.add(npc.id);
       this.save();
     }
     const at = {...npc,x:person.x,y:person.y};
-    this.showPage(at, residentOpening(npc.id, this.hooks.story(), this.inventory.hasBouquet()));
+    const opening = residentOpening(npc.id, this.hooks.story(), this.inventory.hasBouquet(), this.world.chats.introduced(id));
+    if (opening === "daily") this.showDaily(at);
+    else this.showPage(at, opening);
     return true;
   }
 
@@ -133,15 +139,38 @@ export class Town {
     else if (act.pageId === "decline" && act.elapsed >= 0.5) this.act = undefined;
   }
 
+  private showDaily(npc: TownNpc) {
+    const topic = this.world.chats.next("npc-" + npc.id, townChatTopics[npc.id], this.world.currentPhase);
+    const actions = (townDailyActions[npc.id] ?? []).map(([title, target]) => ({
+      title, run: () => this.answer(npc, target),
+    }));
+    const replies = (topic.replies ?? []).map(([title, text], index) => ({
+      title, run: () => {
+        const pose = npc.id === "cat" && index === 0 ? "rub" : npc.id === "bunny" && index === 1 ? "hug" : "";
+        this.present(npc, pose, { text }, actions);
+      },
+    }));
+    this.present(npc, "", topic, [...replies, ...actions]);
+  }
+
   private showPage(npc: TownNpc, pageId: string) {
     const pages = townDialogues[npc.id], page = pages[pageId];
-    const act = { npc, npcId: npc.id, pageId, elapsed: 0, after: page.after };
     const options = page.letter
       ? [letterChoice(this.hooks.mail, page.letter, () => this.showPage(npc, pageId))]
       : (page.choices ?? []).flatMap(([title, target]) => {
         const letter = pages[target]?.letter;
-        return letter && this.hooks.mail.received(letter) ? [] : [{ title, run: () => this.answer(npc, target) }];
+        if (letter && this.hooks.mail.received(letter)) return [];
+        return [{ title, run: () => this.answer(npc, target) }];
       });
+    this.present(npc, page.pose ?? pageId, page, options);
+    if (page.effect) this.applyEffect(page.effect);
+    if (!page.letter && !page.after && !page.choices?.some(([, target]) => !target.startsWith("@"))) {
+      this.world.chats.introduce("npc-" + npc.id);
+    }
+  }
+
+  private present(npc: TownNpc, pageId: string, page: TownPage, options: {title: string; run: () => void}[]) {
+    const act = { npc, npcId: npc.id, pageId, elapsed: 0, after: page.after };
     this.activities.dialogue(
       page.speaker ?? `${npc.name} · ${npc.role}`,
       page.text,
@@ -156,16 +185,28 @@ export class Town {
     if (npc.id === "baker" && pageId === "eat") this.world.facing = 0;
     if (npc.id === "xiaoyou" && (pageId === "receive-orange" || pageId === "taste-orange"))
       this.world.facing = 0;
-    if (page.effect) this.applyEffect(page.effect);
   }
 
   private answer(npc: TownNpc, target: string) {
     if (!target.startsWith("@")) {
+      if (npc.id === "radio-host" && target === "start" && this.hooks.mail.received(handedLetters["radio-host"]))
+        target = "radio-again";
       this.showPage(npc, target);
       return;
     }
     this.activities.close();
     switch (target) {
+      case "@post": {
+        const person = this.lives.people.get("post");
+        this.hooks.readPost(() => {
+          const anchor = this.residents.anchor("post");
+          if (this.world.scene !== "town" || !person || person !== this.lives.people.get("post") ||
+              this.world.busy || this.world.suspended || this.world.paused || this.activities.active ||
+              !this.hooks.story().postDelivered || Math.hypot(this.world.player.x - anchor.x, this.world.player.y - anchor.y) > 72) return;
+          this.showPage({...npc, x: person.x, y: person.y}, postUnread(this.hooks.story()) ? "unread" : "read");
+        });
+        break;
+      }
       case "@bag": this.inventory.openWardrobe(); break;
       case "@bouquet": this.inventory.openBouquet(); break;
       case "@game": if (npc.game) this.visitGame(npc.game); break;

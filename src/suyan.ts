@@ -4,9 +4,10 @@ import { handedLetters, letterChoice, type LetterHandoff } from "./resident-stor
 import { sceneArt } from "./scene-art";
 import { drawSuyan } from "./suyan-art";
 import { suyanSpot } from "./suyan-data";
-import type { GardenResidents } from "./garden-residents";
+import { gardenWorking, type GardenResidents } from "./garden-residents";
 import { drawGardenGesture } from "./garden-gesture-art";
 import { drawResidentWalk } from "./resident-walk";
+import { gardenChatTopics, introduceSender, senderIntroductions, showGardenChat } from "./garden-chat-topics";
 const motion=matchMedia("(prefers-reduced-motion: reduce)");
 
 export class Suyan {
@@ -20,17 +21,25 @@ export class Suyan {
 
   interact(id: string) {
     if (id !== suyanSpot.id || this.world.scene !== "garden" || !this.residents.interactable("suyan")) return false;
-    if (this.world.busy || this.world.paused || this.world.suspended) return true;
-    this.dialogue("刚才一阵风把信封吹到了脚边，我赶紧用帽子压住了。芙芙，你来得正好。", [
-      { title: "你在等我吗？", run: () => this.offerLetter() },
-    ]);
+    if (this.greeting && this.activities.dialogueOpen) return true;
+    if (this.world.busy || this.world.paused || this.world.suspended || !gardenWorking("suyan", this.world.currentPhase)) return true;
+    const say = this.dialogue.bind(this);
+    if (this.mail.received(handedLetters.suyan)) {
+      showGardenChat(this.world.chats.next(id, gardenChatTopics["garden-guest-suyan"], this.world.currentPhase), say);
+    } else {
+      introduceSender(senderIntroductions["garden-guest-suyan"], say, () => {
+        this.dialogue("刚才一阵风把信封吹到了脚边，我赶紧用帽子压住了。芙芙，你来得正好。", [
+          {title: "你在等我吗？", run: () => this.offerLetter()},
+        ]);
+      });
+    }
     this.world.onAchievementEvent("garden-guest-suyan");
     return true;
   }
 
-  private offerLetter() {
-    this.dialogue("嗯，这封是给你的。你看，封口的小花是我自己画的。", [
-      letterChoice(this.mail, handedLetters.suyan, () => this.offerLetter()),
+  private offerLetter(received = false) {
+    this.dialogue(received ? "（芙芙收好信封。苏颜一只手按着帽檐，笑着朝你挥挥手。）" : "嗯，这封是给你的。你看，封口的小花是我自己画的。", [
+      letterChoice(this.mail, handedLetters.suyan, () => this.offerLetter(true)),
     ]);
   }
 

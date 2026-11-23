@@ -115,6 +115,37 @@ await check("打开背包暂停小游戏与方向键；Esc 只收起背包，之
   assert(engine().status === "lost", "收起背包后原局没有继续运行");
 });
 
+await check("小游戏里翻背包来信时继续暂停，返回纪念物后可回到原局", () => {
+  let subscriptions = 0, returns = 0;
+  const letter = { id: "kerry", title: "Kerry 的来信", text: "晚安。" };
+  inventory.mailbox = () => ({
+    items: [letter], unreadIds: [letter.id], onRead() {},
+    subscribe() { subscriptions++; return () => { subscriptions--; }; },
+  });
+  try {
+    arcade.open("snake");
+    world.onAction(true);
+    inventory.openMail(undefined, () => { returns++; });
+    assert(!bag.hidden && !bag.inert && canvas.inert && world.suspended, "信摞未接管操作");
+    assert(subscriptions === 1 && bagButton(".mail-envelope").dataset.memoryId === letter.id, "背包没有显示来信");
+    for (let i = 0; i < 80; i++) world.onTick(.1, i / 10);
+    assert(engine().status === "playing", "翻信时小游戏仍在推进");
+    key("Escape", {}, bagButton(".mail-envelope"));
+    assert(!bag.hidden && document.activeElement === bagButton("[data-mail]") && subscriptions === 0,
+      "返回时焦点、订阅或背包状态不正确");
+    assert(returns === 0 && world.suspended, "仅放回信摞就续接了游戏");
+    bagButton("[data-mail]").click();
+    key("b", {}, bagButton(".mail-envelope"));
+    assert(returns === 1 && !world.suspended && bag.hidden && arcade.active, "合包后没有正确回到原局");
+    inventory.openMail(undefined, () => { returns++; });
+    inventory.close(false);
+    assert(subscriptions === 0 && returns === 1, "系统收起背包时错误地继续了旧对话");
+  } finally {
+    inventory.close(false);
+    inventory.mailbox = undefined;
+  }
+});
+
 await check("从放大的星盘互动开包换装，结束互动后衣橱仍开着且地图恢复探索", () => {
   activities.menu("残缺的星盘留着三圈凹槽。", [], {x: 350, y: 280}, 1.55);
   inventory.grant("wreath", false);
@@ -144,6 +175,11 @@ await check("试穿的猫仍需正式领取，邀请会保存真实伙伴位，�
   assert(actions.includes("petCat") && actions.includes("petBunny"), "正式同行没有登记");
   inventory.setFitting(false);
   assert(world.equipment.pet==="petCat","关闭试穿后没有继续同行");
+  activities.close(); talk(); select("问问桃桃");
+  assert(document.querySelector(".activity-status")?.textContent === "桃桃认出你啦！你想再摸摸它吗？", "星星没有认出已获得的桃桃");
+  select("轻轻抚摸奶油猫"); select("让桃桃休息");
+  activities.close(); talk(); select("问问桃桃"); select("轻轻抚摸奶油猫"); select("带上奶油猫");
+  assert(inventory.followingPet === "petCat", "休息后不能通过星星的问候再次邀请桃桃");
   activities.close();inventory.reset();
 });
 

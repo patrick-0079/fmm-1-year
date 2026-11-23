@@ -18,6 +18,8 @@ import { prepareProp } from "./scene-art";
 import type { Facing } from "./equipment";
 import { whenAvatarLayersReady } from "./avatar";
 import bouquetUrl from "./assets/qingya-bouquet.webp";
+import envelopeUrl from "./assets/stationery-sealed.webp";
+import { renderGameMailDesk, type LetterList } from "./game-mail-desk";
 import type { AstrolabeState } from "./astrolabe";
 import { bindJournalScrollHint, journalCoverMarkup, journalPageCount, renderRuinJournal } from "./ruin-journal";
 type BagTab = "wardrobe" | "equipped" | "keepsakes";
@@ -41,6 +43,9 @@ export class Inventory {
   get state() { return this.fittingRoom ?? this.earned; }
   onEquip: () => void = () => {};
   notebookState: () => { astrolabe: AstrolabeState; listened: boolean } | null = () => null;
+  mailbox?: () => LetterList;
+  private mailCleanups: (() => void)[] | null = null;
+  private onBagReturn?: () => void;
   private trigger = document.querySelector<HTMLButtonElement>(".bag-toggle")!;
   private root: HTMLElement = document.querySelector(".inventory-panel")!;
   private wreath = new Image();
@@ -106,7 +111,10 @@ export class Inventory {
       if (this.root.hidden && !this.canOpen()) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      if (!e.repeat) this.togglePanel();
+      if (!e.repeat) {
+        if (e.key === "Escape" && this.mailCleanups) this.returnMailToBag();
+        else this.togglePanel();
+      }
     }, { capture: true });
     this.sync();
   }
@@ -116,6 +124,49 @@ export class Inventory {
   }
   hasBouquet() { return this.earned.bouquet; }
   hasNotebook() { return this.notebookState() !== null; }
+  openMail(letterId?: string, onReturn?: () => void) {
+    if (!this.mailbox || this.mailCleanups) return;
+    const letters = this.mailbox();
+    if (letterId && !letters.items.some(item => item.id === letterId)) return;
+    if (this.root.hidden) this.open();
+    if (this.root.hidden) return;
+    if (onReturn) this.onBagReturn = onReturn;
+    this.tab = "keepsakes";
+    this.journalPage = null;
+    this.bouquetDetail = false;
+    this.trying = false;
+    this.clearJournalHint();
+    const cleanups: (() => void)[] = [];
+    this.mailCleanups = cleanups;
+    this.updateSuspension();
+    this.root.classList.add("game-letter-reader");
+    this.root.dataset.tab = "keepsakes";
+    this.root.setAttribute("aria-label", "背包里的晚安来信");
+    this.root.innerHTML = `<header><h3>晚安来信</h3><div class="reader-tools"><button type="button" class="reader-close" data-mail-back>返回背包</button></div></header>
+      <div class="reader-body"></div>`;
+    renderGameMailDesk(this.root.querySelector<HTMLElement>(".reader-body")!, { ...letters, selectedId: letterId },
+      cleanup => cleanups.push(cleanup));
+  }
+  private disposeMail() {
+    if (!this.mailCleanups) return;
+    for (const cleanup of this.mailCleanups) cleanup();
+    this.mailCleanups = null;
+    this.root.replaceChildren();
+    this.root.classList.remove("game-letter-reader");
+    this.root.setAttribute("aria-label", "芙芙的背包");
+  }
+  private returnMailToBag() {
+    this.disposeMail();
+    this.changeTab("keepsakes");
+    this.root.querySelector<HTMLButtonElement>("[data-mail]")?.focus({ preventScroll: true });
+  }
+  refreshMailCount() {
+    if (this.root.hidden) return;
+    const label = this.root.querySelector<HTMLElement>(".bag-mail-count");
+    if (!label || !this.mailbox) return;
+    const { items, unreadIds = [] } = this.mailbox();
+    label.textContent = `${items.length} 封 · ${unreadIds.length} 未读`;
+  }
   openNotebook() {
     if (!this.hasNotebook()) return;
     if (this.root.hidden) this.open();
@@ -262,6 +313,9 @@ export class Inventory {
   }
   close(restoreFocus = true) {
     const wasOpen = !this.root.hidden;
+    const onReturn = this.onBagReturn;
+    this.onBagReturn = undefined;
+    this.disposeMail();
     this.clearJournalHint();
     this.clearJournalHint = () => {};
     this.root.hidden = true;
@@ -277,9 +331,10 @@ export class Inventory {
     } else {
       this.world.canvas.focus({ preventScroll: true });
     }
+    onReturn?.();
   }
   private updateSuspension() {
-    this.world.suspend("inventory", this.journalPage !== null ||
+    this.world.suspend("inventory", this.mailCleanups !== null || this.journalPage !== null ||
       this.scene.matches(".inspecting, .bass-playing, .arcade-active, .cinema-active, .reading-letter"));
   }
   private get pageSize() { return this.compact ? 8 : 15; }
@@ -321,6 +376,8 @@ export class Inventory {
     event.stopPropagation();
     const data = button.dataset;
     if (button.classList.contains("bag-close")) this.close();
+    else if (data.mail !== undefined) this.openMail();
+    else if (data.mailBack !== undefined) this.returnMailToBag();
     else if (data.tab) this.changeTab(data.tab as BagTab);
     else if (data.chooseCategory !== undefined) {
       this.choosingCategory = !this.choosingCategory;
@@ -456,7 +513,8 @@ export class Inventory {
       }
       const book = this.hasNotebook();
       const bouquet = this.hasBouquet();
-      return `<div class="bag-keepsakes"><button type="button" class="bag-keepsake ${book ? "" : "is-locked"}" data-notebook data-focus="notebook" ${book ? "" : "disabled"} aria-label="${book ? "翻开遗迹手记" : "遗迹手记，和回声遗迹的守护者交谈后获得"}">${journalCoverMarkup}<span>遗迹手记</span></button>
+      const mail = this.mailbox ? `<button type="button" class="bag-keepsake" data-mail data-focus="mail"><img src="${envelopeUrl}" alt=""><span>晚安来信</span><small class="bag-mail-count"></small></button>` : "";
+      return `<div class="bag-keepsakes">${mail}<button type="button" class="bag-keepsake ${book ? "" : "is-locked"}" data-notebook data-focus="notebook" ${book ? "" : "disabled"} aria-label="${book ? "翻开遗迹手记" : "遗迹手记，和回声遗迹的守护者交谈后获得"}">${journalCoverMarkup}<span>遗迹手记</span></button>
         <button type="button" class="bag-keepsake ${bouquet ? "" : "is-locked"}" data-bouquet data-focus="bouquet" ${bouquet ? "" : "disabled"} title="${bouquet ? "查看花束与赠语" : "在周年小镇的青芽花店领取"}"><img src="${bouquetUrl}" alt=""><span>青芽的洋桔梗</span></button></div>`;
     }
     const start = this.page * this.pageSize;
@@ -477,7 +535,7 @@ export class Inventory {
     let action = "";
     if (this.tab === "keepsakes") {
       title = "纪念物";
-      text = this.bouquetDetail ? "青芽亲手为你挑选的花束。" : "守护者赠书，青芽的花店赠花。";
+      text = this.bouquetDetail ? "青芽亲手为你挑选的花束。" : "随身带着的来信、手记与花束。";
     } else if (this.tab === "equipped" && !this.selected) {
       title = "身上的搭配";
       text = "点一个部位，查看或更换配饰。";
@@ -498,7 +556,7 @@ export class Inventory {
     return `${art}<div class="bag-detail" aria-live="polite"><strong>${title}</strong><small>${text}</small></div>${action}`;
   }
   private render() {
-    if (this.root.hidden) return;
+    if (this.root.hidden || this.mailCleanups) return;
     this.clearJournalHint();
     const focused = document.activeElement instanceof HTMLElement && this.root.contains(document.activeElement) ? document.activeElement : null;
     const focusKey = focused?.dataset.focus;
@@ -534,6 +592,7 @@ export class Inventory {
       </div>
       <div class="bag-collection">${this.collection()}</div>
       <footer class="bag-footer">${this.footer()}</footer>`);
+    this.refreshMailCount();
     this.clearJournalHint = bindJournalScrollHint(this.root);
     if (focused) {
       const target = focusKey ? this.root.querySelector<HTMLElement>(`[data-focus="${focusKey}"]:not(:disabled)`) : null;

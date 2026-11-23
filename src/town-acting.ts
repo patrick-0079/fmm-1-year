@@ -489,7 +489,7 @@ export function drawResidentPortrait(c: Brush, npc: TownNpc, sprites: HTMLImageE
   const special =
     npc.id === "baker"
       ? bakerPose(page)
-      : npc.id === "bunny" && page !== "release"
+      : npc.id === "bunny" && page && page !== "release"
         ? 4
         : npc.id === "cat" && page === "rub"
           ? 5

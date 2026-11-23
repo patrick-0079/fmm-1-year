@@ -8,6 +8,7 @@ import "./achievement-flash.css";
 import { ForegroundPlayClock } from "./playtime";
 import { icon } from "./icons";
 import { World, scenes, type SceneId } from "./world";
+import { ResidentChats } from "./resident-chats";
 import { InteractionPrompt } from "./interaction-prompt";
 import { resolveCue } from "./interaction-cues";
 import { Activities } from "./activities";
@@ -30,7 +31,7 @@ import { FlowerTrail } from "./flower-trail";
 import { NightMeadow } from "./night-meadow";
 import { EchoRuins } from "./echo-ruins";
 import { Elders } from "./elders";
-import { collectHandedLetter, grantDebugLetters, handedLetters, hasHandedLetter, mailboxLetters, markLetterRead, mergeResidentStory,
+import { collectHandedLetter, grantDebugLetters, handedLetters, hasHandedLetter, mailboxLetters, markLetterRead, mergeResidentStory, postLetter,
   unreadLetterIds, type LetterHandoff } from "./resident-story";
 import { AstrolabeQuest } from "./astrolabe-quest";
 import { RoomBass } from "./room-bass";
@@ -40,7 +41,7 @@ import { mountDebugPanel } from "./debug-panel";
 import { meadowOpen } from "./rainbow-flowers";
 import { JOURNEY_KEY, readJourney, type Journey } from "./journey";
 import { openCollection } from "./media";
-import { renderGameMailDesk } from "./game-mail-desk";
+import { renderGameMailDesk, type LetterList } from "./game-mail-desk";
 import {
   chime,
   setSound,
@@ -78,7 +79,8 @@ export function mountGame() {
   // The guide stays clickable during the brief gate fade. Honor its latest
   // destination as soon as the current crossing has finished.
   let afterCrossing: (() => void) | undefined;
-  const world = new World(document.querySelector("#world")!);
+  const chats = new ResidentChats(() => progress.residents.chats, save);
+  const world = new World(document.querySelector("#world")!, chats);
   const revealMapIfOffscreen = () => {
     const board=world.canvas.parentElement!, rect=board.getBoundingClientRect();
     if (rect.bottom<=0 || rect.top>=window.innerHeight) board.scrollIntoView({block:"nearest",behavior:"instant"});
@@ -95,19 +97,17 @@ export function mountGame() {
     const unread = unreadLetterIds(story).length;
     mailCount.textContent = mailboxLetters(story).length + " 封来信" + (unread ? ` · ${unread} 封未读` : "");
     mailCard.classList.toggle("has-unread", unread > 0);
+    inventory.refreshMailCount();
   }
   function refreshMailboxViews() {
     updateMailCount();
     const items = mailboxLetters(progress.residents), unread = unreadLetterIds(progress.residents);
     for (const listener of mailboxListeners) listener(items, unread);
   }
-  function readLetters(letterId?: string) {
-    reader.inGame = true;
-    const { title, subtitle } = collections.letters;
-    const body = reader.open(title, subtitle, "A LITTLE MEMORY · 珍藏一份心意");
+  function mailbox(): LetterList {
     const story = progress.residents;
-    renderGameMailDesk(body, {
-      items: mailboxLetters(story), selectedId: letterId,
+    return {
+      items: mailboxLetters(story),
       unreadIds: unreadLetterIds(story),
       subscribe: listener => {
         mailboxListeners.add(listener);
@@ -116,7 +116,13 @@ export function mountGame() {
       onRead: letterId => {
         if (markLetterRead(story, letterId)) save();
       },
-    }, cleanup => reader.onCleanup(cleanup));
+    };
+  }
+  function readLetters(selectedId?: string) {
+    reader.inGame = true;
+    const { title, subtitle } = collections.letters;
+    const body = reader.open(title, subtitle, "A LITTLE MEMORY · 珍藏一份心意");
+    renderGameMailDesk(body, {...mailbox(), selectedId}, cleanup => reader.onCleanup(cleanup));
   }
   const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
   const saveNow = document.querySelector<HTMLButtonElement>(".save-now")!;
@@ -244,6 +250,7 @@ export function mountGame() {
     }
   }
   const inventory = new Inventory(world, toast);
+  inventory.mailbox = mailbox;
   inventory.notebookState = () => progress.residents.guardianInvited
     ? { astrolabe: progress.astrolabe, listened: progress.echoes.listened }
     : null;
@@ -301,7 +308,7 @@ export function mountGame() {
     read: id => {
       if (!mail.received(id)) return;
       activities.close();
-      readLetters(id);
+      inventory.openMail(id);
     },
   };
   inventory.onEquip = () => activities.finishEquipmentChoice();
@@ -315,7 +322,12 @@ export function mountGame() {
     return score;
   });
   const town = new Town(world, activities, inventory, id => visit(ARCADES[id].scene, "arcade-"+id),
-    { story: () => progress.residents, mail, save, notify: toast });
+    {
+      story: () => progress.residents, mail, save, notify: toast,
+      readPost: onReturn => {
+        if (progress.residents.postDelivered) inventory.openMail(postLetter.id, onReturn);
+      },
+    });
   const gardenLife = new GardenLife(world, activities, inventory, () => progress, save);
   nature.onTimeJump = () => {
     if (world.scene === "garden") gardenLife.residents.syncShift(world.currentPhase,world.player);
@@ -482,7 +494,7 @@ export function mountGame() {
     .querySelector(".stand-up")!
     .addEventListener("click", () => world.standUp());
   campLetterButton.addEventListener("click", () => {
-    if (!campLetterButton.hidden) mail.read(handedLetters.patrick);
+    if (!campLetterButton.hidden && mail.received(handedLetters.patrick)) readLetters(handedLetters.patrick);
   });
   let encouragementIndex = 0;
   world.onRespawn = ({ trap }) => {

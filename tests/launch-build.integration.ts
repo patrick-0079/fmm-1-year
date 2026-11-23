@@ -77,6 +77,7 @@ test("switching full → invitation → full cleans the deployed directory", asy
     if (/\.(?:js|css|html)$/.test(file)) {
       const body = await readFile(join(outDir, file), "utf8");
       for (const name of gameArt) assert.ok(!body.includes(name), name);
+      assert.doesNotMatch(body, /一卷绷带骨碌碌地滚到芙芙鞋尖|我数左边，你数右边|我们一起数回声/);
       assert.doesNotMatch(body, /room-interactive|nemu-sprites|town-guests|anniversary-town|town-playground|patrick-camp|texture-cache\.js|rabe-anniversary-letter|patrick-anniversary-letter|star-xiaoye|star-zhenghao|成为了芙妮宝星|CharaStudio|stationery-|1-year\/picture\/|\.mp4\b/);
     }
   }

@@ -41,6 +41,30 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
     world.setCueInput("keyboard");
     world.interact();
   };
+  const originalOffer: Record<string, string> = {
+    suyan: "嗯，这封是给你的。你看，封口的小花是我自己画的。",
+    rabe: "晚安，芙芙。小药箱里有绷带，也有一封想交给你的信。",
+    dianziyang: "咩。走累了就在路边歇一歇。我给你带了一封信。",
+    pigeon: "（鸽子歪了歪头，把信推到芙芙脚边。）",
+  };
+  const followIntroduction = (author: string, side: number) => {
+    const buttons = actions();
+    assert(buttons.length === 2 && buttons[0].textContent !== buttons[1].textContent, author+" 的初遇没有两种独立回答");
+    const count = letterCount();
+    buttons[side].click();
+    const answer = q(".activity-status").textContent;
+    for (let page = 0; page < 6; page++) {
+      const current = actions();
+      assert(letterCount() === count && !current.some(b => b.textContent === "现在读信"), author+" 未收下就发信");
+      if (current.some(b => b.textContent === "收下信")) {
+        assert(q(".activity-status").textContent === originalOffer[author], author+" 没有接回原来递信的完整台词");
+        return answer;
+      }
+      assert(current.length === 1, author+" 初遇分支缺少跟进选项");
+      current[0].click();
+    }
+    throw Error(author+" 初遇分支未能走到交信");
+  };
   assert(letterCount()===2 && !state().achievements.earned.some(id=>id.startsWith("letter-")), "请从仅有两封信的新档开始来信路线");
   await visit("room","letters");
   for (const author of ["kerry","xiaoaimen"]) {
@@ -56,7 +80,7 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
   q(".game-letter-reader .reader-close").click();
   log("开局两封信逐封拆开，正文出现时各自盖章");
   const routes: Array<[SceneId,string,string,string[]]>=[
-    ["garden","garden-guest-suyan","suyan",["你在等我吗？"]],
+    ["garden","garden-guest-suyan","suyan",[]],
     ["garden","xiaoye-plush","xiaoye",[]],
     ["town","npc-radio-host","yeshenhua",["你的小牛角好可爱","看看节目单"]],
     ["town","npc-xiaoyou","xiaoyou",["收下橘子","尝一瓣","看看果篮"]],
@@ -69,6 +93,22 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
   for (const [scene,id,author,steps] of routes) {
     const count = letterCount();
     await visit(scene,id);
+    if (Object.hasOwn(originalOffer, author)) {
+      const first = followIntroduction(author, 0);
+      const stale = actions().find(b => b.textContent === "收下信")!;
+      world.onInteract(id);
+      assert(actions().includes(stale), author+" 重复点地图上的同一人会重开谈话");
+      const speaker = world.config.spots.find(spot => spot.id === id)!;
+      const away = world.player.x < speaker.x ? -1 : 1;
+      world.player = {x: world.player.x + away * 90, y: world.player.y};
+      await wait(() => q(".activity-hud").hidden, author+" 离开 72 像素后对白仍未结束");
+      stale.click();
+      assert(letterCount() === count && !has("letter-"+author), author+" 过期的递信按钮仍入箱或盖章");
+      await visit(scene,id);
+      const second = followIntroduction(author, 1);
+      assert(first !== second, author+" 的两项分别进入了相同回答");
+      log(author+" · 两种初遇回答都接回原来的递信台词，第一趟走远未领取");
+    }
     for (const step of steps) choose(step);
     const final=author==="post"?"继续":"收下信";
     if (author==="xiaoye") await wait(()=>actions().some(b=>b.textContent?.startsWith(final)), "拥抱结束后没有递出信封");
@@ -78,8 +118,9 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
     if (author==="rabe") {
       assert(!has("letter-rabe"),"Rabe 的信尚未拆开就已盖章");
       choose("现在读信");
-      await wait(()=>has("letter-rabe") && !q(".game-letter-reader .mail-sheet").hidden,"Rabe 的信正文出现后没有盖章");
-      q(".game-letter-reader .reader-close").click();
+      await wait(()=>has("letter-rabe") && q(".inventory-panel .mail-sheet")?.hidden === false,"Rabe 的信从背包展开后没有盖章");
+      window.dispatchEvent(new KeyboardEvent("keydown",{key:"b",bubbles:true,cancelable:true}));
+      assert(q(".inventory-panel").hidden && world.scene === scene,"合上背包后没有停在 Rabe 身边");
     } else {
       await wait(()=>has("letter-"+author),author+" 实际收信后没有盖章");
     }

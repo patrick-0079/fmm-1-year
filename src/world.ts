@@ -1,5 +1,6 @@
 import type { AchievementEvent } from "./achievement-events";
 import type { Phase } from "./day";
+import { ResidentChats } from "./resident-chats";
 import roomUrl from "./assets/room-interactive.webp";
 import gardenUrl from "./assets/anniversary-garden-tree-free.webp";
 import appleBasketUrl from "./assets/apple-basket.webp";
@@ -90,6 +91,7 @@ export class World {
   townMap = scenes.town;
   gardenMapFor: (base: Scene) => Scene = base => base;
   currentPhase: Phase = "day";
+  readonly chats: ResidentChats;
   isPresentingDialogue: () => boolean = () => false;
   player: Point = { ...scenes.room.spawn };
   private camera: Point = { x: 0, y: 0 };
@@ -235,7 +237,8 @@ export class World {
     if (pet) drawItem(c, pet, 13, -16, 18, 17, images.wreath, images.rewards);
     c.restore();
   }
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, chats = new ResidentChats()) {
+    this.chats = chats;
     this.canvas = canvas;
     this.inputRegion = canvas.closest<HTMLElement>(".game-stage") ?? canvas.parentElement!;
     this.ctx = canvas.getContext("2d")!;
