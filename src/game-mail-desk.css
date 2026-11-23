@@ -10,10 +10,10 @@
   border: 0;
   border-radius: inherit;
   overflow: hidden;
-  background: #ad754e url("./assets/stationery-desk.webp") center / cover;
+  background: var(--mail-backdrop, #ad754e url("./assets/stationery-desk.webp") center / cover);
   container: mail-desk / inline-size;
 }
-.reading-letter:has(.mail-desk-body) :is(.bag-toggle,.time-pill,.scene-top) { visibility: hidden; }
+.scene-wrap:has(> .game-letter-reader:not([hidden]) .mail-desk-body) :is(.bag-toggle,.time-pill,.scene-top) { visibility: hidden; }
 .game-letter-reader:has(.mail-desk-body) > header {
   position: relative;
   z-index: 5;
@@ -254,7 +254,7 @@
     right: 2.2%;
     padding: 0;
   }
-  .game-letter-reader:has(.mail-desk-body:not([data-mail-state=returning]) .mail-sheet:not([hidden])) > header > div:first-child { display: none; }
+  .game-letter-reader:has(.mail-desk-body:not([data-mail-state=returning]) .mail-sheet:not([hidden])) > header > :first-child { display: none; }
   .game-letter-reader:has(.mail-desk-body:not([data-mail-state=returning]) .mail-sheet:not([hidden])) .reader-tools { gap: 2px; }
   .game-letter-reader:has(.mail-desk-body:not([data-mail-state=returning]) .mail-sheet:not([hidden])) .reader-tools button { padding-inline: 5px; }
   .game-letter-reader .mail-sheet {

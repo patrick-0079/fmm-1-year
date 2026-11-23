@@ -73,7 +73,7 @@
 .scene-wrap:has(.intro-screen:not(.dismissed)) > .bag-toggle {
   visibility: hidden;
 }
-.scene-wrap:has(> .inventory-panel:not([hidden]))::after {
+.scene-wrap:has(> .inventory-panel:not([hidden], .game-letter-reader))::after {
   content: "";
   position: absolute;
   z-index: 15;
@@ -517,6 +517,7 @@
 .bag-mail-count { color: #765343; font-size: clamp(10px, 1.3cqw, 13px); line-height: 1.2; }
 .bag-keepsake.is-locked img { opacity: .5; filter: saturate(.35); }
 .inventory-panel.game-letter-reader {
+  --mail-backdrop: rgb(220 220 220 / 36%);
   display: flex;
   flex-direction: column;
   translate: none;
