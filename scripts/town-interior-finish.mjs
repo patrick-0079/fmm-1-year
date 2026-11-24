@@ -24,7 +24,7 @@ const facePanels = {
 };
 const glowSpots = {
   florist: [[538, 82, 39, 33], [466, 159, 83, 56]], baker: [[82, 109, 55, 53], [474, 106, 55, 47]],
-  maker: [[334, 173, 60, 53], [445, 84, 48, 37]], post: [[492, 195, 54, 42], [142, 76, 44, 35]],
+  maker: [[334, 173, 60, 53], [445, 84, 48, 37], [516, 134, 38, 24]], post: [[492, 195, 54, 42], [142, 76, 44, 35]],
   books: [[503, 142, 62, 57], [150, 123, 66, 45]], radio: [[263, 72, 48, 27], [110, 143, 60, 40]],
   hall: [[418, 85, 75, 40], [478, 113, 48, 45], [300, 147, 99, 31]],
 };
@@ -255,10 +255,46 @@ function clothStrip(x, y, w, h, color, trim, gingham = false) {
 }
 
 function galleryRunner(theme) {
-  return clothStrip(246, 203, 108, 126, theme.cloth, theme.stitch) +
+  const leaf = "M0 0q-6-4-6-10q5 2 6 10Zm0 0q5-5 8-6q-.6 5-8 6Z";
+  const sprigs = [225, 242, 280, 297].map((y, i) => {
+    const angle = i < 2 ? 0 : 180;
+    return [262, 338].map(x => `<g transform="translate(${x} ${y}) rotate(${angle})">` +
+      path(leaf, theme.stitch, 'opacity=".35"') + line(leaf, theme.stitch, .51, .75) + "</g>").join("");
+  }).join("");
+  return clothStrip(246, 203, 108, 126, theme.cloth, theme.stitch) + sprigs +
     line("M254 224v-13h13m66 0h13v13m-92 83v13h13m66 0h13v-13", theme.stitch, .94, .68) +
     line("M300 245l16 16-16 16-16-16Z M300 251l10 10-10 10-10-10Z", theme.stitch, 1.05, .58) +
     line("M278 261q-7-9-14-8q4 6 14 8q-10 1-13 8q8-1 13-8m44 0q7-9 14-8q-4 6-14 8q10 1 13 8q-8-1-13-8", theme.stitch, .85, .62);
+}
+
+function furnishingFloor(place) {
+  switch (place) {
+    case "florist":
+      return clothStrip(198, 277, 95, 43, "#809276", "#efce9e") +
+        line("M205 304q8 3 17-.5m-13 2q1-5 6-6q.7 4-6 6m73-1q-1-5-6-6q-.7 4 6 6", "#e7d1a0", .76, .86) +
+        line("M42 267h82v58H42Zm3 3h76v52H45Z", "#4b735e", .8, .49) +
+        line("M45 269h76v53H45Z", "#e6dbad", .53, .68);
+    case "baker":
+      return clothStrip(111, 282, 112, 38, "#ab6666", "#f0cf9c", true);
+    case "maker":
+      return clothStrip(466, 146, 94, 32, "#6c566d", "#e4ba89") +
+        line("M472 174h80m-80-1 5-4 5 4 5-4 5 4m42 0 5-4 5 4 5-4 5 4", "#e6c094", .78, .83);
+    case "post":
+      return clothStrip(210, 292, 174, 37, "#637e70", "#e3c39b") +
+        line("M273 307h16v10h-16Zm0 .5 8 5 8-5m-12 13h8", "#ebce9f", .77, .76);
+    case "books":
+      return clothStrip(113, 281, 115, 40, "#7a8d79", "#e9ce9e") +
+        line("M118 313q4-3 9 0q5-3 9 0v3q-4-3-9 0q-5-3-9 0Zm9 0v3m80-3q4-3 8 0q5-3 8 0v3q-4-3-8 0q-5-3-8 0Zm8 0v3", "#eed6a4", .7, .88);
+    case "radio": {
+      const cable = "M60 180q-24 5-20 30t15 22q10 3 7 13";
+      return clothStrip(508, 240, 58, 34, "#57536a", "#b9afa3") +
+        line(cable, "#3a3746", 2.2, .81) + line(cable, "#8a7b82", .51, .84);
+    }
+    case "hall":
+      return clothStrip(48, 216, 96, 33, "#aa6b74", "#e4bf8e") +
+        clothStrip(365, 228, 80, 29, "#ac7380", "#e4bf8e") +
+        line("M54 243h84m235 8h64", "#e7c99c", .67, .83);
+  }
 }
 
 function builtInFrame(theme, doorX) {
@@ -347,15 +383,17 @@ export function finishTownInterior(place, plan, base, assets) {
     .replace(/<rect x="24" y="112" width="552" height="239" fill="url\(#floor\)"\s*\/>/,
       floor(theme.wood, kind, 24, 112, 552, 239, randomFloor) + rect(24, 113, 552, 237, "url(#footlight)") +
       rect(24, 113, 552, 237, "url(#warm-floor)", place === "radio" ? 'opacity=".49"' : ""));
-  let floorDetails = base.floorDetails;
+  const furnishingDetails = furnishingFloor(place);
+  let floorDetails = furnishingDetails + base.floorDetails;
   if (place === "florist") {
-    const firstPhase = floorDetails.indexOf('<g class="phase-view');
-    floorDetails = '<g clip-path="url(#inside)">' + floor("#9bab83", "greenhouse", 25, 116, 151, 230, random(815)) + floorDetails.slice(firstPhase);
+    const firstPhase = base.floorDetails.indexOf('<g class="phase-view');
+    floorDetails = '<g clip-path="url(#inside)">' + floor("#9bab83", "greenhouse", 25, 116, 151, 230, random(815)) +
+      furnishingDetails + base.floorDetails.slice(firstPhase);
   } else if (place === "radio") {
     const carpets = clothStrip(42, 125, 246, 90, "#7f5266", "#d4ae9d") + clothStrip(411, 125, 132, 91, "#4d657a", "#bbbda8");
-    floorDetails = carpets + timedFloorLight(floorDetails);
+    floorDetails = carpets + furnishingDetails + timedFloorLight(base.floorDetails);
   } else if (replaceFloorTextiles.has(place)) {
-    floorDetails = timedFloorLight(floorDetails);
+    floorDetails = furnishingDetails + timedFloorLight(base.floorDetails);
   }
   const rugArgs = clothShape[place];
   const runner = place === "hall" ? galleryRunner(theme)
@@ -369,7 +407,7 @@ export function finishTownInterior(place, plan, base, assets) {
   const background = architecture + runner + textiles + floorDetails + celebration.floor + doorstep + backWall + mounted + celebration.wall;
   const furniture = base.furniture.map(part => {
     const name = part.match(/data-object="([^"]+)"/)[1];
-    const redrawn = redrawTownFurnishing(place, name, part);
+    const redrawn = redrawTownFurnishing(place, name, part, assets);
     if (redrawn) return redrawn + celebration.furniture(name);
     let painted = name.includes("隔断") || name.includes("玻璃") ? part : surfaces(part);
     if (name === "砖炉和炉膛") {

@@ -1290,6 +1290,20 @@
       <ellipse cx="557.21" cy="293.543" rx="1.904" ry="1.632" fill="#f0cccf" stroke="#a77e79" stroke-width="0.37" />
       <circle cx="556.685" cy="294.998" r="1.088" fill="#dbaf67" />
     </g>
+    <g data-object="花礼包扎台" stroke="#604b46" stroke-width=".75">
+      <ellipse cx="244" cy="312" rx="35" ry="4.5" fill="#725142" stroke="none" opacity=".24"/>
+      <path d="M212 290h64v23h-64Z" fill="#648269"/>
+      <rect x="216" y="294" width="56" height="16" rx="1" fill="#a2aa83"/>
+      <path d="M212 274h64l4 13v3h-72v-3Z" fill="#ccaf88"/>
+      <path d="M218 272h9v8q-5 3-9 0m14-9h9v8q-4 3-9 0Z" fill="#b27c8a"/>
+      <ellipse cx="222.5" cy="272" rx="4.5" ry="1.5" fill="#e6d0a6"/>
+      <ellipse cx="236.5" cy="271" rx="4.5" ry="1.5" fill="#becea3"/>
+      <path d="M246 274l15-2 12 9-5 5-17-4Z" fill="#dbb18a"/>
+      <path d="M251 270l17 13" stroke="#708b62" stroke-width="1.35"/>
+      <circle cx="249" cy="269" r="3.5" fill="#e1a2ae"/>
+      <circle cx="256" cy="268" r="3" fill="#c39eba"/>
+      <path d="M263 277l-3 7m-1-6 6 4" stroke="#a95e73" />
+    </g>
   </g>
   <g id="room-light" clip-path="url(#inside)">
     <g class="phase-view phase-dawn" display="none">
@@ -1318,6 +1332,7 @@
     <polygon points="111.98,285 119.02,285 123.02,288 123.02,286 119.02,289 111.98,289 108.98,286 108.98,288" data-name="温室花桶" />
     <polygon points="491,268 546,268 550,271 550,281 546,284 491,284 488,281 488,271" data-name="缎带边桌" />
     <polygon points="546.98,323 554.02,323 558.02,326 558.02,324 554.02,327 546.98,327 543.98,324 543.98,326" data-name="花店南壁盆栽" />
+    <polygon points="216,286 272,286 275,289 275,310 272,313 216,313 213,310 213,289" data-name="花礼包扎台" />
   </g>
   <g id="walking-routes">
     <polyline points="321,336 321,261" fill="none" stroke="#fff6dd" stroke-width="3.7" opacity="0.95" />

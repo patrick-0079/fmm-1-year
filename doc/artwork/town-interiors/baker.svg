@@ -619,6 +619,20 @@
       <path d="M55.9 305.553q3.3 -6 6 -5q-.4 4.8 -6 5Z" fill="#77946a" stroke="#4e674d" stroke-width="0.4" />
       <path d="M58.9096 299.946q-3 -4 -.6 -6q3 2 .6 6Z" fill="#899f71" stroke="#627951" stroke-width="0.45" />
     </g>
+    <g data-object="饼干装盒台" stroke="#604b46" stroke-width=".75">
+      <ellipse cx="167.5" cy="310" rx="43.5" ry="4.5" fill="#725142" stroke="none" opacity=".24"/>
+      <path d="M128 294h79v17h-79Z" fill="#a87555"/>
+      <rect x="132" y="298" width="71" height="10" rx="1" fill="#e4bb90"/>
+      <path d="M128 279h79l4 12v3h-87v-3Z" fill="#dfa97d"/>
+      <path d="M134 276v6q0 4 12 4t12-4v-6m7 0v5q0 4 11 4t11-4v-5" fill="#ae665b"/>
+      <ellipse cx="146" cy="276" rx="12" ry="4" fill="#c87871"/>
+      <ellipse cx="176" cy="276" rx="11" ry="4" fill="#e8c18b"/>
+      <path d="M138 276q8 4 16 0" stroke="#f2d6a1" fill="none"/>
+      <circle cx="170" cy="276" r="2" fill="#c79359"/>
+      <circle cx="176" cy="275" r="2" fill="#c79359"/>
+      <circle cx="181" cy="277" r="2" fill="#c79359"/>
+      <path d="M191 281h13v7h-13Z" fill="#f0d4a4"/>
+    </g>
   </g>
   <g id="room-light" clip-path="url(#inside)">
     <g class="phase-view phase-dawn" display="none">
@@ -644,6 +658,7 @@
     <polygon points="49,245 91,245 95,248 95,263 91,266 49,266 46,263 46,248" data-name="左侧品尝柜" />
     <polygon points="498,254 550,254 554,257 554,276 550,279 498,279 495,276 495,257" data-name="回折陈列柜" />
     <polygon points="50.76,321 56.24,321 60.24,324 60.24,322 56.24,325 50.76,325 47.76,322 47.76,324" data-name="南角香草盆" />
+    <polygon points="131,291 204,291 207,294 207,308 204,311 131,311 128,308 128,294" data-name="饼干装盒台" />
   </g>
   <g id="walking-routes">
     <polyline points="400,336 400,258" fill="none" stroke="#fff6dd" stroke-width="3.7" opacity="0.95" />

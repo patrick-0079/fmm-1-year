@@ -587,6 +587,16 @@
       <rect x="245" y="303" width="5" height="12" rx="0.6" fill="#bf9892" stroke="#523e3a" stroke-width="0.45" />
       <rect x="252" y="303" width="5" height="12" rx="0.6" fill="#d6bc8e" stroke="#523e3a" stroke-width="0.45" />
     </g>
+    <g data-object="监听设备架" stroke="#604b46" stroke-width=".75">
+      <ellipse cx="540" cy="263" rx="23" ry="4.5" fill="#725142" stroke="none" opacity=".24"/>
+      <rect x="520" y="215" width="37" height="49" rx="2" fill="#6c7891"/>
+      <path d="M520 215l6-5h35l-4 5Zm37 0 4-5v47l-4 7Z" fill="#4a526a"/>
+      <rect x="524" y="219" width="29" height="39" rx="1" fill="#39435a"/>
+      <path d="M526 221h25v9h-25Zm0 12h25v9h-25Zm0 12h25v9h-25Z" fill="#596f83"/>
+      <path d="M529 225h4m-4 12h4m-4 12h4m7-24h7m-7 12h7m-7 12h7" stroke="#d6b69f" fill="none"/>
+      <rect x="531" y="205" width="17" height="7" rx="1" fill="#a77587"/>
+      <rect x="534" y="207" width="10" height="2" rx=".4" fill="#39435a"/>
+    </g>
   </g>
   <g id="room-light" clip-path="url(#inside)">
     <g class="phase-view phase-dawn" display="none">
@@ -612,6 +622,7 @@
     <polygon points="470,171 505,171 509,174 509,185 505,188 470,188 467,185 467,174" data-name="试听椅" />
     <polygon points="49,252 67,252 71,255 71,263 67,266 49,266 46,263 46,255" data-name="靠墙音箱" />
     <polygon points="217,311 257,311 261,314 261,322 257,325 217,325 214,322 214,314" data-name="片带柜" />
+    <polygon points="524,241 556,241 559,244 559,261 556,264 524,264 521,261 521,244" data-name="监听设备架" />
   </g>
   <g id="walking-routes">
     <polyline points="462,336 462,281" fill="none" stroke="#fff6dd" stroke-width="3.7" opacity="0.95" />

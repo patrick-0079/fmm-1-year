@@ -893,6 +893,23 @@
       <path d="M544.9 289.009q3.3 -6 6 -5q-.4 4.8 -6 5Z" fill="#77946a" stroke="#4e674d" stroke-width="0.4" />
       <path d="M549.9768 279.778q-3 -4 -.6 -6q3 2 .6 6Z" fill="#899f71" stroke="#627951" stroke-width="0.45" />
     </g>
+    <g data-object="筹备相片展架" stroke="#604b46" stroke-width=".75">
+      <ellipse cx="97" cy="238" rx="37" ry="4.5" fill="#725142" stroke="none" opacity=".24"/>
+      <path d="M68 194h6v45h-6Zm52 0h6v45h-6Z" fill="#a67365"/>
+      <rect x="61" y="176" width="71" height="50" rx="2" fill="#b08279"/>
+      <rect x="64" y="179" width="65" height="44" rx="1" fill="#a48687"/>
+      <path d="M67 183h29v31H67Zm33 0h25v18h-25Zm1 21h24v15h-24Z" fill="#e9c99f"/>
+      <path d="M69 211v-9l8-9 9 9 8-6v15Zm33-13v-5l7-5 5 5 9-3v8Zm1 19v-5l7-4 5 5 8-2v6Z" fill="#8f9c8a" stroke="#b69783" stroke-width=".65"/>
+    </g>
+    <g data-object="周年册小展台" stroke="#604b46" stroke-width=".75">
+      <ellipse cx="405" cy="245" rx="29" ry="4.5" fill="#725142" stroke="none" opacity=".24"/>
+      <path d="M380 231h50v15h-50Z" fill="#a67365"/>
+      <rect x="384" y="235" width="42" height="8" rx="1" fill="#ad807c"/>
+      <path d="M380 218h50l4 10v3h-58v-3Z" fill="#cb9a83"/>
+      <path d="M381 219l7-10h37l4 10v9h-48Z" fill="#865b69"/>
+      <path d="M386 211q12-2 18 1 9-2 19-1v10q-10-1-19 1-7-2-18-1Z" fill="#f1d7ad"/>
+      <path d="M404 212v10m-15-7 11 .2m8-.1h11m-27 3h7m10 0h8" fill="none" stroke="#aa7771" stroke-width=".66"/>
+    </g>
   </g>
   <g id="room-light" clip-path="url(#inside)">
     <g class="phase-view phase-dawn" display="none">
@@ -916,6 +933,8 @@
     <polygon points="52,130 121,130 125,133 125,143 121,146 52,146 49,143 49,133" data-name="靠墙照片边柜" />
     <polygon points="48.98,285 56.02,285 60.02,288 60.02,286 56.02,289 48.98,289 45.98,286 45.98,288" data-name="相片墙旁绿植" />
     <polygon points="536.64,313 548.36,313 552.36,316 552.36,314 548.36,317 536.64,317 533.64,314 533.64,316" data-name="展厅东南角绿植" />
+    <polygon points="67,219 127,219 130,222 130,236 127,239 67,239 64,236 64,222" data-name="筹备相片展架" />
+    <polygon points="383,224 427,224 430,227 430,243 427,246 383,246 380,243 380,227" data-name="周年册小展台" />
   </g>
   <g id="walking-routes">
     <polyline points="300,336 300,281" fill="none" stroke="#fff6dd" stroke-width="3.7" opacity="0.95" />

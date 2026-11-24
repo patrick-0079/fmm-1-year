@@ -565,6 +565,15 @@
         <circle cx="517.5" cy="304.1" r="1.1" fill="#b46367" />
       </g>
     </g>
+    <g data-object="待寄包裹柜" stroke="#604b46" stroke-width=".75">
+      <ellipse cx="332" cy="321" rx="35" ry="4.5" fill="#725142" stroke="none" opacity=".24"/>
+      <path d="M301 305h62v17h-62Z" fill="#698677"/>
+      <rect x="305" y="309" width="54" height="10" rx="1" fill="#9ea385"/>
+      <path d="M301 292h62l4 10v3h-70v-3Z" fill="#c8ae87"/>
+      <path d="M302 286h26v14h-26Zm7-9h17v10h-17Zm23 6h29v18h-29Z" fill="#ddb88a"/>
+      <path d="M319 278v8m-9-4h15m-11 5v12m-11-6h24m20-9v16m-14-8h27" stroke="#a76560" fill="none"/>
+      <path d="M304 295h7v3h-7Zm30 0h8v4h-8Z" fill="#f2d2a8" stroke="none"/>
+    </g>
   </g>
   <g id="room-light" clip-path="url(#inside)">
     <g class="phase-view phase-dawn" display="none">
@@ -589,6 +598,7 @@
     <polygon points="459,211 529,211 533,214 533,233 529,236 459,236 456,233 456,214" data-name="邮戳机工作桌" />
     <polygon points="228,304 259,304 263,307 263,318 259,321 228,321 225,318 225,307" data-name="木等候椅" />
     <polygon points="511,307 524,307 528,310 528,314 524,317 511,317 508,314 508,310" data-name="信袋底" />
+    <polygon points="304,302 360,302 363,305 363,319 360,322 304,322 301,319 301,305" data-name="待寄包裹柜" />
   </g>
   <g id="walking-routes">
     <polyline points="148,336 148,263" fill="none" stroke="#fff6dd" stroke-width="3.7" opacity="0.95" />
