@@ -10,6 +10,7 @@ import { townForeground } from "../src/town-foreground";
 import playgroundMasks from "../src/town-playground-masks.generated.json";
 import streetlightMasks from "../src/town-streetlight-outlines.json";
 import waterfrontMasks from "../src/town-waterfront-masks.json";
+import plazaTreeOutlines from "../src/town-plaza-trees.json";
 import gardenDetails from "../src/garden-street-details.json";
 import meadowScenery from "../src/meadow-scenery-outlines.json";
 import { workshopCanopies } from "../src/town-workshop-vegetation";
@@ -56,11 +57,14 @@ const pixel=(x:number,y:number)=>gp(x+.5,y+.5);
 const foregroundByScene = { room:roomFurniture, garden:gardenForeground, town:townForeground,
   challenge:courageBorder, ruins:ruinsForeground, meadow:[] };
 const masksByScene = {
-  town: [...playgroundMasks, ...streetlightMasks, ...waterfrontMasks],
+  town: [...playgroundMasks, ...streetlightMasks, ...waterfrontMasks, ...plazaTreeOutlines],
   garden: gardenDetails,
   meadow: meadowScenery,
 };
 const cases:DepthCase[]=[
+  {id:"plaza-south-fir",scene:"town",depth:662.5,solid:[{x:748,y:565},{x:749,y:600},{x:748,y:643}],
+    clear:[{x:737,y:572},{x:762,y:577},{x:768,y:626}],actor:{x:747,positions:[575,587,665]}},
+  {id:"plaza-bookshop-lime",scene:"town",depth:605,solid:[{x:820,y:565},{x:806,y:577}],clear:[{x:820,y:550},{x:820,y:591},{x:850,y:578}],actor:{x:820,positions:[563,578,609]}},
   {id:"gift-hatbox",scene:"room",depth:305,solid:[{x:550,y:273}],clear:[{x:502,y:261},{x:524,y:263}]},
   {id:"gardener-gate-lamp-and-flowers",scene:"challenge",depth:559,solid:[{x:382,y:498}],clear:[{x:408,y:484},{x:419,y:484}]},
   {id:"south-stair-west-jamb",scene:"ruins",depth:553,solid:[{x:391,y:506}],clear:[{x:450,y:511},{x:450,y:480}]},

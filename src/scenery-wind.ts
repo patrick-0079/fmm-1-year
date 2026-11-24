@@ -388,14 +388,18 @@ function movingCover(
 export function drawTownCrown(
   c: CanvasRenderingContext2D,
   world: World,
-  tree: Point & { points: Point[] },
+  tree: (Point & { points: Point[] }) | { y: number; cover: Rect & { mask: Path2D } },
   still: boolean,
 ) {
-  const bounds = sceneryBounds(tree.points);
+  const bounds = "cover" in tree ? tree.cover : sceneryBounds(tree.points);
   if (!overlaps(bounds, world.visibleArea)) return;
-  const recipe = canopyPatches.get(tree.x), art = world.sceneryArtwork;
-  const step = recipe && !still ? Math.round(windLevel(world, tree.x === 339 ? 0 : tree.x === 659 ? .48 : .86) * 6) : 0;
   const paint = () => {
+    if ("cover" in tree) {
+      world.drawMapCover(c, tree.cover, tree.cover.mask);
+      return;
+    }
+    const recipe = canopyPatches.get(tree.x), art = world.sceneryArtwork;
+    const step = recipe && !still ? Math.round(windLevel(world, tree.x === 339 ? 0 : tree.x === 659 ? .48 : .86) * 6) : 0;
     if (recipe && art?.naturalWidth && step) movingCover(c, world, tree.points, art, recipe, step);
     else world.drawMapFragment(c, tree.points);
   };

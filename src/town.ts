@@ -12,6 +12,8 @@ import { prepareTownWork } from "./town-work-art";
 import { prepareResidentWalk } from "./resident-walk";
 import type { SceneId } from "./maps";
 import { townMapCovers } from "./town-map-covers";
+import { prepareMapCovers } from "./map-covers";
+import plazaTreeOutlines from "./town-plaza-trees.json";
 import { townScene } from "./town-map";
 import { drawWishLights, townAttractionLayers } from "./town-attraction-art";
 import type { GameId } from "./arcade-engines";
@@ -32,6 +34,8 @@ import {
 const treeCrowns = [
   ...townCanopies.filter(tree => !northEastCanopies.some(t => t.x === tree.x && t.y === tree.y)),
   ...southEdgeCanopies, ...southWestCanopies, ...northEastCanopies, ...workshopCanopies, ...northStreetCanopies,
+  // The bookshop ridge and the fence cut across the two south-plaza crowns.
+  ...prepareMapCovers(plazaTreeOutlines).map(cover => ({y:cover.depth, cover})),
 ];
 export const TOWN_TALKED_KEY = "fufu-town-talked-v1";
 interface StoryHooks {
