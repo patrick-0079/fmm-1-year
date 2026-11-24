@@ -37,6 +37,10 @@ test("splitting gate artwork does not close either stair passage or change solid
 test("cross-street pennants have their own foreground without creating a wall underneath", () => {
   const north = townForeground.find(part => part.id === "north-stair-pennants")!;
   const bakery = townForeground.find(part => part.id === "bakery-stair-pennants")!;
+  assert.ok(north.overhead && bakery.overhead);
+  const reportedFlag = townForeground.find(part => part.id === "bakery-stair-rise-3")!;
+  assert.ok(reportedFlag.overhead && polygonContains({x:778.6,y:325},reportedFlag.points));
+  assert.equal(townForeground.find(part=>part.id==="wish-crossing-lamp")!.overhead, undefined);
   assert.ok(polygonContains({x:525,y:200},north.points));
   assert.ok(!polygonContains({x:525,y:210},north.points));
   assert.ok(polygonContains({x:739,y:331},bakery.points));

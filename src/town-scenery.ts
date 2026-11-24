@@ -104,7 +104,6 @@ export function drawFestivalProp(
   p: (typeof festivalProps)[number],
   time: number,
   balloonArt?: BalloonArt,
-  wind = 1,
 ) {
   const { x, y } = p;
   c.save();
@@ -132,17 +131,28 @@ export function drawFestivalProp(
       c.fillStyle = "#d2a65a"; c.fill(); c.strokeStyle = "#865e37"; c.lineWidth = .8; c.stroke();
       c.fillStyle = "#fff0b0"; c.fillRect(dx - 1.7, -47, 1.7, 1.25);
     }
-    c.beginPath();
-    c.moveTo(-42, -40);
-    c.lineTo(0, -30);
-    c.lineTo(42, -40);
-    c.strokeStyle = "#86694f"; c.lineWidth = 1.75; c.stroke();
-    c.strokeStyle = "#edd1a0"; c.lineWidth = .65; c.stroke();
-    for (let i = 0; i < 7; i++) drawPennant(c, i, time, wind);
-    for (const dx of [-42, 42]) {
-      c.fillStyle = "#ad865a"; c.fillRect(dx-2.4, -40.5, 4.8, 2.5);
-      c.fillStyle = "#f5d39d"; c.fillRect(dx-2.3, -40, 4.5, .8);
-    }
+  }
+  c.restore();
+}
+
+export function drawFestivalGarland(
+  c: CanvasRenderingContext2D,
+  origin: Point,
+  time: number,
+  wind = 1,
+) {
+  c.save();
+  c.translate(origin.x, origin.y);
+  c.beginPath();
+  c.moveTo(-42, -40);
+  c.lineTo(0, -30);
+  c.lineTo(42, -40);
+  c.strokeStyle = "#86694f"; c.lineWidth = 1.75; c.stroke();
+  c.strokeStyle = "#edd1a0"; c.lineWidth = .65; c.stroke();
+  for (let i = 0; i < 7; i++) drawPennant(c, i, time, wind);
+  for (const dx of [-42, 42]) {
+    c.fillStyle = "#ad865a"; c.fillRect(dx-2.4, -40.5, 4.8, 2.5);
+    c.fillStyle = "#f5d39d"; c.fillRect(dx-2.3, -40, 4.5, .8);
   }
   c.restore();
 }

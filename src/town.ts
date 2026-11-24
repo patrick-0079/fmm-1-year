@@ -11,7 +11,7 @@ import { TownRoutines, worksInTown } from "./town-routines";
 import { prepareTownWork } from "./town-work-art";
 import { prepareResidentWalk } from "./resident-walk";
 import type { SceneId } from "./maps";
-import { townMapCovers } from "./town-map-covers";
+import { townMapCovers, townOverheadDepth } from "./town-map-covers";
 import { prepareMapCovers } from "./map-covers";
 import plazaTreeOutlines from "./town-plaza-trees.json";
 import { townScene } from "./town-map";
@@ -28,6 +28,7 @@ import { drawTownCrown, drawTownWeather, windAllowance } from "./scenery-wind";
 import {
   southEdgeCanopies, townCanopies,
   festivalProps,
+  drawFestivalGarland,
   drawFestivalProp,
 } from "./town-scenery";
 // The quarry painting replaces part of the original northeast hillside.
@@ -269,16 +270,18 @@ export class Town {
     const view = this.world.visibleArea;
     const visible = (x: number, y: number) =>
       x + 64 >= view.x && x - 64 <= view.x + view.w && y + 18 >= view.y && y - 76 <= view.y + view.h;
+    const props = festivalProps.filter(p => visible(p.x,p.y));
+    const propTime = this.reducedMotion.matches ? 0 : this.time;
     return [
       ...townMapCovers(this.world),
       ...treeCrowns.map((t) => ({
         y: t.y,
         draw: (c: CanvasRenderingContext2D) => drawTownCrown(c, this.world, t, this.reducedMotion.matches),
       })),
-      ...festivalProps.filter(p => visible(p.x,p.y)).map((p) => ({
+      ...props.map((p) => ({
         y: p.y + 3,
         draw: (c: CanvasRenderingContext2D) =>
-          drawFestivalProp(c, p, this.reducedMotion.matches ? 0 : this.time, (x, y, color) =>
+          drawFestivalProp(c, p, propTime, (x, y, color) =>
             drawPartyProp(
               c,
               color === "#edca8b"
@@ -291,8 +294,11 @@ export class Town {
               24,
               51,
             ),
-            windAllowance(this.world),
           ),
+      })),
+      ...props.filter(p => p.kind === "garland").map(p => ({
+        y: townOverheadDepth,
+        draw: (c: CanvasRenderingContext2D) => drawFestivalGarland(c, p, propTime, windAllowance(this.world)),
       })),
       ...townAttractionLayers(this.time, this.reducedMotion.matches),
       ...TOWN_NPCS.flatMap(n => {

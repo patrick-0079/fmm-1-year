@@ -37,6 +37,8 @@ interface DepthCase {
   id:string;
   scene:SceneId;
   depth:number;
+  // Suspended cloth must also cover an actor in front of both supports.
+  overhead?:boolean;
   solid:Point[];
   clear:Point[];
   // The old lamp's right handle aperture is less than two device pixels wide
@@ -144,12 +146,19 @@ const cases:DepthCase[]=[
   {id:"workshop-stair-spruce",scene:"town",depth:643,solid:[{x:1032,y:611},{x:1035,y:625}],clear:[{x:1044,y:615},{x:1047,y:639}]},
   {id:"workshop-stone-front",scene:"town",depth:619,solid:[{x:1007,y:588},{x:1027,y:593}],clear:[{x:1036,y:589},{x:1038,y:602}]},
   {id:"quarry-lintel",scene:"town",depth:91,solid:[{x:1428,y:31}],clear:[{x:1428,y:65},{x:1428,y:99}]},
-  {id:"north-stair-pennants",scene:"town",depth:272,solid:[{x:525,y:200}],clear:[{x:536,y:209},{x:536,y:280}]},
+  {id:"north-stair-pennants",scene:"town",overhead:true,depth:272,solid:[{x:525,y:200},{x:539.5,y:201.75}],clear:[{x:536,y:209},{x:532.5,y:200.5}]},
+  {id:"radio-garland",scene:"town",overhead:true,depth:886,existingOutline:[{x:1241,y:835},{x:1327,y:885}],
+    solid:[{x:1284,y:855},{x:1262,y:850}],clear:[{x:1289.5,y:860},{x:1262,y:862}]},
+  {id:"radio-garland-post",scene:"town",depth:886,existingOutline:[{x:1240,y:835},{x:1245,y:884}],
+    solid:[{x:1242,y:868}],clear:[{x:1248,y:868}]},
   {id:"north-cottages-streetlight",scene:"town",depth:199,solid:[{x:1043,y:131},{x:1032,y:165}],clear:[{x:1055,y:165},{x:1043,y:208}]},
   {id:"post-fork-streetlight",scene:"town",depth:713,solid:[{x:472,y:639},{x:482,y:663}],clear:[{x:485,y:695},{x:484,y:717}]},
   {id:"river-bridge-streetlight",scene:"town",depth:535,solid:[{x:1327,y:477},{x:1314,y:500}],clear:[{x:1339,y:502},{x:1327,y:546}]},
-  {id:"bakery-stair-pennants",scene:"town",depth:362,solid:[{x:739,y:331}],clear:[{x:750,y:348},{x:750,y:361}]},
-  {id:"plaza-west-pennants",scene:"town",depth:441,solid:[{x:620,y:385}],clear:[{x:626,y:385},{x:606,y:394}]},
+  {id:"bakery-stair-pennants",scene:"town",overhead:true,depth:362,solid:[{x:739,y:331}],clear:[{x:750,y:348},{x:750,y:361}]},
+  {id:"plaza-west-pennants",scene:"town",overhead:true,depth:441,solid:[{x:620,y:385}],clear:[{x:626,y:385},{x:606,y:394}]},
+  {id:"plaza-west-left-pennants",scene:"town",overhead:true,depth:441,solid:[{x:551.25,y:380.5}],clear:[{x:555,y:381.5},{x:566,y:372}]},
+  {id:"plaza-east-upper-pennants",scene:"town",overhead:true,depth:396,solid:[{x:893,y:300.5},{x:902,y:309}],clear:[{x:894.8,y:306.5},{x:918,y:316}]},
+  {id:"plaza-east-lower-pennants",scene:"town",overhead:true,depth:434,solid:[{x:879.4,y:310},{x:872.3,y:321}],clear:[{x:885,y:310},{x:877,y:323}]},
   {id:"wish-crossing-lamp",scene:"town",depth:444,solid:[{x:582,y:371},{x:582,y:419}],clear:[{x:568,y:368},{x:582,y:451}]},
   {id:"block-board-lamp",scene:"town",depth:547,solid:[{x:1170,y:472},{x:1170,y:529}],clear:[{x:1156,y:468},{x:1170,y:554}],actor:{x:1170,positions:[521,531,557]}},
   {id:"rabbit-east-lamp",scene:"town",depth:592,solid:[{x:584,y:515},{x:584,y:568}],clear:[{x:569,y:513},{x:584,y:605}],actor:{x:584,positions:[566,576,614]}},
@@ -161,8 +170,8 @@ const cases:DepthCase[]=[
   {id:"workshop-patio-middle-top",scene:"town",depth:376,solid:[{x:1048,y:361}],clear:[{x:1048,y:357},{x:1048,y:363.5}],actor:{x:1050,positions:[362,372,388]}},
   {id:"workshop-patio-east-middle-post",scene:"town",depth:395,solid:[{x:1111,y:389}],clear:[{x:1101,y:384},{x:1119,y:387}]},
   {id:"workshop-patio-ivy-stone-face",scene:"town",depth:407,solid:[{x:1079,y:391}],clear:[{x:1079,y:373},{x:1091,y:382}]},
-  {id:"bakery-stair-rise-3",scene:"town",depth:333,solid:[{x:777,y:323}],clear:[{x:775,y:328},{x:780,y:334}]},
-  {id:"bakery-stair-post-knot",scene:"town",depth:268,solid:[{x:813,y:250}],clear:[{x:809,y:255},{x:806,y:251}]},
+  {id:"bakery-stair-rise-3",scene:"town",overhead:true,depth:333,solid:[{x:777,y:323}],clear:[{x:775,y:328},{x:780,y:334}]},
+  {id:"bakery-stair-post-knot",scene:"town",overhead:true,depth:268,solid:[{x:813,y:250}],clear:[{x:809,y:255},{x:806,y:251}]},
   {id:"flight-ring",scene:"town",depth:457,solid:[{x:696,y:356},{x:676,y:453}],clear:[{x:697,y:433},{x:694,y:472}],actor:{x:676,positions:[434,440,477]}},
   {id:"flight-small-ring",scene:"town",depth:427,solid:[{x:770,y:395}],clear:[{x:750,y:394},{x:756,y:438}],actor:{x:755,positions:[403,418,446]}},
   {id:"plaza-west-roses-1-0",scene:"town",depth:509.5,solid:[{x:649,y:466}],clear:[{x:649,y:446},{x:674,y:472}]},
@@ -171,7 +180,7 @@ const cases:DepthCase[]=[
   {id:"quarry-verge-blossoms",scene:"town",depth:166,solid:[{x:1319,y:140}],clear:[{x:1324,y:125},{x:1327,y:123}]},
   {id:"wheat-stair-overhanging-shrub",scene:"town",depth:765,solid:[{x:94,y:743}],clear:[{x:107,y:733},{x:104,y:725}]},
   {id:"rabbit-west-hedge",scene:"town",depth:582,solid:[{x:400,y:549},{x:406,y:555}],clear:[{x:424,y:545},{x:431,y:592}]},
-  {id:"bakery-fence-pennants",scene:"town",depth:247,solid:[{x:978,y:186}],clear:[{x:985,y:185},{x:998,y:184}]},
+  {id:"bakery-fence-pennants",scene:"town",overhead:true,depth:247,solid:[{x:978,y:186}],clear:[{x:985,y:185},{x:998,y:184}]},
   {id:"garden-sign",scene:"garden",depth:479,solid:[{x:191,y:415},{x:208,y:415}],clear:[{x:197,y:420},{x:205,y:471}],existingOutline:gardenSign,fragments:[gardenSign]},
   {id:"garden-screen",scene:"garden",depth:273,solid:[{x:708,y:163},{x:721,y:164}],clear:[{x:716,y:169},{x:680,y:175}],existingOutline:televisionSilhouette,fragments:[televisionSilhouette]},
   {id:"town-west-tree",scene:"town",depth:432,solid:[{x:340,y:350},{x:320,y:370}],clear:[{x:330,y:331},{x:345,y:334}],existingOutline:townCanopies[0].points,fragments:[townCanopies[0].points]},
@@ -251,8 +260,9 @@ async function verify(test:DepthCase){
     drawNow();photo("原景（不含人物）");
     world.getDepthLayers=()=>[...saved.layers(),probe(test.depth-1)];drawNow();
     record.behind=points.map(sample);photo("脚底在柱后：拱顶遮挡；门洞保留（其他前景树仍会遮挡）");
-    world.getDepthLayers=()=>[...saved.layers(),probe(test.depth+1)];drawNow();
-    record.front=points.map(sample);photo("脚底在柱前：拱门不再遮挡；其他前景保留");
+    const frontDepth=test.overhead ? world.config.height+1 : test.depth+1;
+    world.getDepthLayers=()=>[...saved.layers(),probe(frontDepth)];drawNow();
+    record.front=points.map(sample);photo(test.overhead?"人物经过旗绳下方，布面遮挡，旗间可见":"脚底在柱前，人物挡住柱脚");
     if(test.canopyEdge){
       world.player=test.canopyEdge;world.actorHidden=false;
       world.getDepthLayers=()=>[...saved.layers(),probe(test.depth-1)];drawNow();
@@ -301,7 +311,12 @@ async function verify(test:DepthCase){
     }
     assert(record.behind.slice(0,test.solid.length).every(p=>!pink(p)),"柱后人物压在实体拱顶上");
     assert(record.behind.slice(test.solid.length).every((p,i)=>pink(p,test.subpixelClear?.includes(i)?40:3)),"完整场景门洞/地面遮挡不符合实景");
-    assert(record.front.every(p=>pink(p)),"柱前人物遮挡不符合实景");
+    if(test.overhead){
+      assert(record.front.slice(0,test.solid.length).every(p=>!pink(p)),"高挂的彩带被人物盖住");
+      assert(record.front.slice(test.solid.length).every(p=>pink(p)),"彩带前景填住了旗间的空隙或立柱");
+    }else{
+      assert(record.front.every(p=>pink(p)),"柱前人物遮挡不符合实景");
+    }
     if(record.mask){
       assert(record.mask.slice(0,test.solid.length).every(p=>!pink(p)),"单片拱顶遮罩未覆盖实体");
       assert(record.mask.slice(test.solid.length).every((p,i)=>pink(p,test.subpixelClear?.includes(i)?40:3)),"门洞/地面被单片前景贴图擦除");
