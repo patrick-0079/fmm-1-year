@@ -23,6 +23,27 @@ export const festivalProps = [
   { kind: "garland", x: 1284, y: 883 },
 ] as const;
 
+/** Continue the painted pennant cord from its last flag to the tree trunk. */
+export function drawPlazaPennantTie(c: CanvasRenderingContext2D) {
+  c.save();
+  c.lineCap = "round";
+  c.lineWidth = 1.35;
+  c.strokeStyle = "#aa365b";
+  c.beginPath();
+  c.moveTo(644.8, 366.35);
+  c.bezierCurveTo(650, 364.2, 654.7, 358.5, 657.2, 352.8);
+  c.quadraticCurveTo(661.1, 354.4, 666, 352.4);
+  c.stroke();
+  c.lineWidth = .45;
+  c.strokeStyle = "#f0a3a2";
+  c.stroke();
+  c.fillStyle = "#a93155";
+  c.beginPath();
+  c.ellipse(657.4, 352.9, 1.45, 1, -.55, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
+}
+
 function pixelHeart(
   c: CanvasRenderingContext2D,
   x: number,

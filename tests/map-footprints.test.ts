@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { canStand, canTravelBetween, findPath } from "../src/core.ts";
 import { scenes, type SceneId } from "../src/maps.ts";
 import { creeks } from "../src/creek-layout.ts";
-import { lightBrick, mirrorSpots } from "../src/ruins-map.ts";
+import { lightBrick, mirrorSpots, moonPlate } from "../src/ruins-map.ts";
 
 function checkFeet(id: SceneId, open: number[][], solid: number[][]) {
   const map = scenes[id];
@@ -21,10 +21,10 @@ test("the room floor between the wicker basket and the balloon ties is reachable
   assert.ok(canTravelBetween({x:114,y:345},{x:57,y:345},scenes.room));
 });
 
-test("garden feet follow the pond fence, western bench, cinema seats and gate posts", () => {
+test("garden feet follow the pond fence, western bench, cinema seats and balloon stall planting", () => {
   checkFeet("garden",
-    [[78,391],[82,198],[620,291],[715,225],[197,440]],
-    [[100,150],[813,430],[53,365],[395,557],[482,559],[185,473],[650,264],[668,285]]);
+    [[78,391],[82,198],[620,291],[715,225],[197,440],[212,202],[250,185],[275,287]],
+    [[100,150],[813,430],[53,365],[395,557],[482,559],[185,473],[650,264],[668,285],[250,206]]);
 });
 
 test("both stream bridges admit crossings in each direction and stop feet at either rail", () => {
@@ -45,6 +45,15 @@ test("the courage garden ends at the north hedge and keeps its flower approach a
 test("the two bronze mirror bases are solid and the engraved star tile stays walkable", () => {
   checkFeet("ruins", [[lightBrick.x,lightBrick.y],[551,309],[588,293]],
     mirrorSpots.map(s => [s.x,s.y+2]));
+});
+
+test("the moon dial blocks its face and pedestal while its controls remain reachable", () => {
+  const front = { x: 330, y: 270 }, behind = { x: 330, y: 198 };
+  const ruins = scenes.ruins;
+  checkFeet("ruins", [[front.x,front.y],[behind.x,behind.y],[moonPlate.approach.x,moonPlate.approach.y]],
+    [[330,215],[330,230],[330,242],[330,257],[305,231],[354,239]]);
+  assert.equal(canTravelBetween(behind,front,ruins),false);
+  assert.deepEqual(findPath(behind,front,ruins)?.at(-1),front);
 });
 
 test("walking around the campfire, kettle and star jar leaves the open meadow accessible", () => {

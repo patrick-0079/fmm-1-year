@@ -34,6 +34,7 @@ import {
   festivalProps,
   drawFestivalGarland,
   drawFestivalProp,
+  drawPlazaPennantTie,
 } from "./town-scenery";
 // The quarry painting replaces part of the original northeast hillside.
 const treeCrowns = [
@@ -324,6 +325,7 @@ export class Town {
     const { x, y } = townInteriors["town-hall"].exterior;
     return [
       ...townMapCovers(this.world),
+      ...(visible(651, 362) ? [{ y: townOverheadDepth, draw: drawPlazaPennantTie }] : []),
       { y, draw: c => paintHallSideSign(c, x, y) },
       ...treeCrowns.map((t) => ({
         y: t.y,

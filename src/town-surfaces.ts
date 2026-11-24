@@ -132,7 +132,7 @@ export const arcadeLawns = [
 // The market grass and its stone apron meet the diagonal main street. There
 // is no fence along this curb; the pots and lampposts have separate footprints.
 const moonRabbitForecourt = poly([
-  [537, 510], [565, 520], [592, 542], [611, 567], [608, 589],
+  [537, 510], [565, 520], [592, 542], [618, 566], [608, 589],
   [590, 621], [566, 649], [540, 676], [506, 688], [476, 681],
   [463, 662], [494, 642], [514, 613], [526, 575],
 ]);
