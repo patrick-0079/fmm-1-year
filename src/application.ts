@@ -80,6 +80,18 @@ export function mountGame() {
     resetInProgress = true;
     location.reload();
   }
+  function canSaveReceipts() {
+    if (sharedResetPending) return false;
+    if (!resetInProgress) {
+      try {
+        if (readProgress(localStorage.getItem(SAVE_KEY)).generation !== progress.generation) {
+          reloadAfterSharedReset();
+          return false;
+        }
+      } catch {}
+    }
+    return true;
+  }
   // The guide stays clickable during the brief gate fade. Honor its latest
   // destination as soon as the current crossing has finished.
   let afterCrossing: (() => void) | undefined;
@@ -176,7 +188,7 @@ export function mountGame() {
         if (raw) {
           const other = readProgress(raw);
           if (other.generation !== progress.generation) { reloadAfterSharedReset(); return; }
-          mergeCollections(progress, other);
+          mergeLiveCollections(other);
           if (mergeResidentStory(progress.residents, other.residents)) refreshMailboxViews();
           mergeAchievementProgress(progress, other);
         }
@@ -208,6 +220,18 @@ export function mountGame() {
   function save() {
     updateMailCount();
     persist();
+  }
+  function mergeLiveCollections(other: ReturnType<typeof readProgress>) {
+    const flowers = progress.rainbowFlowers.length, visited = progress.visited.length;
+    const { items, radioTrack } = progress.townKeepsakes;
+    const souvenirs = items.length;
+    mergeCollections(progress, other);
+    if (flowers !== progress.rainbowFlowers.length) flowerTrail.refresh();
+    if (visited !== progress.visited.length) document.querySelector("#explored")!.textContent = String(progress.visited.length);
+    if (souvenirs !== items.length || radioTrack !== progress.townKeepsakes.radioTrack) {
+      inventory.refreshTownKeepsakes();
+      interiorActivities.refreshCollection();
+    }
   }
   function audio() {
     setSound(!progress.muted && progress.sound);
@@ -254,6 +278,7 @@ export function mountGame() {
     }
   }
   const inventory = new Inventory(world, toast);
+  inventory.canSave = canSaveReceipts;
   inventory.townKeepsakes = () => progress.townKeepsakes;
   inventory.mailbox = mailbox;
   inventory.notebookState = () => progress.residents.guardianInvited
@@ -354,6 +379,7 @@ export function mountGame() {
   });
   const town = new Town(world, activities, inventory, id => visit(ARCADES[id].scene, "arcade-"+id),
     {
+      canSave: canSaveReceipts,
       story: () => progress.residents, mail, save, notify: toast,
       keepsakes: () => progress.townKeepsakes.items,
       readPost: onReturn => {
@@ -842,14 +868,20 @@ export function mountGame() {
   const migratedBook = migrateAchievementFacts(progress, achievementContext());
   if (refreshAchievements(false) || migratedBook) persist(false);
   window.addEventListener("storage", event => {
-    if (event.key !== SAVE_KEY || !event.newValue || resetInProgress) return;
+    if (!event.newValue || resetInProgress ||
+        (event.key !== SAVE_KEY && event.key !== INVENTORY_KEY && event.key !== TOWN_TALKED_KEY)) return;
     // Events can arrive after another write or a reset. Only merge the current save.
-    try { if (localStorage.getItem(SAVE_KEY) !== event.newValue) return; } catch { return; }
+    try { if (localStorage.getItem(event.key) !== event.newValue) return; } catch { return; }
+    if (event.key !== SAVE_KEY) {
+      if (!canSaveReceipts()) return;
+      if (event.key === INVENTORY_KEY) inventory.syncSavedInventory(event.newValue);
+      else town.mergeVisits(event.newValue, true);
+      if (refreshAchievements?.(false)) persistSharedCollections();
+      return;
+    }
     const other = readProgress(event.newValue);
     if (other.generation !== progress.generation) { reloadAfterSharedReset(); return; }
-    mergeCollections(progress, other);
-    inventory.refreshTownKeepsakes();
-    interiorActivities.refreshCollection();
+    mergeLiveCollections(other);
     if (mergeResidentStory(progress.residents, other.residents)) {
       refreshMailboxViews();
       refreshCampLetter();

@@ -54,6 +54,7 @@ const shiftNotes: Record<TownInteriorKey, Partial<Record<Phase, string>>> = {
   hall: { dawn: "在街上晨拍", day: "在馆里选片", dusk: "在馆里挂照片", night: "在街上拍夜景" },
 };
 interface StoryHooks {
+  canSave: () => boolean;
   story: () => ResidentStory;
   mail: LetterHandoff;
   readPost: (onReturn: () => void) => void;
@@ -92,12 +93,7 @@ export class Town {
     }
     this.enterScene(world.scene);
     try {
-      const list = JSON.parse(
-        localStorage.getItem(TOWN_TALKED_KEY) || "[]",
-      );
-      if (Array.isArray(list))
-        for (const id of list)
-          if (TOWN_NPCS.some((n) => n.id === id)) this.visited.add(id);
+      this.mergeVisits(localStorage.getItem(TOWN_TALKED_KEY));
     } catch {}
     const layers = world.getDepthLayers,
       environment = world.onEnvironment,
@@ -151,7 +147,7 @@ export class Town {
   reset() {
     this.act = undefined;
     this.visited.clear();
-    this.save();
+    this.save(true);
   }
   interact(id: string) {
     if (!this.area || !id.startsWith("npc-")) return false;
@@ -294,8 +290,19 @@ export class Town {
     }
   }
 
-  private save() {
+  mergeVisits(raw: string | null, reconcile = false) {
     try {
+      const list = JSON.parse(raw ?? "null");
+      if (!Array.isArray(list)) return;
+      const residents = TOWN_NPCS.filter(npc => list.includes(npc.id));
+      for (const npc of residents) this.visited.add(npc.id);
+      if (reconcile && residents.length && this.visited.size > residents.length) this.save();
+    } catch {}
+  }
+  private save(reset = false) {
+    if (!this.hooks.canSave()) return;
+    try {
+      if (!reset) this.mergeVisits(localStorage.getItem(TOWN_TALKED_KEY));
       localStorage.setItem(
         TOWN_TALKED_KEY,
         JSON.stringify([...this.visited]),

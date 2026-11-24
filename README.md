@@ -324,6 +324,8 @@ npm run check
 
 在 PowerShell 中可用 `$env:FULL_BUILD='false'` 后执行 `npm run build`、`npm run preview` 验证精简产物。将变量改为 `true` 即可测试完整切换。运行 `node --experimental-strip-types --test tests/launch-build.integration.ts` 可验证在同一输出目录连续构建时的资源隔离。
 
+发布前可再运行 `node --experimental-strip-types scripts/verify-release.mjs`。它在临时目录构建两种关闭调试的产物，用浏览器验证邀请函加载失败后重试、到点切换、旧标签页升级，以及正式游戏中的装扮锁定、跨标签读信、相册、资源缓存、断网切图和续档。它不修改正式开放时间或本地开发配置。全徽章实玩路线另用 `node scripts/verify-badge-route.mjs 390`（宽度可改为桌面尺寸）。两个脚本需要可用的 Playwright Chromium；可用 `PLAYWRIGHT_MODULE` 指向本机的 `playwright-core`，Windows 默认使用已安装的 Edge。
+
 使用 Cloudflare 自带的 Git 构建，不需要额外写 GitHub Actions，也不需要把令牌放入仓库：
 
 1. 在 Cloudflare 的 **Workers & Pages** 里打开 `fmm-1-year`。

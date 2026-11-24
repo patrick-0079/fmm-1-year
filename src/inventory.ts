@@ -3,6 +3,7 @@ import {
   ITEMS,
   INVENTORY_KEY,
   readInventory,
+  mergeInventoryReceipts,
   grantItem,
   equipItem,
   EQUIP_SLOTS,
@@ -46,6 +47,7 @@ export class Inventory {
   private fittingRoom: InventoryState | null = null;
   get state() { return this.fittingRoom ?? this.earned; }
   onEquip: () => void = () => {};
+  canSave = () => true;
   notebookState: () => { astrolabe: AstrolabeState; listened: boolean } | null = () => null;
   mailbox?: () => LetterList;
   townKeepsakes: () => TownKeepsakes = () => ({ items: [] });
@@ -169,7 +171,7 @@ export class Inventory {
   }
   refreshMailCount() {
     if (this.root.hidden) return;
-    const label = this.root.querySelector<HTMLElement>(".bag-mail-count");
+    const label = this.root.querySelector<HTMLElement>("[data-mail] .bag-mail-count");
     if (!label || !this.mailbox) return;
     const { items, unreadIds = [] } = this.mailbox();
     label.textContent = `${items.length} 封 · ${unreadIds.length} 未读`;
@@ -222,7 +224,11 @@ export class Inventory {
     this.root.querySelector<HTMLElement>(".bag-town-paper")?.focus({ preventScroll: true });
   }
   refreshTownKeepsakes() {
-    if (this.tab === "keepsakes") this.render();
+    if (this.townPage !== null) this.render();
+    else {
+      const label = this.root.querySelector("[data-town-keepsakes] .bag-mail-count");
+      if (label) label.textContent = `${this.townKeepsakes().items.length} / ${townInteriorKeys.length}`;
+    }
   }
   openWardrobe() {
     if (this.root.hidden) this.open();
@@ -235,7 +241,7 @@ export class Inventory {
     for (const outfit of [this.earned, this.fittingRoom]) {
       if (outfit && (follow || outfit.equipped.pet === id)) outfit.equipped.pet = follow ? id : null;
     }
-    this.save();
+    this.save("pet");
     if (follow) this.world.onAchievementEvent(id);
     this.sync();
     this.render();
@@ -294,7 +300,7 @@ export class Inventory {
       return;
     }
     if (!this.fittingRoom) {
-      this.save();
+      this.save(ITEMS[id].slot);
       if (id === "wreath" && this.wearingWreath) this.world.onAchievementEvent("wreath-worn");
     }
     this.trying = false;
@@ -318,14 +324,33 @@ export class Inventory {
     this.bouquetDetail = false;
     this.earned = readInventory(null);
     if (this.fittingRoom) this.startFitting();
-    this.save();
+    this.save("reset");
     this.sync();
   }
   private sync() {
     this.world.equipment = { ...this.state.equipped };
   }
-  private save() {
+  syncSavedInventory(raw: string) {
+    const latest = readInventory(raw);
+    if (!latest.owned.length && !latest.bouquet) return;
+    if (mergeInventoryReceipts(latest, this.earned)) {
+      try { this.storage?.setItem(INVENTORY_KEY, JSON.stringify(latest)); } catch {}
+    }
+    this.earned = latest;
+    this.sync();
+    if (this.journalPage === null && this.townPage === null) this.render();
+  }
+  private save(change?: EquipSlot | "reset") {
+    if (!this.canSave()) return;
     try {
+      const raw = change !== "reset" && this.storage?.getItem(INVENTORY_KEY);
+      if (raw) {
+        const latest = readInventory(raw);
+        mergeInventoryReceipts(this.earned, latest);
+        if (change) latest.equipped[change] = this.earned.equipped[change];
+        this.earned.equipped = latest.equipped;
+        this.sync();
+      }
       this.storage?.setItem(INVENTORY_KEY, JSON.stringify(this.earned));
     } catch {}
   }

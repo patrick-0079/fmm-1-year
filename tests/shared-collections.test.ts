@@ -3,6 +3,7 @@ import test from "node:test";
 import { readProgress } from "../src/core.ts";
 import { collectHandedLetter, handedLetters, markLetterRead, mergeResidentStory, unreadLetterIds } from "../src/resident-story.ts";
 import { mergeCollections } from "../src/shared-collections.ts";
+import { mergeAchievementProgress } from "../src/achievements.ts";
 
 test("two tabs combine read receipts, acquired mail and story milestones without resealing letters", () => {
   const a = readProgress(null).residents, b = readProgress(null).residents;
@@ -35,4 +36,14 @@ test("a stale save cannot revert collected flowers, rings or an already aligned 
   assert.deepEqual(b.rainbowFlowers, a.rainbowFlowers);
   assert.deepEqual(a.creditStars, b.creditStars);
   assert.deepEqual(a.astrolabe, b.astrolabe);
+});
+
+test("independent arcade records converge on the highest score per game", () => {
+  const local = readProgress(null), remote = readProgress(null);
+  local.arcadeBests = { flight: 16, mines: 24 };
+  remote.arcadeBests = { flight: 8, miner: 320, mines: 26 };
+  for (const [target, source] of [[local, remote], [remote, local]]) {
+    mergeAchievementProgress(target, source);
+    assert.deepEqual(target.arcadeBests, { flight: 16, mines: 26, miner: 320 });
+  }
 });
