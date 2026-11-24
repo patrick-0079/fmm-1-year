@@ -168,7 +168,8 @@ const cases:DepthCase[]=[
   {id:"workshop-rose-border-east",scene:"town",depth:578,solid:[{x:1009,y:561},{x:1019,y:564}],clear:[{x:1020,y:546},{x:1034,y:569}]},
   {id:"workshop-junction-lamp",scene:"town",depth:396,solid:[{x:939,y:316},{x:939,y:373}],clear:[{x:928,y:316},{x:959,y:374}],actor:{x:939,positions:[328,382,407]}},
   {id:"workshop-patio-middle-top",scene:"town",depth:376,solid:[{x:1048,y:361}],clear:[{x:1048,y:357},{x:1048,y:363.5}],actor:{x:1050,positions:[362,372,388]}},
-  {id:"workshop-patio-east-middle-post",scene:"town",depth:395,solid:[{x:1111,y:389}],clear:[{x:1101,y:384},{x:1119,y:387}]},
+  // Probe the middle of the rail gap so a 320px canvas pixel misses both edges.
+  {id:"workshop-patio-east-middle-post",scene:"town",depth:395,solid:[{x:1111,y:389}],clear:[{x:1101,y:384},{x:1119,y:388}]},
   {id:"workshop-patio-ivy-stone-face",scene:"town",depth:407,solid:[{x:1079,y:391}],clear:[{x:1079,y:373},{x:1091,y:382}]},
   {id:"bakery-stair-rise-3",scene:"town",overhead:true,depth:333,solid:[{x:777,y:323}],clear:[{x:775,y:328},{x:780,y:334}]},
   {id:"bakery-stair-post-knot",scene:"town",overhead:true,depth:268,solid:[{x:813,y:250}],clear:[{x:809,y:255},{x:806,y:251}]},
@@ -185,7 +186,8 @@ const cases:DepthCase[]=[
   {id:"garden-screen",scene:"garden",depth:273,solid:[{x:708,y:163},{x:721,y:164}],clear:[{x:716,y:169},{x:680,y:175}],existingOutline:televisionSilhouette,fragments:[televisionSilhouette]},
   {id:"town-west-tree",scene:"town",depth:432,solid:[{x:340,y:350},{x:320,y:370}],clear:[{x:330,y:331},{x:345,y:334}],existingOutline:townCanopies[0].points,fragments:[townCanopies[0].points]},
   {id:"south-road-west-crowns",scene:"town",depth:1025,solid:[{x:533,y:966},{x:579,y:978}],clear:[{x:560,y:970},{x:595,y:984}],canopyEdge:{x:533,y:996},existingOutline:southEdgeCanopies[0].points,fragments:[southEdgeCanopies[0].points]},
-  {id:"south-road-east-crowns",scene:"town",depth:1025,solid:[{x:737,y:968},{x:804,y:1001}],clear:[{x:775,y:970},{x:791,y:991}],canopyEdge:{x:737,y:998},existingOutline:southEdgeCanopies[1].points,fragments:[southEdgeCanopies[1].points]},
+  // Use a leaf inside the face aperture with a stable colour on both town textures.
+  {id:"south-road-east-crowns",scene:"town",depth:1025,solid:[{x:737,y:970},{x:804,y:1001}],clear:[{x:775,y:970},{x:791,y:991}],canopyEdge:{x:737,y:998},existingOutline:southEdgeCanopies[1].points,fragments:[southEdgeCanopies[1].points]},
 ];
 const run=document.querySelector<HTMLButtonElement>("#depth-run")!;
 const summary=document.querySelector<HTMLElement>("#depth-summary")!;
