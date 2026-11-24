@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { OPEN_AT, countdownParts, getDeadline, setDebugDeadline } from "../src/launch/time.ts";
 
 test("Beijing opening uses the same instant across time zones and never displays an early zero", () => {
-  assert.equal(OPEN_AT, Date.UTC(2026, 11, 1, 14));
+  assert.equal(OPEN_AT, Date.UTC(2026, 11, 1, 14, 10));
   assert.deepEqual(countdownParts(OPEN_AT, OPEN_AT - 90_061_000), { days: 1, hours: 1, minutes: 1, seconds: 1 });
   assert.equal(countdownParts(OPEN_AT, OPEN_AT - 1).seconds, 1);
   assert.equal(countdownParts(OPEN_AT, OPEN_AT - 1000).seconds, 1);

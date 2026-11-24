@@ -1,4 +1,4 @@
-export const OPEN_AT = Date.parse("2026-12-01T22:00:00+08:00");
+export const OPEN_AT = Date.parse("2026-12-01T22:10:00+08:00");
 const previewKey = "fufu-launch-preview-v1";
 const latestPreview = Date.parse("9999-12-31T23:59:59.999+08:00");
 
