@@ -16,7 +16,7 @@ const p = (x: number, y: number): Point => ({ x, y });
 // A worker's public route, and the little stretch to the shop/side street at shift change.
 type Shift = { shift: Schedule; stops: Point[]; doorway?: Point[] };
 export const townLives: Record<TownResidentId, Shift> = {
-  post: { shift:"always", stops:[p(337,674)] },
+  post: { shift:"always", stops:[p(239,624)] },
   welcome: { shift:"always", stops:[] },
   florist: { shift:"morning", stops:[p(448,303)] },
   baker: { shift:"morning", stops:[p(766,310)] },

@@ -1,5 +1,5 @@
 import type { DepthLayer, World } from "./world";
-import { TOWN_FRAMES,TOWN_NPCS, type TownNpc } from "./town-data";
+import { TOWN_FRAMES, type TownNpc } from "./town-data";
 import { drawTownWork } from "./town-work-art";
 import { paintedBounds } from "./town-work-bounds";
 import { drawResidentWalk } from "./resident-walk";
@@ -188,26 +188,34 @@ function book(c: Brush, x: number, y: number, closed: number, turning: number) {
   disk(c, "#ffdec2", fingerX, fingerY - .35, 1.33, 1.07);
 }
 
-function postbox(c: Brush, slotY: number) {
-  const x = 12;
-  rect(c, "#77514d", x + 1, slotY + 11, 9, 2);
-  outline(c, x, slotY - 2, 12, 14, "#b87470");
-  rect(c, "#c8897f", x - 1, slotY - 2, 14, 2);
-  rect(c, ink, x + 1, slotY - 0.2, 10, 1.8);
-  rect(c, "#9f5963", x + 0.7, slotY + 8, 10.5, 2.8);
-  rect(c, cream, x + 3, slotY + 3.4, 6, 3.8);
-  stroke(c, "#b78574", [x + 3, slotY + 3.4, x + 6, slotY + 5.3, x + 9, slotY + 3.4], 0.65);
+// The street painting and its foreground mask already supply the red postbox.
+const postOfficeMailSlot = { x: 217, y: 601, baseY: 622 };
+
+function postOfficeDelivery(foot: Point, height: number, drop: number): DepthLayer {
+  const { x: slotX, y: slotY, baseY } = postOfficeMailSlot;
+  // Bring the envelope up to the slot before feeding it past the painted lip.
+  const reach = clamp(drop / .72);
+  const insert = clamp((drop - .72) / .28);
+  const x = between(foot.x - 3, slotX, reach);
+  const y = between(foot.y - height * .28 - 4, slotY - 4, reach) + insert * 8;
+  const size = between(1, .58, reach);
+  return {
+    y: Math.max(foot.y, baseY) + .15,
+    draw(c) {
+      c.save();
+      if (insert > 0) {
+        c.beginPath();
+        c.rect(x - 6, y - 8, 12, slotY - y + 8);
+        c.clip();
+      }
+      c.translate(x, y);
+      c.scale(size, size);
+      envelope(c, 0, 0);
+      c.restore();
+    },
+  };
 }
-const postHome = TOWN_NPCS.find(person => person.id === "post")!;
-export const townPostboxLayer: DepthLayer = {
-  y: postHome.y - .1,
-  draw(c) {
-    c.save();
-    c.translate(postHome.x, postHome.y);
-    postbox(c, -TOWN_FRAMES[postHome.sprite].h * 43 / 337 * .28);
-    c.restore();
-  },
-};
+
 function drawWhiteboardInk(c: Brush, page: string, t: number, still: boolean, h: number) {
   // Illustration on the little physical board; all of Lili's writing is also
   // in the dialogue HUD at full text size.
@@ -243,20 +251,17 @@ function actorProps(c: Brush, n: TownNpc, page: string, t: number, still: boolea
     y = -h * 0.28;
   switch (n.id) {
     case "post": {
-      if (page === "letter" || page === "delivered") {
-        const inboxX=indoors ? 8 : postHome.x-n.x, inboxY=indoors ? 0 : postHome.y-n.y;
+      if (indoors && (page === "letter" || page === "delivered")) {
         const drop = page === "delivered" ? (still ? 1 : ease(t / 0.75)) : 0;
         if (drop < 0.98) {
           c.save();
           c.beginPath();
-          c.rect(-40, -65, 100, 65 + y + inboxY - 0.1);
+          c.rect(-40, -65, 100, 65 + y - 0.1);
           c.clip();
-          envelope(c, 3 + drop * (15+inboxX), y - 4 + drop * (8+inboxY));
+          envelope(c, 3 + drop * 23, y - 4 + drop * 8);
           c.restore();
         }
-        if (page === "delivered") {
-          rect(c, ink, 13 + inboxX, y + 1.25 + inboxY, 10, 1);
-        }
+        if (page === "delivered") rect(c, ink, 21, y + 1.25, 10, 1);
       }
       break;
     }
@@ -668,6 +673,10 @@ export function townResidentLayers(
     ? orangeLayer(npc, page, t, world, still, reverse)
     : presentLayer(npc, page, t, world.player, still);
   if (gift) layers.push(gift);
+  if (npc.id === "post" && world.scene === "town" && (page === "letter" || page === "delivered")) {
+    const drop = page === "delivered" ? (still ? 1 : ease(t / .75)) : 0;
+    if (drop < 1) layers.push(postOfficeDelivery(foot, height, drop));
+  }
   if (npc.id === "baker" && (page === "finished" || (page === "eat" && t > 2.3)) && world.facing === 0) {
     const { x, y } = world.player;
     layers.push({

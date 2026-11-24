@@ -5,7 +5,7 @@ import { TOWN_NPCS, type TownNpc } from "./town-data";
 import { residentOpening, townDailyActions, townDialogues, type TownPage } from "./town-dialogue";
 import { townChatTopics } from "./town-chat-topics";
 import { handedLetters, letterChoice, postUnread, type LetterHandoff, type ResidentStory } from "./resident-story";
-import { townResidentLayers, residentPlacement, drawResidentPortrait, townPostboxLayer, type TownAct } from "./town-acting";
+import { townResidentLayers, residentPlacement, drawResidentPortrait, type TownAct } from "./town-acting";
 import { TownResidentMap } from "./town-resident-map";
 import { TownRoutines, residentTownScene } from "./town-routines";
 import { prepareTownWork } from "./town-work-art";
@@ -325,7 +325,6 @@ export class Town {
     return [
       ...townMapCovers(this.world),
       { y, draw: c => paintHallSideSign(c, x, y) },
-      townPostboxLayer,
       ...treeCrowns.map((t) => ({
         y: t.y,
         draw: (c: CanvasRenderingContext2D) => drawTownCrown(c, this.world, t, this.reducedMotion.matches),

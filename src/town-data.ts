@@ -125,8 +125,9 @@ export const TOWN_NPCS: TownNpc[] = [
     id: "post",
     name: "红笺",
     role: "周年邮差",
-    x: 320,
-    y: 674,
+    x: 232,
+    y: 624,
+    approach: { x: 243, y: 636 },
     sprite: 2,
   },
   {
