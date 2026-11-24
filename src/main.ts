@@ -22,7 +22,7 @@ import meadowCover from "./assets/night-meadow-v16.webp";
 import { anniversary, collections } from "./content";
 import { EVENT_IDS } from "./core";
 import { escapeHtml, icon } from "./icons";
-import { prepareTextureCache } from "./texture-cache";
+import { scheduleResourcePreload } from "./texture-cache";
 import roomUrl from "./assets/room-interactive.webp";
 import spriteUrl from "./assets/nemu-sprites.webp";
 
@@ -100,14 +100,14 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 
 document.querySelector(".inline-help")!.innerHTML = helpMarkup;
 // The paper cards render before the deferred game module. Do not present live
-// buttons without handlers while that module (or the cache worker) is loading.
+// buttons without handlers while that module is loading.
 const startupButtons = [...document.querySelectorAll<HTMLButtonElement>("#app button:not([disabled])")];
 for (const button of startupButtons) button.disabled = true;
 document.querySelector("#app")!.setAttribute("aria-busy", "true");
-void prepareTextureCache().then(() => import("./application")).then(({mountGame}) => {
+void import("./application").then(({mountGame}) => {
   for (const button of startupButtons) button.disabled = false;
   mountGame();
-  scheduleAlbumPreviews(collections.album.items);
+  scheduleResourcePreload(() => scheduleAlbumPreviews(collections.album.items));
   document.querySelector("#app")!.removeAttribute("aria-busy");
 })
   .catch(() => {
