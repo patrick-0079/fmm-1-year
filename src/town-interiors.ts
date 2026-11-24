@@ -8,6 +8,7 @@ import type { TownResidentId } from "./town-dialogue.ts";
 import { townInteriorId, townInteriorKeys, type TownInteriorId, type TownInteriorKey } from "./town-interior-id.ts";
 
 type Coordinates = [number, number];
+// Source rectangles are in atlas pixels. The destination origin is in scene units.
 type Frame = [x: number, y: number, w: number, h: number, left: number, top: number];
 interface Station {
   foot: Point;
@@ -27,6 +28,8 @@ interface RoomData {
   walls: { label: string; points: Coordinates[] }[];
   chat: ChatBook;
   art: {
+    scale: number;
+    sign: { x: number; y: number; w: number; h: number; title: string; detail?: string; date?: boolean; size: number };
     backgrounds: Record<Phase, Frame>;
     lights: Record<Phase, Frame>;
     props: { name: string; depth: number; variants: Record<Phase, Frame> }[];

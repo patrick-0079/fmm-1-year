@@ -11,6 +11,7 @@ import type { TownInteriorId, TownInteriorKey } from "./town-interior-id";
 import type { RoomEffect } from "./town-interior-activities";
 import { townInteriors } from "./town-interiors";
 import type { DepthLayer } from "./world";
+import { anniversary } from "./launch/anniversary";
 
 export const townInteriorArt: Record<TownInteriorId, string> = {
   "town-florist": florist, "town-baker": baker, "town-maker": maker, "town-post": post,
@@ -18,19 +19,37 @@ export const townInteriorArt: Record<TownInteriorId, string> = {
 };
 type Frame = typeof townInteriors["town-hall"]["art"]["backgrounds"][Phase];
 
-const paint = (c: CanvasRenderingContext2D, image: HTMLImageElement, [x, y, w, h, left, top]: Frame) =>
-  c.drawImage(image, x, y, w, h, left, top, w, h);
+function paint(c: CanvasRenderingContext2D, image: HTMLImageElement, [x, y, w, h, left, top]: Frame, scale = 1) {
+  c.save();
+  c.imageSmoothingEnabled = true;
+  c.imageSmoothingQuality = "high";
+  c.drawImage(image, x, y, w, h, left, top, w / scale, h / scale);
+  c.restore();
+}
 
 export function paintTownInterior(c: CanvasRenderingContext2D, image: HTMLImageElement, scene: TownInteriorId, phase: Phase, mix?: DaylightMix, effect?: RoomEffect) {
-  const frames = townInteriors[scene].art.backgrounds;
-  paint(c, image, frames[mix?.from ?? phase]);
+  const { backgrounds: frames, scale, sign } = townInteriors[scene].art;
+  paint(c, image, frames[mix?.from ?? phase], scale);
   if (mix && mix.mix > 0) {
-    c.save(); c.globalAlpha *= mix.mix; paint(c, image, frames[mix.to]); c.restore();
+    c.save(); c.globalAlpha *= mix.mix; paint(c, image, frames[mix.to], scale); c.restore();
   }
   if (scene === "town-florist" && effect?.kind === "window") {
     const [x, y] = frames.dawn;
-    c.drawImage(image, x + 43, y + 55, 90, 29, 43, 55, 90, 29);
+    paint(c, image, [x + 43 * scale, y + 55 * scale, 90 * scale, 29 * scale, 43, 55], scale);
   }
+  const { x, y, w, h, title, size, detail, date } = sign;
+  // Use the game's CJK font at canvas resolution so the painted lettering stays
+  // legible on high-density screens independently of the atlas builder's fonts.
+  c.save();
+  c.textAlign = "center";
+  c.textBaseline = "middle";
+  c.fillStyle = "#ffead0";
+  c.font = `700 ${size}px "Microsoft YaHei", "PingFang SC", sans-serif`;
+  c.fillText(title, x + w / 2, y + h * .38, w - 14);
+  c.fillStyle = "#f6c68f";
+  c.font = `${date ? 9 : 7.5}px "Microsoft YaHei", "PingFang SC", sans-serif`;
+  c.fillText(date ? `${anniversary.start} — ${anniversary.end}` : detail ?? "", x + w / 2, y + h * .73, w - 14);
+  c.restore();
 }
 
 export function paintTownInteriorLight(c: CanvasRenderingContext2D, image: HTMLImageElement, scene: TownInteriorId, phase: Phase, mix?: DaylightMix) {
@@ -48,18 +67,18 @@ export function paintTownInteriorLight(c: CanvasRenderingContext2D, image: HTMLI
 export function interiorFurniture(
   image: HTMLImageElement, scene: TownInteriorId, phase: Phase, keepsakes: readonly TownInteriorKey[], effect: RoomEffect | undefined, time: number,
 ): DepthLayer[] {
-  const { props, models } = townInteriors[scene].art;
+  const { props, models, scale } = townInteriors[scene].art;
   return props.map(prop => ({ y: prop.depth, draw: c => {
     const override = effect?.kind === "oven" && prop.name === "砖炉和炉膛" ? "dawn"
       : effect?.kind === "board" && prop.name === "手绘白板脚" ? (phase === "dawn" ? "dusk" : "dawn")
       : effect?.kind === "blind" && prop.name === "临池侧窗木座" ? "day"
       : effect?.kind === "sort" && prop.name === "分信格柜底" ? "day"
       : phase;
-    paint(c, image, prop.variants[override]);
+    paint(c, image, prop.variants[override], scale);
     if (prop.name === "七屋模型展桌") {
       for (const key of keepsakes) {
         const lit = models[key];
-        if (lit) paint(c, image, lit);
+        if (lit) paint(c, image, lit, scale);
       }
     }
     if (effect) paintWork(c, prop.name, effect, time);

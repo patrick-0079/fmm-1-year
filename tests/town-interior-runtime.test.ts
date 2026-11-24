@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 import { canTravelBetween, findPath, readProgress, type Point } from "../src/core.ts";
 import type { Phase } from "../src/day.ts";
 import { clickedInteraction, nearbyInteraction } from "../src/interaction.ts";
@@ -136,6 +138,24 @@ test("the live indoor maps share the collision and depth footprint for each illu
         const target = spot.cue?.anchor ?? { x: 0, y: -24 };
         assert.equal(clickedInteraction({ x: spot.x + target.x, y: spot.y + target.y }, dynamic.scene.spots)?.id, spot.id);
       }
+    }
+  }
+});
+
+test("the HD atlas frames fit their textures and preserve the logical room size", async () => {
+  for (const { key, scene, art } of Object.values(townInteriors)) {
+    const file = fileURLToPath(new URL(`../src/assets/town-interiors/${key}.webp`, import.meta.url));
+    const { width, height } = await sharp(file).metadata();
+    assert.equal(art.scale, 2);
+    for (const [, , w, h, left, top] of Object.values(art.backgrounds)) {
+      assert.deepEqual([w / art.scale, h / art.scale, left, top], [scene.width, scene.height, 0, 0], key);
+    }
+    const frames = [
+      ...Object.values(art.backgrounds), ...Object.values(art.lights), ...Object.values(art.models),
+      ...art.props.flatMap(prop => Object.values(prop.variants)),
+    ];
+    for (const [x, y, w, h] of frames) {
+      assert.ok(x >= 0 && y >= 0 && w > 0 && h > 0 && x + w <= width && y + h <= height, key);
     }
   }
 });

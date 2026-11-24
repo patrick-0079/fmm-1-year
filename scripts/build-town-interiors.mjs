@@ -6,6 +6,8 @@ import { finishTownInterior, readTownInteriorArt } from "./town-interior-finish.
 const places = ["florist", "baker", "maker", "post", "books", "radio", "hall"];
 const phases = ["dawn", "day", "dusk", "night"];
 const size = { width: 600, height: 400 };
+const textureScale = 2;
+const gutter = 2;
 const sourceFolder = new URL("../doc/artwork/town-interiors/", import.meta.url);
 const assetFolder = new URL("../src/assets/town-interiors/", import.meta.url);
 const conversation = (await readFile(new URL("../doc/artwork/ARTWORK-town-interiors.md", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
@@ -62,9 +64,11 @@ async function compile(place) {
     .replace(/<polyline\b[^>]*37\.5[^>]*\/>/g, "");
   const furniture = groups(group(source, "furniture"), / data-object="/);
   const lighting = group(source, "room-light");
+  const wall = group(source, "back-wall-details");
+  const [sketchPhotos] = groups(wall, / id="review-photo-prints"/);
   if (furniture.length !== walls.length) throw Error(place + " furniture and ground shapes must correspond");
   const finished = finishTownInterior(place, plan, {
-    architecture, floorDetails: group(source, "floor-details"), backWall: group(source, "back-wall-details"), furniture,
+    architecture, floorDetails: group(source, "floor-details"), backWall: sketchPhotos ? wall.replace(sketchPhotos, "") : wall, furniture,
   }, furnishings);
   const defs = source.match(/<defs>[\s\S]*?<\/defs>/)[0]
     .replace(/<style>[\s\S]*?<\/style>/, "")
@@ -72,9 +76,9 @@ async function compile(place) {
     .replace("</defs>", finished.defs + "</defs>");
   const sprites = new Map();
 
-  async function raster(content, phase, full = false) {
+  async function raster(content, phase, { full = false, scale = textureScale } = {}) {
     const body = showVariant(content, phase);
-    const markup = '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400" stroke-linejoin="round" stroke-linecap="round" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif">' + defs + body + '</svg>';
+    const markup = `<svg xmlns="http://www.w3.org/2000/svg" width="${size.width * scale}" height="${size.height * scale}" viewBox="0 0 ${size.width} ${size.height}" stroke-linejoin="round" stroke-linecap="round" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif">` + defs + body + '</svg>';
     const { data, info } = await sharp(Buffer.from(markup)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
     let l = info.width, t = info.height, r = 0, b = 0;
     if (full) [l, t, r, b] = [0, 0, info.width, info.height];
@@ -86,20 +90,21 @@ async function compile(place) {
     }
     if (r <= l || b <= t) return null;
     const width = r - l, height = b - t;
-    const buffer = await sharp(data, { raw: { ...size, channels: 4 } })
+    const buffer = await sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } })
       .extract({ left: l, top: t, width, height }).png().toBuffer();
     const hash = createHash("sha256").update(buffer).digest("hex");
     if (!sprites.has(hash)) sprites.set(hash, { buffer, width, height, x: 0, y: 0 });
     return () => {
       const packed = sprites.get(hash);
-      return [packed.x, packed.y, width, height, l, t];
+      return [packed.x, packed.y, width, height, l / scale, t / scale];
     };
   }
 
-  const frames = { backgrounds: {}, lights: {}, props: [], models: {} };
+  const frames = { scale: textureScale, sign: finished.sign, backgrounds: {}, lights: {}, props: [], models: {} };
   for (const phase of phases) {
-    frames.backgrounds[phase] = await raster(finished.background, phase, true);
-    frames.lights[phase] = await raster(lighting + finished.glows, phase);
+    frames.backgrounds[phase] = await raster(finished.background, phase, { full: true });
+    // Light fields are gradients. Keep them at logical resolution in the atlas.
+    frames.lights[phase] = await raster(lighting + finished.glows, phase, { scale: 1 });
   }
   for (const [index, part] of furniture.entries()) {
     const depth = Math.max(...walls[index].points.map(point => point[1]));
@@ -117,15 +122,16 @@ async function compile(place) {
     }
   }
 
-  const width = 1200;
+  const width = 2 * (size.width * textureScale + 2 * gutter);
   let x = 0, y = 0, shelf = 0;
   const layers = [];
   for (const sprite of [...sprites.values()].sort((a, b) => b.height - a.height)) {
-    if (x + sprite.width > width) { x = 0; y += shelf; shelf = 0; }
-    sprite.x = x; sprite.y = y;
-    layers.push({ input: sprite.buffer, left: x, top: y });
-    x += sprite.width;
-    shelf = Math.max(shelf, sprite.height);
+    const cellWidth = sprite.width + 2 * gutter;
+    if (x + cellWidth > width) { x = 0; y += shelf; shelf = 0; }
+    sprite.x = x + gutter; sprite.y = y + gutter;
+    layers.push({ input: sprite.buffer, left: sprite.x, top: sprite.y });
+    x += cellWidth;
+    shelf = Math.max(shelf, sprite.height + 2 * gutter);
   }
   const pixels = await sharp({ create: { width, height: y + shelf, channels: 4, background: "#00000000" } })
     .composite(layers).webp({ lossless: true, effort: 5 }).toBuffer();

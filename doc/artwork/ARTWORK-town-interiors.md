@@ -2,9 +2,9 @@
 
 七间屋子全天开放。芙芙可以在花店借一片落花，在邮局给自己盖一枚月牙邮戳，也可以第一次上北坡就进纪念馆。做好的小物收进背包的 **纪念物 → 小镇小物**。馆里的模型展桌会记下每件小物来自哪扇门。
 
-下图取自游戏画布。花店用釉面砖与花纹地毯衔接温室，烘焙屋铺陶砖与红格布，工坊把黄铜首饰衬在紫绒上。邮局的信笺格、书屋的深木书架、电台的磁带机和纪念馆的金框相片各有一处突出的陈设。几间屋的窗景取自晚安小屋的四时天空，书屋侧窗能看见小镇原画里的睡莲。黄昏与星夜的局部灯光落在仍能操作的工作台上。
+下图取自游戏画布。墙面挂着芙眠眠的晨光、阅读、抱狐狸和弹贝斯相册画。花店在庆典花篮里扎上粉缎带，烘焙屋在草莓蛋糕上立一根蜡烛，星饰工坊陈列星月首饰，邮局摆出盖了月牙火漆的祝贺信。相册书屋摊开纪念相册，晚安电台把粉色话筒和纪念磁带放上柜台，纪念馆为金色「1」和直播周年题牌留出展位。黄昏到星夜，墙上的灯串逐次显出暖光。
 
-[![游戏内七间室内的实机画面，展示各屋的材质、陈设与不同时段的光照。](town-interiors/interiors-in-game.webp)](town-interiors/interiors-in-game.webp)
+[![游戏内七间室内的直播一周年庆典布置，含纪念馆的白昼和星夜。](town-interiors/interiors-in-game.webp)](town-interiors/interiors-in-game.webp)
 
 下方七张室内草图可独立打开。**点图可放大。在浏览器单独打开 SVG 原图后，点图底的清晨、白昼、黄昏或星夜**，可以对照同一间屋子的窗扇、炉火、灯光和居民位置。草图显示代表时段，图底四幅小样可直接对照。纪念馆图顶还可以切换收藏数量。
 
@@ -180,6 +180,23 @@
 地板、壁板、铜饰和织物在 `scripts/town-interior-finish.mjs` 中按房间绘制。桌上的小物挂在承托家具的深度层，墙上的陈设绘在背墙层。默认构建入口 `node scripts/build-town-interiors.mjs` 读取草图的占地和对白，再合成各屋的 WebP 图集。 [柜台与道具图集](town-interiors/dressing-atlas.webp) · [背墙陈设图集](town-interiors/wall-atlas.webp)
 
 两张陈设图集由内置 ImageGen 以晚安小屋原图为风格参考生成。打包前保留物件轮廓并清理透明边缘。构建按四列两行裁切图集，每个陈设保持原比例摆放。
+
+庆典版把 600 × 400 逻辑场景按 1200 × 800 导出，家具也按两倍分辨率绘制。光照渐变沿用较小的图层，降低切换地图时的加载量。周年题牌由游戏画布按屏幕分辨率绘字，纪念馆的日期取自游戏邀请函。 [庆典陈设图集](town-interiors/celebration-atlas.webp)
+
+庆典陈设图集使用内置 ImageGen 生成。相册画从游戏相册取用，由设计稿的构建器装裱进各屋。
+
+<details>
+<summary>庆典陈设图集生成提示词</summary>
+
+```text
+Use case: stylized-concept. Production asset: one transparent 4 columns by 2 rows sprite atlas for a cozy hand-painted chibi RPG celebrating 芙眠眠's first year of evening livestreams.
+Draw eight equally sized isolated prop groups, one centered in each strictly equal cell. Very wide 2:1 overall if possible. Keep all items away from cell borders; put 8% transparent padding around each individual group. Same fixed orthographic slightly elevated front view for all objects, about 25 degrees down, like visual props for a cutaway storybook shop. Full clear silhouettes. Painterly warm gouache with crisp dark brown edge ink, finely detailed gold metal, wood, glass, silk and paper surfaces; fine sharp lines and calibrated contrast at thumbnail size. Pastel dusty raspberry ribbons, vanilla, pale rose, dark berry, warm aged brass, soft sage and lilac in controlled proportions, many small highlights. Deliberate handmade finish. No characters, watermark, ground, furniture under the props, frames around the cells, hard-edged ambient shadow, or text of any kind. Completely transparent negative space.
+
+Top row left to right: (1) florist's very wide ribbon-wrapped basket overflowing with pink and white lisianthus blooms and eucalyptus, low centered with loose ribbons below the lip, pearl pin; (2) bakery's spectacular strawberry shortcake with exactly one golden candle and petite pink cream rosettes, sliced strawberries, on a low ornate golden cake stand, dark rose bow under plate; (3) jeweler's open rose-lilac velvet trinket case with a luminous matching moon pendant and star set and two small heart gems, jade-green and rose-pink; (4) standing stack of cream handwritten-looking congratulation envelopes and pastel postcards tied at the bottom with rose ribbon, large red crescent wax seals, mini moon-shaped brass mail stamp, highly legible shapes, no legible letters.
+Bottom row left to right: (5) bookshop's open small cloth-bound scrapbook displaying two empty cream photo squares, gold corner mounts, small pressed cherry-pink bloom, pearl strand bookmark, several loose photos partly tucked below; (6) radio's vintage pale rose ASMR microphone in brass L bracket with black windscreen, wine-colored headphones and a couple of cream-and-rose striped cassette tapes resting beside it, one tiny red jewel power light; (7) display-ready festive celebration centerpiece, dramatic deep berry velvet drapery and pink bows framing a large freestanding gold number 1 sculpted like jewelry, surrounded by crescent, stars, tiny pink blossoms and cream ribbon tails, readable silhouette, no other numeral or writing; (8) a wide horizontal asymmetrical wall-mounted festive knot of swags, pink rose silk with gold stitches, three filigree brass moon & star charms gently hanging below, tied with paper rose rosettes, no wall or mounting hardware. Treat each cell as its own distinct isolated cutout on real transparent background, equal gutters across the entire sheet.
+```
+
+</details>
 
 <details>
 <summary>柜台小物的生成提示</summary>
