@@ -6,6 +6,8 @@ import { rainbowFlowers } from "./rainbow-flowers.ts";
 import { producers } from "./star-catalog.ts";
 import { deliveryIds } from "./letters.generated.ts";
 import { achievementEvents, type AchievementEvent } from "./achievement-events.ts";
+import { townInteriorKeys } from "./town-interior-id.ts";
+import { townKeepsakeBadge, townKeepsakeInfo } from "./town-keepsakes.ts";
 
 export const achievementChapters = [
   { id: "daily", title: "日常与相遇" },
@@ -89,6 +91,10 @@ const explore: Definition[] = [
     id: "ruin-" + id, chapter: "explore", name,
     description: hint + "。", difficulty: id === "first" ? "简单" : id === "light" ? "挑战" : id === "radio" ? "探索" : "普通",
     ...(id === "radio" ? { hint: "听月泉边，连最轻的声音也能传很远。" } : {}),
+  })),
+  ...townInteriorKeys.map((key): Definition => ({
+    id: townKeepsakeBadge(key), chapter: "explore", name: townKeepsakeInfo[key].name, difficulty: "简单",
+    description: `在小镇室内完成对应的手作，收下${townKeepsakeInfo[key].name}。`,
   })),
 ];
 const days = [
@@ -287,6 +293,7 @@ export function reconcileAchievements(progress: Progress, context: AchievementCo
   meters.set("camp", yesNo(story.patrickArrived));
   const earnedInRuins = earnedSeals(progress.astrolabe, progress.echoes.listened);
   for (const seal of seals) meters.set("ruin-" + seal.id, yesNo(earnedInRuins.includes(seal.id)));
+  for (const key of townInteriorKeys) meters.set(townKeepsakeBadge(key), yesNo(progress.townKeepsakes.items.includes(key)));
   meters.set("ruin-set", meter(progress.astrolabe.found.length, rings.length, "枚星盘环"));
   for (const { days: n } of days) {
     const minutes = Math.floor(Math.max(0, Number.isFinite(context.playSeconds) ? context.playSeconds : 0) / 60);

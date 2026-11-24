@@ -32,8 +32,7 @@ interface RoomData {
     sign: { x: number; y: number; w: number; h: number; title: string; detail?: string; date?: boolean; size: number };
     backgrounds: Record<Phase, Frame>;
     lights: Record<Phase, Frame>;
-    props: { name: string; depth: number; variants: Record<Phase, Frame> }[];
-    models: Partial<Record<TownInteriorKey, Frame>>;
+    props: { name: string; depth: number; variants: Record<Phase, Frame>; raisedVariants?: Record<Phase, Frame> }[];
   };
 }
 const rooms = data as unknown as Record<TownInteriorKey, RoomData>;
@@ -46,7 +45,7 @@ const actions = {
   post: ["盖下月牙邮戳", "翻看分信格"],
   books: ["装帧池畔折页", "拉起临池竹帘"],
   radio: ["录一段晚安片头", "坐下试听"],
-  hall: ["摇动手摇影箱", "查看七屋纪念展柜"],
+  hall: ["摇动手摇影箱", "查看小镇纪念品展柜"],
 } as const;
 
 // Trace the painted objects above their feet, including handles that project past the base.
@@ -55,7 +54,7 @@ const objectBounds: Record<TownInteriorKey, [[number, number, number, number], [
   baker: [[-38, -50, 116, 51], [-32, -85, 64, 79]],
   maker: [[-45, -62, 109, 63], [-45, -67, 109, 67]],
   post: [[-38, -64, 83, 65], [-49, -67, 110, 68]],
-  books: [[-66, -53, 123, 55], [-5, -33, 12, 40]],
+  books: [[-66, -53, 123, 55], [-12, -22, 25, 35]],
   radio: [[-82, -65, 155, 67], [-23, -44, 48, 45]],
   hall: [[-45, -78, 101, 79], [-103, -50, 204, 53]],
 };
@@ -76,6 +75,12 @@ const doorColors: Record<TownInteriorKey, string> = {
   florist: "#91b6a1", baker: "#f0b68d", maker: "#c7a8da", post: "#dd9397",
   books: "#9ccac0", radio: "#a4bde2", hall: "#e8c18a",
 };
+
+export const hallCollectionSlots = [
+  ["florist", "花店", 229, 139], ["baker", "烘焙屋", 276, 139],
+  ["hall", "纪念馆", 323, 139], ["maker", "工坊", 370, 139],
+  ["post", "邮局", 248, 160], ["books", "书屋", 300, 160], ["radio", "电台", 352, 160],
+] as const satisfies readonly [TownInteriorKey, string, number, number][];
 
 export type TownArea = "town" | TownInteriorId;
 export interface TownInterior {
@@ -110,8 +115,8 @@ function activitySpot(key: TownInteriorKey, index: number, station: RoomData["pl
   const [x, y, w, h] = objectBounds[key][index];
   const title = actions[key][index];
   const hitAreas = [{ x: at.x + x, y: at.y + y, w, h }];
-  // Both the slats and the cord raise the blind. Keep the prompt on the cord.
-  if (key === "books" && index === 1) hitAreas.push({ x: 32, y: 165, w: 28, h: 55 });
+  const blind = key === "books" && index === 1;
+  if (blind) hitAreas.push({ x: 30, y: 153, w: 34, h: 66 });
   // The handle on the left stays clear of Hongjian's morning workstation.
   const cueX = key === "post" && index === 1 ? .32 : .56;
   return {
@@ -119,7 +124,7 @@ function activitySpot(key: TownInteriorKey, index: number, station: RoomData["pl
     title, ...at, approach: point(station.approach), color: doorColors[key], radius: 48,
     markerOffset: -y / 2, hitAreas,
     cue: { kind: "mechanism", action: title, verb: "查看", natural: false, objectBox: { x, y, w, h },
-      anchor: { x: x + w * cueX, y: y + h * .5 } },
+      anchor: blind ? { x: 0, y: 0 } : { x: x + w * cueX, y: y + h * .5 } },
   };
 }
 

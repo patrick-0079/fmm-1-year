@@ -9,8 +9,9 @@ import { readJourney } from "../src/journey.ts";
 import { scenes } from "../src/maps.ts";
 import { ResidentChats } from "../src/resident-chats.ts";
 import { mergeCollections } from "../src/shared-collections.ts";
-import { townInteriorId } from "../src/town-interior-id.ts";
-import { crossedInteriorDoor, townInteriors } from "../src/town-interiors.ts";
+import { townInteriorId, townInteriorKeys } from "../src/town-interior-id.ts";
+import { crossedInteriorDoor, hallCollectionSlots, townInteriors } from "../src/town-interiors.ts";
+import { collectTownKeepsake, mergeTownKeepsakes, readTownKeepsakes } from "../src/town-keepsakes.ts";
 import { TownResidentMap } from "../src/town-resident-map.ts";
 import { residentTownScene, TownRoutines } from "../src/town-routines.ts";
 
@@ -150,10 +151,10 @@ test("the hall aisle reaches the new display and the workshop cabinet has a walk
   assert.equal(nearbyInteraction(display.approach, hall.scene.spots)?.id, display.id);
   const cabinet = hall.art.props.find(prop => prop.name === "七屋纪念展柜")!;
   const [, , width, height, left, top] = cabinet.variants.day;
-  assert.equal(Object.keys(hall.art.models).length, 7);
-  for (const [, , w, h, x, y] of Object.values(hall.art.models)) {
-    assert.ok(x >= left && x + w / hall.art.scale <= left + width / hall.art.scale);
-    assert.ok(y >= top && y + h / hall.art.scale <= top + height / hall.art.scale);
+  assert.deepEqual(hallCollectionSlots.map(([key]) => key).sort(), [...townInteriorKeys].sort());
+  for (const [, , x, y] of hallCollectionSlots) {
+    assert.ok(x - 9 >= left && x + 9 <= left + width / hall.art.scale);
+    assert.ok(y - 10 >= top && y + 12 <= top + height / hall.art.scale);
   }
 
   const workshop = townInteriors["town-maker"].scene;
@@ -166,7 +167,7 @@ test("painted controls can be targeted during every indoor shift", () => {
     ["baker", "main", { x: 213, y: 130 }],
     ["post", "main", { x: 524, y: 176 }],
     ["books", "extra", { x: 50, y: 185 }],
-    ["books", "extra", { x: 94, y: 230 }],
+    ["books", "extra", { x: 61, y: 220 }],
     ["radio", "extra", { x: 487, y: 145 }],
     ["hall", "main", { x: 528, y: 126 }],
   ] as const;
@@ -190,12 +191,24 @@ test("the HD atlas frames fit their textures and preserve the logical room size"
       assert.deepEqual([w / art.scale, h / art.scale, left, top], [scene.width, scene.height, 0, 0], key);
     }
     const frames = [
-      ...Object.values(art.backgrounds), ...Object.values(art.lights), ...Object.values(art.models),
-      ...art.props.flatMap(prop => Object.values(prop.variants)),
+      ...Object.values(art.backgrounds), ...Object.values(art.lights),
+      ...art.props.flatMap(prop => [...Object.values(prop.variants), ...Object.values(prop.raisedVariants ?? {})]),
     ];
     for (const [x, y, w, h] of frames) {
       assert.ok(x >= 0 && y >= 0 && w > 0 && h > 0 && x + w <= width && y + h <= height, key);
     }
+  }
+});
+
+test("the bookshop has a separate raised blind in every phase", () => {
+  const blind = townInteriors["town-books"].art.props.find(prop => prop.name === "临池侧窗木座")!;
+  const raised = blind.raisedVariants!;
+  const phases = ["dawn", "day", "dusk", "night"] as const;
+  assert.equal(new Set(phases.map(phase => raised[phase]?.join(","))).size, phases.length);
+  for (const phase of phases) {
+    assert.ok(raised[phase]);
+    assert.notDeepEqual(raised[phase], blind.variants[phase]);
+    assert.deepEqual(raised[phase].slice(2), blind.variants[phase].slice(2));
   }
 });
 
@@ -209,6 +222,18 @@ test("the first recorded souvenir survives loading older, malformed, and concurr
   mergeCollections(first, second);
   assert.deepEqual(readProgress(JSON.stringify(first)).townKeepsakes, { items: ["baker", "post", "radio", "hall"], radioTrack: "bells" });
   assert.deepEqual(load({ items: false, radioTrack: "other" }).townKeepsakes, { items: [] });
+});
+
+test("parallel recordings converge on the earliest take and keep legacy recordings", () => {
+  const first = readTownKeepsakes(null), second = readTownKeepsakes(null);
+  collectTownKeepsake(first, "radio", "bells", 100);
+  collectTownKeepsake(second, "radio", "creek", 120);
+  mergeTownKeepsakes(first, second);
+  mergeTownKeepsakes(second, first);
+  assert.deepEqual(first, second);
+  assert.deepEqual(readTownKeepsakes(first), { items: ["radio"], radioTrack: "bells", radioRecordedAt: 100 });
+  mergeTownKeepsakes(first, readTownKeepsakes({ items: ["radio"], radioTrack: "creek", radioRecordedAt: -10 }));
+  assert.deepEqual(first, { items: ["radio"], radioTrack: "creek" });
 });
 
 test("indoors the daily chat order and the meeting record survive being reloaded separately", () => {

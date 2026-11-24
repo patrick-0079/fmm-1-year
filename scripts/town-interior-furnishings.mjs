@@ -190,33 +190,6 @@ function clothBook(p, x, y, w, color) {
     line(`M${x + 2} ${y + 1.3}h${w - 4}`, p.edge, .61, .73);
 }
 
-function sideWindow(p) {
-  const pane = "M32 165l27-9v54l-27 13Z";
-  const states = [
-    ["dawn", "#dcc0a2", "#86967d", "#8aa6a0", 3],
-    ["day", "#b8c7b5", "#759480", "#86a6a0", 1],
-    ["dusk", "#d4a58a", "#8a8b76", "#869996", 5],
-    ["night", "#637988", "#4e6c65", "#607e80", 8],
-  ];
-  const views = states.map(([phase, sky, bank, water, slats]) => {
-    const blinds = Array.from({ length: slats }, (_, n) => line(`M32 ${166 + n * 5.6}l27-9`, "#a38261", 4.6) +
-      line(`M32 ${165 + n * 5.6}l27-9`, "#d7b387", .82)).join("");
-    return `<g class="phase-view phase-${phase}" display="none" clip-path="url(#bookshop-side-pane)">` + path(pane, sky) +
-      path("M30 188q9-7 14-5q8-7 20-8v51H30Z", bank) + path("M30 202l31-10v19l-31 13Z", water) +
-      line("M34 207l10-3m4-4 9-3m-24 15 9-4", "#e2caaa", .72, .69) +
-      line("M33 188l-2-13m20 5 3-15m-1 17 5-15", "#5c765f", 1.1, .9) + blinds + "</g>";
-  }).join("");
-  return path("M25 154l40-13 2 86-4 25H25Z", p.face, edge(p, 1.05)) +
-    path("M26 158l35-12 3 70-34 15Z", p.dark, edge(p, .9)) + views +
-    path(pane, "none", `stroke="${p.edge}" stroke-width="1"`) +
-    line("M33 195l25-10m-13-23v54", p.ink, 1.55) + line("M34 194l24-9", p.edge, .6) +
-    path("M25 229l39-13 3 7-42 14Z", p.top, edge(p, .96)) +
-    path("M25 237l42-14v24l-6 5H25Z", p.dark, edge(p, .95)) +
-    line("M28 239l35-11v17l-3 3H28Z", p.edge, .74, .84) +
-    line("M60 155q26 14 33 43v33", p.ink, .8) + line("M62 156q25 15 33 42v32", p.edge, .65) +
-    oval(94, 230, 2.4, 4.4, "#c39773", edge(p, .72)) + dot(93.5, 229, .82, p.edge);
-}
-
 function studioDesk(p, source) {
   const phaseMeters = source.match(/<g class="phase-view[^>]*>[\s\S]*?<\/g>/g).join("");
   let sliders = "";
@@ -309,8 +282,7 @@ function anniversaryBadge(p, x, y) {
 
 export function townFurnishingDefs(place) {
   const p = finishes[place];
-  return '<clipPath id="bookshop-side-pane"><path d="M32 165l27-9v54l-27 13Z"/></clipPath>' +
-    `<radialGradient id="furnishing-contact"><stop stop-color="${p.ink}" stop-opacity=".34"/><stop offset=".55" stop-color="${p.ink}" stop-opacity=".23"/><stop offset="1" stop-color="${p.ink}" stop-opacity="0"/></radialGradient>` +
+  return `<radialGradient id="furnishing-contact"><stop stop-color="${p.ink}" stop-opacity=".34"/><stop offset=".55" stop-color="${p.ink}" stop-opacity=".23"/><stop offset="1" stop-color="${p.ink}" stop-opacity="0"/></radialGradient>` +
     `<linearGradient id="furnishing-top" x2="0" y2="1"><stop stop-color="${p.edge}"/><stop offset=".34" stop-color="${p.top}"/><stop offset=".84" stop-color="${p.top}"/><stop offset="1" stop-color="${p.face}"/></linearGradient>` +
     `<linearGradient id="furnishing-front" x2="0" y2="1"><stop stop-color="${p.top}"/><stop offset=".28" stop-color="${p.face}"/><stop offset="1" stop-color="${p.dark}"/></linearGradient>`;
 }
@@ -467,8 +439,6 @@ export function redrawTownFurnishing(place, name, source) {
         tiedParcel(p, 332, 283, 29, 18, "#b87467"), true);
     case "木等候椅":
       return upholsteredChair(p, 225, 282);
-    case "临池侧窗木座":
-      return sideWindow(p);
     case "装帧桌":
       return desk(p, 73, 121, 129, 23, 166, openAlbum(p, 83, 124) +
         clothBook(p, 139, 131, 29, p.lining) + paper(p, 137, 123, 29, 12) + line("M171 137l13-10", "#7b6958", 2.1) +

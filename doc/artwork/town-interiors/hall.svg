@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="1200" height="800" role="img" aria-labelledby="title desc" font-family="'Microsoft YaHei','Noto Sans CJK SC','Noto Sans SC','PingFang SC',sans-serif" stroke-linejoin="round" stroke-linecap="round">
   <title id="title">周年纪念馆 · 室内配色与动线</title>
-  <desc id="desc">北墙挂筹备速写，中央展桌按街区位置摆七个屋模。可分别选择时段和空桌、三件、齐全；亮窗旁的小物标出收藏。南门返回馆东石阶。</desc>
+  <desc id="desc">北墙双层展柜按建筑陈列七件纪念品。可选择时段，并切换空柜、三件及七件齐全，柜顶显示收藏数。南门返回馆东石阶。</desc>
   <defs>
     <style>
 .phase-view,.collection-view{display:none}.default-view{display:inline}
@@ -493,303 +493,199 @@
       <rect x="520" y="121" width="8" height="3.5" rx="1" fill="#d7a16c" stroke="#523e3a" stroke-width="0.65" />
     </g>
     <g data-object="七屋纪念展柜">
-      <ellipse cx="299" cy="174" rx="103" ry="4.5" fill="#553b40" opacity=".24"/>
-      <path d="M198 169V132q0-7 7-8h188q7 1 7 8v37l-5 6H203Z" fill="#815465" stroke="#553c46" stroke-width="1.3"/>
-      <path d="M199 132q0-7 7-8h186q6 1 7 8H199Z" fill="#c8917d" stroke="#553c46" stroke-width=".9"/>
-      <path d="M205 128h187M203 171h192" fill="none" stroke="#e5bd8a" stroke-width="1"/>
-      <rect x="205" y="132" width="188" height="35" rx="3" fill="#5c4853" stroke="#593b43" stroke-width=".9"/>
-      <rect x="208" y="133" width="182" height="14" rx="1" fill="#8b7771"/>
-      <rect x="208" y="151" width="182" height="15" rx="1" fill="#827169"/>
-      <path d="M210 134h178m-178 19h178" stroke="#e8ca9e" fill="none" stroke-width=".6" opacity=".58"/>
-      <path d="M247 134v12m50-12v12m51-12v12m-65 6v13m63-13v13" fill="none" stroke="#533e48" stroke-width="1.25" opacity=".48"/>
-      <path d="M206 147h186v3H206ZM206 167h186v3H206Z" fill="#dbb987" stroke="#744f56" stroke-width=".75"/>
-      <path d="M215 147l10-13m123 31 9-12m9-1 8-10" fill="none" stroke="#ebdbb7" stroke-width="1.4" opacity=".32"/>
-      <circle cx="204" cy="173" r="1" fill="#f0cb93"/>
-      <circle cx="394" cy="173" r="1" fill="#f0cb93"/>
+      <rect x="197" y="130" width="203" height="47" rx="5" fill="#4f3948" opacity=".24"/>
+      <path d="M196 171v-43q0-6 7-6h193q5 0 5 6v43l-5 5H201Z" fill="#875e68" stroke="#553c46" stroke-width="1.35"/>
+      <rect x="202" y="130" width="193" height="44" rx="2" fill="#624e57" stroke="#d4ab85" stroke-width=".65"/>
+      <rect x="245" y="122.3" width="110" height="8.6" rx="2" fill="#754a5b" stroke="#dda97d" stroke-width=".65" opacity=".98"/>
+      <rect x="208" y="131" width="42" height="20" rx="2" fill="#80676c" stroke="#b38c7e" stroke-width=".53"/>
+      <path d="M210 145.5h38" fill="none" stroke="#d2a583" stroke-width=".54" opacity=".76"/>
+      <path d="M210 133.2v-1h3m32 0h3v1" fill="none" stroke="#e0b991" stroke-width=".53" opacity=".72"/>
+      <rect x="255" y="131" width="42" height="20" rx="2" fill="#80676c" stroke="#b38c7e" stroke-width=".53"/>
+      <path d="M257 145.5h38" fill="none" stroke="#d2a583" stroke-width=".54" opacity=".76"/>
+      <path d="M257 133.2v-1h3m32 0h3v1" fill="none" stroke="#e0b991" stroke-width=".53" opacity=".72"/>
+      <rect x="302" y="131" width="42" height="20" rx="2" fill="#80676c" stroke="#b38c7e" stroke-width=".53"/>
+      <path d="M304 145.5h38" fill="none" stroke="#d2a583" stroke-width=".54" opacity=".76"/>
+      <path d="M304 133.2v-1h3m32 0h3v1" fill="none" stroke="#e0b991" stroke-width=".53" opacity=".72"/>
+      <rect x="349" y="131" width="42" height="20" rx="2" fill="#80676c" stroke="#b38c7e" stroke-width=".53"/>
+      <path d="M351 145.5h38" fill="none" stroke="#d2a583" stroke-width=".54" opacity=".76"/>
+      <path d="M351 133.2v-1h3m32 0h3v1" fill="none" stroke="#e0b991" stroke-width=".53" opacity=".72"/>
+      <rect x="224.5" y="152" width="47" height="20" rx="2" fill="#80676c" stroke="#b38c7e" stroke-width=".53"/>
+      <path d="M226.5 166.5h43" fill="none" stroke="#d2a583" stroke-width=".54" opacity=".76"/>
+      <path d="M226.5 154.2v-1h3m37 0h3v1" fill="none" stroke="#e0b991" stroke-width=".53" opacity=".72"/>
+      <rect x="276.5" y="152" width="47" height="20" rx="2" fill="#80676c" stroke="#b38c7e" stroke-width=".53"/>
+      <path d="M278.5 166.5h43" fill="none" stroke="#d2a583" stroke-width=".54" opacity=".76"/>
+      <path d="M278.5 154.2v-1h3m37 0h3v1" fill="none" stroke="#e0b991" stroke-width=".53" opacity=".72"/>
+      <rect x="328.5" y="152" width="47" height="20" rx="2" fill="#80676c" stroke="#b38c7e" stroke-width=".53"/>
+      <path d="M330.5 166.5h43" fill="none" stroke="#d2a583" stroke-width=".54" opacity=".76"/>
+      <path d="M330.5 154.2v-1h3m37 0h3v1" fill="none" stroke="#e0b991" stroke-width=".53" opacity=".72"/>
+      <path d="M202 151.5h193m-191 23h188" fill="none" stroke="#efc897" stroke-width="1.1"/>
       <g class="collection-view collection-empty" display="none">
-        <g transform="translate(324 144) scale(.9)" data-building="hall" data-lit="false">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#c57773" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#727169" stroke="#523e3a" stroke-width="0.55" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
+        <text x="300" y="129.4" text-anchor="middle" font-size="8" font-weight="700" fill="#ffdda2">小镇纪念品 0/7</text>
+        <g transform="translate(220 129) scale(.375)" stroke="#ddbf9c" stroke-width="1.25" opacity=".68">
+          <path d="M22 13 Q15 4 22 3Q29 0 25 14 L22 18" fill="none"/>
+          <path d="M15 13L37 17L32 49L11 45Z" fill="none"/>
+          <path d="M21 41Q20 33 27 27L29 29Q28 36 21 41Z" fill="none"/>
+          <path d="M25 32Q17 29 21 23Q23 21 26 24Q33 20 34 26Q32 31 25 32Z" fill="none"/>
+          <path d="M15 42L20 19M21 40L28 26M24 32L22 26M27 29L31 26" fill="none"/>
         </g>
-        <g transform="translate(224 144) scale(.9)" data-building="florist" data-lit="false">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#7c9e8a" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#727169" stroke="#523e3a" stroke-width="0.55" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <ellipse cx="-8" cy="-1.8" rx="2.5" ry="1.3" fill="#c89aa0" stroke="#523e3a" stroke-width="0.35" />
+        <text x="229" y="151.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ead1b2">花店</text>
+        <g transform="translate(267 129) scale(.375)" stroke="#ddbf9c" stroke-width="1.25" opacity=".68">
+          <path d="M6 20H42V38Q42 45 24 46Q6 45 6 38Z" fill="none"/>
+          <path d="M6 20Q7 12 24 12Q41 12 42 20Q40 28 24 29Q6 28 6 20Z" fill="none"/>
+          <path d="M17 20Q18 16 24 19Q31 17 32 21Q28 27 25 26Q20 26 17 20Z" fill="none"/>
+          <path d="M22 19L24 16L27 18L26 21Z" fill="none"/>
+          <path d="M9 34Q24 39 39 34M20 21L21 22M27 23L29 22" fill="none"/>
         </g>
-        <g transform="translate(274 144) scale(.9)" data-building="baker" data-lit="false">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#d3a25f" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#727169" stroke="#523e3a" stroke-width="0.55" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <circle cx="2" cy="-9.4" r="1.7" fill="#e9c399" stroke="#523e3a" stroke-width="0.35" />
+        <text x="276" y="151.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ead1b2">烘焙屋</text>
+        <g transform="translate(314 129) scale(.375)" stroke="#ddbf9c" stroke-width="1.25" opacity=".68">
+          <path d="M6 19L41 13L43 22Q37 25 44 29L45 36L9 42L8 35Q13 31 7 27Z" fill="none"/>
+          <path d="M15 23L32 20L34 32L17 35Z" fill="none"/>
+          <path d="M19 28L24 24L29 26L30 31L20 33Z" fill="none"/>
+          <path d="M36 18L37 20M38 24L38 26M39 30L40 33M25 28L25 31" fill="none"/>
         </g>
-        <g transform="translate(374 144) scale(.9)" data-building="maker" data-lit="false">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#a388b3" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#727169" stroke="#523e3a" stroke-width="0.55" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <polygon points="2,-11.1 2.568,-9.782 3.997,-9.649 2.919,-8.701 3.234,-7.301 2,-8.034 0.766,-7.301 1.081,-8.701 0.003,-9.649 1.432,-9.782" fill="#eec477" />
+        <text x="323" y="151.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ead1b2">纪念馆</text>
+        <g transform="translate(361 129) scale(.375)" stroke="#ddbf9c" stroke-width="1.25" opacity=".68">
+          <path d="M41 29A17 18 0 1 1 7 29A17 18 0 1 1 41 29Z" fill="none"/>
+          <path d="M40 26A16 16 0 1 1 8 26A16 16 0 1 1 40 26Z" fill="none"/>
+          <path d="M24 15L27 22L35 23L29 28L31 36L24 32L17 36L19 28L13 23L21 22Z" fill="none"/>
+          <path d="M13 20Q16 14 22 13M33 35L36 31" fill="none"/>
         </g>
-        <g transform="translate(248 165) scale(.9)" data-building="post" data-lit="false">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#c28082" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#727169" stroke="#523e3a" stroke-width="0.55" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <g transform="rotate(0 -0.5 -11)">
-            <rect x="-0.5" y="-11" width="4" height="2.6" rx="0.6" fill="#f4d9aa" stroke="#523e3a" stroke-width="0.65" />
-            <polyline points="-0.1,-10.3 1.5,-9.31 3.1,-10.3" fill="none" stroke="#9c735e" stroke-width="0.65" />
-            <circle cx="1.5" cy="-9.388" r="1.1" fill="#b46367" />
-          </g>
+        <text x="370" y="151.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ead1b2">工坊</text>
+        <g transform="translate(239 150) scale(.375)" stroke="#ddbf9c" stroke-width="1.25" opacity=".68">
+          <path d="M4 16L41 12L44 39L7 43Z" fill="none"/>
+          <path d="M9 35L11 29L19 23L24 28L29 26L34 35Z" fill="none"/>
+          <path d="M32 16L38 15L39 21L33 22Z" fill="none"/>
+          <path d="M26 19Q22 26 31 26Q23 30 22 24Q22 21 26 19Z" fill="none"/>
+          <path d="M10 38L19 37M21 37L25 36" fill="none"/>
         </g>
-        <g transform="translate(299 165) scale(.9)" data-building="books" data-lit="false">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#7a9f8b" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#727169" stroke="#523e3a" stroke-width="0.55" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <path d="M-1-9l2-1 2 1v2l-2-1 -2 1Z" fill="#e8d7ac" stroke="#523e3a" stroke-width="0.35" />
+        <text x="248" y="172.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ead1b2">邮局</text>
+        <g transform="translate(291 150) scale(.375)" stroke="#ddbf9c" stroke-width="1.25" opacity=".68">
+          <path d="M3 20L17 13L31 18L45 10V37L31 45L17 39L3 46Z" fill="none"/>
+          <path d="M4 30L17 23L31 28L44 20V32L31 40L17 33L4 40Z" fill="none"/>
+          <path d="M5 33L17 29L31 35L44 28V32L31 40L17 34L5 41Z" fill="none"/>
+          <path d="M17 13V39M31 18V45M7 25L12 22M35 30L37 28" fill="none"/>
         </g>
-        <g transform="translate(350 165) scale(.9)" data-building="radio" data-lit="false">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#8396b0" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#727169" stroke="#523e3a" stroke-width="0.55" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <path d="M0-11q-2 3 2 3q-4 2-4-1q0-2 2-2Z" fill="#eeca79" />
+        <text x="300" y="172.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ead1b2">书屋</text>
+        <g transform="translate(343 150) scale(.375)" stroke="#ddbf9c" stroke-width="1.25" opacity=".68">
+          <path d="M5 16Q5 13 8 13H40Q43 13 43 16V42H5Z" fill="none"/>
+          <path d="M8 18H40V33H8Z" fill="none"/>
+          <path d="M13 23H35V29H13Z" fill="none"/>
+          <path d="M13 37H35L38 42H10Z" fill="none"/>
+          <path d="M18 26A2 2 0 1 0 14 26A2 2 0 1 0 18 26ZM34 26A2 2 0 1 0 30 26A2 2 0 1 0 34 26Z" fill="none"/>
         </g>
+        <text x="352" y="172.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ead1b2">电台</text>
       </g>
       <g class="collection-view collection-some default-view" display="inline">
-        <g transform="translate(324 144) scale(.9)" data-building="hall" data-lit="false">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#c57773" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#727169" stroke="#523e3a" stroke-width="0.55" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
+        <text x="300" y="129.4" text-anchor="middle" font-size="8" font-weight="700" fill="#ffdda2">小镇纪念品 3/7</text>
+        <g transform="translate(220 129) scale(.375)" stroke="#684f54" stroke-width="1.25" opacity="1">
+          <path d="M22 13 Q15 4 22 3Q29 0 25 14 L22 18" fill="#e7b4c0"/>
+          <path d="M15 13L37 17L32 49L11 45Z" fill="#f2e9d6"/>
+          <path d="M21 41Q20 33 27 27L29 29Q28 36 21 41Z" fill="#83a285"/>
+          <path d="M25 32Q17 29 21 23Q23 21 26 24Q33 20 34 26Q32 31 25 32Z" fill="#cb91b2"/>
+          <path d="M15 42L20 19M21 40L28 26M24 32L22 26M27 29L31 26" fill="none"/>
         </g>
-        <g transform="translate(224 144) scale(.9)" data-building="florist" data-lit="true">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#7c9e8a" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#ffe19a" stroke="#523e3a" stroke-width="0.55" />
-          <circle cx="-3" cy="-4" r="4" fill="#ffda77" opacity="0.28" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <ellipse cx="-8" cy="-1.8" rx="2.5" ry="1.3" fill="#c89aa0" stroke="#523e3a" stroke-width="0.35" />
-          <g transform="translate(12 1.2)" data-replica="florist">
-            <ellipse cx="0" cy="1.3" rx="4.6" ry="1.5" fill="#e5d3a5" stroke="#7b6a52" stroke-width="0.4" />
-            <rect x="-2.8" y="-4.8" width="5.4" height="6.5" fill="#ded6b5" stroke="#776a54" stroke-width="0.45" />
-            <ellipse cx="0.775" cy="-2.3" rx="0.868" ry="0.744" fill="#d6a6b2" stroke="#a77e79" stroke-width="0.37" />
-            <ellipse cx="0.239" cy="-1.637" rx="0.868" ry="0.744" fill="#d6a6b2" stroke="#a77e79" stroke-width="0.37" />
-            <ellipse cx="-0.627" cy="-1.89" rx="0.868" ry="0.744" fill="#d6a6b2" stroke="#a77e79" stroke-width="0.37" />
-            <ellipse cx="-0.627" cy="-2.71" rx="0.868" ry="0.744" fill="#d6a6b2" stroke="#a77e79" stroke-width="0.37" />
-            <ellipse cx="0.239" cy="-2.963" rx="0.868" ry="0.744" fill="#d6a6b2" stroke="#a77e79" stroke-width="0.37" />
-            <circle cx="0" cy="-2.3" r="0.496" fill="#dbaf67" />
-          </g>
+        <text x="229" y="151.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ffe5ba">花店</text>
+        <g transform="translate(267 129) scale(.375)" stroke="#ddbf9c" stroke-width="1.25" opacity=".68">
+          <path d="M6 20H42V38Q42 45 24 46Q6 45 6 38Z" fill="none"/>
+          <path d="M6 20Q7 12 24 12Q41 12 42 20Q40 28 24 29Q6 28 6 20Z" fill="none"/>
+          <path d="M17 20Q18 16 24 19Q31 17 32 21Q28 27 25 26Q20 26 17 20Z" fill="none"/>
+          <path d="M22 19L24 16L27 18L26 21Z" fill="none"/>
+          <path d="M9 34Q24 39 39 34M20 21L21 22M27 23L29 22" fill="none"/>
         </g>
-        <g transform="translate(274 144) scale(.9)" data-building="baker" data-lit="false">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#d3a25f" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#727169" stroke="#523e3a" stroke-width="0.55" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <circle cx="2" cy="-9.4" r="1.7" fill="#e9c399" stroke="#523e3a" stroke-width="0.35" />
+        <text x="276" y="151.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ead1b2">烘焙屋</text>
+        <g transform="translate(314 129) scale(.375)" stroke="#ddbf9c" stroke-width="1.25" opacity=".68">
+          <path d="M6 19L41 13L43 22Q37 25 44 29L45 36L9 42L8 35Q13 31 7 27Z" fill="none"/>
+          <path d="M15 23L32 20L34 32L17 35Z" fill="none"/>
+          <path d="M19 28L24 24L29 26L30 31L20 33Z" fill="none"/>
+          <path d="M36 18L37 20M38 24L38 26M39 30L40 33M25 28L25 31" fill="none"/>
         </g>
-        <g transform="translate(374 144) scale(.9)" data-building="maker" data-lit="false">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#a388b3" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#727169" stroke="#523e3a" stroke-width="0.55" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <polygon points="2,-11.1 2.568,-9.782 3.997,-9.649 2.919,-8.701 3.234,-7.301 2,-8.034 0.766,-7.301 1.081,-8.701 0.003,-9.649 1.432,-9.782" fill="#eec477" />
+        <text x="323" y="151.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ead1b2">纪念馆</text>
+        <g transform="translate(361 129) scale(.375)" stroke="#ddbf9c" stroke-width="1.25" opacity=".68">
+          <path d="M41 29A17 18 0 1 1 7 29A17 18 0 1 1 41 29Z" fill="none"/>
+          <path d="M40 26A16 16 0 1 1 8 26A16 16 0 1 1 40 26Z" fill="none"/>
+          <path d="M24 15L27 22L35 23L29 28L31 36L24 32L17 36L19 28L13 23L21 22Z" fill="none"/>
+          <path d="M13 20Q16 14 22 13M33 35L36 31" fill="none"/>
         </g>
-        <g transform="translate(248 165) scale(.9)" data-building="post" data-lit="true">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#c28082" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#ffe19a" stroke="#523e3a" stroke-width="0.55" />
-          <circle cx="-3" cy="-4" r="4" fill="#ffda77" opacity="0.28" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <g transform="rotate(0 -0.5 -11)">
-            <rect x="-0.5" y="-11" width="4" height="2.6" rx="0.6" fill="#f4d9aa" stroke="#523e3a" stroke-width="0.65" />
-            <polyline points="-0.1,-10.3 1.5,-9.31 3.1,-10.3" fill="none" stroke="#9c735e" stroke-width="0.65" />
-            <circle cx="1.5" cy="-9.388" r="1.1" fill="#b46367" />
-          </g>
-          <g transform="translate(12 1.2)" data-replica="post">
-            <ellipse cx="0" cy="1.3" rx="4.6" ry="1.5" fill="#e5d3a5" stroke="#7b6a52" stroke-width="0.4" />
-            <g transform="rotate(-5 -3.4 -3.7)">
-              <rect x="-3.4" y="-3.7" width="7" height="4.5" rx="0.6" fill="#f4d9aa" stroke="#523e3a" stroke-width="0.65" />
-              <polyline points="-3,-3 0.1,-0.775 3.2,-3" fill="none" stroke="#9c735e" stroke-width="0.65" />
-              <circle cx="0.1" cy="-0.91" r="1.1" fill="#b46367" />
-            </g>
-          </g>
+        <text x="370" y="151.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ead1b2">工坊</text>
+        <g transform="translate(239 150) scale(.375)" stroke="#684f54" stroke-width="1.25" opacity="1">
+          <path d="M4 16L41 12L44 39L7 43Z" fill="#f7e8c4"/>
+          <path d="M9 35L11 29L19 23L24 28L29 26L34 35Z" fill="#87b1a8"/>
+          <path d="M32 16L38 15L39 21L33 22Z" fill="#dd9b94"/>
+          <path d="M26 19Q22 26 31 26Q23 30 22 24Q22 21 26 19Z" fill="#b26773"/>
+          <path d="M10 38L19 37M21 37L25 36" fill="none"/>
         </g>
-        <g transform="translate(299 165) scale(.9)" data-building="books" data-lit="false">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#7a9f8b" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#727169" stroke="#523e3a" stroke-width="0.55" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <path d="M-1-9l2-1 2 1v2l-2-1 -2 1Z" fill="#e8d7ac" stroke="#523e3a" stroke-width="0.35" />
+        <text x="248" y="172.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ffe5ba">邮局</text>
+        <g transform="translate(291 150) scale(.375)" stroke="#ddbf9c" stroke-width="1.25" opacity=".68">
+          <path d="M3 20L17 13L31 18L45 10V37L31 45L17 39L3 46Z" fill="none"/>
+          <path d="M4 30L17 23L31 28L44 20V32L31 40L17 33L4 40Z" fill="none"/>
+          <path d="M5 33L17 29L31 35L44 28V32L31 40L17 34L5 41Z" fill="none"/>
+          <path d="M17 13V39M31 18V45M7 25L12 22M35 30L37 28" fill="none"/>
         </g>
-        <g transform="translate(350 165) scale(.9)" data-building="radio" data-lit="true">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#8396b0" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#ffe19a" stroke="#523e3a" stroke-width="0.55" />
-          <circle cx="-3" cy="-4" r="4" fill="#ffda77" opacity="0.28" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <path d="M0-11q-2 3 2 3q-4 2-4-1q0-2 2-2Z" fill="#eeca79" />
-          <g transform="translate(12 1.2)" data-replica="radio">
-            <ellipse cx="0" cy="1.3" rx="4.6" ry="1.5" fill="#e5d3a5" stroke="#7b6a52" stroke-width="0.4" />
-            <rect x="-3.7" y="-3.5" width="7.5" height="4.7" rx="0.4" fill="#9e95ab" stroke="#523e3a" stroke-width="0.5" />
-            <circle cx="-1.7" cy="-1.3" r="0.7" fill="#e6cb9f" />
-            <circle cx="1.7" cy="-1.3" r="0.7" fill="#e6cb9f" />
-          </g>
+        <text x="300" y="172.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ead1b2">书屋</text>
+        <g transform="translate(343 150) scale(.375)" stroke="#684f54" stroke-width="1.25" opacity="1">
+          <path d="M5 16Q5 13 8 13H40Q43 13 43 16V42H5Z" fill="#897c9a"/>
+          <path d="M8 18H40V33H8Z" fill="#f5d496"/>
+          <path d="M13 23H35V29H13Z" fill="#705965"/>
+          <path d="M13 37H35L38 42H10Z" fill="#f0b3a0"/>
+          <path d="M18 26A2 2 0 1 0 14 26A2 2 0 1 0 18 26ZM34 26A2 2 0 1 0 30 26A2 2 0 1 0 34 26Z" fill="#f5e1ba"/>
         </g>
+        <text x="352" y="172.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ffe5ba">电台</text>
       </g>
       <g class="collection-view collection-full" display="none">
-        <g transform="translate(324 144) scale(.9)" data-building="hall" data-lit="true">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#c57773" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#ffe19a" stroke="#523e3a" stroke-width="0.55" />
-          <circle cx="-3" cy="-4" r="4" fill="#ffda77" opacity="0.28" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <g transform="translate(12 1.2)" data-replica="hall">
-            <ellipse cx="0" cy="1.3" rx="4.6" ry="1.5" fill="#e5d3a5" stroke="#7b6a52" stroke-width="0.4" />
-            <rect x="-3.5" y="-3.3" width="7" height="4.3" rx="0.5" fill="#d9ac7a" stroke="#523e3a" stroke-width="0.5" />
-            <polyline points="-1.5,-2 2,-2" fill="none" stroke="#966558" stroke-width="0.5" />
-          </g>
+        <text x="300" y="129.4" text-anchor="middle" font-size="8" font-weight="700" fill="#ffdda2">小镇纪念品 7/7</text>
+        <g transform="translate(220 129) scale(.375)" stroke="#684f54" stroke-width="1.25" opacity="1">
+          <path d="M22 13 Q15 4 22 3Q29 0 25 14 L22 18" fill="#e7b4c0"/>
+          <path d="M15 13L37 17L32 49L11 45Z" fill="#f2e9d6"/>
+          <path d="M21 41Q20 33 27 27L29 29Q28 36 21 41Z" fill="#83a285"/>
+          <path d="M25 32Q17 29 21 23Q23 21 26 24Q33 20 34 26Q32 31 25 32Z" fill="#cb91b2"/>
+          <path d="M15 42L20 19M21 40L28 26M24 32L22 26M27 29L31 26" fill="none"/>
         </g>
-        <g transform="translate(224 144) scale(.9)" data-building="florist" data-lit="true">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#7c9e8a" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#ffe19a" stroke="#523e3a" stroke-width="0.55" />
-          <circle cx="-3" cy="-4" r="4" fill="#ffda77" opacity="0.28" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <ellipse cx="-8" cy="-1.8" rx="2.5" ry="1.3" fill="#c89aa0" stroke="#523e3a" stroke-width="0.35" />
-          <g transform="translate(12 1.2)" data-replica="florist">
-            <ellipse cx="0" cy="1.3" rx="4.6" ry="1.5" fill="#e5d3a5" stroke="#7b6a52" stroke-width="0.4" />
-            <rect x="-2.8" y="-4.8" width="5.4" height="6.5" fill="#ded6b5" stroke="#776a54" stroke-width="0.45" />
-            <ellipse cx="0.775" cy="-2.3" rx="0.868" ry="0.744" fill="#d6a6b2" stroke="#a77e79" stroke-width="0.37" />
-            <ellipse cx="0.239" cy="-1.637" rx="0.868" ry="0.744" fill="#d6a6b2" stroke="#a77e79" stroke-width="0.37" />
-            <ellipse cx="-0.627" cy="-1.89" rx="0.868" ry="0.744" fill="#d6a6b2" stroke="#a77e79" stroke-width="0.37" />
-            <ellipse cx="-0.627" cy="-2.71" rx="0.868" ry="0.744" fill="#d6a6b2" stroke="#a77e79" stroke-width="0.37" />
-            <ellipse cx="0.239" cy="-2.963" rx="0.868" ry="0.744" fill="#d6a6b2" stroke="#a77e79" stroke-width="0.37" />
-            <circle cx="0" cy="-2.3" r="0.496" fill="#dbaf67" />
-          </g>
+        <text x="229" y="151.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ffe5ba">花店</text>
+        <g transform="translate(267 129) scale(.375)" stroke="#684f54" stroke-width="1.25" opacity="1">
+          <path d="M6 20H42V38Q42 45 24 46Q6 45 6 38Z" fill="#b36d5d"/>
+          <path d="M6 20Q7 12 24 12Q41 12 42 20Q40 28 24 29Q6 28 6 20Z" fill="#f6d6a0"/>
+          <path d="M17 20Q18 16 24 19Q31 17 32 21Q28 27 25 26Q20 26 17 20Z" fill="#ca6976"/>
+          <path d="M22 19L24 16L27 18L26 21Z" fill="#8ba177"/>
+          <path d="M9 34Q24 39 39 34M20 21L21 22M27 23L29 22" fill="none"/>
         </g>
-        <g transform="translate(274 144) scale(.9)" data-building="baker" data-lit="true">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#d3a25f" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#ffe19a" stroke="#523e3a" stroke-width="0.55" />
-          <circle cx="-3" cy="-4" r="4" fill="#ffda77" opacity="0.28" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <circle cx="2" cy="-9.4" r="1.7" fill="#e9c399" stroke="#523e3a" stroke-width="0.35" />
-          <g transform="translate(12 1.2)" data-replica="baker">
-            <ellipse cx="0" cy="1.3" rx="4.6" ry="1.5" fill="#e5d3a5" stroke="#7b6a52" stroke-width="0.4" />
-            <rect x="-3.6" y="-3.1" width="7" height="4.4" rx="1" fill="#c48882" stroke="#523e3a" stroke-width="0.45" />
-            <path d="M0 -1.68q-1.2 -0.8160000000000001 -0.9959999999999999 0.36q.5 0.84 0.9959999999999999 1.2q1.152 -0.72 1.056 -1.176q-.2 -1.08 -1.056 -0.384Z" fill="#c56870" stroke="#865151" stroke-width="0.6" />
-            <path d="M-2 -1.968l2 1.3 1.8 -1.4 -.4 2.3 -2.5 -.1Z" fill="#68845a" />
-            <circle cx="-0.9" cy="-0.9" r="0.35" fill="#f7c895" />
-            <circle cx="1" cy="-0.7" r="0.35" fill="#f7c895" />
-            <circle cx="0.1" cy="0.5" r="0.35" fill="#f7c895" />
-          </g>
+        <text x="276" y="151.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ffe5ba">烘焙屋</text>
+        <g transform="translate(314 129) scale(.375)" stroke="#684f54" stroke-width="1.25" opacity="1">
+          <path d="M6 19L41 13L43 22Q37 25 44 29L45 36L9 42L8 35Q13 31 7 27Z" fill="#f5d491"/>
+          <path d="M15 23L32 20L34 32L17 35Z" fill="#b66d65"/>
+          <path d="M19 28L24 24L29 26L30 31L20 33Z" fill="#f9e5ad"/>
+          <path d="M36 18L37 20M38 24L38 26M39 30L40 33M25 28L25 31" fill="none"/>
         </g>
-        <g transform="translate(374 144) scale(.9)" data-building="maker" data-lit="true">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#a388b3" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#ffe19a" stroke="#523e3a" stroke-width="0.55" />
-          <circle cx="-3" cy="-4" r="4" fill="#ffda77" opacity="0.28" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <polygon points="2,-11.1 2.568,-9.782 3.997,-9.649 2.919,-8.701 3.234,-7.301 2,-8.034 0.766,-7.301 1.081,-8.701 0.003,-9.649 1.432,-9.782" fill="#eec477" />
-          <g transform="translate(12 1.2)" data-replica="maker">
-            <ellipse cx="0" cy="1.3" rx="4.6" ry="1.5" fill="#e5d3a5" stroke="#7b6a52" stroke-width="0.4" />
-            <circle cx="0" cy="-1.8" r="2.9" fill="#cfac71" stroke="#523e3a" stroke-width="0.55" />
-            <polygon points="0,-3.45 0.446,-2.414 1.569,-2.31 0.722,-1.565 0.97,-0.465 0,-1.041 -0.97,-0.465 -0.722,-1.565 -1.569,-2.31 -0.446,-2.414" fill="#75645b" />
-          </g>
+        <text x="323" y="151.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ffe5ba">纪念馆</text>
+        <g transform="translate(361 129) scale(.375)" stroke="#684f54" stroke-width="1.25" opacity="1">
+          <path d="M41 29A17 18 0 1 1 7 29A17 18 0 1 1 41 29Z" fill="#be8c55"/>
+          <path d="M40 26A16 16 0 1 1 8 26A16 16 0 1 1 40 26Z" fill="#eac984"/>
+          <path d="M24 15L27 22L35 23L29 28L31 36L24 32L17 36L19 28L13 23L21 22Z" fill="#6d5a6a"/>
+          <path d="M13 20Q16 14 22 13M33 35L36 31" fill="none"/>
         </g>
-        <g transform="translate(248 165) scale(.9)" data-building="post" data-lit="true">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#c28082" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#ffe19a" stroke="#523e3a" stroke-width="0.55" />
-          <circle cx="-3" cy="-4" r="4" fill="#ffda77" opacity="0.28" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <g transform="rotate(0 -0.5 -11)">
-            <rect x="-0.5" y="-11" width="4" height="2.6" rx="0.6" fill="#f4d9aa" stroke="#523e3a" stroke-width="0.65" />
-            <polyline points="-0.1,-10.3 1.5,-9.31 3.1,-10.3" fill="none" stroke="#9c735e" stroke-width="0.65" />
-            <circle cx="1.5" cy="-9.388" r="1.1" fill="#b46367" />
-          </g>
-          <g transform="translate(12 1.2)" data-replica="post">
-            <ellipse cx="0" cy="1.3" rx="4.6" ry="1.5" fill="#e5d3a5" stroke="#7b6a52" stroke-width="0.4" />
-            <g transform="rotate(-5 -3.4 -3.7)">
-              <rect x="-3.4" y="-3.7" width="7" height="4.5" rx="0.6" fill="#f4d9aa" stroke="#523e3a" stroke-width="0.65" />
-              <polyline points="-3,-3 0.1,-0.775 3.2,-3" fill="none" stroke="#9c735e" stroke-width="0.65" />
-              <circle cx="0.1" cy="-0.91" r="1.1" fill="#b46367" />
-            </g>
-          </g>
+        <text x="370" y="151.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ffe5ba">工坊</text>
+        <g transform="translate(239 150) scale(.375)" stroke="#684f54" stroke-width="1.25" opacity="1">
+          <path d="M4 16L41 12L44 39L7 43Z" fill="#f7e8c4"/>
+          <path d="M9 35L11 29L19 23L24 28L29 26L34 35Z" fill="#87b1a8"/>
+          <path d="M32 16L38 15L39 21L33 22Z" fill="#dd9b94"/>
+          <path d="M26 19Q22 26 31 26Q23 30 22 24Q22 21 26 19Z" fill="#b26773"/>
+          <path d="M10 38L19 37M21 37L25 36" fill="none"/>
         </g>
-        <g transform="translate(299 165) scale(.9)" data-building="books" data-lit="true">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#7a9f8b" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#ffe19a" stroke="#523e3a" stroke-width="0.55" />
-          <circle cx="-3" cy="-4" r="4" fill="#ffda77" opacity="0.28" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <path d="M-1-9l2-1 2 1v2l-2-1 -2 1Z" fill="#e8d7ac" stroke="#523e3a" stroke-width="0.35" />
-          <g transform="translate(12 1.2)" data-replica="books">
-            <ellipse cx="0" cy="1.3" rx="4.6" ry="1.5" fill="#e5d3a5" stroke="#7b6a52" stroke-width="0.4" />
-            <path d="M-4 0v-3l2-1 2 1 2-1 2 1v3L2-.7 0 .5-2-.7Z" fill="#a3c3b5" stroke="#523e3a" stroke-width="0.45" />
-          </g>
+        <text x="248" y="172.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ffe5ba">邮局</text>
+        <g transform="translate(291 150) scale(.375)" stroke="#684f54" stroke-width="1.25" opacity="1">
+          <path d="M3 20L17 13L31 18L45 10V37L31 45L17 39L3 46Z" fill="#f0dba5"/>
+          <path d="M4 30L17 23L31 28L44 20V32L31 40L17 33L4 40Z" fill="#8fb5b3"/>
+          <path d="M5 33L17 29L31 35L44 28V32L31 40L17 34L5 41Z" fill="#99ac81"/>
+          <path d="M17 13V39M31 18V45M7 25L12 22M35 30L37 28" fill="none"/>
         </g>
-        <g transform="translate(350 165) scale(.9)" data-building="radio" data-lit="true">
-          <ellipse cx="0" cy="0" rx="11" ry="2.4" fill="#776950" opacity="0.25" />
-          <polygon points="-8,-9 1,-14 9,-9 9,-1 0,1 -8,-1" fill="#e3c49b" stroke="#523e3a" stroke-width="0.62" />
-          <polygon points="-10,-8 -3,-16 4,-17 12,-9 7,-7 -1,-13 -7,-7" fill="#8396b0" stroke="#523e3a" stroke-width="0.7" />
-          <polyline points="-7,-9 -2,-14 2,-15" fill="none" stroke="#f2e2bd" stroke-width="0.5" />
-          <rect x="-5" y="-6" width="4" height="4" fill="#ffe19a" stroke="#523e3a" stroke-width="0.55" />
-          <circle cx="-3" cy="-4" r="4" fill="#ffda77" opacity="0.28" />
-          <rect x="3" y="-6" width="3" height="5" fill="#ac896d" stroke="#523e3a" stroke-width="0.4" />
-          <path d="M0-11q-2 3 2 3q-4 2-4-1q0-2 2-2Z" fill="#eeca79" />
-          <g transform="translate(12 1.2)" data-replica="radio">
-            <ellipse cx="0" cy="1.3" rx="4.6" ry="1.5" fill="#e5d3a5" stroke="#7b6a52" stroke-width="0.4" />
-            <rect x="-3.7" y="-3.5" width="7.5" height="4.7" rx="0.4" fill="#9e95ab" stroke="#523e3a" stroke-width="0.5" />
-            <circle cx="-1.7" cy="-1.3" r="0.7" fill="#e6cb9f" />
-            <circle cx="1.7" cy="-1.3" r="0.7" fill="#e6cb9f" />
-          </g>
+        <text x="300" y="172.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ffe5ba">书屋</text>
+        <g transform="translate(343 150) scale(.375)" stroke="#684f54" stroke-width="1.25" opacity="1">
+          <path d="M5 16Q5 13 8 13H40Q43 13 43 16V42H5Z" fill="#897c9a"/>
+          <path d="M8 18H40V33H8Z" fill="#f5d496"/>
+          <path d="M13 23H35V29H13Z" fill="#705965"/>
+          <path d="M13 37H35L38 42H10Z" fill="#f0b3a0"/>
+          <path d="M18 26A2 2 0 1 0 14 26A2 2 0 1 0 18 26ZM34 26A2 2 0 1 0 30 26A2 2 0 1 0 34 26Z" fill="#f5e1ba"/>
         </g>
+        <text x="352" y="172.4" text-anchor="middle" font-size="6.8" font-weight="600" fill="#ffe5ba">电台</text>
       </g>
     </g>
     <g data-object="周岁徽章边柜">
@@ -1032,7 +928,7 @@
       <rect x="305" y="177" width="81" height="16" rx="3" fill="#fff3d9" stroke="#614a42" stroke-width="0.9" />
       <circle cx="313" cy="185" r="5.3" fill="#195b61" stroke="#fff6dd" stroke-width="0.9" />
       <text x="313" y="187.8" fill="#fff8df" font-size="8.1" font-weight="700" text-anchor="middle" font-family="Arial, sans-serif">2</text>
-      <text x="320" y="188.6" fill="#3e3637" font-size="10.2" font-weight="650" text-anchor="start">七屋纪念展柜</text>
+      <text x="320" y="188.6" fill="#3e3637" font-size="10.2" font-weight="650" text-anchor="start">纪念品展柜</text>
     </g>
     <g data-stop="1">
       <circle cx="476" cy="180" r="6" fill="#195b61" stroke="#fff6dd" stroke-width="0.9" />
@@ -1311,13 +1207,13 @@
       </a>
     </g>
     <g class="phase-view phase-dawn" display="none">
-      <text x="204" y="25" fill="#685e51" font-size="8.6" font-weight="600" text-anchor="start">展桌</text>
+      <text x="204" y="25" fill="#685e51" font-size="8.6" font-weight="600" text-anchor="start">展柜</text>
       <a href="#dawn-empty" aria-label="查看空收藏的纪念展柜">
         <rect x="228" y="12" width="30" height="18" rx="3" fill="#f1e6d0" stroke="#ae9874" stroke-width="0.55" />
         <g class="collection-view collection-empty" display="none">
           <rect x="228" y="12" width="30" height="18" rx="3" fill="#e1c88e" stroke="#88673a" stroke-width="0.7" />
         </g>
-        <text x="243" y="24.5" fill="#523e3a" font-size="8.6" font-weight="600" text-anchor="middle">空桌</text>
+        <text x="243" y="24.5" fill="#523e3a" font-size="8.6" font-weight="600" text-anchor="middle">空柜</text>
       </a>
       <a href="#dawn" aria-label="查看三件藏品的纪念展柜">
         <rect x="261" y="12" width="30" height="18" rx="3" fill="#f1e6d0" stroke="#ae9874" stroke-width="0.55" />
@@ -1335,13 +1231,13 @@
       </a>
     </g>
     <g class="phase-view phase-day" display="none">
-      <text x="204" y="25" fill="#685e51" font-size="8.6" font-weight="600" text-anchor="start">展桌</text>
+      <text x="204" y="25" fill="#685e51" font-size="8.6" font-weight="600" text-anchor="start">展柜</text>
       <a href="#day-empty" aria-label="查看空收藏的纪念展柜">
         <rect x="228" y="12" width="30" height="18" rx="3" fill="#f1e6d0" stroke="#ae9874" stroke-width="0.55" />
         <g class="collection-view collection-empty" display="none">
           <rect x="228" y="12" width="30" height="18" rx="3" fill="#e1c88e" stroke="#88673a" stroke-width="0.7" />
         </g>
-        <text x="243" y="24.5" fill="#523e3a" font-size="8.6" font-weight="600" text-anchor="middle">空桌</text>
+        <text x="243" y="24.5" fill="#523e3a" font-size="8.6" font-weight="600" text-anchor="middle">空柜</text>
       </a>
       <a href="#day" aria-label="查看三件藏品的纪念展柜">
         <rect x="261" y="12" width="30" height="18" rx="3" fill="#f1e6d0" stroke="#ae9874" stroke-width="0.55" />
@@ -1359,13 +1255,13 @@
       </a>
     </g>
     <g class="phase-view phase-dusk default-view" display="inline">
-      <text x="204" y="25" fill="#685e51" font-size="8.6" font-weight="600" text-anchor="start">展桌</text>
+      <text x="204" y="25" fill="#685e51" font-size="8.6" font-weight="600" text-anchor="start">展柜</text>
       <a href="#dusk-empty" aria-label="查看空收藏的纪念展柜">
         <rect x="228" y="12" width="30" height="18" rx="3" fill="#f1e6d0" stroke="#ae9874" stroke-width="0.55" />
         <g class="collection-view collection-empty" display="none">
           <rect x="228" y="12" width="30" height="18" rx="3" fill="#e1c88e" stroke="#88673a" stroke-width="0.7" />
         </g>
-        <text x="243" y="24.5" fill="#523e3a" font-size="8.6" font-weight="600" text-anchor="middle">空桌</text>
+        <text x="243" y="24.5" fill="#523e3a" font-size="8.6" font-weight="600" text-anchor="middle">空柜</text>
       </a>
       <a href="#dusk" aria-label="查看三件藏品的纪念展柜">
         <rect x="261" y="12" width="30" height="18" rx="3" fill="#f1e6d0" stroke="#ae9874" stroke-width="0.55" />
@@ -1383,13 +1279,13 @@
       </a>
     </g>
     <g class="phase-view phase-night" display="none">
-      <text x="204" y="25" fill="#685e51" font-size="8.6" font-weight="600" text-anchor="start">展桌</text>
+      <text x="204" y="25" fill="#685e51" font-size="8.6" font-weight="600" text-anchor="start">展柜</text>
       <a href="#night-empty" aria-label="查看空收藏的纪念展柜">
         <rect x="228" y="12" width="30" height="18" rx="3" fill="#f1e6d0" stroke="#ae9874" stroke-width="0.55" />
         <g class="collection-view collection-empty" display="none">
           <rect x="228" y="12" width="30" height="18" rx="3" fill="#e1c88e" stroke="#88673a" stroke-width="0.7" />
         </g>
-        <text x="243" y="24.5" fill="#523e3a" font-size="8.6" font-weight="600" text-anchor="middle">空桌</text>
+        <text x="243" y="24.5" fill="#523e3a" font-size="8.6" font-weight="600" text-anchor="middle">空柜</text>
       </a>
       <a href="#night" aria-label="查看三件藏品的纪念展柜">
         <rect x="261" y="12" width="30" height="18" rx="3" fill="#f1e6d0" stroke="#ae9874" stroke-width="0.55" />

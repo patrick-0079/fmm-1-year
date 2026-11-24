@@ -16,11 +16,11 @@ export async function verifyAchievementBook(world: World, log: (message: string)
   };
   button(".reset-button").click();
   button(".reset-confirm").click();
-  check(root.querySelector(".achievement-count strong")?.textContent === "0 / 47", "新档已有徽章");
+  check(root.querySelector(".achievement-count strong")?.textContent === "0 / 54", "新档已有徽章");
   const frame = world.canvas.getBoundingClientRect();
   button("[data-book-toggle]").click();
   const position = { ...world.player };
-  for (const [chapter, count] of [["daily", 13], ["letters", 12], ["games", 7], ["explore", 9], ["advanced", 6]] as const) {
+  for (const [chapter, count] of [["daily", 13], ["letters", 12], ["games", 7], ["explore", 16], ["advanced", 6]] as const) {
     button(`[data-book-chapter="${chapter}"]`).click();
     check(root.querySelectorAll(".achievement-grid [data-book-pick]").length === count, chapter + " 徽章数量错误");
     check(document.activeElement === button(`[data-book-chapter="${chapter}"]`),
@@ -57,5 +57,5 @@ export async function verifyAchievementBook(world: World, log: (message: string)
   check(Math.abs(rect.width - frame.width) < 1 && Math.abs(rect.width / rect.height - 1.5) < .01, "翻册改变游戏画幅");
   check(root.scrollWidth <= root.clientWidth + 1, "徽章册内出现横向溢出");
   check(document.documentElement.scrollWidth <= innerWidth + 1, "徽章册把页面撑宽");
-  log("新档 0/47，五章齐全，彩蛋保密；翻阅 47 条详情后仍在原地，亲手拆礼物后获得第一枚徽章。");
+  log("新档 0/54，五章齐全，彩蛋保密。翻阅 54 条详情后仍在原地，亲手拆礼物后获得第一枚徽章。");
 }

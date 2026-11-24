@@ -373,107 +373,118 @@
   </g>
   <g id="furniture">
     <g data-object="临池侧窗木座">
-      <rect x="25" y="156" width="42" height="96" rx="1.5" fill="#98a98c" stroke="#523e3a" stroke-width="1.05" />
-      <rect x="25" y="161" width="39" height="66" rx="1.5" fill="#aa7652" stroke="#523e3a" stroke-width="1" />
-      <g class="phase-view phase-dawn" display="none">
-        <rect x="28" y="164" width="33" height="59" fill="#eccda9" />
-        <circle cx="36.58" cy="187.01" r="4.5" fill="#fff5bd" />
-        <path d="M28 197.27q5.28 -6 10.56 -1t11.549999999999999 -.5t10.89 0v26.729999999999997h-33Z" fill="#7e9b84" />
-        <rect x="28.6" y="198.27" width="31.8" height="24.73" fill="#a5c3ad" />
-        <polyline points="30,200.27 37,200.27" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
-        <polyline points="30,202.27 37,202.27" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
-        <polyline points="30,204.27 37,204.27" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
-        <ellipse cx="34.93" cy="208.25" rx="3.2" ry="1.1" fill="#69896c" />
-        <circle cx="35.93" cy="207.25" r="1.6" fill="#e6a8ad" />
-        <ellipse cx="42.85" cy="215.92" rx="3.2" ry="1.1" fill="#69896c" />
-        <circle cx="43.85" cy="214.92" r="1.6" fill="#e6a8ad" />
-        <ellipse cx="52.42" cy="206.48" rx="3.2" ry="1.1" fill="#69896c" />
-        <circle cx="53.42" cy="205.48" r="1.6" fill="#e6a8ad" />
-        <rect x="28" y="164" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <rect x="28" y="169.9" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <rect x="28" y="175.8" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <polyline points="33.28,164 33.28,181.7" fill="none" stroke="#715c4b" stroke-width="0.55" />
-        <polyline points="55.39,164 55.39,181.7" fill="none" stroke="#715c4b" stroke-width="0.55" />
+      <ellipse cx="45" cy="249" rx="23" ry="4.5" fill="#56473f" opacity=".23"/>
+      <path d="M25 228l41-13v31l-4 5H25Z" fill="#5e6453" stroke="#493e37" stroke-width="1.05"/>
+      <path d="M28 233l34-11v23l-2 3H28Z" fill="#70816c" stroke="#d6b68a" stroke-width=".7"/>
+      <path d="M28 245l31-8v10H28Z" fill="#586958" opacity=".58"/>
+      <g transform="matrix(1 -.333333 0 1 28 163)">
+        <rect x="-1" y="-1" width="36" height="64" rx="1.6" fill="#8c7057" stroke="#4d4339" stroke-width="1.12"/>
+        <rect x="2" y="2" width="31" height="58" rx=".65" fill="#62624e" stroke="#dcb98d" stroke-width=".8"/>
+        <g class="phase-view phase-dawn" display="none">
+          <path d="M4 5h27v52H4Z" fill="#d9c3aa"/>
+          <circle cx="23" cy="16.5" r="4" fill="#f2d39e" opacity=".86"/>
+          <path d="M4 31q5-6 10-3q8-7 17-3v29H4Z" fill="#839580"/>
+          <path d="M4 40q8 1 15-3q7-2 12-1v21H4Z" fill="#91a9a4"/>
+          <path d="M7 45h8m4-3h9m-5 7h5m-17 3h6" fill="none" stroke="#f2d39e" stroke-width=".65" opacity=".77"/>
+          <path d="M25 37v-8m-2.2.5h4.4" fill="none" stroke="#607a65" stroke-width="1.25"/>
+          <ellipse cx="13" cy="49" rx="2.8" ry="1.1" fill="#839580"/>
+          <circle cx="13.6" cy="48.4" r=".92" fill="#c8a192"/>
+          <g data-blind="lowered" display="inline">
+          <rect x="4" y="10" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 11h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+          <rect x="4" y="15.1" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 16.1h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+          <rect x="4" y="20.2" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 21.2h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+            <path d="M10 10v15.3m14-15.3v15.3" fill="none" stroke="#775f50" stroke-width=".5"/>
+          </g>
+        </g>
+        <g class="phase-view phase-day" display="none">
+          <path d="M4 5h27v52H4Z" fill="#c0cfc0"/>
+          <circle cx="23" cy="16.5" r="4" fill="#f9e4b2" opacity=".86"/>
+          <path d="M4 31q5-6 10-3q8-7 17-3v29H4Z" fill="#76957e"/>
+          <path d="M4 40q8 1 15-3q7-2 12-1v21H4Z" fill="#8aafa9"/>
+          <path d="M7 45h8m4-3h9m-5 7h5m-17 3h6" fill="none" stroke="#f9e4b2" stroke-width=".65" opacity=".77"/>
+          <path d="M25 37v-8m-2.2.5h4.4" fill="none" stroke="#607a65" stroke-width="1.25"/>
+          <ellipse cx="13" cy="49" rx="2.8" ry="1.1" fill="#76957e"/>
+          <circle cx="13.6" cy="48.4" r=".92" fill="#c8a192"/>
+          <g data-blind="lowered" display="inline">
+          <rect x="4" y="10" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 11h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+            <path d="M10 10v5.1m14-5.1v5.1" fill="none" stroke="#775f50" stroke-width=".5"/>
+          </g>
+        </g>
+        <g class="phase-view phase-dusk" display="none">
+          <path d="M4 5h27v52H4Z" fill="#d7a78d"/>
+          <circle cx="23" cy="16.5" r="4" fill="#f2c88e" opacity=".86"/>
+          <path d="M4 31q5-6 10-3q8-7 17-3v29H4Z" fill="#8c897b"/>
+          <path d="M4 40q8 1 15-3q7-2 12-1v21H4Z" fill="#8b9d9b"/>
+          <path d="M7 45h8m4-3h9m-5 7h5m-17 3h6" fill="none" stroke="#f2c88e" stroke-width=".65" opacity=".77"/>
+          <path d="M25 37v-8m-2.2.5h4.4" fill="none" stroke="#607a65" stroke-width="1.25"/>
+          <ellipse cx="13" cy="49" rx="2.8" ry="1.1" fill="#8c897b"/>
+          <circle cx="13.6" cy="48.4" r=".92" fill="#c8a192"/>
+          <g data-blind="lowered" display="inline">
+          <rect x="4" y="10" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 11h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+          <rect x="4" y="15.1" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 16.1h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+          <rect x="4" y="20.2" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 21.2h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+          <rect x="4" y="25.3" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 26.3h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+          <rect x="4" y="30.4" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 31.4h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+            <path d="M10 10v25.5m14-25.5v25.5" fill="none" stroke="#775f50" stroke-width=".5"/>
+          </g>
+        </g>
+        <g class="phase-view phase-night default-view" display="inline">
+          <path d="M4 5h27v52H4Z" fill="#586c86"/>
+          <circle cx="23" cy="16.5" r="4" fill="#ddc6a1" opacity=".86"/>
+          <path d="M4 31q5-6 10-3q8-7 17-3v29H4Z" fill="#536c6a"/>
+          <path d="M4 40q8 1 15-3q7-2 12-1v21H4Z" fill="#597986"/>
+          <path d="M7 45h8m4-3h9m-5 7h5m-17 3h6" fill="none" stroke="#ddc6a1" stroke-width=".65" opacity=".77"/>
+          <path d="M25 37v-8m-2.2.5h4.4" fill="none" stroke="#edc786" stroke-width="1.25"/>
+          <ellipse cx="13" cy="49" rx="2.8" ry="1.1" fill="#536c6a"/>
+          <circle cx="13.6" cy="48.4" r=".92" fill="#c8a192"/>
+          <g data-blind="lowered" display="inline">
+          <rect x="4" y="10" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 11h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+          <rect x="4" y="15.1" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 16.1h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+          <rect x="4" y="20.2" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 21.2h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+          <rect x="4" y="25.3" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 26.3h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+          <rect x="4" y="30.4" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 31.4h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+          <rect x="4" y="35.5" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 36.5h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+          <rect x="4" y="40.6" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 41.6h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+          <rect x="4" y="45.7" width="27" height="4.6" rx=".5" fill="#b49774" stroke="#876c58" stroke-width=".5"/>
+          <path d="M5 46.7h25" fill="none" stroke="#ecd0a1" stroke-width=".55"/>
+            <path d="M10 10v40.8m14-40.8v40.8" fill="none" stroke="#775f50" stroke-width=".5"/>
+          </g>
+        </g>
+        <rect x="4" y="5" width="27" height="52" fill="none" stroke="#d7b487" stroke-width=".97"/>
+        <path d="M17.5 55v-47m-12 27h23" fill="none" stroke="#675849" stroke-width="1.1"/>
+        <path d="M18.2 54v-45m-11.5 26.7h21" fill="none" stroke="#ddbb8a" stroke-width=".56"/>
+        <g data-blind="lowered" display="inline">
+          <rect x="3" y="4" width="29" height="5.5" rx="1.7" fill="#c49469" stroke="#705441" stroke-width=".74"/>
+          <path d="M5 5.7h25" fill="none" stroke="#f0c896" stroke-width=".67"/>
+        </g>
+        <g data-blind="raised" display="none">
+          <rect x="3" y="4" width="29" height="7.5" rx="2" fill="#c89c73" stroke="#705441" stroke-width=".74"/>
+          <path d="M5 6h25m-25 2h25" fill="none" stroke="#eed1a2" stroke-width=".69"/>
+        </g>
+        <path d="M-2 60h38l2 4H-3Z" fill="#be9a76" stroke="#513f37" stroke-width=".94"/>
+        <path d="M-2 64h40v3H-2Z" fill="#94755d" stroke="#513f37" stroke-width=".85"/>
+        <path d="M0 62h35" fill="none" stroke="#edc995" stroke-width=".75"/>
+        <path d="M33 7v62" fill="none" stroke="#e0bb8f" stroke-width="1.25"/>
+        <path d="M33.6 11v56" fill="none" stroke="#775d50" stroke-width=".47"/>
+        <ellipse cx="33" cy="68" rx="2.25" ry="3.4" fill="#d3a27c" stroke="#765846" stroke-width=".74"/>
+        <circle cx="32.6" cy="67" r=".71" fill="#f0d4a1"/>
       </g>
-      <g class="phase-view phase-day" display="none">
-        <rect x="28" y="164" width="33" height="59" fill="#a6cfcb" />
-        <circle cx="36.58" cy="187.01" r="4.5" fill="#fff3bc" />
-        <path d="M28 197.27q5.28 -6 10.56 -1t11.549999999999999 -.5t10.89 0v26.729999999999997h-33Z" fill="#71997f" />
-        <rect x="28.6" y="198.27" width="31.8" height="24.73" fill="#8fb6b1" />
-        <polyline points="30,200.27 37,200.27" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
-        <polyline points="30,202.27 37,202.27" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
-        <polyline points="30,204.27 37,204.27" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
-        <ellipse cx="34.93" cy="208.25" rx="3.2" ry="1.1" fill="#69896c" />
-        <circle cx="35.93" cy="207.25" r="1.6" fill="#e6a8ad" />
-        <ellipse cx="42.85" cy="215.92" rx="3.2" ry="1.1" fill="#69896c" />
-        <circle cx="43.85" cy="214.92" r="1.6" fill="#e6a8ad" />
-        <ellipse cx="52.42" cy="206.48" rx="3.2" ry="1.1" fill="#69896c" />
-        <circle cx="53.42" cy="205.48" r="1.6" fill="#e6a8ad" />
-        <rect x="28" y="164" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <polyline points="33.28,164 33.28,169.9" fill="none" stroke="#715c4b" stroke-width="0.55" />
-        <polyline points="55.39,164 55.39,169.9" fill="none" stroke="#715c4b" stroke-width="0.55" />
-      </g>
-      <g class="phase-view phase-dusk" display="none">
-        <rect x="28" y="164" width="33" height="59" fill="#efad83" />
-        <circle cx="51.76" cy="187.01" r="4.5" fill="#ffdf9c" />
-        <path d="M28 197.27q5.28 -6 10.56 -1t11.549999999999999 -.5t10.89 0v26.729999999999997h-33Z" fill="#a58e79" />
-        <rect x="28.6" y="198.27" width="31.8" height="24.73" fill="#c7a48a" />
-        <polyline points="30,200.27 37,200.27" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
-        <polyline points="30,202.27 37,202.27" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
-        <polyline points="30,204.27 37,204.27" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
-        <ellipse cx="34.93" cy="208.25" rx="3.2" ry="1.1" fill="#69896c" />
-        <circle cx="35.93" cy="207.25" r="1.6" fill="#e6a8ad" />
-        <ellipse cx="42.85" cy="215.92" rx="3.2" ry="1.1" fill="#69896c" />
-        <circle cx="43.85" cy="214.92" r="1.6" fill="#e6a8ad" />
-        <ellipse cx="52.42" cy="206.48" rx="3.2" ry="1.1" fill="#69896c" />
-        <circle cx="53.42" cy="205.48" r="1.6" fill="#e6a8ad" />
-        <rect x="28" y="164" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <rect x="28" y="169.9" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <rect x="28" y="175.8" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <rect x="28" y="181.7" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <rect x="28" y="187.6" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <polyline points="33.28,164 33.28,193.5" fill="none" stroke="#715c4b" stroke-width="0.55" />
-        <polyline points="55.39,164 55.39,193.5" fill="none" stroke="#715c4b" stroke-width="0.55" />
-      </g>
-      <g class="phase-view phase-night default-view" display="inline">
-        <rect x="28" y="164" width="33" height="59" fill="url(#night-sky)" />
-        <circle cx="51.76" cy="187.01" r="4.5" fill="#f7dfa2" />
-        <circle cx="53.86" cy="186.11" r="3.8" fill="#535d7f" />
-        <circle cx="33" cy="167" r="0.6" fill="#ffe8af" />
-        <circle cx="46" cy="174" r="0.6" fill="#ffe8af" />
-        <circle cx="35" cy="181" r="0.6" fill="#ffe8af" />
-        <circle cx="48" cy="170" r="0.6" fill="#ffe8af" />
-        <circle cx="37" cy="177" r="0.6" fill="#ffe8af" />
-        <path d="M28 197.27q5.28 -6 10.56 -1t11.549999999999999 -.5t10.89 0v26.729999999999997h-33Z" fill="#465970" />
-        <rect x="28.6" y="198.27" width="31.8" height="24.73" fill="#526e7e" />
-        <polyline points="30,200.27 37,200.27" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
-        <polyline points="30,202.27 37,202.27" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
-        <polyline points="30,204.27 37,204.27" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
-        <ellipse cx="34.93" cy="208.25" rx="3.2" ry="1.1" fill="#69896c" />
-        <circle cx="35.93" cy="207.25" r="1.6" fill="#e6a8ad" />
-        <ellipse cx="42.85" cy="215.92" rx="3.2" ry="1.1" fill="#69896c" />
-        <circle cx="43.85" cy="214.92" r="1.6" fill="#e6a8ad" />
-        <ellipse cx="52.42" cy="206.48" rx="3.2" ry="1.1" fill="#69896c" />
-        <circle cx="53.42" cy="205.48" r="1.6" fill="#e6a8ad" />
-        <rect x="28" y="164" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <rect x="28" y="169.9" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <rect x="28" y="175.8" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <rect x="28" y="181.7" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <rect x="28" y="187.6" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <rect x="28" y="193.5" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <rect x="28" y="199.4" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <rect x="28" y="205.3" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <rect x="28" y="211.2" width="33" height="5.25" fill="#c19766" stroke="#936b48" stroke-width="0.4" />
-        <polyline points="33.28,164 33.28,217.1" fill="none" stroke="#715c4b" stroke-width="0.55" />
-        <polyline points="55.39,164 55.39,217.1" fill="none" stroke="#715c4b" stroke-width="0.55" />
-      </g>
-      <rect x="43.17" y="164" width="2.2" height="59" fill="#aa7652" stroke="#523e3a" stroke-width="0.55" />
-      <rect x="28" y="191.14" width="33" height="1.5" fill="#d7a16c" stroke="#523e3a" stroke-width="0.4" />
-      <rect x="23" y="223" width="43" height="4.3" rx="0.6" fill="#d7a16c" stroke="#523e3a" stroke-width="0.9" />
-      <rect x="24" y="234" width="45" height="3" fill="#aa7652" stroke="#523e3a" stroke-width="0.7" />
-      <rect x="24" y="247" width="45" height="3" fill="#aa7652" stroke="#523e3a" stroke-width="0.7" />
-      <path d="M62 172h19l14 8v47q5 4 0 8q-5-4 0-8" fill="none" stroke="#79583d" stroke-width="1.15" />
-      <rect x="92.8" y="226" width="4.4" height="6.2" rx="1.1" fill="#e1b67b" stroke="#523e3a" stroke-width="0.55" />
     </g>
     <g data-object="装帧桌">
       <ellipse cx="136" cy="163" rx="62.72" ry="4" fill="#70523d" opacity="0.2" />
@@ -893,5 +904,5 @@
       <text x="487" y="393" fill="#443b3b" font-size="10.3" font-weight="650" text-anchor="start">窗暗书灯亮</text>
     </a>
   </g>
-  <metadata id="review-geometry">{"floor":[[25,116],[575,116],[575,347],[335,347],[335,362],[275,362],[275,347],[25,347]],"spawn":[305,336],"exit":[305,352],"street":{"arrival":[852,767],"threshold":[852,756],"halfWidth":5},"actions":[{"anchor":[141,165],"approach":[141,184]},{"anchor":[95,231],"approach":[75,245]}],"resident":"books","shifts":{"night":{"foot":[467,179],"approach":[455,200]},"dusk":{"foot":[166,176],"approach":[186,201]}}}</metadata>
+  <metadata id="review-geometry">{"floor":[[25,116],[575,116],[575,347],[335,347],[335,362],[275,362],[275,347],[25,347]],"spawn":[305,336],"exit":[305,352],"street":{"arrival":[852,767],"threshold":[852,756],"halfWidth":5},"actions":[{"anchor":[141,165],"approach":[141,184]},{"anchor":[61,220],"approach":[75,245]}],"resident":"books","shifts":{"night":{"foot":[467,179],"approach":[455,200]},"dusk":{"foot":[166,176],"approach":[186,201]}}}</metadata>
 </svg>

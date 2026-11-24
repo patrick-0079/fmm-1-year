@@ -11,7 +11,7 @@ import { World, scenes, type SceneId } from "./world";
 import { isTownInterior } from "./town-interior-id";
 import { townInteriors } from "./town-interiors";
 import { TownInteriorActivities } from "./town-interior-activities";
-import { townKeepsakeInfo } from "./town-keepsakes";
+import { collectTownKeepsake, mergeTownKeepsakes, townKeepsakeInfo } from "./town-keepsakes";
 import { ResidentChats } from "./resident-chats";
 import { InteractionPrompt } from "./interaction-prompt";
 import { resolveCue } from "./interaction-cues";
@@ -301,14 +301,29 @@ export function mountGame() {
     reward: (id) => inventory.grant(id),
   });
   const interiorActivities = new TownInteriorActivities(world, activities, () => progress.townKeepsakes, (key, track) => {
+    if (resetInProgress || sharedResetPending) return false;
     const book = progress.townKeepsakes;
-    if (book.items.includes(key)) return;
-    book.items.push(key);
-    if (key === "radio" && track) book.radioTrack = track;
+    // Recheck the shared receipt before collecting. A player in another tab
+    // may have finished this activity while the workbench was open.
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (raw) {
+        const other = readProgress(raw);
+        if (other.generation !== progress.generation) { reloadAfterSharedReset(); return false; }
+        mergeTownKeepsakes(book, other.townKeepsakes);
+        mergeAchievementProgress(progress, other);
+      }
+    } catch { /* The souvenir can still be collected for this session. */ }
+    if (!collectTownKeepsake(book, key, track)) {
+      inventory.refreshTownKeepsakes();
+      refreshAchievements?.(false);
+      return false;
+    }
     save();
     inventory.refreshTownKeepsakes();
     sfx("match");
     toast(`收到${townKeepsakeInfo[key].name}`);
+    return true;
   }, key => inventory.openTownKeepsakes(key));
   world.townInteriorEffect = () => interiorActivities.roomEffect;
   const mail: LetterHandoff = {
@@ -834,6 +849,7 @@ export function mountGame() {
     if (other.generation !== progress.generation) { reloadAfterSharedReset(); return; }
     mergeCollections(progress, other);
     inventory.refreshTownKeepsakes();
+    interiorActivities.refreshCollection();
     if (mergeResidentStory(progress.residents, other.residents)) {
       refreshMailboxViews();
       refreshCampLetter();

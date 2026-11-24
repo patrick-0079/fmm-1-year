@@ -9,7 +9,8 @@ import type { Phase } from "./day";
 import type { DaylightMix } from "./daylight-mix";
 import type { TownInteriorId, TownInteriorKey } from "./town-interior-id";
 import type { RoomEffect } from "./town-interior-activities";
-import { townInteriors } from "./town-interiors";
+import { hallCollectionSlots, townInteriors } from "./town-interiors";
+import { drawTownKeepsake } from "./town-keepsake-art";
 import type { DepthLayer } from "./world";
 import { anniversary } from "./launch/anniversary";
 
@@ -67,22 +68,35 @@ export function paintTownInteriorLight(c: CanvasRenderingContext2D, image: HTMLI
 export function interiorFurniture(
   image: HTMLImageElement, scene: TownInteriorId, phase: Phase, keepsakes: readonly TownInteriorKey[], effect: RoomEffect | undefined, time: number,
 ): DepthLayer[] {
-  const { props, models, scale } = townInteriors[scene].art;
+  const { props, scale } = townInteriors[scene].art;
   return props.map(prop => ({ y: prop.depth, draw: c => {
     const override = effect?.kind === "oven" && prop.name === "砖炉和炉膛" ? "dawn"
       : effect?.kind === "board" && prop.name === "手绘白板脚" ? (phase === "dawn" ? "dusk" : "dawn")
-      : effect?.kind === "blind" && prop.name === "临池侧窗木座" ? "day"
       : effect?.kind === "sort" && prop.name === "分信格柜底" ? "day"
       : phase;
-    paint(c, image, prop.variants[override], scale);
-    if (prop.name === "七屋纪念展柜") {
-      for (const key of keepsakes) {
-        const lit = models[key];
-        if (lit) paint(c, image, lit, scale);
-      }
-    }
+    const frames = effect?.kind === "blind" && prop.raisedVariants ? prop.raisedVariants : prop.variants;
+    paint(c, image, frames[override], scale);
+    if (prop.name === "七屋纪念展柜") paintCollection(c, keepsakes);
     if (effect) paintWork(c, prop.name, effect, time);
   } }));
+}
+
+function paintCollection(c: CanvasRenderingContext2D, keepsakes: readonly TownInteriorKey[]) {
+  c.save();
+  c.textAlign = "center";
+  c.textBaseline = "middle";
+  c.font = '700 8px "Microsoft YaHei", "PingFang SC", sans-serif';
+  c.fillStyle = "#ffdda2";
+  c.fillText(`小镇纪念品  ${keepsakes.length}/${hallCollectionSlots.length}`, 300, 126, 102);
+  c.font = '600 6.8px "Microsoft YaHei", "PingFang SC", sans-serif';
+  for (const [key, label, x, y] of hallCollectionSlots) {
+    const owned = keepsakes.includes(key);
+    c.globalAlpha = owned ? 1 : .68;
+    drawTownKeepsake(c, key, x - 9, y - 10, 18, !owned);
+    c.fillStyle = owned ? "#ffe5ba" : "#ead1b2";
+    c.fillText(label, x, y + 10, 39);
+  }
+  c.restore();
 }
 
 function paintWork(c: CanvasRenderingContext2D, name: string, effect: RoomEffect, time: number) {

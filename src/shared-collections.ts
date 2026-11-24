@@ -1,5 +1,6 @@
 import { plateAligned, starLit } from "./astrolabe.ts";
 import type { Progress } from "./core.ts";
+import { mergeTownKeepsakes } from "./town-keepsakes.ts";
 
 function addMissing<T>(into: T[], from: readonly T[]) {
   for (const id of from) if (!into.includes(id)) into.push(id);
@@ -11,10 +12,7 @@ export function mergeCollections(into: Progress, from: Progress) {
   addMissing(into.completed, from.completed);
   addMissing(into.rainbowFlowers, from.rainbowFlowers);
   addMissing(into.creditStars, from.creditStars);
-  addMissing(into.townKeepsakes.items, from.townKeepsakes.items);
-  // Creeks break ties if two tabs made their first recordings at the same time.
-  const track = from.townKeepsakes.radioTrack;
-  if (track && (!into.townKeepsakes.radioTrack || track === "creek")) into.townKeepsakes.radioTrack = track;
+  mergeTownKeepsakes(into.townKeepsakes, from.townKeepsakes);
   into.bedNoteUnlocked ||= from.bedNoteUnlocked;
   into.bassSongPlayed ||= from.bassSongPlayed;
   into.decoratorMet ||= from.decoratorMet;

@@ -4,6 +4,7 @@ export type RadioTrack = "creek" | "bells";
 export interface TownKeepsakes {
   items: TownInteriorKey[];
   radioTrack?: RadioTrack;
+  radioRecordedAt?: number;
 }
 
 export function readTownKeepsakes(raw: unknown): TownKeepsakes {
@@ -11,8 +12,35 @@ export function readTownKeepsakes(raw: unknown): TownKeepsakes {
   const savedItems = saved?.items;
   const items = Array.isArray(savedItems) ? townInteriorKeys.filter(key => savedItems.includes(key)) : [];
   const track = saved?.radioTrack;
-  return items.includes("radio") && (track === "creek" || track === "bells") ? { items, radioTrack: track } : { items };
+  if (!items.includes("radio") || (track !== "creek" && track !== "bells")) return { items };
+  const recorded = saved?.radioRecordedAt;
+  return typeof recorded === "number" && Number.isFinite(recorded) && recorded > 0
+    ? { items, radioTrack: track, radioRecordedAt: recorded } : { items, radioTrack: track };
 }
+
+export function collectTownKeepsake(book: TownKeepsakes, key: TownInteriorKey, track?: RadioTrack, at = Date.now()) {
+  if (book.items.includes(key)) return false;
+  book.items.push(key);
+  if (key === "radio" && track) {
+    book.radioTrack = track;
+    book.radioRecordedAt = at;
+  }
+  return true;
+}
+
+export function mergeTownKeepsakes(into: TownKeepsakes, from: TownKeepsakes) {
+  for (const key of from.items) if (!into.items.includes(key)) into.items.push(key);
+  if (!from.radioTrack) return;
+  // An undated recording was made by an earlier version. For new recordings
+  // both tabs converge on the first take even if their writes arrived out of order.
+  const a = into.radioRecordedAt ?? 0, b = from.radioRecordedAt ?? 0;
+  if (into.radioTrack && (a < b || (a === b && from.radioTrack !== "creek"))) return;
+  into.radioTrack = from.radioTrack;
+  if (from.radioRecordedAt === undefined) delete into.radioRecordedAt;
+  else into.radioRecordedAt = from.radioRecordedAt;
+}
+
+export const townKeepsakeBadge = (key: TownInteriorKey) => `town-keepsake-${key}`;
 
 export const townKeepsakeInfo: Record<TownInteriorKey, { name: string; note: string }> = {
   florist: { name: "窗光花签", note: "举到光里，透光纸下细细的花脉像一条条小路。" },

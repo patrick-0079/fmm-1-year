@@ -40,9 +40,11 @@ function group(source, id) {
   return result;
 }
 
-function showVariant(source, name) {
+function showVariant(source, name, raised) {
   return source.replace(/class="(?:phase-view|collection-view) [^"]*" display="(?:inline|none)"/g,
-    tag => 'display="' + (tag.includes("phase-" + name) || tag.includes("collection-empty") ? "inline" : "none") + '"');
+    tag => 'display="' + (tag.includes("phase-" + name) ? "inline" : "none") + '"')
+    .replace(/data-blind="(lowered|raised)" display="(?:inline|none)"/g, (_, state) =>
+      `display="${(state === "raised") === raised ? "inline" : "none"}"`);
 }
 
 async function compile(place) {
@@ -74,8 +76,8 @@ async function compile(place) {
     .replace("</defs>", finished.defs + "</defs>");
   const sprites = new Map();
 
-  async function raster(content, phase, { full = false, scale = textureScale } = {}) {
-    const body = showVariant(content, phase);
+  async function raster(content, phase, { full = false, scale = textureScale, raised = false } = {}) {
+    const body = showVariant(content, phase, raised);
     const markup = `<svg xmlns="http://www.w3.org/2000/svg" width="${size.width * scale}" height="${size.height * scale}" viewBox="0 0 ${size.width} ${size.height}" stroke-linejoin="round" stroke-linecap="round" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif">` + defs + body + '</svg>';
     const { data, info } = await sharp(Buffer.from(markup)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
     let l = info.width, t = info.height, r = 0, b = 0;
@@ -98,7 +100,7 @@ async function compile(place) {
     };
   }
 
-  const frames = { scale: textureScale, sign: finished.sign, backgrounds: {}, lights: {}, props: [], models: {} };
+  const frames = { scale: textureScale, sign: finished.sign, backgrounds: {}, lights: {}, props: [] };
   for (const phase of phases) {
     frames.backgrounds[phase] = await raster(finished.background, phase, { full: true });
     // Light fields are gradients. Keep them at logical resolution in the atlas.
@@ -110,14 +112,12 @@ async function compile(place) {
     if ((footprints[name] ?? name) !== walls[index].label) throw Error(`Mismatched footprint for ${place}/${name}`);
     const variants = {};
     for (const phase of phases) variants[phase] = await raster(finished.furniture[index], phase);
-    frames.props.push({ name, depth, variants });
-  }
-  if (place === "hall") {
-    for (const key of places) {
-      const [lit] = groups(source, new RegExp(' data-building="' + key + '" data-lit="true"'));
-      if (!lit) throw Error("Missing lit miniature " + key);
-      frames.models[key] = await raster(lit, "dusk");
+    const prop = { name, depth, variants };
+    if (name === "临池侧窗木座") {
+      prop.raisedVariants = {};
+      for (const phase of phases) prop.raisedVariants[phase] = await raster(finished.furniture[index], phase, { raised: true });
     }
+    frames.props.push(prop);
   }
 
   const width = 2 * (size.width * textureScale + 2 * gutter);

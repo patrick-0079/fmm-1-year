@@ -1,5 +1,8 @@
 import { motif, type PixelMotif } from "./arcade-pixels";
 import { applyStationeryTheme } from "./stationery-themes";
+import { townInteriorKeys } from "./town-interior-id";
+import { drawTownKeepsake } from "./town-keepsake-art";
+import { townKeepsakeBadge } from "./town-keepsakes";
 
 type Ink = CanvasRenderingContext2D;
 type Point = [number, number];
@@ -532,6 +535,8 @@ const art: Record<string, (c: Ink) => void> = {
     rect(c, 16, 26, 1, 2, cream);
   },
 };
+
+for (const key of townInteriorKeys) art[townKeepsakeBadge(key)] = c => drawTownKeepsake(c, key, 1, 0, 30);
 
 export const hasDrawnStamp = (id: string) => Object.hasOwn(art, id);
 

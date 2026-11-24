@@ -6,6 +6,9 @@ import { SAVE_KEY, readProgress } from "../src/core";
 import { echoAltar, echoPool, ringSpots, moonPlate, mirrorSpots } from "../src/ruins-map";
 import { TOWN_NPCS } from "../src/town-data";
 import { TOWN_TALKED_KEY } from "../src/town";
+import { townInteriorId, townInteriorKeys } from "../src/town-interior-id";
+import { townKeepsakeBadge } from "../src/town-keepsakes";
+import { pressDuration, workbenchSteps } from "../src/town-workbench-steps";
 import { scenes, type SceneId, type World } from "../src/world";
 import { verifyArcadeStamps } from "./achievement-arcade-route";
 import { verifyLetterAndMeadowStamps } from "./achievement-mail-route";
@@ -168,6 +171,39 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   for (const name of ["叶","铃","星"]) await choose("轻敲「" + name + "」");
   await interactAt("ruins", echoPool.id);
   closeActivity();
+
+  for (const room of townInteriorKeys) {
+    const scene = townInteriorId(room), badge = townKeepsakeBadge(room);
+    await interactAt(scene, scene + "-main");
+    for (const stage of workbenchSteps[room]) {
+      await wait(() => document.querySelector(".town-workbench")?.getAttribute("data-step") === stage.id,
+        "没有进入手作步骤 " + stage.id);
+      if (stage.kind === "wait") continue;
+      const tool = stage.tools[0];
+      const button = el(`.town-workbench-tool[data-tool="${tool.id}"]`);
+      button.focus();
+      if (stage.kind === "hold") {
+        key(button, " ");
+        await new Promise(resolve => setTimeout(resolve, pressDuration + 60));
+        key(button, " ", false);
+      } else {
+        if (stage.kind === "place" || stage.kind === "slide") {
+          const dx = stage.target.x - tool.at.x, dy = stage.target.y - tool.at.y;
+          for (let i = 0; i < Math.round(Math.abs(dx) / 12); i++) key(button, dx < 0 ? "ArrowLeft" : "ArrowRight");
+          for (let i = 0; i < Math.round(Math.abs(dy) / 12); i++) key(button, dy < 0 ? "ArrowUp" : "ArrowDown");
+        } else {
+          for (let i = 0; i < (stage.kind === "dial" ? 5 : 12); i++) key(button, "ArrowRight");
+        }
+        key(button, "Enter");
+      }
+    }
+    expect(!earned(badge) && !state().townKeepsakes.items.includes(room), "手作结束时提前发放纪念品");
+    await choose("收下");
+    expect(earned(badge) && state().townKeepsakes.items.includes(room), "领取时缺少纪念品或徽章 " + room);
+    closeActivity();
+  }
+  log("七件小镇纪念品均在亲手完成并收下后盖章");
+
   const ordinary = achievementDefinitions.filter(d => !d.id.startsWith("days-"));
   const missing = ordinary.filter(d => !earned(d.id));
   expect(missing.length === 0, "尚未获得 " + missing.map(d => d.name).join("、"));

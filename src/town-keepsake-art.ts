@@ -52,7 +52,7 @@ const drawings: Record<TownInteriorKey, [string, string][]> = {
 
 const paths = new Map<TownInteriorKey, [string, Path2D][]>();
 
-export function drawTownKeepsake(c: CanvasRenderingContext2D, key: TownInteriorKey, x = 0, y = 0, size = 48) {
+export function drawTownKeepsake(c: CanvasRenderingContext2D, key: TownInteriorKey, x = 0, y = 0, size = 48, outline = false) {
   let shapes = paths.get(key);
   if (!shapes) {
     shapes = drawings[key].map(([fill, path]) => [fill, new Path2D(path)]);
@@ -61,11 +61,11 @@ export function drawTownKeepsake(c: CanvasRenderingContext2D, key: TownInteriorK
   c.save();
   c.translate(x, y);
   c.scale(size / 48, size / 48);
-  c.strokeStyle = "#684f54";
+  c.strokeStyle = outline ? "#ddbf9c" : "#684f54";
   c.lineWidth = 1.25;
   c.lineCap = c.lineJoin = "round";
   for (const [fill, shape] of shapes) {
-    if (fill) { c.fillStyle = fill; c.fill(shape); }
+    if (fill && !outline) { c.fillStyle = fill; c.fill(shape); }
     c.stroke(shape);
   }
   c.restore();
