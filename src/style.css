@@ -342,22 +342,6 @@ a .icon {
   white-space: nowrap;
   letter-spacing: 0.8px;
 }
-.scene-transition {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: #65596b;
-  font-size: 15px;
-  background: #efede8;
-  opacity: 0;
-  transition: opacity 0.2s;
-  pointer-events: none;
-  z-index: 8;
-}
-.scene-transition.active {
-  opacity: 1;
-}
 .intro-screen {
   position: absolute;
   inset: 0;

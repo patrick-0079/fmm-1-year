@@ -441,6 +441,19 @@ export function mountGame() {
   function dismissRevive() {
     bedNote.close();
   }
+  const sceneTransition = document.querySelector<HTMLElement>(".scene-transition")!;
+  const sceneDestination = sceneTransition.querySelector(".scene-transition-destination")!;
+  const sceneStatus = sceneTransition.querySelector(".scene-transition-status")!;
+  function showSceneTransition(scene: SceneId) {
+    const title = scenes[scene].title;
+    sceneDestination.textContent = title;
+    sceneStatus.textContent = "正在前往" + title;
+    sceneTransition.classList.add("active");
+  }
+  function hideSceneTransition() {
+    sceneTransition.classList.remove("active");
+    sceneStatus.textContent = "";
+  }
   function transition(scene: SceneId, entrance?: string) {
     if (world.busy || !started) return;
     if (!world.canEnter(scene)) { toast("还需要集齐七种彩虹花。"); return; }
@@ -461,14 +474,12 @@ export function mountGame() {
     const from = world.scene;
     const leavingHome = from === "room" && scene !== from;
     if (leavingHome) world.standUp();
-    const overlay = document.querySelector(".scene-transition")!;
-    overlay.textContent = "正在前往"+scenes[scene].title+"…";
     world.paused = true;
     world.clearInput();
     const fade = async () => {
       if (leavingHome) await fox.farewell();
       if (!transitioning || world.scene !== from) return;
-      overlay.classList.add("active");
+      showSceneTransition(scene);
       sfx("portal");
       await new Promise<void>(done => setTimeout(done,180));
     };
@@ -485,7 +496,7 @@ export function mountGame() {
       if (leavingHome) fox.clear();
       toast("地图暂未载入，稍后可以再试一次。");
     }).finally(() => {
-      overlay.classList.remove("active");
+      hideSceneTransition();
       world.paused = false;
       transitioning = false;
       const next = afterCrossing;
@@ -941,9 +952,7 @@ export function mountGame() {
     transitioning = true;
     world.paused = true;
     world.clearInput();
-    const overlay = document.querySelector(".scene-transition")!;
-    overlay.textContent = "正在前往"+scenes[scene].title+"…";
-    overlay.classList.add("active");
+    showSceneTransition(scene);
     const spot = scenes[scene].spots.find(s => s.id === id);
     let arrived = false;
     try {
@@ -955,7 +964,7 @@ export function mountGame() {
       arrived = true;
       return true;
     } finally {
-      overlay.classList.remove("active");
+      hideSceneTransition();
       world.paused = false;
       transitioning = false;
       const next = afterCrossing;
