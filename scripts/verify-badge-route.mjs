@@ -37,6 +37,7 @@ try {
   page.on("pageerror", error => errors.push(String(error)));
   await page.clock.install();
   await page.goto(server.resolvedUrls.local[0] + "tests/exploration-fixture.html");
+  await page.waitForFunction(() => window.contentQA?.ready());
   await page.exposeFunction("reportBadgeStep", line => console.log(line));
   await page.evaluate(() => {
     new MutationObserver(changes => {
