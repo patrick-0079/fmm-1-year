@@ -2,7 +2,11 @@
 
 七间屋子全天开放。芙芙可以在花店借一片落花，在邮局给自己盖一枚月牙邮戳，也可以第一次上北坡就进纪念馆。做好的小物收进背包的 **纪念物 → 小镇小物**。馆里的模型展桌会记下每件小物来自哪扇门。
 
-每张图都是一张可独立打开的室内草图。**点图可放大。在浏览器单独打开 SVG 原图后，点图底的清晨、白昼、黄昏或星夜**，可以对照同一间屋子的窗扇、炉火、灯光和居民位置。文中的内嵌图显示代表时段，图底四幅小样可直接对照。纪念馆图顶还可以切换收藏数量。
+下图取自游戏画布。花店用釉面砖与花纹地毯衔接温室，烘焙屋铺陶砖与红格布，工坊把黄铜首饰衬在紫绒上。邮局的信笺格、书屋的深木书架、电台的磁带机和纪念馆的金框相片各有一处突出的陈设。几间屋的窗景取自晚安小屋的四时天空，书屋侧窗能看见小镇原画里的睡莲。黄昏与星夜的局部灯光落在仍能操作的工作台上。
+
+[![游戏内七间室内的实机画面，展示各屋的材质、陈设与不同时段的光照。](town-interiors/interiors-in-game.webp)](town-interiors/interiors-in-game.webp)
+
+下方七张室内草图可独立打开。**点图可放大。在浏览器单独打开 SVG 原图后，点图底的清晨、白昼、黄昏或星夜**，可以对照同一间屋子的窗扇、炉火、灯光和居民位置。草图显示代表时段，图底四幅小样可直接对照。纪念馆图顶还可以切换收藏数量。
 
 ## 读图与游戏时钟
 
@@ -170,3 +174,27 @@
 草图按游戏的脚底半径 5 验线。新落脚点和门槛之间留一步，书屋回到台阶西侧，和墨桃的巡走路线错开。把当班人物放进草图后，从门垫走到两个操作点和独立交谈点，再原路走到门槛。另试走南墙、柜台、桌脚和两处玻璃隔断的实体部分。纪念馆的模型灯窗按空收藏、三件和七件复核，每扇亮窗对应一件复制品。
 
 美术取色对照小镇屋顶与店招，室内比例取自晚安小屋。草图中嵌有项目的芙芙、镇民和夜神华立绘，柜台、模型、家具与光照为本稿绘制。 [周年小镇底图](../../src/assets/anniversary-town-v13.webp) · [晚安小屋底图](../../src/assets/room-interactive.webp) · [居民美术记录](ARTWORK-residents.md)
+
+## 实机美术源文件
+
+地板、壁板、铜饰和织物在 `scripts/town-interior-finish.mjs` 中按房间绘制。桌上的小物挂在承托家具的深度层，墙上的陈设绘在背墙层。默认构建入口 `node scripts/build-town-interiors.mjs` 读取草图的占地和对白，再合成各屋的 WebP 图集。 [柜台与道具图集](town-interiors/dressing-atlas.webp) · [背墙陈设图集](town-interiors/wall-atlas.webp)
+
+两张陈设图集由内置 ImageGen 以晚安小屋原图为风格参考生成。打包前保留物件轮廓并清理透明边缘。构建按四列两行裁切图集，每个陈设保持原比例摆放。
+
+<details>
+<summary>柜台小物的生成提示</summary>
+
+```text
+Create one polished transparent game sprite atlas, wide landscape, EXACT 4 equal columns by 2 equal rows, eight separated pixel-painted still-life clusters, each centred inside its cell and kept comfortably away from the cell boundaries. Image 1 is a style reference for the owner's existing original cozy RPG. Match its warm hand-painted pixel art, tiny crisp dark brown bevel outlines, layered colours, petal-level detail, embroidered surfaces, lustrous honey wood and soft highlights. View: orthographic from front, looking slightly down onto table surfaces as seen in the reference. Individual clusters float as isolated accessories on real alpha, no furniture, landscape backdrop, platform, border, tile grid, typography, labels, white backdrop, people, or logos. Fit each object tightly together as one silhouette with meaningful negative space between features. Each cluster slightly wider than it is tall. The cell contents from left to right in the first row are (1) abundant blush pink cream violet lisianthus bouquets in two glazed sage pots tied with pink ribbon; (2) a wicker bakery basket packed with golden croissants and strawberry pastries, one flour cloth on its edge; (3) an open purple velvet brass jewelry tray with moon-and-star charms, a spool and delicate working pliers; (4) a bundle of parchment envelopes tied with burgundy thread, red ink bottle and tiny rolled paper. Second row from left to right (5) a stack of worn teal and burgundy books, open illustrated album and tiny floral teacup; (6) teal vinyl record covers with a moon motif, folded warm cream headphones and a black record peeking out; (7) a pair of gilded gilt miniature frames with landscape paintings, distinct sepia rose and river blue, with dusty rose velvet ribbons and a small brass antique camera in front; (8) a dense draping soft green ivy sprig with tiny ivory blossoms and pink bow, composed horizontally. Use high-contrast refined pixel clusters, as if painted by the original artist; high legibility when downscaled. Leave at least 10% transparent margin within every cell. Sprite atlas only, on fully transparent background.
+```
+
+</details>
+
+<details>
+<summary>背墙陈设的生成提示</summary>
+
+```text
+Produce a wide transparent pixel-art sprite atlas of eight wall-mounted display ensembles for the owner's original cozy game, exactly 4 equally sized columns by 2 equally sized rows. This is one game asset sheet. The local reference is the game's existing bedroom. Match its beautifully detailed warm Japanese cozy RPG pixel painting, small crisp deep brown edges, tiny hand-painted shadows, carved golden wood frames and rich local colours. Direct frontal view, very slight top view showing depth of shelves. In each cell draw one compact unified ensemble in a wide horizontal silhouette, about 2.4 times as wide as it is tall. Leave generous clear space around it on real transparent alpha, and keep each ensemble entirely inside its own cell. First row left to right: (1) a low horizontal sage-green glass greenhouse ledge with a curved swelling row of climbing ivy, delicate soft pink lisianthus blossoms, a dangling brass watering can and a small hanging terracotta pot; (2) a broad wall-mounted golden wood bakery shelf with a golden braided loaf, jam crocks and three hanging copper kitchen utensils, small red-and-cream gingham lining; (3) a deep violet fabric jewelry display mounted in an antique wooden frame, a set of brass moons and stars, glinting teardrop crystals and spools on a shallow wooden ledge; (4) a mahogany wall rack of postcard pockets with cream envelopes, rose-red sealed edges and a tiny green sorting light. Second row left to right: (5) a full dark walnut wood wall-mounted bookshelf, green, rust and navy gold-tooled books standing at organic heights, one stack on its side, a dried larkspur bouquet and a paper bookmark; (6) a compact vintage broadcasting wall rack in rich navy and amber with spooled recording tapes, an oscillating analogue meter, tiny indicator lamps and looped headphone wires, no text; (7) a horizontal arrangement of three small gallery photographs with ornate gold and dark walnut frames, picturing a red-roof garden town, small pale footbridge and lit town street at dusk, with a subtle plum fabric ribbon along the top; (8) a narrow aged brass hanging bar with three spaced milky tulip shades and warm highlights, hanging black wires. Isolate each vignette from the others with true empty alpha; no walls, paper, white background, separators, logos, captions, people, floor shadows or frame around the whole sheet. Aim for rich legible pixel detail that still reads when the item is rendered at 100 pixels wide.
+```
+
+</details>

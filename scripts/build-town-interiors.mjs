@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import sharp from "sharp";
+import { finishTownInterior, readTownInteriorArt } from "./town-interior-finish.mjs";
 
 const places = ["florist", "baker", "maker", "post", "books", "radio", "hall"];
 const phases = ["dawn", "day", "dusk", "night"];
@@ -8,6 +9,7 @@ const size = { width: 600, height: 400 };
 const sourceFolder = new URL("../doc/artwork/town-interiors/", import.meta.url);
 const assetFolder = new URL("../src/assets/town-interiors/", import.meta.url);
 const conversation = (await readFile(new URL("../doc/artwork/ARTWORK-town-interiors.md", import.meta.url), "utf8")).replace(/\r\n/g, "\n");
+const furnishings = await readTownInteriorArt();
 const phaseNames = { dawn: "清晨", day: "白昼", dusk: "黄昏", night: "星夜" };
 const footprints = {
   温室花架: "温室花架脚", 温室木玻隔断: "温室隔断", 砖炉和炉膛: "砖炉炉基",
@@ -46,9 +48,6 @@ async function compile(place) {
   const plan = JSON.parse(source.match(/<metadata id="review-geometry">([^<]+)<\/metadata>/)[1]);
   const walls = Array.from(source.matchAll(/<polygon points="([^"]+)" data-name="([^"]+)"/g),
     ([, points, label]) => ({ label, points: points.split(" ").map(pair => pair.split(",").map(Number)) }));
-  const defs = source.match(/<defs>[\s\S]*?<\/defs>/)[0]
-    .replace(/<style>[\s\S]*?<\/style>/, "")
-    .replace(/<image\b[^>]*\/>/g, "");
   const title = source.match(/<title id="title">([^<]+) ·/)[1];
   const roomText = conversation.split(/^## /m).find(section => section.startsWith(title + "\n"));
   const lines = Object.fromEntries(Array.from(roomText.matchAll(/^\| ([^|\r\n]+) \| ([^|\r\n]+) \|\r?$/gm),
@@ -59,14 +58,18 @@ async function compile(place) {
   };
   if ([...Object.values(chat.phases), ...chat.familiar].some(line => !line)) throw Error("Missing dialogue " + place);
   const architecture = group(source, "architecture").replace(/<text\b[^>]*>[\s\S]*?<\/text>/g, "")
-    .replace(/<rect x="0" y="0" width="600" height="400" fill="[^"]+" \/>/,
-      '<rect width="600" height="400" fill="#513e48" />')
     .replace(/<rect\b[^>]* y="16" [^>]*\/>/g, "")
     .replace(/<polyline\b[^>]*37\.5[^>]*\/>/g, "");
-  const background = architecture + group(source, "floor-details") + group(source, "back-wall-details");
   const furniture = groups(group(source, "furniture"), / data-object="/);
   const lighting = group(source, "room-light");
   if (furniture.length !== walls.length) throw Error(place + " furniture and ground shapes must correspond");
+  const finished = finishTownInterior(place, plan, {
+    architecture, floorDetails: group(source, "floor-details"), backWall: group(source, "back-wall-details"), furniture,
+  }, furnishings);
+  const defs = source.match(/<defs>[\s\S]*?<\/defs>/)[0]
+    .replace(/<style>[\s\S]*?<\/style>/, "")
+    .replace(/<image\b[^>]*\/>/g, "")
+    .replace("</defs>", finished.defs + "</defs>");
   const sprites = new Map();
 
   async function raster(content, phase, full = false) {
@@ -95,15 +98,15 @@ async function compile(place) {
 
   const frames = { backgrounds: {}, lights: {}, props: [], models: {} };
   for (const phase of phases) {
-    frames.backgrounds[phase] = await raster(background, phase, true);
-    frames.lights[phase] = await raster(lighting, phase);
+    frames.backgrounds[phase] = await raster(finished.background, phase, true);
+    frames.lights[phase] = await raster(lighting + finished.glows, phase);
   }
   for (const [index, part] of furniture.entries()) {
     const depth = Math.max(...walls[index].points.map(point => point[1]));
     const name = part.match(/data-object="([^"]+)"/)[1];
     if ((footprints[name] ?? name) !== walls[index].label) throw Error(`Mismatched footprint for ${place}/${name}`);
     const variants = {};
-    for (const phase of phases) variants[phase] = await raster(part, phase);
+    for (const phase of phases) variants[phase] = await raster(finished.furniture[index], phase);
     frames.props.push({ name, depth, variants });
   }
   if (place === "hall") {
