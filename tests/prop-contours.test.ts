@@ -17,6 +17,12 @@ test("both television props retain round antenna tips and leave the gap between 
 });
 
 test("street bunting follows the flag tips rather than slicing them off or covering paving between flags",()=>{
+  landmarks("west lamp's left cord",townForeground.find(p=>p.id==="plaza-west-left-pennants")!.points,
+    [[551.25,380.5],[559,378.5]],[[555,381.5],[566,372]]);
+  landmarks("east flags above the pine",townForeground.find(p=>p.id==="plaza-east-upper-pennants")!.points,
+    [[893,300.5],[902,309]],[[894.8,306.5],[918,319]]);
+  landmarks("east flags beside the pine",townForeground.find(p=>p.id==="plaza-east-lower-pennants")!.points,
+    [[879.4,310],[872.3,321]],[[882,310],[874,323]]);
   landmarks("west flags",townForeground.find(p=>p.id==="plaza-west-pennants")!.points,
     [[608,387],[620,385],[630,380],[643,373]],[[613,387],[626,385],[640,378],[606,394]]);
   landmarks("bakery flags",townForeground.find(p=>p.id==="bakery-fence-pennants")!.points,

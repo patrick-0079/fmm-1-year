@@ -50,7 +50,11 @@ try {
 
   const earned = () => page.evaluate(() => JSON.parse(localStorage.getItem("nemu-anniversary-v1")).achievements.earned);
   const played = () => page.evaluate(() => JSON.parse(localStorage.getItem("fufu-foreground-play-v1")).milliseconds);
-  assert.equal((await earned()).length, 41);
+  const catalogue = await page.evaluate(async () => {
+    const { achievementDefinitions } = await import("/src/achievements.ts");
+    return achievementDefinitions.map(entry => entry.id).sort();
+  });
+  assert.deepEqual((await earned()).sort(), catalogue.filter(id => !id.startsWith("days-")));
   // Large wall-clock jumps deliberately earn nothing. Advance the browser in
   // 10-second foreground intervals through the game's unmodified sampling timer.
   for (const days of [1, 3, 7]) {
@@ -68,12 +72,13 @@ try {
     assert.ok((await earned()).includes(id), "应在累计 " + days * 10 + " 分钟时解锁 " + id);
     console.log("前台 " + days * 10 + " 分钟，徽章已保存");
   }
-  assert.equal((await earned()).length, 44);
+  assert.deepEqual((await earned()).sort(), catalogue);
   await page.reload();
-  await page.locator(".achievement-count strong").filter({ hasText: "44 / 44" }).waitFor();
-  assert.equal((await earned()).length, 44);
+  const total = catalogue.length;
+  await page.locator(".achievement-count strong").filter({ hasText: `${total} / ${total}` }).waitFor();
+  assert.deepEqual((await earned()).sort(), catalogue);
   assert.deepEqual(errors, []);
-  console.log(width + "px · 同档从 0 到 44，刷新后仍为 44 枚");
+  console.log(`${width}px · 同档从 0 到 ${total}，刷新后仍为 ${total} 枚`);
   await page.close();
 
   // Repeat the reported sequence through native mouse/touch input on a fresh

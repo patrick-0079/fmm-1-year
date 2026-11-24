@@ -57,6 +57,40 @@ test("narrow-screen labels avoid visible map controls as well as the character",
   for (const widget of hud) assert.equal(overlap(box, widget), 0, "a label must not sit on a HUD control when free space exists");
 });
 
+test("a touch prompt at the town workshop leaves the steps below the player's shoes tappable", () => {
+  // CSS pixels measured in the 298px canvas on a 320px phone. The NPC and
+  // block game are both in range, below the map title and clock.
+  const viewport = { w: 298, h: 198.66 }, size = { w: 99, h: 46.58 };
+  const anchor = { x: 176.57, y: 70.63 };
+  const player = { x: 141.70, y: 79.57, w: 14.30, h: 20.56 };
+  const npc = { x: 163.16, y: 70.18, w: 15.20, h: 21.90 };
+  const occupied = [
+    { x: 10, y: 10, w: 170.88, h: 33.19 }, { x: 195.30, y: 10, w: 92.70, h: 29.19 },
+    { x: 0, y: 77.33, w: 44, h: 44 }, { x: 132.76, y: 20.12, w: 67.94, h: 45.59 },
+  ];
+  const label = { ...placeInteractionPrompt(viewport, size, anchor, player, npc, occupied, true), ...size };
+  for (const item of [player, npc, ...occupied]) assert.equal(overlap(label, item), 0);
+  for (const [x,y] of [[149,99],[152,116],[156,132]]) {
+    assert.equal(overlap(label, { x:x-2, y:y-2, w:4, h:4 }), 0, `covered walk tap at ${x},${y}`);
+  }
+});
+
+test("the same workshop steps accept a mouse click while either desktop hint is displayed", () => {
+  const viewport = { w: 934, h: 622.66 }, anchor = { x: 522.57, y: 222.76 };
+  const player = { x: 444.12, y: 249.38, w: 44.83, h: 64.45 };
+  const npc = { x: 480.54, y: 221.36, w: 47.63, h: 68.65 };
+  const occupied = [
+    { x: 17, y: 17, w: 194.47, h: 37.19 }, { x: 820.30, y: 17, w: 96.70, h: 31.19 },
+    { x: 0, y: 292.83, w: 37, h: 37 }, { x: 416.10, y: 63.05, w: 212.95, h: 142.90 },
+  ];
+  // The E keycap and mouse hint produce different button dimensions.
+  for (const size of [{ w: 138, h: 35 }, { w: 109, h: 45.55 }]) {
+    const label = { ...placeInteractionPrompt(viewport, size, anchor, player, npc, occupied), ...size };
+    for (const item of [player, npc, ...occupied]) assert.equal(overlap(label, item), 0);
+    assert.equal(overlap(label, { x: 474, y: 359, w: 5, h: 6 }), 0);
+  }
+});
+
 test("hover stays attached across the empty space between a bed or cake and its displaced label", () => {
   for (const [object, label] of [
     [{ x: 650, y: 130, w: 180, h: 160 }, { x: 745, y: 300, w: 96, h: 46 }],

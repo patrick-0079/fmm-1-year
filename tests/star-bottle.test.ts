@@ -29,7 +29,7 @@ test("current and expanded bottles fit every visible star inside the glass and r
     const original=bottleGeometry(width,height,compact,12).slots;
     const sparse=bottleGeometry(width,height,compact,80,[79]).slots;
     assert.ok(sparse[79].size>bottleGeometry(width,height,compact,80).slots[79].size);
-    for (const count of [0,1,12,13,36,80]) {
+    for (const count of [0,1,12,14,36,80]) {
       const fit=bottleGeometry(width,height,compact,count);assert.ok(fit.width<=width&&fit.height<=height);
       assert.equal(fit.slots.length,count);
       const targets=fit.slots.map((point,slot)=>({slot,...point}));

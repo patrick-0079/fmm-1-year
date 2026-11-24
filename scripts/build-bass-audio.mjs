@@ -66,4 +66,9 @@ for (const note of bassScore) {
   for (let i = 0; i < take.length; i++) demo[offset + i] += take[i];
   beat += note.beats;
 }
+// Overlapping releases occasionally sum above full scale. Apply one gain to
+// the whole take so these attacks retain the same envelope as the solo notes.
+const demoPeak = demo.reduce((peak, sample) => Math.max(peak, Math.abs(sample)), 0);
+const demoGain = Math.min(1, 0.98 / demoPeak);
+for (let i = 0; i < demo.length; i++) demo[i] *= demoGain;
 await writeFile(new URL("anniversary-demo.wav", directory), wav(demo));

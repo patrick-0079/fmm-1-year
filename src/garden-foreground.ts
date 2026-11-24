@@ -11,6 +11,11 @@ function part(id: string, foot: number, outline: number[][]): PaintedForeground 
 }
 
 export const gardenForeground: PaintedForeground[] = [
+  // The west string lights hang from a slim post next to the balloon stall.
+  {id:"balloon-lawn-post", y:246, points:[
+    [138,185],[140,186],[141,189],[140,192],[140,242],[139,246],
+    [135,246],[134,243],[135,191],[134,189],[135,186],
+  ].map(([x,y]) => ({x,y}))},
   // Lamps and their flower pedestals are separate from the paving and fences.
   // Only their painted outlines occlude walkers on the north side of each foot.
   part("northwest-path-lamp", 418, northwestLamp),

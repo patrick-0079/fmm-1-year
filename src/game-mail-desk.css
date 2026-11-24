@@ -10,10 +10,10 @@
   border: 0;
   border-radius: inherit;
   overflow: hidden;
-  background: #ad754e url("./assets/stationery-desk.webp") center / cover;
+  background: var(--mail-backdrop, #ad754e url("./assets/stationery-desk.webp") center / cover);
   container: mail-desk / inline-size;
 }
-.reading-letter:has(.mail-desk-body) :is(.bag-toggle,.time-pill,.scene-top) { visibility: hidden; }
+.scene-wrap:has(> .game-letter-reader:not([hidden]) .mail-desk-body) :is(.bag-toggle,.time-pill,.scene-top) { visibility: hidden; }
 .game-letter-reader:has(.mail-desk-body) > header {
   position: relative;
   z-index: 5;
@@ -104,7 +104,8 @@
   min-height: 0;
   box-sizing: border-box;
   margin: 1.3cqw auto 2.4cqw;
-  padding: clamp(8px, 2.2cqw, 21px) var(--margin-art) clamp(17px, 3.1cqw, 30px);
+  padding: clamp(8px, 2.2cqw, 21px) var(--margin-art) 48px;
+  touch-action: pinch-zoom;
   background-color: var(--mail-paper-tint);
   color: var(--mail-ink);
   box-shadow: 1px 2px 0 #dbbda1, 2px 3px 0 #f4dfb9, 3px 5px 0 #986e52, 4px 8px 14px #482c2470;
@@ -133,7 +134,28 @@
 .mail-sheet[data-paper-slices]::before {
   border-image-slice: var(--mail-paper-slices);
   border-image-width: var(--mail-paper-widths);
-  border-image-repeat: round;
+  border-image-repeat: stretch;
+}
+.mail-sheet[data-paper-corners-only] {
+  background-image: radial-gradient(ellipse at 50% 38%, #fff8, transparent 80%), linear-gradient(135deg, #c1c9e638, #abb7dc4d);
+}
+/* Keep the ornaments at their source proportions. The stock behind them is
+   continuous even when the artwork only leaves a few rows between corners. */
+.mail-sheet[data-paper-corners-only]::before {
+  mask-image:
+    linear-gradient(to right, #000 calc(var(--margin-art) * .78), transparent var(--margin-art),
+      transparent calc(100% - var(--mail-paper-right-corner)), #000 calc(100% - var(--mail-paper-right-corner) * .78)),
+    linear-gradient(to bottom, #000 calc(var(--mail-paper-top-corner) * .78), transparent var(--mail-paper-top-corner),
+      transparent calc(100% - var(--mail-paper-bottom-corner)), #000 calc(100% - var(--mail-paper-bottom-corner) * .78));
+  mask-composite: intersect;
+}
+.mail-sheet[data-paper-corners-only]::after {
+  content: "";
+  position: absolute;
+  inset: clamp(2px, .5cqw, 5px);
+  z-index: -2;
+  border: 1px solid color-mix(in srgb, var(--mail-accent) 55%, transparent);
+  pointer-events: none;
 }
 @container mail-desk (min-width: 541px) {
   .mail-sheet.has-writing-room:not([data-paper-slices])::before {
@@ -186,83 +208,60 @@
   column-count: 1;
   column-gap: 0;
   column-fill: auto;
+  transition-property: none;
   margin: 0;
   color: var(--mail-ink);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   font: 400 clamp(15px, 1.9cqw, 18px)/1.85 system-ui, sans-serif;
 }
-.mail-leaves { position: absolute; inset: 0; pointer-events: none; }
+.mail-leaves {
+  position: absolute;
+  inset: auto 4px 1px;
+  display: flex;
+  gap: clamp(3px, 1cqw, 10px);
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
 .mail-leaves[hidden] { display: none; }
 .mail-leaves button {
-  position: absolute;
-  top: 56%;
-  transform: translateY(-50%);
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
+  min-width: 48px;
+  min-height: 44px;
   border: 0;
-  border-radius: 8px;
-  padding: 0;
+  border-radius: 4px;
+  padding: 0 5px;
   background: transparent;
-  color: #704644;
+  color: var(--mail-accent);
+  font: 600 clamp(12px, 2cqw, 15px)/1.35 system-ui, sans-serif;
+  text-decoration: underline;
+  text-underline-offset: .28em;
   pointer-events: auto;
 }
-.mail-leaves button::before {
-  content: "";
-  grid-area: 1 / 1;
-  width: 19px;
-  height: 24px;
-  border: 1px solid #bc9271;
-  border-radius: 48% 43% 48% 42%;
-  box-shadow: inset 0 0 0 2px #fbebce, 0 1px 2px #5d362236;
-  background: #eecda7;
-}
-.mail-leaves button::after {
-  content: "";
-  grid-area: 1 / 1;
-  width: 6px;
-  height: 6px;
-  border-top: 2px solid;
-  border-right: 2px solid;
-}
-.mail-page-prev { left: -4px; }
-.mail-page-next { right: -4px; }
-.mail-page-prev::after { transform: translateX(1px) rotate(-135deg); }
-.mail-page-next::after { transform: translateX(-1px) rotate(45deg); }
-.mail-leaves button[aria-disabled=true] { opacity: .38; }
+.mail-leaves button[aria-disabled=true] { opacity: .5; text-decoration: none; cursor: default; }
 .mail-leaves button:focus-visible { outline: 2px dashed #87506a; outline-offset: -4px; }
 .mail-page-count {
-  position: absolute;
-  inset: auto 0 3px;
-  margin: auto;
-  width: fit-content;
-  padding: 0 .6em;
-  color: #764c44;
-  background: #ffefd7;
+  color: var(--mail-ink);
   font: 550 clamp(12px, 1.5cqw, 15px)/1.3 system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 }
 @container mail-desk (max-width: 540px) {
   .mail-sheet-heading h4 { font-size: 14px; line-height: 1.3; }
   .game-letter-reader .mail-sheet .letter-text { font-size: 14px; line-height: 1.55; }
-  .mail-page-next { right: -9px; }
-  .mail-page-prev { left: -9px; }
-  .game-letter-reader:has(.mail-sheet:not([hidden],[inert])) > header {
+  .game-letter-reader:has(.mail-desk-body:not([data-mail-state=returning]) .mail-sheet:not([hidden])) > header {
     position: absolute;
     top: 1.5%;
     right: 2.2%;
     padding: 0;
   }
-  .game-letter-reader:has(.mail-sheet:not([hidden],[inert])) > header > div:first-child { display: none; }
-  .game-letter-reader:has(.mail-sheet:not([hidden],[inert])) .reader-tools { gap: 2px; }
-  .game-letter-reader:has(.mail-sheet:not([hidden],[inert])) .reader-tools button { padding-inline: 5px; }
+  .game-letter-reader:has(.mail-desk-body:not([data-mail-state=returning]) .mail-sheet:not([hidden])) > header > :first-child { display: none; }
+  .game-letter-reader:has(.mail-desk-body:not([data-mail-state=returning]) .mail-sheet:not([hidden])) .reader-tools { gap: 2px; }
+  .game-letter-reader:has(.mail-desk-body:not([data-mail-state=returning]) .mail-sheet:not([hidden])) .reader-tools button { padding-inline: 5px; }
   .game-letter-reader .mail-sheet {
     width: 96%;
     margin-block: 1.2cqw 1.6cqw;
     padding-top: 3px;
-    padding-bottom: 31px;
+    padding-bottom: 46px;
   }
   .mail-sheet-heading {
     min-height: 45px;
@@ -271,8 +270,8 @@
   }
   .game-letter-reader .mail-fold {
     position: absolute;
-    right: max(7%, 22px);
-    bottom: -5px;
+    right: 6px;
+    bottom: 1px;
     padding: 0 5px;
     border: none;
     background: none;
@@ -280,5 +279,9 @@
     text-decoration: underline;
     text-underline-offset: .3em;
   }
-  .mail-page-count { bottom: 9px; }
+  .mail-leaves { right: 76px; }
+  .mail-sheet:has(.mail-leaves[hidden]) .mail-fold {
+    right: 50%;
+    transform: translateX(50%);
+  }
 }

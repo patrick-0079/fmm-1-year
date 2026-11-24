@@ -1,4 +1,4 @@
-import { handedLetters, postUnread, type HandedLetterId, type ResidentStory } from "./resident-story.ts";
+import { handedLetters, type HandedLetterId, type ResidentStory } from "./resident-story.ts";
 
 type Reply = [label: string, next: string];
 export interface TownPage {
@@ -6,6 +6,7 @@ export interface TownPage {
   choices?: Reply[];
   speaker?: string;
   hint?: string;
+  pose?: string;
   after?: { seconds: number; next: string };
   letter?: HandedLetterId;
   effect?: "deliver" | "pin" | "bouquet" | "reserve" | "taste";
@@ -20,7 +21,10 @@ const scripts = {
   post: {
     start: { text: "把思念织进信里，就可以送给远方的Ta。乖乖，你也是来寄信的吗？", choices: [["不是哦，我只是凑巧走到这的", "letter"]] },
     letter: { text: "凑巧...（温柔笑笑）世间没有那么多凑巧，一切都是命中注定的缘分。", choices: [["继续", "delivered"]] },
-    delivered: { text: "乖乖，属于你的缘分到了，回去看看吧，没事的话可以多回来看看我。", effect: "deliver" },
+    delivered: {
+      text: "乖乖，属于你的缘分到了，回去看看吧，没事的话可以多回来看看我。",
+      effect: "deliver", choices: [["现在读信", "@post"], ["一会儿再看", "unread"]],
+    },
     unread: { text: "乖乖，那封信已经到了。路过小屋的时候，记得打开晚安信箱看看。" },
     read: { text: "乖乖，信收到了呀。下次路过，也回来陪我坐一会儿吧。" },
   },
@@ -65,6 +69,8 @@ const scripts = {
     hug: { text: "（不语，只是一味地抱着）", choices: [["继续", "intro"]], after: { seconds: 1.5, next: "intro" } },
     intro: { text: "ww忘记自我介绍了。我是月兔吉祥物，因为我软乎乎的，芙妮宝说让我代替他们来抱抱你。", choices: [["我收到啦，你的怀抱很温暖。", "release"]] },
     release: { text: "（乖乖抱着，好一会才放开）" },
+    "hug-again": { text: "（绒月轻轻抱住你，把一只垂下来的耳朵搭在你的肩上。）", pose: "hug",
+      choices: [["轻轻松手", "release"]], after: { seconds: 1.5, next: "release" } },
   },
   "photo-visitor": {
     start: { text: "别动！！！（只是一味地拍拍拍）", choices: [["（乖乖不动）", "model"], ["（就动就动）", "move"]] },
@@ -75,11 +81,15 @@ const scripts = {
   },
   "radio-host": {
     start: { text: "你是芙眠眠大人吗？欢迎你来到小镇。实不相瞒，我是小镇晚安电台的新人主持，直播和电台有一定相同点，你愿意分享一些经验给我吗？", choices: [["用很多的真心和爱去认真对待听众就好啦", "notes"], ["其实我没有什么经验，我很幸运遇到了一群爱我的人。", "author"], ["你的小牛角好可爱", "cow-horns"], ["电台开播前会做什么？", "cow-stroll"]] },
+    "radio-again": { text: "芙芙，坐近些。今晚的开场还没定，咱们聊点什么好？", choices: [
+      ["聊聊怎样陪伴听众", "notes"], ["聊聊相遇的幸运", "author"],
+      ["你的小牛角好可爱", "cow-horns"], ["电台开播前会做什么？", "cow-stroll"],
+    ] },
     notes: { text: "我记下了，我会努力的！", choices: [programme] },
     author: { speaker: "作者的话", text: "其实是因为芙芙本身就很好，所以才能吸引到很好的芙妮宝们！你做的比自己想象的更好更多，现在的结果并不是运气使然，而是因为芙芙值得被爱。", choices: [programme] },
     "cow-horns": { text: "嘿嘿，谢谢！我给它们系了紫色的小丝带。走路时会先看看树枝，免得把丝带挂住。", choices: [programme, ["再聊聊电台", "start"]] },
     "cow-stroll": { text: "去草地上散一小会儿步，听听风吹过叶子的声音。再把麦克风摆正，给大家送一声软软的晚安。", choices: [programme, ["再聊聊电台", "start"]] },
-    "offer-letter": { text: "等一下，这封信夹在我的节目单里，差点被我带上台。封口的小牛角印章是我自己盖的。给你！", letter: handedLetters["radio-host"] },
+    "offer-letter": { text: "等一下，这封信夹在我的节目单里，差点被我带上台。封口的枫叶蜡印是我自己盖的。给你！", letter: handedLetters["radio-host"] },
   },
   books: {
     start: { text: "安好，敢问君可是来借阅书卷？", choices: [["我路过看到这间书屋，便来瞧瞧看。", "marked"]] },
@@ -123,11 +133,35 @@ const scripts = {
 export type TownResidentId = keyof typeof scripts;
 export const townDialogues: Record<TownResidentId, Record<string, TownPage>> = scripts;
 
-export function residentOpening(id: TownResidentId, story: ResidentStory, hasBouquet: boolean) {
-  if (id === "post" && story.postDelivered)
-    return postUnread(story) ? "unread" : "read";
-  if (id === "welcome" && story.welcomeReceived) return "return";
-  if (id === "florist" && hasBouquet) return "return";
-  if (id === "baker" && story.cake !== "new") return story.cake === "reserved" ? "reserved" : "return";
-  return "start";
+// A completed introduction can be revisited by choice. Activities that grant
+// a keepsake or a letter only enter ordinary conversation after actual receipt.
+export function residentOpening(id: TownResidentId, story: ResidentStory, hasBouquet: boolean, introduced = false) {
+  switch (id) {
+    case "post": return story.postDelivered ? "daily" : "start";
+    case "radio-host": case "xiaoyou": case "guli":
+      return story.npcLetters[handedLetters[id]] ? "daily" : "start";
+    case "welcome": return story.welcomeReceived ? "daily" : "start";
+    case "florist": return hasBouquet ? "daily" : "start";
+    case "baker": return story.cake === "eaten" ? "daily" : story.cake === "reserved" ? "reserved" : "start";
+    default: return introduced ? "daily" : "start";
+  }
 }
+
+/** Repeatable actions stay available alongside today's conversation. */
+export const townDailyActions: Partial<Record<TownResidentId, Reply[]>> = {
+  maker: [["打开背包", "@bag"], ["聊聊你的手艺", "start"]],
+  florist: [["看看那束花", "@bouquet"]],
+  "hop-keeper": scripts["hop-keeper"].start.choices,
+  "flight-keeper": scripts["flight-keeper"].start.choices,
+  "blocks-keeper": scripts["blocks-keeper"].start.choices,
+  "snake-keeper": scripts["snake-keeper"].start.choices,
+  walker: [["聊聊庆典那天", "start"]],
+  bunny: [["抱一抱", "hug-again"]],
+  cat: scripts.cat.start.choices,
+  "photo-visitor": [["再拍一次", "start"]],
+  books: [["聊聊那本书", "marked"]],
+  qianxiao: scripts.qianxiao.start.choices,
+  "radio-host": [["聊聊晚安电台", "radio-again"]],
+  xiaoyou: scripts.xiaoyou.start.choices,
+  guli: scripts.guli.start.choices,
+};

@@ -12,10 +12,18 @@ import { StarBottleView } from "./star-bottle";
 import { showQuietStarEffect } from "./quiet-star-effect";
 import { creditStarTexture } from "./credit-star-art";
 import { CampGuest } from "./camp-guest";
+import { MeadowJellies } from "./meadow-jellies";
+import { drawJelly, drawKettleSteam, prepareJellyBells } from "./meadow-jelly-art";
 import { sceneArt } from "./scene-art";
+import sceneryOutlines from "./meadow-scenery-outlines.json";
+import { prepareMapCovers, visibleMapCovers } from "./map-covers";
+import { drawFlexibleCover } from "./scenery-wind";
 import type { ResidentStory } from "./resident-story";
 
 type Credit = typeof producers[number];
+// These silhouettes sample the night painting itself. The kettle handle and
+// the gaps between the boundary branches stay open in front of a walker.
+const sceneryCovers = prepareMapCovers(sceneryOutlines);
 const sparkColors = ["#ffe6a0", "#f5d4bc", "#cee8cf", "#dae0ef"];
 const meadowStarLight = { halo: "#ffda80", glint: "#fff3c5", radius: 22 };
 const starLights = {
@@ -46,6 +54,8 @@ export class NightMeadow {
   private reader: MeadowStarReader;
   private bottle: StarBottleView;
   private campGuest: CampGuest;
+  private jellies?: MeadowJellies;
+  private jellyArtRequested = false;
   private starSprites = new Map<string, HTMLImageElement>();
 
   private loadedStarSprite(url: string) {
@@ -84,6 +94,16 @@ export class NightMeadow {
       if (world.scene !== "meadow") return;
       this.campGuest.tick(dt, t);
       this.time += dt;
+      if (!this.jellyArtRequested) {
+        prepareJellyBells();
+        this.jellyArtRequested = true;
+      }
+      this.jellies ??= new MeadowJellies(producers);
+      this.jellies.setCollected(this.found());
+      const covered = world.paused || world.suspended;
+      const cue = world.activeCueId && world.config.spots.find(spot => spot.id === world.activeCueId);
+      const canMeet = !covered && !world.restState && !world.busy && !(cue && world.inInteractionRange(cue));
+      this.jellies.tick(covered ? 0 : dt, world.player, canMeet, this.reduced.matches);
       this.caption.style.setProperty("--quiet-star-play", dt === 0 ? "paused" : "running");
       if (this.memory && (this.memory.age += dt) >= this.memory.duration) this.clearCaption();
     };
@@ -95,6 +115,8 @@ export class NightMeadow {
   }
   leave() {
     this.campGuest.reset();
+    this.jellies?.interrupt();
+    this.jellyArtRequested = false;
     this.closeBottle();
     this.closeReader();
     this.clearCaption();
@@ -176,11 +198,21 @@ export class NightMeadow {
   }
   private layers(): DepthLayer[] {
     const atlas = this.world.meadowSprites, t = this.reduced.matches ? 0 : this.time;
+    const sceneryTime = this.world.ambientTime, still = this.reduced.matches;
     const layers: DepthLayer[] = [
-      {y: 168, draw: c => this.world.drawMapFragment(c, tentRoof)},
+      {y: 168, draw: c => drawFlexibleCover(c,this.world,tentRoof,still)},
+      {y: 145, draw: c => drawKettleSteam(c, sceneryTime, still)},
       {y: starJar.y, draw: c => drawWildSprite(c, atlas, 3, starJar.x, starJar.y, 17)},
       ...this.campGuest.layers(sceneArt.patrickCamp, this.reduced.matches),
+      ...visibleMapCovers(this.world, sceneryCovers),
     ];
+    const view = this.world.visibleArea;
+    this.jellies?.animals.forEach((animal, index) => {
+      if (!animal.visible) return;
+      const {x,y} = animal.at;
+      if (x+18 < view.x || x-18 > view.x+view.w || y+3 < view.y || y-42 > view.y+view.h) return;
+      layers.push({y, draw: c => drawJelly(c,index,animal,sceneryTime,still)});
+    });
     for (const sheep of flock) {
       const phase = (t + sheep.phase) % 24;
       // Graze in place, raise the head, wander a few steps, then graze again.
@@ -205,6 +237,9 @@ export class NightMeadow {
         const pulse = (1 + Math.sin(t * 1.5 + i)) / 2;
         const size = 19;
         const foot = y - 1 - pulse;
+        c.save();
+        // The cross flickers in the grass and is steady once collected.
+        if (shape === "cross") c.globalAlpha *= still ? .86 : .58 + .42 * pulse;
         glow(c, x, y - 8, light.radius + pulse * 3, light.halo);
         const custom = person.sprite && this.loadedStarSprite(person.sprite);
         const sprite = custom || (shape && creditStarTexture(shape));
@@ -214,6 +249,7 @@ export class NightMeadow {
           c.drawImage(sprite, Math.round(x - width / 2), Math.round(foot - height), width, height);
         } else drawWildSprite(c, atlas, 2, x, foot, size);
         glint(c, x + 10, y - 15 - pulse * 2, 1.5, light.glint);
+        c.restore();
       }});
     }
     return layers;

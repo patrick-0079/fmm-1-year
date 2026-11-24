@@ -3,16 +3,16 @@ import type { Phase } from "./day";
 import type { World, DepthLayer } from "./world";
 import { canTravelBetween, type Point } from "./core";
 import { sceneArt } from "./scene-art";
-import { scenes } from "./maps";
+import { lampLift, plushIdleFrame, plushIdleMotion } from "./plush-idle";
 import { XiaoyeHug, xiaoyeFrame, xiaoyeFrames, xiaoyeHugText, xiaoyeLanternOn,
   xiaoyeLanternPoint, xiaoyeScale, xiaoyeSpot } from "./xiaoye-data";
 import { embracePose, boundedEmbraceFoot, isEmbraceApproach, EMBRACE_BODY_GAP, EMBRACE_SHOULDER_Y } from "./xiaoye-embrace";
 import { embraceFrames, EMBRACE_ART_SCALE } from "./xiaoye-embrace-art";
 import { handedLetters, letterChoice, type LetterHandoff } from "./resident-story";
+import { gardenChatTopics, showGardenChat } from "./garden-chat-topics";
 
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
 const HEIGHT = 60;
-const space = { ...scenes.garden, walls: scenes.garden.walls.filter(w => w.label !== "来宾 · 小叶子") };
 const ease = (n: number) => { const t=Math.max(0,Math.min(1,n)); return t*t*(3-2*t); };
 
 export class Xiaoye {
@@ -33,14 +33,17 @@ export class Xiaoye {
       presentation = world.getActorPresentation;
     world.onTick = (dt, time) => {
       tick(dt, time);
-      this.time = time;
+      this.time = world.ambientTime;
       const wasHugging=this.hug.active, mirrored=this.hug.mirrored;
       const finished = this.hug.tick(dt, world.player, this.available() && this.ownsDialogue);
       if (wasHugging && !this.hug.active) {
         this.idleMirrored = mirrored;
         if (!finished) this.activities.dismissDialogue(xiaoyeSpot);
         else {
-          if (!this.mail.received(handedLetters.xiaoye)) this.offerLetter();
+          if (this.mail.received(handedLetters.xiaoye)) {
+            const topic = world.chats.next(xiaoyeSpot.id, gardenChatTopics["xiaoye-plush"], this.phase());
+            showGardenChat(topic, this.dialogue.bind(this));
+          } else this.offerLetter();
           world.onAchievementEvent("xiaoye-plush");
         }
       }
@@ -79,6 +82,7 @@ export class Xiaoye {
     }
     const player=this.world.player, side=player.x<xiaoyeSpot.x ? -1 : 1;
     const contact=boundedEmbraceFoot(xiaoyeSpot,{x:player.x-side*EMBRACE_BODY_GAP,y:player.y-4});
+    const map=this.world.config, space={...map,walls:map.walls.filter(w=>w.label!=="来宾 · 小叶子")};
     if(!canTravelBetween(xiaoyeSpot,contact,space) || Math.abs(player.x-contact.x)<EMBRACE_BODY_GAP-.1) {
       this.world.visit(xiaoyeSpot.id);
       return true;
@@ -92,9 +96,9 @@ export class Xiaoye {
     return true;
   }
 
-  private offerLetter() {
-    this.dialogue("（小叶子用绒爪托起一封信，信角上盖着一枚小爪印。）", [
-      letterChoice(this.mail, handedLetters.xiaoye, () => this.offerLetter()),
+  private offerLetter(received = false) {
+    this.dialogue(received ? "（小叶子等你把信收好，才轻轻放下爪子。）" : "（小叶子用绒爪托起一封信，封口有一枚红色爱心蜡封。）", [
+      letterChoice(this.mail, handedLetters.xiaoye, () => this.offerLetter(true)),
     ]);
   }
 
@@ -118,8 +122,10 @@ export class Xiaoye {
     if (!sceneArt.xiaoye.naturalWidth) return;
     const frame=xiaoyeFrame(this.phase(),false),f=xiaoyeFrames[frame],s=xiaoyeScale(frame,HEIGHT);
     c.save();c.translate(xiaoyeSpot.x,xiaoyeSpot.y);if(this.idleMirrored)c.scale(-1,1);
-    c.drawImage(sceneArt.xiaoye,f.x,f.y,f.w,f.h,
-      (f.x-f.footX)*s,(f.y-f.footY)*s,f.w*s,f.h*s);
+    const posed=plushIdleFrame(sceneArt.xiaoye,frame===2,
+      plushIdleMotion(this.time,frame===2,motion.matches || this.ownsDialogue));
+    if(posed)c.drawImage(posed,(f.x-f.footX)*s,(f.y-f.footY)*s,f.w*s,f.h*s);
+    else c.drawImage(sceneArt.xiaoye,f.x,f.y,f.w,f.h,(f.x-f.footX)*s,(f.y-f.footY)*s,f.w*s,f.h*s);
     c.restore();
   }
 
@@ -169,7 +175,10 @@ export class Xiaoye {
 
   private lampPoint(): Point {
     const idle=xiaoyeLanternPoint(2,HEIGHT,this.idleMirrored,0)!;
-    if(!this.hug.active)return {x:xiaoyeSpot.x+idle.x,y:xiaoyeSpot.y+idle.y};
+    if(!this.hug.active){
+      const lift=lampLift(plushIdleMotion(this.time,true,motion.matches || this.ownsDialogue),HEIGHT,this.idleMirrored);
+      return {x:xiaoyeSpot.x+idle.x+lift.x,y:xiaoyeSpot.y+idle.y+lift.y};
+    }
     const p=this.hug.progress;
     const held=xiaoyeLanternPoint(2,HEIGHT,this.hug.mirrored,0)!;
     const ground={x:xiaoyeSpot.x+(this.hug.mirrored ? 26 : -26),y:xiaoyeSpot.y+held.y+10};

@@ -1,5 +1,6 @@
 import type { Point } from "./core.ts";
-import { townCanopyOutlines } from "./town-canopy-contours.ts";
+import { southEdgeCanopyOutlines, townCanopyOutlines } from "./town-canopy-contours.ts";
+import { pennantLift } from "./town-idle-motion.ts";
 
 const points = (p: number[][]): Point[] => p.map(([x, y]) => ({ x, y }));
 /** Stable feet keep depth/collision unchanged; only the visible leaf edges vary. */
@@ -9,6 +10,12 @@ export const townCanopies = [
   [1033,976],[262,449],
 ].map(([x,y],index)=>({x,y,points:points(townCanopyOutlines[index])}));
 
+// These crowns hang over the south street from beyond the picture. Only the
+// grounded trees above contribute trunks to the map's collision geometry.
+export const southEdgeCanopies = southEdgeCanopyOutlines.map((outline, index) => ({
+  x: [543, 758][index], y: 1025, points: points(outline),
+}));
+
 export const festivalProps = [
   { kind: "balloons", x: 628, y: 415 },
   { kind: "balloons", x: 897, y: 490 },
@@ -16,29 +23,24 @@ export const festivalProps = [
   { kind: "garland", x: 1284, y: 883 },
 ] as const;
 
-export function drawTownSigns(c: CanvasRenderingContext2D) {
+/** Continue the painted pennant cord from its last flag to the tree trunk. */
+export function drawPlazaPennantTie(c: CanvasRenderingContext2D) {
   c.save();
-  // Small shop-front ribbons make the anniversary present on every street.
-  for (const [x, y] of [
-    [298, 222],
-    [775, 227],
-    [1180, 366],
-    [220, 592],
-    [865, 737],
-    [1337, 790],
-  ]) {
-    c.fillStyle = "#98657c";
-    c.fillRect(x - 28, y - 1, 56, 15);
-    c.fillStyle = "#f3d6bb";
-    c.fillRect(x - 26, y, 52, 12);
-    c.fillStyle = "#b85f83";
-    c.font = '8px "Microsoft YaHei","PingFang SC",sans-serif';
-    c.textAlign = "center";
-    c.fillText("芙芙 · 周年限定", x, y + 9);
-    c.fillStyle = "#df90b3";
-    c.fillRect(x - 31, y + 1, 4, 10);
-    c.fillRect(x + 27, y + 1, 4, 10);
-  }
+  c.lineCap = "round";
+  c.lineWidth = 1.35;
+  c.strokeStyle = "#aa365b";
+  c.beginPath();
+  c.moveTo(644.8, 366.35);
+  c.bezierCurveTo(650, 364.2, 654.7, 358.5, 657.2, 352.8);
+  c.quadraticCurveTo(661.1, 354.4, 666, 352.4);
+  c.stroke();
+  c.lineWidth = .45;
+  c.strokeStyle = "#f0a3a2";
+  c.stroke();
+  c.fillStyle = "#a93155";
+  c.beginPath();
+  c.ellipse(657.4, 352.9, 1.45, 1, -.55, 0, Math.PI * 2);
+  c.fill();
   c.restore();
 }
 
@@ -60,6 +62,42 @@ function pixelHeart(
   );
 }
 type BalloonArt = (x: number, y: number, color: string) => void;
+const flagFabrics = [
+  ["#f1bdce", "#d48fa9", "#aa6b85"],
+  ["#b7dfd5", "#8cbfbb", "#648f91"],
+  ["#f4d596", "#deb575", "#af8754"],
+] as const;
+
+function drawPennant(c: CanvasRenderingContext2D, index: number, time: number, wind: number) {
+  const x = -33 + index * 11, slope = x < 0 ? 10 / 42 : -10 / 42;
+  const y = -30 - Math.abs(x) * 10 / 42;
+  const lift = wind*pennantLift(time, index), lean = lift * 4.4;
+  const [light, fabric, fold] = flagFabrics[index % 3];
+  c.save();
+  c.translate(x, y);
+  // Bunting is stitched along its top edge. Map the embroidered heart through
+  // the same cloth transform so it folds into the cloth instead of sliding.
+  c.transform(1, slope, lean / 8, 1 - lift * .48, 0, 0);
+  const pennant = new Path2D();
+  pennant.moveTo(-3.9, 0); pennant.lineTo(3.9, 0);
+  pennant.lineTo(3.3 - lift, 6.9); pennant.lineTo(.6 - lift * 1.4, 9.1);
+  pennant.lineTo(-3.3, 7.3); pennant.closePath();
+  c.fillStyle = fabric; c.fill(pennant);
+  c.strokeStyle = fold; c.lineWidth = .8; c.stroke(pennant);
+  c.fillStyle = light; c.fillRect(-3.4, .5, 6.8, 1);
+  c.save();
+  c.translate(-.3 - .6 * lift, .15);
+  c.scale(1 - lift * .48, 1);
+  pixelHeart(c, -2.1, 2, "#fff0ce", .85);
+  c.restore();
+  // Slightly darker reverse edge rolls into view at the crest of the gust.
+  c.fillStyle = fold;
+  c.beginPath(); c.moveTo(3.5, 1);
+  c.lineTo(3 - lift, 6.8); c.lineTo(.6 - lift * 1.4, 8.7);
+  c.lineTo(2.8 - lift * 2.8, 6.1); c.closePath(); c.fill();
+  c.restore();
+}
+
 function balloon(
   c: CanvasRenderingContext2D,
   x: number,
@@ -103,25 +141,39 @@ export function drawFestivalProp(
     pixelHeart(c, -3, -6, "#f5c9cb");
   } else {
     for (const dx of [-42, 42]) {
-      c.fillStyle = "#8d715a";
-      c.fillRect(dx - 2, -44, 4, 44);
-      c.fillStyle = "#f3d28f";
-      c.fillRect(dx - 4, -48, 8, 6);
+      c.fillStyle = "#6d574859";
+      c.beginPath(); c.ellipse(dx + 1.4, .4, 4.2, 1.2, 0, 0, Math.PI * 2); c.fill();
+      c.fillStyle = "#79523b"; c.fillRect(dx - 2, -43, 4, 43);
+      c.fillStyle = "#be8b58"; c.fillRect(dx - 1.3, -42, 2.15, 41.8);
+      c.fillStyle = "#dbab71"; c.fillRect(dx - 1.3, -36, .6, 24);
+      c.fillStyle = "#9e6a43"; c.fillRect(dx - .15, -22, .5, 13);
+      c.fillStyle = "#765036"; c.fillRect(dx - 2.8, -1.8, 5.6, 2);
+      c.beginPath(); c.ellipse(dx, -45, 3.25, 3.6, 0, 0, Math.PI * 2);
+      c.fillStyle = "#d2a65a"; c.fill(); c.strokeStyle = "#865e37"; c.lineWidth = .8; c.stroke();
+      c.fillStyle = "#fff0b0"; c.fillRect(dx - 1.7, -47, 1.7, 1.25);
     }
-    c.strokeStyle = "#c69b7c";
-    c.lineWidth = 1;
-    c.beginPath();
-    c.moveTo(-42, -40);
-    c.lineTo(0, -30);
-    c.lineTo(42, -40);
-    c.stroke();
-    for (let i = 0; i < 7; i++) {
-      const dx = -33 + i * 11,
-        dy = -38 + Math.sin(((i + 1) * Math.PI) / 8) * 8;
-      c.fillStyle = ["#dea3c1", "#a3d0cf", "#eac87b"][i % 3];
-      c.fillRect(dx - 3, dy, 7, 7);
-      pixelHeart(c, dx - 2, dy + 1, "#fff0c9");
-    }
+  }
+  c.restore();
+}
+
+export function drawFestivalGarland(
+  c: CanvasRenderingContext2D,
+  origin: Point,
+  time: number,
+  wind = 1,
+) {
+  c.save();
+  c.translate(origin.x, origin.y);
+  c.beginPath();
+  c.moveTo(-42, -40);
+  c.lineTo(0, -30);
+  c.lineTo(42, -40);
+  c.strokeStyle = "#86694f"; c.lineWidth = 1.75; c.stroke();
+  c.strokeStyle = "#edd1a0"; c.lineWidth = .65; c.stroke();
+  for (let i = 0; i < 7; i++) drawPennant(c, i, time, wind);
+  for (const dx of [-42, 42]) {
+    c.fillStyle = "#ad865a"; c.fillRect(dx-2.4, -40.5, 4.8, 2.5);
+    c.fillStyle = "#f5d39d"; c.fillRect(dx-2.3, -40, 4.5, .8);
   }
   c.restore();
 }

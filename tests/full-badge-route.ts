@@ -1,9 +1,14 @@
+import { arriveOnShift, scheduledResident } from "./resident-visits";
 import { achievementDefinitions } from "../src/achievements";
+import { producers } from "../src/star-catalog";
 import { bassScore } from "../src/bass-score";
 import { SAVE_KEY, readProgress } from "../src/core";
 import { echoAltar, echoPool, ringSpots, moonPlate, mirrorSpots } from "../src/ruins-map";
 import { TOWN_NPCS } from "../src/town-data";
 import { TOWN_TALKED_KEY } from "../src/town";
+import { townInteriorId, townInteriorKeys } from "../src/town-interior-id";
+import { townKeepsakeBadge } from "../src/town-keepsakes";
+import { pressDuration, workbenchSteps } from "../src/town-workbench-steps";
 import { scenes, type SceneId, type World } from "../src/world";
 import { verifyArcadeStamps } from "./achievement-arcade-route";
 import { verifyLetterAndMeadowStamps } from "./achievement-mail-route";
@@ -35,6 +40,11 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   async function interactAt(scene: SceneId, id: string) {
     closeActivity();
     await world.prepareScene(scene);
+    if (scheduledResident(id)) {
+      await arriveOnShift(world, scene, id);
+      key(world.canvas, "e"); key(world.canvas, "e", false);
+      return;
+    }
     const config = scene === "town" ? world.townMap : scenes[scene];
     const spot = config.spots.find(s => s.id === id);
     if (!spot) throw Error("没有找到 " + id);
@@ -132,14 +142,14 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   expect(earned("courage"), "亲手摘勇气花后未盖章");
   closeActivity();
   await world.prepareScene("garden");
-  verifyGuests(world);
+  await verifyGuests(world);
   await verifyGardenDiscovery(world);
   log("放飞三色气球、同场烟花、采勇气花、戴花环、邀请两位旅伴、跨日发现三个彩蛋");
 
   await verifyLetterAndMeadowStamps(world, log);
   closeActivity();
   await collectStars();
-  log("十二颗落星逐一按键拾起，署名与寄语核对，重复互动未增加收藏");
+  log(`${producers.length} 颗落星逐一按键拾起，署名与寄语核对，重复互动未增加收藏`);
   for (const npc of TOWN_NPCS) {
     await interactAt("town", "npc-" + npc.id);
     expect(JSON.parse(localStorage.getItem(TOWN_TALKED_KEY) ?? "[]").includes(npc.id), "没有记下与 " + npc.name + " 的会面");
@@ -161,7 +171,41 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   for (const name of ["叶","铃","星"]) await choose("轻敲「" + name + "」");
   await interactAt("ruins", echoPool.id);
   closeActivity();
-  const missing = achievementDefinitions.filter(d => !d.id.startsWith("days-") && !earned(d.id));
+
+  for (const room of townInteriorKeys) {
+    const scene = townInteriorId(room), badge = townKeepsakeBadge(room);
+    await interactAt(scene, scene + "-main");
+    for (const stage of workbenchSteps[room]) {
+      await wait(() => document.querySelector(".town-workbench")?.getAttribute("data-step") === stage.id,
+        "没有进入手作步骤 " + stage.id);
+      if (stage.kind === "wait") continue;
+      const tool = stage.tools[0];
+      const button = el(`.town-workbench-tool[data-tool="${tool.id}"]`);
+      button.focus();
+      if (stage.kind === "hold") {
+        key(button, " ");
+        await new Promise(resolve => setTimeout(resolve, pressDuration + 60));
+        key(button, " ", false);
+      } else {
+        if (stage.kind === "place" || stage.kind === "slide") {
+          const dx = stage.target.x - tool.at.x, dy = stage.target.y - tool.at.y;
+          for (let i = 0; i < Math.round(Math.abs(dx) / 12); i++) key(button, dx < 0 ? "ArrowLeft" : "ArrowRight");
+          for (let i = 0; i < Math.round(Math.abs(dy) / 12); i++) key(button, dy < 0 ? "ArrowUp" : "ArrowDown");
+        } else {
+          for (let i = 0; i < (stage.kind === "dial" ? 5 : 12); i++) key(button, "ArrowRight");
+        }
+        key(button, "Enter");
+      }
+    }
+    expect(!earned(badge) && !state().townKeepsakes.items.includes(room), "手作结束时提前发放纪念品");
+    await choose("收下");
+    expect(earned(badge) && state().townKeepsakes.items.includes(room), "领取时缺少纪念品或徽章 " + room);
+    closeActivity();
+  }
+  log("七件小镇纪念品均在亲手完成并收下后盖章");
+
+  const ordinary = achievementDefinitions.filter(d => !d.id.startsWith("days-"));
+  const missing = ordinary.filter(d => !earned(d.id));
   expect(missing.length === 0, "尚未获得 " + missing.map(d => d.name).join("、"));
-  log("同一份新档累计已取得全部 41 枚非计时徽章，小游戏、收信、花海与两条独立遗迹支线可并存");
+  log(`同一份新档累计已取得全部 ${ordinary.length} 枚非计时徽章，小游戏、收信、花海与两条独立遗迹支线可并存`);
 }

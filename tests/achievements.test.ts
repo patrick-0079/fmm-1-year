@@ -4,6 +4,8 @@ import { readProgress } from "../src/core.ts";
 import { achievementChapters, achievementDefinitions, mergeAchievementProgress, migrateAchievementFacts, readAchievementMemory,
   reconcileAchievements, recordAchievementFact, type AchievementContext } from "../src/achievements.ts";
 import { achievementEvents } from "../src/achievement-events.ts";
+import { townInteriorKeys } from "../src/town-interior-id.ts";
+import { collectTownKeepsake, townKeepsakeBadge } from "../src/town-keepsakes.ts";
 import { createEngine, type GameId } from "../src/arcade-engines.ts";
 import { TOWN_NPCS, ARCADES } from "../src/town-data.ts";
 import { allLetters, handedLetters, postLetter } from "../src/letters.ts";
@@ -62,10 +64,10 @@ test("two open books keep the highest single run and show the score that earned 
   }
 });
 
-test("the book starts with 44 unique stamps in five chapters and seals unopened public letters", () => {
+test("the book starts with 54 unique stamps in five chapters and seals unopened public letters", () => {
   const p = newGame(), { entries, fresh } = reconcileAchievements(p, empty);
-  assert.deepEqual(achievementChapters.map(c => entries.filter(e => e.chapter === c.id).length), [13, 9, 7, 9, 6]);
-  assert.equal(new Set(entries.map(e => e.id)).size, 44);
+  assert.deepEqual(achievementChapters.map(c => entries.filter(e => e.chapter === c.id).length), [13, 12, 7, 16, 6]);
+  assert.equal(new Set(entries.map(e => e.id)).size, 54);
   assert.deepEqual(fresh, []);
   assert.ok(entries.every(e => !e.earned && e.current === 0 && e.progressLabel));
   const mail = entries.filter(e => e.chapter === "letters");
@@ -74,21 +76,27 @@ test("the book starts with 44 unique stamps in five chapters and seals unopened 
   assert.equal(migrateAchievementFacts(p, empty), false);
 });
 
-test("each of nine letters awards on its actual handoff or first public reading; arrival and pickup are distinct", () => {
+test("all twelve letters award at their own handoff or first reading", () => {
   const p = newGame();
   const changes = () => reconcileAchievements(p, empty).fresh;
-  for (const key of ["kerry", "rabe"]) {
+  for (const key of ["kerry", "xiaoaimen"]) {
     markLetterRead(p.residents, key + "-anniversary-letter");
     assert.deepEqual(changes(), ["letter-" + key]);
   }
   const handed = [["xiaoye", handedLetters.xiaoye], ["suyan", handedLetters.suyan],
-    ["yeshenhua", handedLetters["radio-host"]], ["xiaoyou", handedLetters.xiaoyou], ["guli", handedLetters.guli]] as const;
+    ["yeshenhua", handedLetters["radio-host"]], ["xiaoyou", handedLetters.xiaoyou], ["guli", handedLetters.guli],
+    ["dianziyang", handedLetters.dianziyang], ["pigeon", handedLetters.pigeon]] as const;
   for (const [key, id] of handed) {
     assert.ok(collectHandedLetter(p.residents, id));
     assert.deepEqual(changes(), ["letter-" + key]);
     markLetterRead(p.residents, id);
     assert.deepEqual(changes(), []);
   }
+  assert.equal(markLetterRead(p.residents, handedLetters.rabe), false);
+  assert.ok(collectHandedLetter(p.residents, handedLetters.rabe));
+  assert.deepEqual(changes(), []);
+  assert.equal(markLetterRead(p.residents, handedLetters.rabe), true);
+  assert.deepEqual(changes(), ["letter-rabe"]);
   p.residents.postDelivered = true;
   assert.deepEqual(changes(), ["letter-post"]);
   markLetterRead(p.residents, postLetter.id);
@@ -101,7 +109,7 @@ test("each of nine letters awards on its actual handoff or first public reading;
   assert.deepEqual(changes(), ["letter-patrick"]);
   const restored = readProgress(JSON.stringify(p));
   assert.deepEqual(reconcileAchievements(restored, empty).fresh, []);
-  assert.equal(restored.achievements.earned.filter(id => id.startsWith("letter-")).length, 9);
+  assert.equal(restored.achievements.earned.filter(id => id.startsWith("letter-")).length, 12);
 });
 
 test("all 25 meetings count unique characters from their own maps and ignore letters acquired via debug", () => {
@@ -184,6 +192,7 @@ test("every documented stamp can be completed and replay never duplicates receip
   p.completed = ["gifts","cake","fireworks","balloons","courage"];
   p.bassSongPlayed = p.bedNoteUnlocked = true;
   p.rainbowFlowers = [...rainbowIds];
+  p.townKeepsakes.items = [...townInteriorKeys];
   p.creditStars = producers.map(s => s.id);
   p.astrolabe = { installed: true, turns: [0,0,0], found: rings.map(r => r.id), mirrors: ["\\","/"] };
   p.echoes.listened = p.residents.patrickArrived = true;
@@ -191,9 +200,25 @@ test("every documented stamp can be completed and replay never duplicates receip
   for (const l of allLetters) markLetterRead(p.residents, l.id);
   for (const id of Object.keys(ARCADES) as GameId[]) p.arcadeBests[id] = 400;
   const ctx = { ...empty, townTalked: TOWN_NPCS.map(n => n.id), playSeconds: 4200 };
-  assert.equal(reconcileAchievements(p, ctx).fresh.length, 44);
+  assert.equal(reconcileAchievements(p, ctx).fresh.length, 54);
   assert.deepEqual(reconcileAchievements(p, ctx).fresh, []);
-  assert.equal(reconcileAchievements(readProgress(JSON.stringify(p)), ctx).entries.filter(e => e.earned).length, 44);
+  assert.equal(reconcileAchievements(readProgress(JSON.stringify(p)), ctx).entries.filter(e => e.earned).length, 54);
   assert.deepEqual(readAchievementMemory({ earned: ["cake","bad","cake","gifts"] }).earned, ["cake","gifts"]);
   assert.equal(achievementDefinitions.filter(d => d.id.startsWith("ruin-")).length, 5);
+});
+
+test("each claimed town keepsake earns exactly its own stamp, including existing saves", () => {
+  const progress = newGame();
+  assert.deepEqual(reconcileAchievements(progress, empty).fresh, []);
+  for (const key of townInteriorKeys) {
+    assert.equal(collectTownKeepsake(progress.townKeepsakes, key, "bells", 100), true);
+    assert.deepEqual(reconcileAchievements(progress, empty).fresh, [townKeepsakeBadge(key)]);
+    assert.equal(collectTownKeepsake(progress.townKeepsakes, key, "creek", 200), false);
+    assert.deepEqual(reconcileAchievements(progress, empty).fresh, []);
+  }
+  assert.equal(progress.townKeepsakes.radioTrack, "bells");
+  const older = readProgress(JSON.stringify({ townKeepsakes: { items: ["post", "books", "post"] } }));
+  const backfilled = reconcileAchievements(older, empty).fresh.filter(id => id.startsWith("town-keepsake-"));
+  assert.deepEqual(backfilled, [townKeepsakeBadge("post"), townKeepsakeBadge("books")]);
+  assert.deepEqual(reconcileAchievements(readProgress(JSON.stringify(older)), empty).fresh, []);
 });

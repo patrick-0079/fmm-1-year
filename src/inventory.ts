@@ -3,6 +3,7 @@ import {
   ITEMS,
   INVENTORY_KEY,
   readInventory,
+  mergeInventoryReceipts,
   grantItem,
   equipItem,
   EQUIP_SLOTS,
@@ -18,8 +19,14 @@ import { prepareProp } from "./scene-art";
 import type { Facing } from "./equipment";
 import { whenAvatarLayersReady } from "./avatar";
 import bouquetUrl from "./assets/qingya-bouquet.webp";
+import envelopeUrl from "./assets/stationery-sealed.webp";
+import { renderGameMailDesk, type LetterList } from "./game-mail-desk";
 import type { AstrolabeState } from "./astrolabe";
 import { bindJournalScrollHint, journalCoverMarkup, journalPageCount, renderRuinJournal } from "./ruin-journal";
+import { townInteriorId, townInteriorKeys, type TownInteriorKey } from "./town-interior-id";
+import { townInteriors } from "./town-interiors";
+import { radioTrackName, townKeepsakeInfo, type TownKeepsakes } from "./town-keepsakes";
+import { drawTownKeepsake } from "./town-keepsake-art";
 type BagTab = "wardrobe" | "equipped" | "keepsakes";
 type Category = "all" | EquipSlot;
 const categories: readonly Category[] = ["all", ...EQUIP_SLOTS];
@@ -40,7 +47,12 @@ export class Inventory {
   private fittingRoom: InventoryState | null = null;
   get state() { return this.fittingRoom ?? this.earned; }
   onEquip: () => void = () => {};
+  canSave = () => true;
   notebookState: () => { astrolabe: AstrolabeState; listened: boolean } | null = () => null;
+  mailbox?: () => LetterList;
+  townKeepsakes: () => TownKeepsakes = () => ({ items: [] });
+  private mailCleanups: (() => void)[] | null = null;
+  private onBagReturn?: () => void;
   private trigger = document.querySelector<HTMLButtonElement>(".bag-toggle")!;
   private root: HTMLElement = document.querySelector(".inventory-panel")!;
   private wreath = new Image();
@@ -55,6 +67,7 @@ export class Inventory {
   private compact = false;
   private bouquetDetail = false;
   private journalPage: number | null = null;
+  private townPage: TownInteriorKey | "list" | null = null;
   private touchY = 0;
   private clearJournalHint: () => void = () => {};
   private readonly scene: HTMLElement;
@@ -106,7 +119,10 @@ export class Inventory {
       if (this.root.hidden && !this.canOpen()) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      if (!e.repeat) this.togglePanel();
+      if (!e.repeat) {
+        if (e.key === "Escape" && this.mailCleanups) this.returnMailToBag();
+        else this.togglePanel();
+      }
     }, { capture: true });
     this.sync();
   }
@@ -116,12 +132,57 @@ export class Inventory {
   }
   hasBouquet() { return this.earned.bouquet; }
   hasNotebook() { return this.notebookState() !== null; }
+  openMail(letterId?: string, onReturn?: () => void) {
+    if (!this.mailbox || this.mailCleanups) return;
+    const letters = this.mailbox();
+    if (letterId && !letters.items.some(item => item.id === letterId)) return;
+    if (this.root.hidden) this.open();
+    if (this.root.hidden) return;
+    if (onReturn) this.onBagReturn = onReturn;
+    this.tab = "keepsakes";
+    this.journalPage = null;
+    this.townPage = null;
+    this.bouquetDetail = false;
+    this.trying = false;
+    this.clearJournalHint();
+    const cleanups: (() => void)[] = [];
+    this.mailCleanups = cleanups;
+    this.updateSuspension();
+    this.root.classList.add("game-letter-reader");
+    this.root.dataset.tab = "keepsakes";
+    this.root.setAttribute("aria-label", "背包里的晚安来信");
+    this.root.innerHTML = `<header><h3>晚安来信</h3><div class="reader-tools"><button type="button" class="reader-close" data-mail-back>返回背包</button></div></header>
+      <div class="reader-body"></div>`;
+    renderGameMailDesk(this.root.querySelector<HTMLElement>(".reader-body")!, { ...letters, selectedId: letterId },
+      cleanup => cleanups.push(cleanup));
+  }
+  private disposeMail() {
+    if (!this.mailCleanups) return;
+    for (const cleanup of this.mailCleanups) cleanup();
+    this.mailCleanups = null;
+    this.root.replaceChildren();
+    this.root.classList.remove("game-letter-reader");
+    this.root.setAttribute("aria-label", "芙芙的背包");
+  }
+  private returnMailToBag() {
+    this.disposeMail();
+    this.changeTab("keepsakes");
+    this.root.querySelector<HTMLButtonElement>("[data-mail]")?.focus({ preventScroll: true });
+  }
+  refreshMailCount() {
+    if (this.root.hidden) return;
+    const label = this.root.querySelector<HTMLElement>("[data-mail] .bag-mail-count");
+    if (!label || !this.mailbox) return;
+    const { items, unreadIds = [] } = this.mailbox();
+    label.textContent = `${items.length} 封 · ${unreadIds.length} 未读`;
+  }
   openNotebook() {
     if (!this.hasNotebook()) return;
     if (this.root.hidden) this.open();
     if (this.root.hidden) return;
     this.tab = "keepsakes";
     this.bouquetDetail = false;
+    this.townPage = null;
     this.journalPage = 0;
     this.trying = false;
     this.updateSuspension();
@@ -143,10 +204,31 @@ export class Inventory {
     this.tab = "keepsakes";
     this.bouquetDetail = true;
     this.journalPage = null;
+    this.townPage = null;
     this.updateSuspension();
     this.trying = false;
     this.render();
     this.root.querySelector<HTMLElement>(".bouquet-detail")?.focus({preventScroll:true});
+  }
+  openTownKeepsakes(key: TownInteriorKey | "list" = "list") {
+    if (key !== "list" && !this.townKeepsakes().items.includes(key)) return;
+    if (this.root.hidden) this.open();
+    if (this.root.hidden) return;
+    this.tab = "keepsakes";
+    this.bouquetDetail = false;
+    this.journalPage = null;
+    this.trying = false;
+    this.townPage = key;
+    this.updateSuspension();
+    this.render();
+    this.root.querySelector<HTMLElement>(".bag-town-paper")?.focus({ preventScroll: true });
+  }
+  refreshTownKeepsakes() {
+    if (this.townPage !== null) this.render();
+    else {
+      const label = this.root.querySelector("[data-town-keepsakes] .bag-mail-count");
+      if (label) label.textContent = `${this.townKeepsakes().items.length} / ${townInteriorKeys.length}`;
+    }
   }
   openWardrobe() {
     if (this.root.hidden) this.open();
@@ -159,7 +241,7 @@ export class Inventory {
     for (const outfit of [this.earned, this.fittingRoom]) {
       if (outfit && (follow || outfit.equipped.pet === id)) outfit.equipped.pet = follow ? id : null;
     }
-    this.save();
+    this.save("pet");
     if (follow) this.world.onAchievementEvent(id);
     this.sync();
     this.render();
@@ -218,7 +300,7 @@ export class Inventory {
       return;
     }
     if (!this.fittingRoom) {
-      this.save();
+      this.save(ITEMS[id].slot);
       if (id === "wreath" && this.wearingWreath) this.world.onAchievementEvent("wreath-worn");
     }
     this.trying = false;
@@ -242,14 +324,33 @@ export class Inventory {
     this.bouquetDetail = false;
     this.earned = readInventory(null);
     if (this.fittingRoom) this.startFitting();
-    this.save();
+    this.save("reset");
     this.sync();
   }
   private sync() {
     this.world.equipment = { ...this.state.equipped };
   }
-  private save() {
+  syncSavedInventory(raw: string) {
+    const latest = readInventory(raw);
+    if (!latest.owned.length && !latest.bouquet) return;
+    if (mergeInventoryReceipts(latest, this.earned)) {
+      try { this.storage?.setItem(INVENTORY_KEY, JSON.stringify(latest)); } catch {}
+    }
+    this.earned = latest;
+    this.sync();
+    if (this.journalPage === null && this.townPage === null) this.render();
+  }
+  private save(change?: EquipSlot | "reset") {
+    if (!this.canSave()) return;
     try {
+      const raw = change !== "reset" && this.storage?.getItem(INVENTORY_KEY);
+      if (raw) {
+        const latest = readInventory(raw);
+        mergeInventoryReceipts(this.earned, latest);
+        if (change) latest.equipped[change] = this.earned.equipped[change];
+        this.earned.equipped = latest.equipped;
+        this.sync();
+      }
       this.storage?.setItem(INVENTORY_KEY, JSON.stringify(this.earned));
     } catch {}
   }
@@ -262,10 +363,14 @@ export class Inventory {
   }
   close(restoreFocus = true) {
     const wasOpen = !this.root.hidden;
+    const onReturn = this.onBagReturn;
+    this.onBagReturn = undefined;
+    this.disposeMail();
     this.clearJournalHint();
     this.clearJournalHint = () => {};
     this.root.hidden = true;
     this.journalPage = null;
+    this.townPage = null;
     this.trying = false;
     this.bouquetDetail = false;
     this.trigger.setAttribute("aria-expanded", "false");
@@ -277,9 +382,11 @@ export class Inventory {
     } else {
       this.world.canvas.focus({ preventScroll: true });
     }
+    onReturn?.();
   }
   private updateSuspension() {
-    this.world.suspend("inventory", this.journalPage !== null ||
+    this.world.suspend("inventory", this.mailCleanups !== null || this.journalPage !== null ||
+      this.townPage !== null ||
       this.scene.matches(".inspecting, .bass-playing, .arcade-active, .cinema-active, .reading-letter"));
   }
   private get pageSize() { return this.compact ? 8 : 15; }
@@ -305,6 +412,7 @@ export class Inventory {
     this.tab = tab;
     this.bouquetDetail = false;
     this.journalPage = null;
+    this.townPage = null;
     this.updateSuspension();
     this.render();
   }
@@ -321,6 +429,8 @@ export class Inventory {
     event.stopPropagation();
     const data = button.dataset;
     if (button.classList.contains("bag-close")) this.close();
+    else if (data.mail !== undefined) this.openMail();
+    else if (data.mailBack !== undefined) this.returnMailToBag();
     else if (data.tab) this.changeTab(data.tab as BagTab);
     else if (data.chooseCategory !== undefined) {
       this.choosingCategory = !this.choosingCategory;
@@ -373,8 +483,10 @@ export class Inventory {
     } else if (data.notebook !== undefined) this.openNotebook();
     else if (data.journalPage !== undefined) this.turnJournalPage(Number(data.journalPage));
     else if (data.bouquet !== undefined) this.openBouquet();
+    else if (data.townKeepsakes !== undefined) this.openTownKeepsakes();
+    else if (data.townItem && townInteriorKeys.some(key => key === data.townItem)) this.openTownKeepsakes(data.townItem as TownInteriorKey);
     else if (data.keepsakes !== undefined) {
-      const selector = this.journalPage !== null ? "[data-notebook]" : "[data-bouquet]";
+      const selector = this.townPage ? "[data-town-keepsakes]" : this.journalPage !== null ? "[data-notebook]" : "[data-bouquet]";
       this.changeTab("keepsakes");
       this.root.querySelector<HTMLButtonElement>(selector)?.focus({preventScroll:true});
     }
@@ -385,7 +497,7 @@ export class Inventory {
     this.render();
   }
   private canScroll(target: EventTarget | null, delta: number) {
-    const paper = target instanceof Element ? target.closest<HTMLElement>(".ruin-journal-paper") : null;
+    const paper = target instanceof Element ? target.closest<HTMLElement>(".ruin-journal-paper,.bag-town-paper") : null;
     if (!paper || !this.root.contains(paper)) return false;
     return delta < 0 ? paper.scrollTop > 0 : delta > 0 && paper.scrollTop + paper.clientHeight < paper.scrollHeight - 1;
   }
@@ -399,7 +511,7 @@ export class Inventory {
       return;
     }
     if (!reservedShortcut(event)) {
-      const paper = this.root.querySelector<HTMLElement>(".ruin-journal-paper");
+      const paper = this.root.querySelector<HTMLElement>(".ruin-journal-paper,.bag-town-paper");
       const nativeSpace = event.key === " " && event.target instanceof Element && event.target.closest("button,summary,a");
       const readingKey = ["Home", "End", "PageUp", "PageDown"].includes(event.key) ||
         (paper && ["ArrowUp", "ArrowDown", " "].includes(event.key));
@@ -456,8 +568,11 @@ export class Inventory {
       }
       const book = this.hasNotebook();
       const bouquet = this.hasBouquet();
-      return `<div class="bag-keepsakes"><button type="button" class="bag-keepsake ${book ? "" : "is-locked"}" data-notebook data-focus="notebook" ${book ? "" : "disabled"} aria-label="${book ? "翻开遗迹手记" : "遗迹手记，和回声遗迹的守护者交谈后获得"}">${journalCoverMarkup}<span>遗迹手记</span></button>
-        <button type="button" class="bag-keepsake ${bouquet ? "" : "is-locked"}" data-bouquet data-focus="bouquet" ${bouquet ? "" : "disabled"} title="${bouquet ? "查看花束与赠语" : "在周年小镇的青芽花店领取"}"><img src="${bouquetUrl}" alt=""><span>青芽的洋桔梗</span></button></div>`;
+      const townCount = this.townKeepsakes().items.length;
+      const mail = this.mailbox ? `<button type="button" class="bag-keepsake" data-mail data-focus="mail"><img src="${envelopeUrl}" alt=""><span>晚安来信</span><small class="bag-mail-count"></small></button>` : "";
+      return `<div class="bag-keepsakes">${mail}<button type="button" class="bag-keepsake ${book ? "" : "is-locked"}" data-notebook data-focus="notebook" ${book ? "" : "disabled"} aria-label="${book ? "翻开遗迹手记" : "遗迹手记，和回声遗迹的守护者交谈后获得"}">${journalCoverMarkup}<span>遗迹手记</span></button>
+        <button type="button" class="bag-keepsake ${bouquet ? "" : "is-locked"}" data-bouquet data-focus="bouquet" ${bouquet ? "" : "disabled"} title="${bouquet ? "查看花束与赠语" : "在周年小镇的青芽花店领取"}"><img src="${bouquetUrl}" alt=""><span>青芽的洋桔梗</span></button>
+        <button type="button" class="bag-keepsake" data-town-keepsakes data-focus="town-keepsakes"><canvas data-town-icon="hall" width="48" height="52" aria-hidden="true"></canvas><span>小镇小物</span><small class="bag-mail-count">${townCount} / ${townInteriorKeys.length}</small></button></div>`;
     }
     const start = this.page * this.pageSize;
     const items = this.filteredItems;
@@ -477,7 +592,7 @@ export class Inventory {
     let action = "";
     if (this.tab === "keepsakes") {
       title = "纪念物";
-      text = this.bouquetDetail ? "青芽亲手为你挑选的花束。" : "守护者赠书，青芽的花店赠花。";
+      text = this.bouquetDetail ? "青芽亲手为你挑选的花束。" : "在周年小镇的七间屋子里，可以亲手做些小物。";
     } else if (this.tab === "equipped" && !this.selected) {
       title = "身上的搭配";
       text = "点一个部位，查看或更换配饰。";
@@ -497,8 +612,21 @@ export class Inventory {
     const art = this.tab !== "keepsakes" && this.selected ? this.itemArt(this.selected) : "";
     return `${art}<div class="bag-detail" aria-live="polite"><strong>${title}</strong><small>${text}</small></div>${action}`;
   }
+  private renderTownKeepsakes(page: NonNullable<Inventory["townPage"]>) {
+    const { items, radioTrack } = this.townKeepsakes();
+    const art = (key: TownInteriorKey) => `<canvas data-town-icon="${key}" width="48" height="52" aria-hidden="true"></canvas>`;
+    if (page === "list") return `<section class="bag-town-paper" tabindex="0" aria-label="小镇小物">
+      <header><h4>小镇小物 <small>${items.length} / ${townInteriorKeys.length}</small></h4><button type="button" data-keepsakes data-focus="keepsakes-back">返回纪念物</button></header>
+      <div class="bag-town-grid">${townInteriorKeys.map(key => `<button type="button" data-town-item="${key}" data-focus="town-${key}" ${items.includes(key) ? "" : "disabled"}>
+        ${art(key)}<span>${townKeepsakeInfo[key].name}</span><small>${items.includes(key) ? "已收下" : townInteriors[townInteriorId(key)].scene.title}</small></button>`).join("")}</div></section>`;
+    const item = townKeepsakeInfo[page];
+    const track = page === "radio" && radioTrack ? `片头底声为${radioTrackName[radioTrack]}。` : "";
+    return `<article class="bag-town-paper" tabindex="0" aria-label="${item.name}">
+      <header><h4>${item.name}</h4><button type="button" data-town-keepsakes data-focus="town-back">返回小镇小物</button></header>
+      <div class="bag-town-detail">${art(page)}<p>${item.note}${track}</p></div></article>`;
+  }
   private render() {
-    if (this.root.hidden) return;
+    if (this.root.hidden || this.mailCleanups) return;
     this.clearJournalHint();
     const focused = document.activeElement instanceof HTMLElement && this.root.contains(document.activeElement) ? document.activeElement : null;
     const focusKey = focused?.dataset.focus;
@@ -506,6 +634,7 @@ export class Inventory {
     const notebook = page !== null ? this.notebookState() : null;
     this.root.dataset.tab = this.tab;
     this.root.dataset.compact = String(this.compact);
+    this.root.toggleAttribute("data-town-keepsakes-open", this.townPage !== null);
     const tabs: [BagTab, string][] = [["wardrobe", "衣橱"]];
     if (this.compact) tabs.push(["equipped", "身上"]);
     tabs.push(["keepsakes", "纪念物"]);
@@ -518,7 +647,7 @@ export class Inventory {
       <header class="bag-heading">
         <h3>芙芙的背包</h3>
         <button type="button" class="bag-close" data-focus="close" aria-label="收起背包" title="收起背包（B / Esc）">×</button>
-      </header>` + (notebook && page !== null ? renderRuinJournal(notebook.astrolabe, notebook.listened, page) : `
+      </header>` + (this.townPage ? this.renderTownKeepsakes(this.townPage) : notebook && page !== null ? renderRuinJournal(notebook.astrolabe, notebook.listened, page) : `
       <nav class="bag-tabs" aria-label="背包分类">${tabButtons}</nav>
       <div class="bag-dressing">
         ${sideSlots(EQUIP_SLOTS.slice(0, 3), "left")}
@@ -534,10 +663,12 @@ export class Inventory {
       </div>
       <div class="bag-collection">${this.collection()}</div>
       <footer class="bag-footer">${this.footer()}</footer>`);
+    this.refreshMailCount();
     this.clearJournalHint = bindJournalScrollHint(this.root);
     if (focused) {
       const target = focusKey ? this.root.querySelector<HTMLElement>(`[data-focus="${focusKey}"]:not(:disabled)`) : null;
-      const fallback = notebook ? this.root.querySelector<HTMLElement>(".ruin-journal-paper")
+      const fallback = this.townPage ? this.root.querySelector<HTMLElement>(".bag-town-paper")
+        : notebook ? this.root.querySelector<HTMLElement>(".ruin-journal-paper")
         : focusKey === "prev" || focusKey === "next"
         ? this.root.querySelector<HTMLButtonElement>(".bag-pages button:not(:disabled)")
         : this.root.querySelector<HTMLButtonElement>(".bag-tabs [aria-pressed=true]");
@@ -554,6 +685,12 @@ export class Inventory {
       c.imageSmoothingEnabled = true;
       c.imageSmoothingQuality = "high";
       drawItem(c, canvas.dataset.item as ItemId, 4, 4, 72, 72, this.wreath, this.rewards);
+    }
+    for (const canvas of this.root.querySelectorAll<HTMLCanvasElement>("canvas[data-town-icon]")) {
+      const c = canvas.getContext("2d");
+      if (!c) continue;
+      c.clearRect(0, 0, canvas.width, canvas.height);
+      drawTownKeepsake(c, canvas.dataset.townIcon as TownInteriorKey);
     }
     this.drawPreview();
   }

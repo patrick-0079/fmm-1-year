@@ -1,4 +1,4 @@
-import type { SceneId } from "./maps";
+import type { BaseSceneId } from "./maps";
 
 // 《把晚安留给你》. Six eighth notes to a bar: two gentle sways.
 // Each chord is voiced from its bass up. The melody breathes between phrases.
@@ -29,7 +29,7 @@ const orchestration = {
   meadow:    { tempo: 47, harp: 0.93, pad: 0.88, bell: 0.82 },
   ruins:     { tempo: 44, harp: 0.70, pad: 0.90, bell: 1.05 },
 } as const;
-export const eighthLength = (scene: SceneId) => 60 / orchestration[scene].tempo / 3;
+export const eighthLength = (scene: BaseSceneId) => 60 / orchestration[scene].tempo / 3;
 export const lullabyPulses = melody.length * 6;
 type Voice = "keys" | "harp" | "bass" | "pad" | "bell";
 const timbres: Record<Voice, { harmonics: number[]; pan: number; cutoff: number; attack: number }> = {
@@ -81,7 +81,7 @@ export function createLullaby(context: BaseAudioContext, output: AudioNode) {
   }
   const keys = makeVoice("keys"), harp = makeVoice("harp"), bass = makeVoice("bass");
   const pad = makeVoice("pad"), bell = makeVoice("bell");
-  return (step: number, time: number, scene: SceneId) => {
+  return (step: number, time: number, scene: BaseSceneId) => {
     const bar = Math.floor(step / 6) % melody.length, pulse = step % 6;
     const part = orchestration[scene], beat = eighthLength(scene);
     const closing = bar >= 22;

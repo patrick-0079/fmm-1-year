@@ -1,3 +1,4 @@
+import { arriveOnShift, scheduledResident } from "./resident-visits";
 import { World, scenes } from "../src/world";
 import { SAVE_KEY, canStand, readProgress } from "../src/core";
 import { rainbowFlowers, meadowGate } from "../src/rainbow-flowers";
@@ -11,6 +12,7 @@ import { southNotebook, ringSpots, moonPlate, mirrorSpots } from "../src/ruins-m
 import { INVENTORY_KEY, readInventory } from "../src/items";
 import { elderPlaces } from "../src/elders-data";
 import { ARCADES } from "../src/town-data";
+import { townInteriors } from "../src/town-interiors";
 import { verifyGuests, verifyGardenDiscovery } from "./guest-cases";
 import { verifyAchievementBook } from "./achievement-book-cases";
 import { verifyFullBadgeRoute } from "./full-badge-route";
@@ -23,6 +25,7 @@ import { verifyReadingControls } from "./reading-cases";
 import { verifyNavigationRaces } from "./adversarial-cases";
 import { foxNook } from "../src/room-props";
 import { interactionHitY } from "../src/interaction";
+import { rabbitPlatforms } from "../src/town-attraction-layout";
 import { checkTapSurface } from "./hotspot-pointer-cases";
 
 // Same application as the homepage; all its saves are private to this QA tab.
@@ -188,7 +191,7 @@ function checkHarvest() {
     expect(q(".activity-status").textContent?.includes("还剩 "+(3-i)+" 颗"),"剩余的树果数量不正确");
     q(".activity-close").click();
   }
-  expect(!world.available(apple),"采空的苹果树仍显示为可采集目标");
+  expect(!world.available(apple),"拿空的果篮仍显示为可采集目标");
   world.interact(); world.onInteract("apple");
   expect(q(".bag-count").textContent?.includes("苹果 3"),"同一天能收第四颗苹果");
   q(".activity-close").click();
@@ -203,7 +206,7 @@ function checkHarvest() {
   world.interact(); world.onInteract("flowers");
   expect(q(".bag-count").textContent?.includes("花朵 3"),"同一天能收第四丛花");
   q(".activity-close").click();
-  log("摘三颗苹果、采三丛花后当日采空，背包数量与树果剩余数相符");
+  log("拿完果篮的三颗苹果、采完当日三朵花，核对背包数量");
 }
 async function checkAll() {
   await start();
@@ -355,7 +358,7 @@ q("#check-guests").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();
   q(".reset-button").click(); q(".reset-confirm").click();
   await world.prepareScene("garden");
-  verifyGuests(world);
+  await verifyGuests(world);
   log("星星的拒绝、领取、重访、送别，霉霉的两个答案与棉棉，晴糖的三段台词逐字通过");
   await verifyGardenDiscovery(world);
   log("首次遇见两位长者、完整拥抱与中断拥抱，以及跨天拾取三个时段彩蛋的徽章均通过");
@@ -674,15 +677,33 @@ q("#check-bass").addEventListener("click",()=>void run(async()=>{
   dbg("flower-door").click(); expect(!world.canEnter("meadow"),"临时花门没有关闭");
   dbg("map:town").click(); await wait(()=>world.scene==="town" && !world.suspended);
   const photos=q("#town-samples");photos.replaceChildren();
-  for(const [phase,label] of [["dawn","清晨"],["day","白昼"],["dusk","黄昏"],["night","星夜"]]) {
-    q(".debug-trigger").click();dbg("time:"+phase).click();q(".debug-close").click();
+  const rosters=new Set<string>();
+  for(const [phase,label,count] of [["dawn","清晨",8],["day","白昼",8],["dusk","黄昏",10],["night","星夜",7]] as const) {
+    q(".debug-trigger").click();dbg("time:"+phase).click();
+    const residents=world.config.spots.map(s=>s.id).filter(id=>id.startsWith("npc-"));
+    expect(world.suspended && residents.length===count,"打开调试面板时小镇班次未同步");
+    rosters.add(residents.sort().join(","));
+    q(".debug-close").click();
     await new Promise<void>(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r())));
     const cell=document.createElement("figure"), picture=document.createElement("canvas"), cap=document.createElement("figcaption");
     picture.width=300;picture.height=200;picture.getContext("2d")!.drawImage(world.canvas,0,0,300,200);
     cap.textContent=label;cell.append(picture,cap);photos.append(cell);
     expect(q(".time-pill").dataset.phase===phase,"小镇时段错误");
   }
+  expect(rosters.size===4,"小镇四个时段的居民名单没有切换");
   q(".debug-trigger").click();dbg("time:auto").click();q(".debug-close").click();
+  for (const [id, { scene }] of Object.entries(townInteriors)) {
+    q(".debug-trigger").click();
+    const destination = dbg("map:" + id);
+    expect(destination?.textContent === scene.title, "调试地图缺少室内入口：" + scene.title);
+    destination.click();
+    await wait(() => world.scene === id && !world.paused && !world.suspended);
+    expect(world.player.x === scene.spawn.x && world.player.y === scene.spawn.y,
+      "调试室内落点错误：" + scene.title);
+  }
+  q(".debug-trigger").click(); dbg("map:town").click();
+  await wait(() => world.scene === "town" && !world.paused && !world.suspended);
+  log("调试地图定位可从街道直达室内、在七栋室内间切换，并返回小镇街道");
   const board=world.canvas.parentElement!; board.scrollIntoView({block:"center",behavior:"instant"});
   const sy=scrollY;
   world.switchScene("town",scenes.town.spots.find(s=>s.id==="arcade-hop")!.approach);
@@ -786,13 +807,13 @@ q("#check-market").addEventListener("click",()=>void run(async()=>{
   world.switchScene("town",{x:572,y:644});
   key("ArrowLeft");try{await wait(()=>world.player.x<=518);}finally{key("ArrowLeft",false);}
   expect(world.player.y===644,"没有跨过南侧路沿");
-  const counter=scenes.town.spots.find(s=>s.id==="arcade-hop")!;
-  const rect=world.canvas.getBoundingClientRect(),pos=world.project({x:counter.x,y:counter.y-24});
+  const moon=rabbitPlatforms[1];
+  const rect=world.canvas.getBoundingClientRect(),pos=world.project({x:moon.x,y:moon.y-22});
   world.canvas.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,button:0,
     clientX:rect.left+pos.x*rect.width/600,clientY:rect.top+pos.y*rect.height/400}));
   await wait(()=>!q(".arcade-hud").hidden);
   expect(q(".arcade-title").textContent==="月兔跳一跳","未能从主街进入月兔台");
-  q(".arcade-close").click(); log("方向键从主街跨过路沿，点击月兔台可从摊位正面进入跳一跳");
+  q(".arcade-close").click(); log("方向键从主街跨过路沿，点击月牙跳台后进入跳一跳");
   const orange=rainbowFlowers[1];world.switchScene(orange.scene,orange.approach);world.interact();
   expect(state().rainbowFlowers.includes("prism-calendula"),"橙色金盏菊没有正常采集");
   const wreath=scenes.garden.spots.find(s=>s.id==="wreath")!;
@@ -864,7 +885,8 @@ Object.assign(window, { contentQA: {
     closeStarReader(); closeStarBottle();
     await world.prepareScene(scene);
     const config=scene==="town"?world.townMap:scenes[scene];
-    world.switchScene(scene,at ?? (id?config.spots.find(s=>s.id===id)?.approach:config.spawn));
+    if (id && !at && scheduledResident(id)) await arriveOnShift(world,scene,id);
+    else world.switchScene(scene,at ?? (id?config.spots.find(s=>s.id===id)?.approach:config.spawn));
     world.setCueInput("keyboard");
     await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
   },
@@ -876,6 +898,10 @@ Object.assign(window, { contentQA: {
   pointAt(x: number, y: number) {
     const p=world.project({x,y}),r=world.canvas.getBoundingClientRect();
     return {x:r.left+p.x*r.width/600,y:r.top+p.y*r.height/400};
+  },
+  async focusAt(x: number, y: number) {
+    world.setFocus({ x, y }, .9);
+    await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
   },
   canvasImage: () => world.canvas.toDataURL(),
   checkBottleCollection,

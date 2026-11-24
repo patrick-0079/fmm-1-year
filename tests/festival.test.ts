@@ -286,12 +286,13 @@ test("bookshop stairs and pond decking connect while the old cliff shortcut is b
   for (const p of [
     { x: 850, y: 790 },
     { x: 896, y: 917 },
-    { x: 810, y: 950 },
+    { x: 815, y: 950 }, // Bare tread beside the west end post.
   ])
     assert.ok(
       canStand(p, scene.walls, scene.bounds, scene.floor, scene.surfaces),
     );
   for (const p of [
+    { x: 810, y: 950 }, // A five-pixel foot here overlaps the sloping rail.
     { x: 866, y: 930 }, // Front rail below the left deck, beside the first flower bed.
     { x: 975, y: 885 },
     { x: 995, y: 900 },

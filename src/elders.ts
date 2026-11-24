@@ -2,7 +2,9 @@ import type { World, DepthLayer } from "./world";
 import type { Activities } from "./activities";
 import type { Progress } from "./core";
 import { elderLines, elderPlaces, guardianGreeting, type ElderPage, type ElderPose } from "./elders-data";
-import { sceneArt } from "./scene-art";
+import { drawIdlePose, sceneArt } from "./scene-art";
+import { drawElderIdle, prepareGardenGestures } from "./garden-gesture-art";
+import { gardenChatTopics, showGardenChat } from "./garden-chat-topics";
 
 type ElderScene = keyof typeof elderPlaces;
 type Choice = { title: string; run: () => void };
@@ -49,6 +51,7 @@ function drawSprite(c: CanvasRenderingContext2D, pose: ElderPose, x: number, y: 
 export class Elders {
   private page: ElderPage | null = null;
   private tending = false;
+  private watchingLane = false;
   private poseAge = 0;
   private giftingBook = false;
 
@@ -56,18 +59,27 @@ export class Elders {
     private progress: () => Pick<Progress, "astrolabe" | "residents">, private save: () => void,
     private openNotebook: () => void) {
     const depth = world.getDepthLayers, tick = world.onTick;
+    let artScene: string | undefined;
     world.getDepthLayers = () => world.scene === "challenge" || world.scene === "ruins"
       ? [...depth(), this.layer(world.scene)] : depth();
     world.onTick = (dt, time) => {
       tick(dt, time);
+      if(artScene!==world.scene){
+        artScene=world.scene;
+        if(world.scene==="challenge" || world.scene==="ruins")prepareGardenGestures(world.scene);
+      }
       if (this.page) this.poseAge += dt;
-      if (world.scene !== "challenge" || this.gardenerDistance() > 65) this.tending = false;
+      if (world.scene !== "challenge" || this.gardenerDistance() > 65) {
+        this.tending=false;
+        this.watchingLane=false;
+      } else if (this.gardenerDistance() <= 60) this.watchingLane=true;
     };
   }
 
   reset() {
     this.page = null;
     this.tending = false;
+    this.watchingLane = false;
     this.poseAge = 0;
     this.giftingBook = false;
   }
@@ -75,22 +87,51 @@ export class Elders {
   interact(id: string) {
     const scene = this.world.scene;
     if ((scene !== "challenge" && scene !== "ruins") || id !== elderPlaces[scene].id) return false;
+    if (this.page && this.activities.dialogueOpen) return true;
+    if (this.world.busy || this.world.paused || this.world.suspended) return true;
     const state = this.progress();
     const page = scene === "challenge" ? "gardenWelcome" : guardianGreeting(state.astrolabe, state.residents.guardianInvited);
-    this.say(scene, page);
+    // The gardener remembers finishing his welcome. The guardian's original
+    // invitation has its own receipt; his later celebration happens once.
+    const introduce = scene === "challenge" ? !this.world.chats.introduced(id) :
+      !state.residents.guardianInvited || (page === "solved" && !this.world.chats.introduced(id));
+    if (introduce) this.say(scene, page);
+    else {
+      const gardener = scene === "challenge";
+      const key = gardener ? "elder-gardener" : "elder-guardian";
+      const options: Choice[] = gardener ? [
+        {title: "再聊聊勇气花园", run: () => this.say(scene, "gardenWelcome")},
+      ] : [
+        {title: "翻开遗迹手记", run: this.openNotebook},
+        {title: page === "solved" ? "聊聊星纹砖" : "问问遗迹的线索", run: () => this.say(scene, page)},
+      ];
+      const topic = this.world.chats.next(key, gardenChatTopics[key], this.world.currentPhase);
+      showGardenChat(topic, (text, choices) => this.display(scene, gardener ? "gardenWelcome" : "challenge", text, choices), options);
+    }
     this.world.onAchievementEvent(scene === "challenge" ? "elder-gardener" : "elder-guardian");
     return true;
   }
 
   private say(scene: ElderScene, page: ElderPage) {
-    const npc = elderPlaces[scene], line = elderLines[page], choices: Choice[] = [];
+    const line = elderLines[page], choices: Choice[] = [];
     const residents = this.progress().residents;
     const givingBook = !residents.guardianInvited && (page === "blessing" || page === "solved");
     const text = givingBook ? line.text + " 这本《遗迹手记》送给你。路上见过的痕迹，都可以记在里面。" : line.text;
     const reply = line.reply;
     if (reply) choices.push({ title: reply.title, run: () => this.say(scene, reply.next) });
     if (line.showNotebook) choices.push({ title: "翻开遗迹手记", run: this.openNotebook });
-    this.activities.dialogue(npc.title, text, choices, c => drawSprite(c, line.pose, 24, 51, 54, givingBook), npc, () => {
+    this.display(scene, page, text, choices, givingBook);
+    if (page === "gardenWish" || page === "solved") this.world.chats.introduce(elderPlaces[scene].id);
+    if (givingBook) {
+      residents.guardianInvited = true;
+      this.save();
+      this.world.onToast("获得《遗迹手记》 · 已收入背包");
+    }
+  }
+
+  private display(scene: ElderScene, page: ElderPage, text: string, choices: Choice[], givingBook = false) {
+    const npc = elderPlaces[scene];
+    this.activities.dialogue(npc.title, text, choices, c => drawSprite(c, elderLines[page].pose, 24, 51, 54, givingBook), npc, () => {
       this.page = null;
       this.giftingBook = false;
       if (scene === "challenge") this.tending = true;
@@ -98,11 +139,6 @@ export class Elders {
     this.page = page;
     this.giftingBook = givingBook;
     this.poseAge = 0;
-    if (givingBook) {
-      residents.guardianInvited = true;
-      this.save();
-      this.world.onToast("获得《遗迹手记》 · 已收入背包");
-    }
   }
 
   private gardenerDistance() {
@@ -112,7 +148,7 @@ export class Elders {
 
   private layer(scene: ElderScene): DepthLayer {
     const npc = elderPlaces[scene];
-    const attending = !this.tending && this.gardenerDistance() <= 60;
+    const attending = !this.tending && this.watchingLane;
     const idle = scene === "ruins" ? "watch" : (attending ? "stand" : "dig");
     const pose = this.page ? elderLines[this.page].pose : idle;
     return { y: npc.y, draw: c => {
@@ -127,7 +163,21 @@ export class Elders {
       if (!reduced.matches && pose === "bow" && this.poseAge < .65) {
         c.rotate(Math.sin(this.poseAge / .65 * Math.PI) * .055);
       }
-      drawSprite(c, pose, 0, 0, 48, this.giftingBook);
+      const work = (this.world.ambientTime + 10.6) % 15.2;
+      if (!this.page && pose === "dig" && !reduced.matches && work < 3 && sceneArt.gardenerWork.naturalWidth) {
+        const frame = work < .38 || (work >= .85 && work < 1.36) ? 0 : work < 2.05 ? 1 : 2;
+        drawIdlePose(c, sceneArt.gardenerWork, frame, 0, 0, 48);
+        // Two small sprays rise from the blade, then fall back into its furrow.
+        const soilAge = work < 1.36 ? work - .38 : work - 1.36;
+        if (soilAge >= 0 && soilAge < .36) {
+          const progress = soilAge / .36;
+          for (const [dx, height, tint] of [[4,2,"#826748"],[2,3.6,"#b29664"]] as const) {
+            c.fillStyle = tint;
+            c.fillRect(Math.round(18 + dx * progress), Math.round(-1 - Math.sin(Math.PI * progress) * height), 1, 1);
+          }
+        }
+      } else if(this.page || reduced.matches || (scene==="challenge" && pose!=="dig")
+        || !drawElderIdle(c,scene,this.world.ambientTime)) drawSprite(c, pose, 0, 0, 48, this.giftingBook);
       c.restore();
     } };
   }

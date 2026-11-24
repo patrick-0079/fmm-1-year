@@ -1,0 +1,826 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" width="1200" height="800" role="img" aria-labelledby="title desc" font-family="'Microsoft YaHei','Noto Sans CJK SC','Noto Sans SC','PingFang SC',sans-serif" stroke-linejoin="round" stroke-linecap="round">
+  <title id="title">周年邮局 · 室内配色与动线</title>
+  <desc id="desc">分信格在西北，L 形柜台东侧开口内外相通。东北工作桌设有独立的风景片邮戳。翻阅四班可看到木牌、抽屉、收件灯和封邮灯的分别。</desc>
+  <defs>
+    <style>
+.phase-view,.collection-view{display:none}.default-view{display:inline}
+#dawn:target ~ g .phase-view,#dawn:target ~ g .collection-view{display:none}
+#dawn:target ~ g .phase-dawn,#dawn:target ~ g .collection-some{display:inline}
+#day:target ~ g .phase-view,#day:target ~ g .collection-view{display:none}
+#day:target ~ g .phase-day,#day:target ~ g .collection-some{display:inline}
+#dusk:target ~ g .phase-view,#dusk:target ~ g .collection-view{display:none}
+#dusk:target ~ g .phase-dusk,#dusk:target ~ g .collection-some{display:inline}
+#night:target ~ g .phase-view,#night:target ~ g .collection-view{display:none}
+#night:target ~ g .phase-night,#night:target ~ g .collection-some{display:inline}
+</style>
+    <linearGradient id="wall" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e8dfc6" />
+      <stop offset="100%" stop-color="#d5c8a4" />
+    </linearGradient>
+    <linearGradient id="pane" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#d4e5d1" />
+      <stop offset="100%" stop-color="#77afa7" />
+    </linearGradient>
+    <linearGradient id="night-sky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#383f68" />
+      <stop offset="100%" stop-color="#7893a0" />
+    </linearGradient>
+    <linearGradient id="lamplight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fff4c4" />
+      <stop offset="100%" stop-color="#dca75e" />
+    </linearGradient>
+    <pattern id="floor" patternUnits="userSpaceOnUse" width="157" height="60">
+      <rect x="0" y="0" width="157" height="60" fill="#d2b287" />
+      <rect x="0" y="0" width="157" height="20" fill="#d9b98c" />
+      <polyline points="0,19.5 157,19.5" fill="none" stroke="#aa8966" stroke-width="0.8" opacity="0.7" />
+      <polyline points="0,1 157,1" fill="none" stroke="#ffedc9" stroke-width="0.8" opacity="0.55" />
+      <polyline points="10,1 10,19" fill="none" stroke="#aa8966" stroke-width="0.7" opacity="0.72" />
+      <path d="M11 4q3 -1 6 0t5 0" fill="none" stroke="#aa8966" stroke-width="0.55" opacity="0.38" />
+      <path d="M30 11q3 -1 6 0t5 0" fill="none" stroke="#aa8966" stroke-width="0.55" opacity="0.38" />
+      <path d="M49 8q3 -1 6 0t5 0" fill="none" stroke="#aa8966" stroke-width="0.55" opacity="0.38" />
+      <path d="M68 5q3 -1 6 0t5 0" fill="none" stroke="#aa8966" stroke-width="0.55" opacity="0.38" />
+      <ellipse cx="78" cy="10" rx="4" ry="0.7" fill="none" stroke="#aa8966" stroke-width="0.5" opacity="0.5" />
+      <rect x="0" y="20" width="157" height="20" fill="#d2b287" />
+      <polyline points="0,39.5 157,39.5" fill="none" stroke="#aa8966" stroke-width="0.8" opacity="0.7" />
+      <polyline points="0,21 157,21" fill="none" stroke="#ffedc9" stroke-width="0.8" opacity="0.55" />
+      <polyline points="88,21 88,39" fill="none" stroke="#aa8966" stroke-width="0.7" opacity="0.72" />
+      <path d="M35 24q3 -1 6 0t5 0" fill="none" stroke="#aa8966" stroke-width="0.55" opacity="0.38" />
+      <path d="M54 31q3 -1 6 0t5 0" fill="none" stroke="#aa8966" stroke-width="0.55" opacity="0.38" />
+      <path d="M73 28q3 -1 6 0t5 0" fill="none" stroke="#aa8966" stroke-width="0.55" opacity="0.38" />
+      <path d="M92 25q3 -1 6 0t5 0" fill="none" stroke="#aa8966" stroke-width="0.55" opacity="0.38" />
+      <ellipse cx="97" cy="30" rx="4" ry="0.7" fill="none" stroke="#aa8966" stroke-width="0.5" opacity="0.5" />
+      <rect x="0" y="40" width="157" height="20" fill="#d2b287" />
+      <polyline points="0,59.5 157,59.5" fill="none" stroke="#aa8966" stroke-width="0.8" opacity="0.7" />
+      <polyline points="0,41 157,41" fill="none" stroke="#ffedc9" stroke-width="0.8" opacity="0.55" />
+      <polyline points="51,41 51,59" fill="none" stroke="#aa8966" stroke-width="0.7" opacity="0.72" />
+      <path d="M59 44q3 -1 6 0t5 0" fill="none" stroke="#aa8966" stroke-width="0.55" opacity="0.38" />
+      <path d="M78 51q3 -1 6 0t5 0" fill="none" stroke="#aa8966" stroke-width="0.55" opacity="0.38" />
+      <path d="M97 48q3 -1 6 0t5 0" fill="none" stroke="#aa8966" stroke-width="0.55" opacity="0.38" />
+      <path d="M116 45q3 -1 6 0t5 0" fill="none" stroke="#aa8966" stroke-width="0.55" opacity="0.38" />
+      <ellipse cx="116" cy="50" rx="4" ry="0.7" fill="none" stroke="#aa8966" stroke-width="0.5" opacity="0.5" />
+    </pattern>
+    <clipPath id="inside">
+      <rect x="24" y="51" width="552" height="299" fill="white" />
+    </clipPath>
+    <radialGradient id="light-pool">
+      <stop offset="0%" stop-color="#ffe5a4" stop-opacity=".65" />
+      <stop offset="100%" stop-color="#ffdb90" stop-opacity="0" />
+    </radialGradient>
+    <image href="data:image/png;base64,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" x="-14.291" y="-40.831" width="28.582" height="40.831" preserveAspectRatio="none" id="resident-art" />
+  </defs>
+  <g id="dawn" />
+  <g id="day" />
+  <g id="dusk" />
+  <g id="night" />
+  <g id="architecture">
+    <rect x="0" y="0" width="600" height="400" fill="#f8f0df" />
+    <text x="19" y="29" fill="#523e3a" font-size="21" font-weight="750" text-anchor="start">周年邮局</text>
+    <polyline points="19,37.5 581,37.5" fill="none" stroke="#b6a589" stroke-width="0.8" />
+    <text x="535" y="26" fill="#665247" font-size="10" font-weight="600" text-anchor="end">邮筒红 · 信封白 · 墨绿</text>
+    <rect x="543" y="16" width="9" height="11" rx="1" fill="#b76661" stroke="#705c49" stroke-width="0.65" />
+    <rect x="554" y="16" width="9" height="11" rx="1" fill="#efdfbb" stroke="#705c49" stroke-width="0.65" />
+    <rect x="565" y="16" width="9" height="11" rx="1" fill="#657e6e" stroke="#705c49" stroke-width="0.65" />
+    <rect x="14" y="47" width="574" height="316" rx="3" fill="#684a3a" opacity="0.19" />
+    <rect x="15" y="43" width="570" height="316" rx="2" fill="#523e3a" />
+    <rect x="20" y="47" width="560" height="306" fill="#d7a16c" />
+    <rect x="24" y="51" width="552" height="63" fill="url(#wall)" />
+    <polyline points="29,54 29,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="30,54 30,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="43,54 43,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="44,54 44,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="57,54 57,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="58,54 58,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="71,54 71,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="72,54 72,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="85,54 85,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="86,54 86,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="99,54 99,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="100,54 100,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="113,54 113,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="114,54 114,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="127,54 127,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="128,54 128,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="141,54 141,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="142,54 142,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="155,54 155,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="156,54 156,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="169,54 169,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="170,54 170,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="183,54 183,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="184,54 184,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="197,54 197,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="198,54 198,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="211,54 211,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="212,54 212,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="225,54 225,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="226,54 226,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="239,54 239,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="240,54 240,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="253,54 253,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="254,54 254,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="267,54 267,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="268,54 268,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="281,54 281,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="282,54 282,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="295,54 295,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="296,54 296,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="309,54 309,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="310,54 310,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="323,54 323,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="324,54 324,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="337,54 337,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="338,54 338,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="351,54 351,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="352,54 352,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="365,54 365,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="366,54 366,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="379,54 379,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="380,54 380,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="393,54 393,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="394,54 394,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="407,54 407,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="408,54 408,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="421,54 421,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="422,54 422,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="435,54 435,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="436,54 436,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="449,54 449,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="450,54 450,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="463,54 463,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="464,54 464,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="477,54 477,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="478,54 478,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="491,54 491,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="492,54 492,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="505,54 505,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="506,54 506,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="519,54 519,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="520,54 520,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="533,54 533,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="534,54 534,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="547,54 547,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="548,54 548,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <polyline points="561,54 561,110" fill="none" stroke="#84917b" stroke-width="0.6" opacity="0.45" />
+    <polyline points="562,54 562,110" fill="none" stroke="#fff6d7" stroke-width="0.6" opacity="0.44" />
+    <rect x="24" y="112" width="552" height="239" fill="url(#floor)" />
+    <rect x="24" y="103" width="552" height="13" fill="#84917b" stroke="#523e3a" stroke-width="0.85" />
+    <polyline points="25,106 574,106" fill="none" stroke="#fff1d0" stroke-width="1" opacity="0.68" />
+    <rect x="24" y="115" width="552" height="5" fill="#5c4437" opacity="0.18" />
+    <rect x="19" y="50" width="6" height="299" fill="#aa7652" stroke="#523e3a" stroke-width="0.75" />
+    <polyline points="20.5,54 20.5,347" fill="none" stroke="#edc188" stroke-width="0.9" />
+    <rect x="575" y="50" width="6" height="299" fill="#aa7652" stroke="#523e3a" stroke-width="0.75" />
+    <polyline points="576.5,54 576.5,347" fill="none" stroke="#edc188" stroke-width="0.9" />
+    <rect x="18" y="44" width="564" height="9" fill="#aa7652" stroke="#523e3a" stroke-width="1" />
+    <polyline points="21,46 578,46" fill="none" stroke="#f0c48e" stroke-width="1.3" />
+    <circle cx="24" cy="48" r="0.85" fill="#523e3a" />
+    <circle cx="572" cy="48" r="0.85" fill="#523e3a" />
+    <rect x="19" y="347" width="96" height="11" fill="#aa7652" stroke="#523e3a" stroke-width="1" />
+    <rect x="21" y="348" width="92" height="3" fill="#edc593" />
+    <rect x="181" y="347" width="400" height="11" fill="#aa7652" stroke="#523e3a" stroke-width="1" />
+    <rect x="183" y="348" width="396" height="3" fill="#edc593" />
+    <rect x="118" y="346" width="60" height="14" fill="#aa805e" stroke="#523e3a" stroke-width="0.8" />
+    <polyline points="120,348 176,348" fill="none" stroke="#e8c59a" stroke-width="1" />
+    <polyline points="120,353 176,353" fill="none" stroke="#e8c59a" stroke-width="1" />
+    <polyline points="120,358 176,358" fill="none" stroke="#e8c59a" stroke-width="1" />
+    <rect x="121" y="328" width="54" height="20" rx="2" fill="#b76661" stroke="#523e3a" stroke-width="0.9" />
+    <rect x="124" y="331" width="48" height="14" rx="1" fill="none" stroke="#fff3d9" stroke-width="0.7" />
+    <polyline points="127,348 127,350" fill="none" stroke="#b76661" stroke-width="0.9" />
+    <polyline points="132,348 132,350" fill="none" stroke="#b76661" stroke-width="0.9" />
+    <polyline points="137,348 137,350" fill="none" stroke="#b76661" stroke-width="0.9" />
+    <polyline points="142,348 142,350" fill="none" stroke="#b76661" stroke-width="0.9" />
+    <polyline points="147,348 147,350" fill="none" stroke="#b76661" stroke-width="0.9" />
+    <polyline points="152,348 152,350" fill="none" stroke="#b76661" stroke-width="0.9" />
+    <polyline points="157,348 157,350" fill="none" stroke="#b76661" stroke-width="0.9" />
+    <polyline points="162,348 162,350" fill="none" stroke="#b76661" stroke-width="0.9" />
+    <polyline points="167,348 167,350" fill="none" stroke="#b76661" stroke-width="0.9" />
+    <text x="148" y="356" fill="#523e3a" font-size="7" font-weight="700" text-anchor="middle">门</text>
+  </g>
+  <g id="floor-details" clip-path="url(#inside)">
+    <g class="phase-view phase-dawn" display="none">
+      <polygon points="365,118 434,118 470,192 401,192" fill="#ffe5a2" opacity="0.26" />
+      <polyline points="399.5,118 435.5,192" fill="none" stroke="#654e45" stroke-width="1.5" opacity="0.208" />
+      <polyline points="386.6,162.4 455.6,162.4" fill="none" stroke="#654e45" stroke-width="1.1" opacity="0.2" />
+    </g>
+    <g class="phase-view phase-day" display="none">
+      <polygon points="365,118 434,118 447,192 378,192" fill="#fff0bf" opacity="0.22" />
+      <polyline points="399.5,118 412.5,192" fill="none" stroke="#654e45" stroke-width="1.5" opacity="0.176" />
+      <polyline points="372.8,162.4 441.8,162.4" fill="none" stroke="#654e45" stroke-width="1.1" opacity="0.169" />
+    </g>
+    <g class="phase-view phase-dusk" display="none">
+      <polygon points="365,118 434,118 511,192 442,192" fill="#ffc382" opacity="0.31" />
+      <polyline points="399.5,118 476.5,192" fill="none" stroke="#654e45" stroke-width="1.5" opacity="0.248" />
+      <polyline points="411.2,162.4 480.2,162.4" fill="none" stroke="#654e45" stroke-width="1.1" opacity="0.239" />
+    </g>
+    <g class="phase-view phase-night default-view" display="inline">
+      <polygon points="365,118 434,118 422,192 353,192" fill="#c0d7e5" opacity="0.1" />
+      <polyline points="399.5,118 387.5,192" fill="none" stroke="#654e45" stroke-width="1.5" opacity="0.08" />
+      <polyline points="357.8,162.4 426.8,162.4" fill="none" stroke="#654e45" stroke-width="1.1" opacity="0.077" />
+    </g>
+  </g>
+  <g id="back-wall-details">
+    <rect x="345" y="57" width="84" height="44" rx="1.5" fill="#aa7652" stroke="#523e3a" stroke-width="1" />
+    <g class="phase-view phase-dawn" display="none">
+      <rect x="348" y="60" width="78" height="37" fill="#eccda9" />
+      <circle cx="368.28" cy="74.43" r="4.5" fill="#fff5bd" />
+      <path d="M348 81.61q12.48 -6 24.96 -1t27.299999999999997 -.5t25.740000000000002 0v16.39h-78Z" fill="#7e9b84" />
+      <rect x="348.6" y="82.61" width="76.8" height="14.39" fill="#a5c3ad" />
+      <polyline points="350,84.61 357,84.61" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
+      <polyline points="371,86.61 378,86.61" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
+      <polyline points="392,88.61 399,88.61" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
+    </g>
+    <g class="phase-view phase-day" display="none">
+      <rect x="348" y="60" width="78" height="37" fill="#a6cfcb" />
+      <circle cx="368.28" cy="74.43" r="4.5" fill="#fff3bc" />
+      <path d="M348 81.61q12.48 -6 24.96 -1t27.299999999999997 -.5t25.740000000000002 0v16.39h-78Z" fill="#71997f" />
+      <rect x="348.6" y="82.61" width="76.8" height="14.39" fill="#8fb6b1" />
+      <polyline points="350,84.61 357,84.61" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
+      <polyline points="371,86.61 378,86.61" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
+      <polyline points="392,88.61 399,88.61" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
+    </g>
+    <g class="phase-view phase-dusk" display="none">
+      <rect x="348" y="60" width="78" height="37" fill="#efad83" />
+      <circle cx="404.16" cy="74.43" r="4.5" fill="#ffdf9c" />
+      <path d="M348 81.61q12.48 -6 24.96 -1t27.299999999999997 -.5t25.740000000000002 0v16.39h-78Z" fill="#a58e79" />
+      <rect x="348.6" y="82.61" width="76.8" height="14.39" fill="#c7a48a" />
+      <polyline points="350,84.61 357,84.61" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
+      <polyline points="371,86.61 378,86.61" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
+      <polyline points="392,88.61 399,88.61" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
+    </g>
+    <g class="phase-view phase-night default-view" display="inline">
+      <rect x="348" y="60" width="78" height="37" fill="url(#night-sky)" />
+      <circle cx="404.16" cy="74.43" r="4.5" fill="#f7dfa2" />
+      <circle cx="406.26" cy="73.53" r="3.8" fill="#535d7f" />
+      <circle cx="353" cy="63" r="0.6" fill="#ffe8af" />
+      <circle cx="366" cy="70" r="0.6" fill="#ffe8af" />
+      <circle cx="379" cy="66" r="0.6" fill="#ffe8af" />
+      <circle cx="392" cy="73" r="0.6" fill="#ffe8af" />
+      <circle cx="405" cy="69" r="0.6" fill="#ffe8af" />
+      <path d="M348 81.61q12.48 -6 24.96 -1t27.299999999999997 -.5t25.740000000000002 0v16.39h-78Z" fill="#465970" />
+      <rect x="348.6" y="82.61" width="76.8" height="14.39" fill="#526e7e" />
+      <polyline points="350,84.61 357,84.61" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
+      <polyline points="371,86.61 378,86.61" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
+      <polyline points="392,88.61 399,88.61" fill="none" stroke="#f8ebc9" stroke-width="0.65" opacity="0.82" />
+    </g>
+    <rect x="385.22" y="60" width="2.2" height="37" fill="#aa7652" stroke="#523e3a" stroke-width="0.55" />
+    <rect x="348" y="77.02" width="78" height="1.5" fill="#d7a16c" stroke="#523e3a" stroke-width="0.4" />
+    <rect x="343" y="97" width="88" height="4.3" rx="0.6" fill="#d7a16c" stroke="#523e3a" stroke-width="0.9" />
+    <path d="M532 72h7v5" fill="none" stroke="#523e3a" stroke-width="1.3" />
+    <rect x="530" y="69" width="3" height="7" fill="#aa7652" stroke="#523e3a" stroke-width="0.7" />
+    <g class="phase-view phase-dawn" display="none">
+      <polygon points="535,77 543,77 542.2,87 535.8,87" fill="#a4a59a" stroke="#523e3a" stroke-width="0.85" />
+      <path d="M539 77v10" fill="none" stroke="#e2a65e" stroke-width="0.7" />
+    </g>
+    <g class="phase-view phase-day" display="none">
+      <polygon points="535,77 543,77 542.2,87 535.8,87" fill="#a4a59a" stroke="#523e3a" stroke-width="0.85" />
+      <path d="M539 77v10" fill="none" stroke="#e2a65e" stroke-width="0.7" />
+    </g>
+    <g class="phase-view phase-dusk" display="none">
+      <ellipse cx="539" cy="83" rx="14" ry="13" fill="#ffeab2" opacity="0.28" />
+      <polygon points="535,77 543,77 542.2,87 535.8,87" fill="#ffdc92" stroke="#523e3a" stroke-width="0.85" />
+      <ellipse cx="539" cy="83" rx="1.35" ry="3" fill="#fff8c8" />
+      <path d="M539 77v10" fill="none" stroke="#e2a65e" stroke-width="0.7" />
+    </g>
+    <g class="phase-view phase-night default-view" display="inline">
+      <polygon points="535,77 543,77 542.2,87 535.8,87" fill="#a4a59a" stroke="#523e3a" stroke-width="0.85" />
+      <path d="M539 77v10" fill="none" stroke="#e2a65e" stroke-width="0.7" />
+    </g>
+    <polygon points="534,77 539,73 544,77" fill="#e2a65e" stroke="#523e3a" stroke-width="0.75" />
+    <rect x="535.5" y="87" width="7" height="1.8" fill="#523e3a" />
+    <rect x="194" y="57" width="130" height="40" rx="2" fill="#657868" stroke="#523e3a" stroke-width="1" />
+    <rect x="197" y="60" width="124" height="34" rx="1" fill="none" stroke="#ccb686" stroke-width="0.7" />
+    <g class="phase-view phase-dawn" display="none">
+      <text x="224" y="76" fill="#fff0cc" font-size="10" font-weight="650" text-anchor="middle">晨邮</text>
+      <circle cx="249" cy="80" r="2.4" fill="#e6ad82" stroke="#523e3a" stroke-width="0.55" />
+      <polyline points="249,80 266,69" fill="none" stroke="#dfc799" stroke-width="0.85" />
+      <circle cx="266" cy="69" r="2.4" fill="#d0d4b2" stroke="#523e3a" stroke-width="0.55" />
+      <polyline points="266,69 289,77" fill="none" stroke="#dfc799" stroke-width="0.85" />
+      <circle cx="289" cy="77" r="2.4" fill="#d0d4b2" stroke="#523e3a" stroke-width="0.55" />
+      <polyline points="289,77 309,68" fill="none" stroke="#dfc799" stroke-width="0.85" />
+      <circle cx="309" cy="68" r="2.4" fill="#d0d4b2" stroke="#523e3a" stroke-width="0.55" />
+    </g>
+    <g class="phase-view phase-day" display="none">
+      <text x="224" y="76" fill="#fff0cc" font-size="10" font-weight="650" text-anchor="middle">分信</text>
+      <circle cx="249" cy="80" r="2.4" fill="#d0d4b2" stroke="#523e3a" stroke-width="0.55" />
+      <polyline points="249,80 266,69" fill="none" stroke="#dfc799" stroke-width="0.85" />
+      <circle cx="266" cy="69" r="2.4" fill="#e6ad82" stroke="#523e3a" stroke-width="0.55" />
+      <polyline points="266,69 289,77" fill="none" stroke="#dfc799" stroke-width="0.85" />
+      <circle cx="289" cy="77" r="2.4" fill="#d0d4b2" stroke="#523e3a" stroke-width="0.55" />
+      <polyline points="289,77 309,68" fill="none" stroke="#dfc799" stroke-width="0.85" />
+      <circle cx="309" cy="68" r="2.4" fill="#d0d4b2" stroke="#523e3a" stroke-width="0.55" />
+    </g>
+    <g class="phase-view phase-dusk" display="none">
+      <text x="224" y="76" fill="#fff0cc" font-size="10" font-weight="650" text-anchor="middle">收件</text>
+      <circle cx="249" cy="80" r="2.4" fill="#d0d4b2" stroke="#523e3a" stroke-width="0.55" />
+      <polyline points="249,80 266,69" fill="none" stroke="#dfc799" stroke-width="0.85" />
+      <circle cx="266" cy="69" r="2.4" fill="#d0d4b2" stroke="#523e3a" stroke-width="0.55" />
+      <polyline points="266,69 289,77" fill="none" stroke="#dfc799" stroke-width="0.85" />
+      <circle cx="289" cy="77" r="2.4" fill="#e6ad82" stroke="#523e3a" stroke-width="0.55" />
+      <polyline points="289,77 309,68" fill="none" stroke="#dfc799" stroke-width="0.85" />
+      <circle cx="309" cy="68" r="2.4" fill="#d0d4b2" stroke="#523e3a" stroke-width="0.55" />
+    </g>
+    <g class="phase-view phase-night default-view" display="inline">
+      <text x="224" y="76" fill="#fff0cc" font-size="10" font-weight="650" text-anchor="middle">封邮</text>
+      <circle cx="249" cy="80" r="2.4" fill="#d0d4b2" stroke="#523e3a" stroke-width="0.55" />
+      <polyline points="249,80 266,69" fill="none" stroke="#dfc799" stroke-width="0.85" />
+      <circle cx="266" cy="69" r="2.4" fill="#d0d4b2" stroke="#523e3a" stroke-width="0.55" />
+      <polyline points="266,69 289,77" fill="none" stroke="#dfc799" stroke-width="0.85" />
+      <circle cx="289" cy="77" r="2.4" fill="#d0d4b2" stroke="#523e3a" stroke-width="0.55" />
+      <polyline points="289,77 309,68" fill="none" stroke="#dfc799" stroke-width="0.85" />
+      <circle cx="309" cy="68" r="2.4" fill="#e6ad82" stroke="#523e3a" stroke-width="0.55" />
+    </g>
+    <g id="wall-illustrations" stroke-linecap="round" stroke-linejoin="round">
+      <title>红邮筒与月牙纪念邮票</title>
+      <rect x="48" y="47.5" width="42" height="27.5" rx="2" fill="#4b2f40" opacity=".31" stroke="none"/>
+      <rect x="48" y="45" width="41" height="28" rx="1.4" fill="#4a6051" stroke="#cba36d" stroke-width=".95"/>
+      <rect x="50" y="47" width="37" height="24" rx=".55" fill="#e7c69c" stroke="#f7d7a7" stroke-width=".52"/>
+      <g transform="translate(53 50) scale(0.6458 0.6)">
+        <path d="M0 0H48V30H0Z" fill="#c8c5a5"/>
+        <path d="M2 22q8-6 16-3t15-3q5-2 13 3v9H2Z" fill="#90a087"/>
+        <path d="M14 11c0-3.3 2.8-5 6.5-5h6.2c3.6 0 6 1.9 6 5v12H14Z" fill="#a65a57" stroke="#604d45" stroke-width="1"/>
+        <path d="M19 8h8.4c2.7 0 4.5 1.3 4.5 3.3v11.4h-4.2V12.8c0-3-1.1-4.5-8.7-4.8Z" fill="#904f49"/>
+        <path d="M17.3 12.9h11.4v3.2H17.3Z" fill="#ecd4a4" stroke="#744f43" stroke-width=".77"/>
+        <path d="M20.2 23h7.5v3h-7.5Z" fill="#755947"/>
+        <path d="M3 4h42v22H3Z" fill="none" stroke="#f1ddb4" stroke-width="1.4" stroke-dasharray=".8 1.55"/>
+      </g>
+      <path d="M53 68V50H84" fill="none" stroke="#6c504b" stroke-width=".64"/>
+      <path d="M51 70l2.3-2.3m30.4 0 2.3 2.3" fill="none" stroke="#f7deb0" stroke-width=".7"/>
+      <rect x="103" y="46.5" width="43" height="28.5" rx="2" fill="#4b2f40" opacity=".31" stroke="none"/>
+      <rect x="103" y="44" width="42" height="29" rx="1.4" fill="#4a6051" stroke="#cba36d" stroke-width=".95"/>
+      <rect x="105" y="46" width="38" height="25" rx=".55" fill="#e7c69c" stroke="#f7d7a7" stroke-width=".52"/>
+      <g transform="translate(108 49) scale(0.6667 0.6333)">
+        <path d="M0 0H48V30H0Z" fill="#655e76"/>
+        <path d="M3 4h42v22H3Z" fill="none" stroke="#e5d2a9" stroke-width="1.4" stroke-dasharray=".8 1.55"/>
+        <path d="M19 7.5q-6.8 3.3-4.9 8.7q2.4 6.3 8.7 4.5q3.1-.7 4.6-3.7q-9 3.2-10-5q-.2-2.9 1.6-4.5Z" fill="#eec991"/>
+        <path d="M30 10q2-1.5 5.5-.3t6-.2m-11.5 5q2-1.5 5.5-.3t6-.2m-11.5 5q2-1.5 5.5-.3t6-.2" fill="none" stroke="#e6b4a2" stroke-width=".85"/>
+        <circle cx="9" cy="9" r="1" fill="#f0d0a3"/><circle cx="23.4" cy="10.2" r=".75" fill="#f0d0a3"/>
+      </g>
+      <path d="M108 68V49H140" fill="none" stroke="#6c504b" stroke-width=".64"/>
+      <path d="M106 70l2.3-2.3m31.4 0 2.3 2.3" fill="none" stroke="#f7deb0" stroke-width=".7"/>
+    </g>
+  </g>
+  <g id="furniture">
+    <g data-object="分信格柜底">
+      <rect x="44" y="79" width="119" height="68" rx="2" fill="#70523d" opacity="0.18" />
+      <rect x="41" y="77" width="120" height="65" rx="2" fill="#a38669" stroke="#523e3a" stroke-width="1.15" />
+      <rect x="39" y="74" width="124" height="6" rx="1" fill="#d7a16c" stroke="#523e3a" stroke-width="1" />
+      <rect x="43" y="139" width="116" height="6" fill="#aa7652" stroke="#523e3a" stroke-width="0.8" />
+      <rect x="45" y="143" width="5" height="3" fill="#523e3a" />
+      <rect x="152" y="143" width="5" height="3" fill="#523e3a" />
+      <rect x="46" y="83" width="19" height="12" fill="#735b50" stroke="#523e3a" stroke-width="0.65" />
+      <rect x="50" y="93" width="11" height="2.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.35" />
+      <rect x="68.4" y="83" width="19" height="12" fill="#735b50" stroke="#523e3a" stroke-width="0.65" />
+      <g transform="rotate(-2 70.4 86)">
+        <rect x="70.4" y="86" width="14" height="8" rx="0.6" fill="#ddc8a3" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="70.8,86.7 77.4,91.2 84,86.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="77.4" cy="90.96" r="1.1" fill="#b46367" />
+      </g>
+      <rect x="72.4" y="93" width="11" height="2.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.35" />
+      <rect x="90.8" y="83" width="19" height="12" fill="#735b50" stroke="#523e3a" stroke-width="0.65" />
+      <g transform="rotate(-2 92.8 86)">
+        <rect x="92.8" y="86" width="14" height="8" rx="0.6" fill="#ddc8a3" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="93.2,86.7 99.8,91.2 106.4,86.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="99.8" cy="90.96" r="1.1" fill="#b46367" />
+      </g>
+      <rect x="94.8" y="93" width="11" height="2.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.35" />
+      <rect x="113.2" y="83" width="19" height="12" fill="#735b50" stroke="#523e3a" stroke-width="0.65" />
+      <rect x="117.2" y="93" width="11" height="2.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.35" />
+      <rect x="135.6" y="83" width="19" height="12" fill="#735b50" stroke="#523e3a" stroke-width="0.65" />
+      <g transform="rotate(-2 137.6 86)">
+        <rect x="137.6" y="86" width="14" height="8" rx="0.6" fill="#ddc8a3" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="138,86.7 144.6,91.2 151.2,86.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="144.6" cy="90.96" r="1.1" fill="#b46367" />
+      </g>
+      <rect x="139.6" y="93" width="11" height="2.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.35" />
+      <rect x="46" y="99" width="19" height="12" fill="#735b50" stroke="#523e3a" stroke-width="0.65" />
+      <g transform="rotate(-2 48.0 102)">
+        <rect x="48" y="102" width="14" height="8" rx="0.6" fill="#ddc8a3" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="48.4,102.7 55,107.2 61.6,102.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="55" cy="106.96" r="1.1" fill="#b46367" />
+      </g>
+      <rect x="50" y="109" width="11" height="2.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.35" />
+      <rect x="68.4" y="99" width="19" height="12" fill="#735b50" stroke="#523e3a" stroke-width="0.65" />
+      <g transform="rotate(-2 70.4 102)">
+        <rect x="70.4" y="102" width="14" height="8" rx="0.6" fill="#ddc8a3" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="70.8,102.7 77.4,107.2 84,102.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="77.4" cy="106.96" r="1.1" fill="#b46367" />
+      </g>
+      <rect x="72.4" y="109" width="11" height="2.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.35" />
+      <rect x="90.8" y="99" width="19" height="12" fill="#735b50" stroke="#523e3a" stroke-width="0.65" />
+      <rect x="94.8" y="109" width="11" height="2.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.35" />
+      <rect x="113.2" y="99" width="19" height="12" fill="#735b50" stroke="#523e3a" stroke-width="0.65" />
+      <g transform="rotate(-2 115.19999999999999 102)">
+        <rect x="115.2" y="102" width="14" height="8" rx="0.6" fill="#ddc8a3" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="115.6,102.7 122.2,107.2 128.8,102.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="122.2" cy="106.96" r="1.1" fill="#b46367" />
+      </g>
+      <rect x="117.2" y="109" width="11" height="2.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.35" />
+      <rect x="135.6" y="99" width="19" height="12" fill="#735b50" stroke="#523e3a" stroke-width="0.65" />
+      <g transform="rotate(-2 137.6 102)">
+        <rect x="137.6" y="102" width="14" height="8" rx="0.6" fill="#ddc8a3" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="138,102.7 144.6,107.2 151.2,102.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="144.6" cy="106.96" r="1.1" fill="#b46367" />
+      </g>
+      <rect x="139.6" y="109" width="11" height="2.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.35" />
+      <rect x="46" y="115" width="19" height="12" fill="#735b50" stroke="#523e3a" stroke-width="0.65" />
+      <g transform="rotate(-2 48.0 118)">
+        <rect x="48" y="118" width="14" height="8" rx="0.6" fill="#ddc8a3" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="48.4,118.7 55,123.2 61.6,118.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="55" cy="122.96" r="1.1" fill="#b46367" />
+      </g>
+      <rect x="50" y="125" width="11" height="2.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.35" />
+      <rect x="68.4" y="115" width="19" height="12" fill="#735b50" stroke="#523e3a" stroke-width="0.65" />
+      <rect x="72.4" y="125" width="11" height="2.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.35" />
+      <rect x="90.8" y="115" width="19" height="12" fill="#735b50" stroke="#523e3a" stroke-width="0.65" />
+      <g transform="rotate(-2 92.8 118)">
+        <rect x="92.8" y="118" width="14" height="8" rx="0.6" fill="#ddc8a3" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="93.2,118.7 99.8,123.2 106.4,118.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="99.8" cy="122.96" r="1.1" fill="#b46367" />
+      </g>
+      <rect x="94.8" y="125" width="11" height="2.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.35" />
+      <rect x="113.2" y="115" width="19" height="12" fill="#735b50" stroke="#523e3a" stroke-width="0.65" />
+      <g transform="rotate(-2 115.19999999999999 118)">
+        <rect x="115.2" y="118" width="14" height="8" rx="0.6" fill="#ddc8a3" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="115.6,118.7 122.2,123.2 128.8,118.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="122.2" cy="122.96" r="1.1" fill="#b46367" />
+      </g>
+      <rect x="117.2" y="125" width="11" height="2.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.35" />
+      <rect x="135.6" y="115" width="19" height="12" fill="#735b50" stroke="#523e3a" stroke-width="0.65" />
+      <rect x="139.6" y="125" width="11" height="2.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.35" />
+      <g class="phase-view phase-dawn" display="none" />
+      <g class="phase-view phase-day" display="none">
+        <polygon points="48,96 66,96 70,103 48,103" fill="#e4b68a" stroke="#523e3a" stroke-width="0.65" />
+        <g transform="rotate(-6 50 95)">
+          <rect x="50" y="95" width="12" height="6" rx="0.6" fill="#f4d9aa" stroke="#523e3a" stroke-width="0.65" />
+          <polyline points="50.4,95.7 56,98.9 61.6,95.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+          <circle cx="56" cy="98.72" r="1.1" fill="#b46367" />
+        </g>
+      </g>
+      <g class="phase-view phase-dusk" display="none" />
+      <g class="phase-view phase-night default-view" display="inline" />
+    </g>
+    <g data-object="长柜台">
+      <rect x="180" y="111" width="202" height="36" rx="2" fill="#70523d" opacity="0.18" />
+      <rect x="177" y="109" width="203" height="33" rx="2" fill="#80917b" stroke="#523e3a" stroke-width="1.15" />
+      <rect x="175" y="106" width="207" height="6" rx="1" fill="#d7a16c" stroke="#523e3a" stroke-width="1" />
+      <rect x="179" y="139" width="199" height="6" fill="#aa7652" stroke="#523e3a" stroke-width="0.8" />
+      <rect x="181" y="143" width="5" height="3" fill="#523e3a" />
+      <rect x="371" y="143" width="5" height="3" fill="#523e3a" />
+      <rect x="182" y="116" width="94.5" height="18" rx="2" fill="none" stroke="#765441" stroke-width="0.7" />
+      <circle cx="272.5" cy="127.36" r="1.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.4" />
+      <rect x="279.5" y="116" width="94.5" height="18" rx="2" fill="none" stroke="#765441" stroke-width="0.7" />
+      <circle cx="283.5" cy="127.36" r="1.4" fill="#e3ae54" stroke="#523e3a" stroke-width="0.4" />
+      <rect x="185" y="116" width="13" height="17" rx="2" fill="none" stroke="#617460" stroke-width="0.6" />
+      <rect x="220" y="116" width="13" height="17" rx="2" fill="none" stroke="#617460" stroke-width="0.6" />
+      <rect x="255" y="116" width="13" height="17" rx="2" fill="none" stroke="#617460" stroke-width="0.6" />
+      <rect x="290" y="116" width="13" height="17" rx="2" fill="none" stroke="#617460" stroke-width="0.6" />
+      <rect x="325" y="116" width="13" height="17" rx="2" fill="none" stroke="#617460" stroke-width="0.6" />
+      <rect x="360" y="116" width="13" height="17" rx="2" fill="none" stroke="#617460" stroke-width="0.6" />
+      <g transform="rotate(-3 191 103)">
+        <rect x="191" y="103" width="19" height="10" rx="0.6" fill="#f1dcba" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="191.4,103.7 200.5,109.5 209.6,103.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="200.5" cy="109.2" r="1.1" fill="#b46367" />
+      </g>
+      <g transform="rotate(-3 194 102)">
+        <rect x="194" y="102" width="19" height="10" rx="0.6" fill="#f1dcba" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="194.4,102.7 203.5,108.5 212.6,102.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="203.5" cy="108.2" r="1.1" fill="#b46367" />
+      </g>
+      <g transform="rotate(-3 197 101)">
+        <rect x="197" y="101" width="19" height="10" rx="0.6" fill="#f1dcba" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="197.4,101.7 206.5,107.5 215.6,101.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="206.5" cy="107.2" r="1.1" fill="#b46367" />
+      </g>
+      <path d="M293.5 107q0.45 4.5 4.5 4.5t4.5 -4.5Z" fill="#bf9966" stroke="#523e3a" stroke-width="0.8" />
+      <ellipse cx="298" cy="107" rx="4.5" ry="1.44" fill="#f4d7ae" stroke="#523e3a" stroke-width="0.8" />
+      <polyline points="295.165,109.79 300.79,109.79" fill="none" stroke="#f1c29b" stroke-width="0.6" />
+    </g>
+    <g data-object="L 形短边">
+      <ellipse cx="368" cy="193" rx="14.7" ry="4" fill="#70523d" opacity="0.2" />
+      <rect x="358" y="134" width="5.8" height="18" rx="0.6" fill="#81917e" stroke="#523e3a" stroke-width="0.95" />
+      <polyline points="359,136 359,150" fill="none" stroke="#e8bb88" stroke-width="0.65" />
+      <rect x="372" y="134" width="5.8" height="18" rx="0.6" fill="#81917e" stroke="#523e3a" stroke-width="0.95" />
+      <polyline points="373,136 373,150" fill="none" stroke="#e8bb88" stroke-width="0.65" />
+      <rect x="357" y="177" width="5.8" height="18" rx="0.6" fill="#81917e" stroke="#523e3a" stroke-width="0.95" />
+      <polyline points="358,179 358,193" fill="none" stroke="#e8bb88" stroke-width="0.65" />
+      <rect x="373" y="177" width="5.8" height="18" rx="0.6" fill="#81917e" stroke="#523e3a" stroke-width="0.95" />
+      <polyline points="374,179 374,193" fill="none" stroke="#e8bb88" stroke-width="0.65" />
+      <rect x="356" y="179" width="24" height="9.72" fill="#81917e" stroke="#523e3a" stroke-width="0.9" />
+      <polyline points="359,183 377,183" fill="none" stroke="#eac099" stroke-width="0.8" />
+      <circle cx="361" cy="181" r="0.7" fill="#e3ae54" />
+      <circle cx="371" cy="181" r="0.7" fill="#e3ae54" />
+      <polygon points="356,131 380,131 383,175 382,179 353,179 353,175" fill="#c2a279" stroke="#523e3a" stroke-width="1.15" />
+      <polyline points="355,176 381,176" fill="none" stroke="#f3d4a6" stroke-width="0.85" />
+      <path d="M358 136q3 -1 6 0t5 0" fill="none" stroke="#553b37" stroke-width="0.55" opacity="0.38" />
+      <path d="M366 143q3 -1 6 0t5 0" fill="none" stroke="#553b37" stroke-width="0.55" opacity="0.38" />
+      <path d="M363 150q3 -1 6 0t5 0" fill="none" stroke="#553b37" stroke-width="0.55" opacity="0.38" />
+      <path d="M360 157q3 -1 6 0t5 0" fill="none" stroke="#553b37" stroke-width="0.55" opacity="0.38" />
+      <g transform="rotate(7 362 148)">
+        <rect x="362" y="148" width="12" height="7" rx="0.6" fill="#f4d9aa" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="362.4,148.7 368,152.55 373.6,148.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="368" cy="152.34" r="1.1" fill="#b46367" />
+      </g>
+    </g>
+    <g data-object="邮戳机工作桌">
+      <ellipse cx="494.5" cy="233" rx="41.65" ry="4" fill="#70523d" opacity="0.2" />
+      <rect x="457" y="189" width="5.8" height="23" rx="0.6" fill="#896b57" stroke="#523e3a" stroke-width="0.95" />
+      <polyline points="458,191 458,210" fill="none" stroke="#e8bb88" stroke-width="0.65" />
+      <rect x="526" y="189" width="5.8" height="23" rx="0.6" fill="#896b57" stroke="#523e3a" stroke-width="0.95" />
+      <polyline points="527,191 527,210" fill="none" stroke="#e8bb88" stroke-width="0.65" />
+      <rect x="456" y="212" width="5.8" height="23" rx="0.6" fill="#896b57" stroke="#523e3a" stroke-width="0.95" />
+      <polyline points="457,214 457,233" fill="none" stroke="#e8bb88" stroke-width="0.65" />
+      <rect x="527" y="212" width="5.8" height="23" rx="0.6" fill="#896b57" stroke="#523e3a" stroke-width="0.95" />
+      <polyline points="528,214 528,233" fill="none" stroke="#e8bb88" stroke-width="0.65" />
+      <rect x="455" y="214" width="79" height="12.42" fill="#896b57" stroke="#523e3a" stroke-width="0.9" />
+      <polyline points="458,218 531,218" fill="none" stroke="#eac099" stroke-width="0.8" />
+      <circle cx="460" cy="216" r="0.7" fill="#e3ae54" />
+      <circle cx="525" cy="216" r="0.7" fill="#e3ae54" />
+      <polygon points="455,186 534,186 537,210 536,214 452,214 452,210" fill="#c9a17b" stroke="#523e3a" stroke-width="1.15" />
+      <polyline points="454,211 535,211" fill="none" stroke="#f3d4a6" stroke-width="0.85" />
+      <path d="M457 191q3 -1 6 0t5 0" fill="none" stroke="#553b37" stroke-width="0.55" opacity="0.38" />
+      <path d="M476 198q3 -1 6 0t5 0" fill="none" stroke="#553b37" stroke-width="0.55" opacity="0.38" />
+      <path d="M495 205q3 -1 6 0t5 0" fill="none" stroke="#553b37" stroke-width="0.55" opacity="0.38" />
+      <path d="M514 196q3 -1 6 0t5 0" fill="none" stroke="#553b37" stroke-width="0.55" opacity="0.38" />
+      <path d="M467 203q3 -1 6 0t5 0" fill="none" stroke="#553b37" stroke-width="0.55" opacity="0.38" />
+      <rect x="459" y="197" width="27" height="9" rx="1" fill="#e6cfaa" stroke="#523e3a" stroke-width="0.6" />
+      <g transform="rotate(-5 462 196)">
+        <rect x="462" y="196" width="21" height="10" rx="0.6" fill="#f4d9aa" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="462.4,196.7 472.5,202.5 482.6,196.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="472.5" cy="202.2" r="1.1" fill="#b46367" />
+      </g>
+      <rect x="498" y="198" width="23" height="8" rx="1.5" fill="#73857d" stroke="#523e3a" stroke-width="0.9" />
+      <path d="M503 199v-13q0-4 5-5h9v5h-9v14Z" fill="#8b9c8a" stroke="#523e3a" stroke-width="0.9" />
+      <polyline points="514,184 526,175" fill="none" stroke="#523e3a" stroke-width="2.2" />
+      <circle cx="526" cy="175" r="3.4" fill="#a85f5d" stroke="#523e3a" stroke-width="0.7" />
+      <rect x="511" y="185" width="6" height="8" fill="#b79d6a" stroke="#523e3a" stroke-width="0.65" />
+      <ellipse cx="514" cy="195" rx="5" ry="1.6" fill="#c89676" stroke="#523e3a" stroke-width="0.55" />
+      <path d="M529 175h7v5" fill="none" stroke="#523e3a" stroke-width="1.3" />
+      <rect x="527" y="172" width="3" height="7" fill="#aa7652" stroke="#523e3a" stroke-width="0.7" />
+      <g class="phase-view phase-dawn" display="none">
+        <polygon points="532,180 540,180 539.2,190 532.8,190" fill="#a4a59a" stroke="#523e3a" stroke-width="0.85" />
+        <path d="M536 180v10" fill="none" stroke="#e2a65e" stroke-width="0.7" />
+      </g>
+      <g class="phase-view phase-day" display="none">
+        <polygon points="532,180 540,180 539.2,190 532.8,190" fill="#a4a59a" stroke="#523e3a" stroke-width="0.85" />
+        <path d="M536 180v10" fill="none" stroke="#e2a65e" stroke-width="0.7" />
+      </g>
+      <g class="phase-view phase-dusk" display="none">
+        <polygon points="532,180 540,180 539.2,190 532.8,190" fill="#a4a59a" stroke="#523e3a" stroke-width="0.85" />
+        <path d="M536 180v10" fill="none" stroke="#e2a65e" stroke-width="0.7" />
+      </g>
+      <g class="phase-view phase-night default-view" display="inline">
+        <ellipse cx="536" cy="186" rx="14" ry="13" fill="#ffeab2" opacity="0.28" />
+        <polygon points="532,180 540,180 539.2,190 532.8,190" fill="#ffdc92" stroke="#523e3a" stroke-width="0.85" />
+        <ellipse cx="536" cy="186" rx="1.35" ry="3" fill="#fff8c8" />
+        <path d="M536 180v10" fill="none" stroke="#e2a65e" stroke-width="0.7" />
+      </g>
+      <polygon points="531,180 536,176 541,180" fill="#e2a65e" stroke="#523e3a" stroke-width="0.75" />
+      <rect x="532.5" y="190" width="7" height="1.8" fill="#523e3a" />
+    </g>
+    <g data-object="木等候椅">
+      <rect x="226" y="303" width="4" height="17" fill="#aa7652" stroke="#523e3a" stroke-width="0.9" />
+      <rect x="258" y="303" width="4" height="17" fill="#aa7652" stroke="#523e3a" stroke-width="0.9" />
+      <rect x="225" y="282" width="38" height="22" rx="4" fill="#aa7652" stroke="#523e3a" stroke-width="1" />
+      <rect x="228" y="285" width="32" height="15" rx="3" fill="#9baf92" stroke="#523e3a" stroke-width="0.65" />
+      <polygon points="226,300 261,300 265,312 223,312" fill="#9baf92" stroke="#523e3a" stroke-width="1" />
+      <rect x="223" y="311" width="42" height="4" rx="1" fill="#d7a16c" stroke="#523e3a" stroke-width="0.85" />
+    </g>
+    <g data-object="信袋底">
+      <path d="M513 316q-8-4-5-14l6-13-3-5 11-2-2 7 9 15q3 9-4 12Z" fill="#ceb387" stroke="#523e3a" stroke-width="1" />
+      <polyline points="513,290 521,289" fill="none" stroke="#956e57" stroke-width="1.4" />
+      <g transform="rotate(3 513 301)">
+        <rect x="513" y="301" width="9" height="5" rx="0.6" fill="#f4d9aa" stroke="#523e3a" stroke-width="0.65" />
+        <polyline points="513.4,301.7 517.5,304.25 521.6,301.7" fill="none" stroke="#9c735e" stroke-width="0.65" />
+        <circle cx="517.5" cy="304.1" r="1.1" fill="#b46367" />
+      </g>
+    </g>
+    <g data-object="待寄包裹柜" stroke="#604b46" stroke-width=".75">
+      <ellipse cx="332" cy="321" rx="35" ry="4.5" fill="#725142" stroke="none" opacity=".24"/>
+      <path d="M301 305h62v17h-62Z" fill="#698677"/>
+      <rect x="305" y="309" width="54" height="10" rx="1" fill="#9ea385"/>
+      <path d="M301 292h62l4 10v3h-70v-3Z" fill="#c8ae87"/>
+      <path d="M302 286h26v14h-26Zm7-9h17v10h-17Zm23 6h29v18h-29Z" fill="#ddb88a"/>
+      <path d="M319 278v8m-9-4h15m-11 5v12m-11-6h24m20-9v16m-14-8h27" stroke="#a76560" fill="none"/>
+      <path d="M304 295h7v3h-7Zm30 0h8v4h-8Z" fill="#f2d2a8" stroke="none"/>
+    </g>
+  </g>
+  <g id="room-light" clip-path="url(#inside)">
+    <g class="phase-view phase-dawn" display="none">
+      <rect x="24" y="51" width="552" height="297" fill="#ffd598" opacity="0.09" />
+    </g>
+    <g class="phase-view phase-day" display="none">
+      <rect x="24" y="51" width="552" height="297" fill="#fff3cb" opacity="0.025" />
+    </g>
+    <g class="phase-view phase-dusk" display="none">
+      <rect x="24" y="51" width="552" height="297" fill="#df8e77" opacity="0.1" />
+      <ellipse cx="496" cy="199" rx="81" ry="53" fill="url(#light-pool)" opacity="0.29" />
+    </g>
+    <g class="phase-view phase-night default-view" display="inline">
+      <rect x="24" y="51" width="552" height="297" fill="#394463" opacity="0.27" />
+      <ellipse cx="496" cy="199" rx="81" ry="53" fill="url(#light-pool)" opacity="0.58" />
+    </g>
+  </g>
+  <g id="footprints" fill="#66402c" fill-opacity="0.09" stroke="#66402c" stroke-opacity="0.78" stroke-width="0.9" stroke-dasharray="2 2">
+    <polygon points="45,132 156,132 160,135 160,143 156,146 45,146 42,143 42,135" data-name="分信格柜底" />
+    <polygon points="181,132 375,132 379,135 379,143 375,146 181,146 178,143 178,135" data-name="长柜台" />
+    <polygon points="360,151 375,151 379,154 379,193 375,196 360,196 357,193 357,154" data-name="L 形短边" />
+    <polygon points="459,211 529,211 533,214 533,233 529,236 459,236 456,233 456,214" data-name="邮戳机工作桌" />
+    <polygon points="228,304 259,304 263,307 263,318 259,321 228,321 225,318 225,307" data-name="木等候椅" />
+    <polygon points="511,307 524,307 528,310 528,314 524,317 511,317 508,314 508,310" data-name="信袋底" />
+    <polygon points="304,302 360,302 363,305 363,319 360,322 304,322 301,319 301,305" data-name="待寄包裹柜" />
+  </g>
+  <g id="walking-routes">
+    <polyline points="148,336 148,263" fill="none" stroke="#fff6dd" stroke-width="3.7" opacity="0.95" />
+    <polyline points="148,336 148,263" fill="none" stroke="#195b61" stroke-width="1.8" stroke-dasharray="4 4" data-route="walk" />
+    <g transform="translate(148.0 295.12) rotate(-90.0)">
+      <path d="M-3 -3.2L1.4 0 -3 3.2" fill="none" stroke="#fff6dd" stroke-width="3.7" />
+      <path d="M-3 -3.2L1.4 0 -3 3.2" fill="none" stroke="#195b61" stroke-width="1.9" />
+    </g>
+    <polyline points="148,263 94,226 94,172" fill="none" stroke="#fff6dd" stroke-width="3.7" opacity="0.95" />
+    <polyline points="148,263 94,226 94,172" fill="none" stroke="#195b61" stroke-width="1.8" stroke-dasharray="4 4" data-route="walk" />
+    <g transform="translate(117.75999999999999 242.28) rotate(-145.5816355209438)">
+      <path d="M-3 -3.2L1.4 0 -3 3.2" fill="none" stroke="#fff6dd" stroke-width="3.7" />
+      <path d="M-3 -3.2L1.4 0 -3 3.2" fill="none" stroke="#195b61" stroke-width="1.9" />
+    </g>
+    <g class="phase-view phase-day" display="none">
+      <polyline points="94,226 123,205 123,185" fill="none" stroke="#fff6dd" stroke-width="3.7" opacity="0.95" />
+      <polyline points="94,226 123,205 123,185" fill="none" stroke="#195b61" stroke-width="1.8" stroke-dasharray="4 4" data-route="walk" data-shift="day" />
+      <g transform="translate(110.24000000000001 214.24) rotate(-35.90972307917768)">
+        <path d="M-3 -3.2L1.4 0 -3 3.2" fill="none" stroke="#fff6dd" stroke-width="3.7" />
+        <path d="M-3 -3.2L1.4 0 -3 3.2" fill="none" stroke="#195b61" stroke-width="1.9" />
+      </g>
+    </g>
+    <polyline points="148,263 373,263" fill="none" stroke="#fff6dd" stroke-width="3.7" opacity="0.95" />
+    <polyline points="148,263 373,263" fill="none" stroke="#195b61" stroke-width="1.8" stroke-dasharray="4 4" data-route="walk" />
+    <g transform="translate(274.0 263.0) rotate(0.0)">
+      <path d="M-3 -3.2L1.4 0 -3 3.2" fill="none" stroke="#fff6dd" stroke-width="3.7" />
+      <path d="M-3 -3.2L1.4 0 -3 3.2" fill="none" stroke="#195b61" stroke-width="1.9" />
+    </g>
+    <polyline points="373,263 464,263 475,252" fill="none" stroke="#fff6dd" stroke-width="3.7" opacity="0.95" />
+    <polyline points="373,263 464,263 475,252" fill="none" stroke="#195b61" stroke-width="1.8" stroke-dasharray="4 4" data-route="walk" />
+    <g transform="translate(423.96000000000004 263.0) rotate(0.0)">
+      <path d="M-3 -3.2L1.4 0 -3 3.2" fill="none" stroke="#fff6dd" stroke-width="3.7" />
+      <path d="M-3 -3.2L1.4 0 -3 3.2" fill="none" stroke="#195b61" stroke-width="1.9" />
+    </g>
+    <g class="phase-view phase-night default-view" display="inline">
+      <polyline points="373,263 416,220 433,204 433,180" fill="none" stroke="#fff6dd" stroke-width="3.7" opacity="0.95" />
+      <polyline points="373,263 416,220 433,204 433,180" fill="none" stroke="#195b61" stroke-width="1.8" stroke-dasharray="4 4" data-route="walk" data-shift="night" />
+      <g transform="translate(397.08 238.92) rotate(-45.0)">
+        <path d="M-3 -3.2L1.4 0 -3 3.2" fill="none" stroke="#fff6dd" stroke-width="3.7" />
+        <path d="M-3 -3.2L1.4 0 -3 3.2" fill="none" stroke="#195b61" stroke-width="1.9" />
+      </g>
+    </g>
+  </g>
+  <g id="residents-and-scale">
+    <g class="phase-view phase-night default-view" display="inline">
+      <circle cx="433" cy="180" r="4.2" fill="#fff6dd" stroke="#195b61" stroke-width="1.5" />
+      <circle cx="433" cy="180" r="1.6" fill="#195b61" />
+      <ellipse cx="117" cy="156" rx="5" ry="2.6" fill="#fff6dd" stroke="#195b61" stroke-width="1.3" />
+      <ellipse cx="429" cy="155" rx="9" ry="3" fill="#624d3d" opacity="0.27" />
+      <ellipse cx="429" cy="155.5" rx="4.2" ry="2.2" fill="#195b61" stroke="#fff6dd" stroke-width="0.65" />
+      <use href="#resident-art" transform="translate(429 155)" data-resident="红笺" />
+    </g>
+    <g class="phase-view phase-day" display="none">
+      <circle cx="123" cy="185" r="4.2" fill="#fff6dd" stroke="#195b61" stroke-width="1.5" />
+      <circle cx="123" cy="185" r="1.6" fill="#195b61" />
+      <ellipse cx="429" cy="155" rx="5" ry="2.6" fill="#fff6dd" stroke="#195b61" stroke-width="1.3" />
+      <ellipse cx="117" cy="156" rx="9" ry="3" fill="#624d3d" opacity="0.27" />
+      <ellipse cx="117" cy="156.5" rx="4.2" ry="2.2" fill="#195b61" stroke="#fff6dd" stroke-width="0.65" />
+      <use href="#resident-art" transform="translate(117 156)" data-resident="红笺" />
+    </g>
+    <ellipse cx="148" cy="336" rx="9.5" ry="3" fill="#624d3d" opacity="0.3" />
+    <image href="data:image/png;base64,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" x="133.015" y="293.521" width="29.97" height="42.479" preserveAspectRatio="none" />
+  </g>
+  <g id="map-labels">
+    <g data-object-label="2">
+      <rect x="46.45" y="123" width="49.1" height="16" rx="3" fill="#fff3d9" stroke="#614a42" stroke-width="0.9" />
+      <circle cx="54.45" cy="131" r="5.3" fill="#195b61" stroke="#fff6dd" stroke-width="0.9" />
+      <text x="54.45" y="133.8" fill="#fff8df" font-size="8.1" font-weight="700" text-anchor="middle" font-family="Arial, sans-serif">2</text>
+      <text x="61.45" y="134.6" fill="#3e3637" font-size="10.2" font-weight="650" text-anchor="start">分信格</text>
+    </g>
+    <g data-object-label="1">
+      <rect x="467.45" y="212" width="49.1" height="16" rx="3" fill="#fff3d9" stroke="#614a42" stroke-width="0.9" />
+      <circle cx="475.45" cy="220" r="5.3" fill="#195b61" stroke="#fff6dd" stroke-width="0.9" />
+      <text x="475.45" y="222.8" fill="#fff8df" font-size="8.1" font-weight="700" text-anchor="middle" font-family="Arial, sans-serif">1</text>
+      <text x="482.45" y="223.6" fill="#3e3637" font-size="10.2" font-weight="650" text-anchor="start">邮戳机</text>
+    </g>
+    <g data-stop="1">
+      <circle cx="475" cy="252" r="6" fill="#195b61" stroke="#fff6dd" stroke-width="0.9" />
+      <text x="475" y="254.8" fill="#fff8df" font-size="8.1" font-weight="700" text-anchor="middle" font-family="Arial, sans-serif">1</text>
+    </g>
+    <g data-stop="2">
+      <circle cx="94" cy="172" r="6" fill="#195b61" stroke="#fff6dd" stroke-width="0.9" />
+      <text x="94" y="174.8" fill="#fff8df" font-size="8.1" font-weight="700" text-anchor="middle" font-family="Arial, sans-serif">2</text>
+    </g>
+    <g class="phase-view phase-night default-view" display="inline">
+      <text x="125" y="160" fill="#195b61" font-size="8.8" font-weight="700" text-anchor="start" paint-order="stroke" stroke="#fff6dd" stroke-width="2.5">白昼</text>
+      <rect x="443" y="142" width="46.8" height="13" rx="2.5" fill="#32575a" stroke="#fff6dd" stroke-width="0.65" data-nameplate="红笺" />
+      <text x="466.4" y="151.3" fill="#fff6df" font-size="8.5" font-weight="650" text-anchor="middle">红笺 · 星夜</text>
+    </g>
+    <g class="phase-view phase-day" display="none">
+      <text x="437" y="158" fill="#195b61" font-size="8.8" font-weight="700" text-anchor="start" paint-order="stroke" stroke="#fff6dd" stroke-width="2.5">星夜</text>
+      <rect x="129" y="138" width="46.8" height="13" rx="2.5" fill="#32575a" stroke="#fff6dd" stroke-width="0.65" data-nameplate="红笺" />
+      <text x="152.4" y="147.3" fill="#fff6df" font-size="8.5" font-weight="650" text-anchor="middle">红笺 · 白昼</text>
+    </g>
+  </g>
+  <g id="key">
+    <polyline points="19,367 581,367" fill="none" stroke="#b6a589" stroke-width="0.8" />
+    <g class="phase-view phase-dawn" display="none">
+      <text x="115" y="25" fill="#625c50" font-size="9.2" font-weight="550" text-anchor="start">清晨 · 送信</text>
+    </g>
+    <g class="phase-view phase-day" display="none">
+      <text x="115" y="25" fill="#625c50" font-size="9.2" font-weight="550" text-anchor="start">白昼 · 室内</text>
+    </g>
+    <g class="phase-view phase-dusk" display="none">
+      <text x="115" y="25" fill="#625c50" font-size="9.2" font-weight="550" text-anchor="start">黄昏 · 收信</text>
+    </g>
+    <g class="phase-view phase-night default-view" display="inline">
+      <text x="115" y="25" fill="#625c50" font-size="9.2" font-weight="550" text-anchor="start">星夜 · 室内</text>
+    </g>
+    <a href="#dawn" aria-label="清晨，翻出发牌">
+      <title>查看清晨室内图</title>
+      <rect x="18" y="369" width="140" height="29" rx="3" fill="#f8f0df" />
+      <g class="phase-view phase-dawn" display="none">
+        <rect x="18" y="369" width="139" height="29" rx="3" fill="#e8dfc9" />
+        <rect x="19" y="372" width="2" height="22" rx="1" fill="#195b61" />
+      </g>
+      <g transform="translate(24 371)">
+        <rect x="2" y="4" width="23" height="16" fill="#a2775a" stroke="#523e3a" stroke-width="0.75" />
+        <rect x="4" y="7" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="4" y="12" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="11" y="7" width="5" height="3" fill="#5f6357" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="11" y="12" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="18" y="7" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="18" y="12" width="5" height="3" fill="#5f6357" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="8" y="16" width="11" height="5" fill="#b06d65" stroke="#523e3a" stroke-width="0.5" />
+      </g>
+      <text x="61" y="380" fill="#74614f" font-size="8.3" font-weight="500" text-anchor="start">清晨</text>
+      <text x="61" y="393" fill="#443b3b" font-size="10.3" font-weight="650" text-anchor="start">翻出发牌</text>
+    </a>
+    <a href="#day" aria-label="白昼，开格分信">
+      <title>查看白昼室内图</title>
+      <rect x="160" y="369" width="140" height="29" rx="3" fill="#f8f0df" />
+      <g class="phase-view phase-day" display="none">
+        <rect x="160" y="369" width="139" height="29" rx="3" fill="#e8dfc9" />
+        <rect x="161" y="372" width="2" height="22" rx="1" fill="#195b61" />
+      </g>
+      <g transform="translate(166 371)">
+        <rect x="2" y="4" width="23" height="16" fill="#a2775a" stroke="#523e3a" stroke-width="0.75" />
+        <rect x="4" y="7" width="5" height="3" fill="#5f6357" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="4" y="12" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="11" y="7" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="11" y="12" width="5" height="3" fill="#5f6357" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="18" y="7" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="18" y="12" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="8" y="16" width="11" height="5" fill="#749484" stroke="#523e3a" stroke-width="0.5" />
+      </g>
+      <text x="203" y="380" fill="#74614f" font-size="8.3" font-weight="500" text-anchor="start">白昼</text>
+      <text x="203" y="393" fill="#443b3b" font-size="10.3" font-weight="650" text-anchor="start">开格分信</text>
+    </a>
+    <a href="#dusk" aria-label="黄昏，收件灯亮">
+      <title>查看黄昏室内图</title>
+      <rect x="302" y="369" width="140" height="29" rx="3" fill="#f8f0df" />
+      <g class="phase-view phase-dusk" display="none">
+        <rect x="302" y="369" width="139" height="29" rx="3" fill="#e8dfc9" />
+        <rect x="303" y="372" width="2" height="22" rx="1" fill="#195b61" />
+      </g>
+      <g transform="translate(308 371)">
+        <rect x="2" y="4" width="23" height="16" fill="#a2775a" stroke="#523e3a" stroke-width="0.75" />
+        <rect x="4" y="7" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="4" y="12" width="5" height="3" fill="#5f6357" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="11" y="7" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="11" y="12" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="18" y="7" width="5" height="3" fill="#5f6357" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="18" y="12" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <path d="M20 14l3 -7h6l3 7Z" fill="#f6cf7b" stroke="#523e3a" stroke-width="0.8" />
+        <polyline points="26,14 26,21 23,21 29,21" fill="none" stroke="#523e3a" stroke-width="1.1" />
+        <ellipse cx="26" cy="14.7" rx="3.7" ry="1" fill="#fff3bd" />
+      </g>
+      <text x="345" y="380" fill="#74614f" font-size="8.3" font-weight="500" text-anchor="start">黄昏</text>
+      <text x="345" y="393" fill="#443b3b" font-size="10.3" font-weight="650" text-anchor="start">收件灯亮</text>
+    </a>
+    <a href="#night" aria-label="星夜，封邮台灯亮">
+      <title>查看星夜室内图</title>
+      <rect x="444" y="369" width="140" height="29" rx="3" fill="#f8f0df" />
+      <g class="phase-view phase-night default-view" display="inline">
+        <rect x="444" y="369" width="139" height="29" rx="3" fill="#e8dfc9" />
+        <rect x="445" y="372" width="2" height="22" rx="1" fill="#195b61" />
+      </g>
+      <g transform="translate(450 371)">
+        <rect x="2" y="4" width="23" height="16" fill="#a2775a" stroke="#523e3a" stroke-width="0.75" />
+        <rect x="4" y="7" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="4" y="12" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="11" y="7" width="5" height="3" fill="#5f6357" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="11" y="12" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="18" y="7" width="5" height="3" fill="#f1d5ac" stroke="#523e3a" stroke-width="0.4" />
+        <rect x="18" y="12" width="5" height="3" fill="#5f6357" stroke="#523e3a" stroke-width="0.4" />
+        <path d="M20 14l3 -7h6l3 7Z" fill="#f6cf7b" stroke="#523e3a" stroke-width="0.8" />
+        <polyline points="26,14 26,21 23,21 29,21" fill="none" stroke="#523e3a" stroke-width="1.1" />
+        <ellipse cx="26" cy="14.7" rx="3.7" ry="1" fill="#fff3bd" />
+      </g>
+      <text x="487" y="380" fill="#74614f" font-size="8.3" font-weight="500" text-anchor="start">星夜</text>
+      <text x="487" y="393" fill="#443b3b" font-size="10.3" font-weight="650" text-anchor="start">封邮台灯亮</text>
+    </a>
+  </g>
+  <metadata id="review-geometry">{"floor":[[25,116],[575,116],[575,347],[178,347],[178,362],[118,362],[118,347],[25,347]],"spawn":[148,336],"exit":[148,352],"street":{"arrival":[253,627],"threshold":[253,621],"halfWidth":5},"actions":[{"anchor":[492,235],"approach":[475,252]},{"anchor":[94,146],"approach":[94,172]}],"resident":"post","shifts":{"night":{"foot":[429,155],"approach":[433,180]},"day":{"foot":[117,156],"approach":[123,185]}}}</metadata>
+</svg>

@@ -1,4 +1,5 @@
 import { World, scenes, type SceneId } from "../src/world";
+import { arriveOnShift, scheduledResident } from "./resident-visits";
 import { interactionHitY } from "../src/interaction";
 import type { Point } from "../src/core";
 
@@ -47,7 +48,14 @@ async function visit(scene: SceneId, id?: string, position?: Point) {
   blocked.clear(); world.clearInput();
   await world.prepareScene(scene);
   const config = scene === "town" ? world.townMap : scenes[scene];
-  world.switchScene(scene, position ?? (id ? config.spots.find(s => s.id === id)?.approach : config.spawn));
+  if (!position && id && scheduledResident(id)) {
+    // The bench advances the actual clock even when this fixture records clicks.
+    const previous = world.onInteract;
+    try {
+      world.onInteract = interact;
+      await arriveOnShift(world, scene, id);
+    } finally { world.onInteract = previous; }
+  } else world.switchScene(scene, position ?? (id ? config.spots.find(s => s.id === id)?.approach : config.spawn));
   world.setCueInput("keyboard");
   await frame();
   return snapshot();

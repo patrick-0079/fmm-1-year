@@ -13,6 +13,7 @@ import "./ruin-journal.css";
 import "./launch/cursors.css";
 import "./fufu-cursors.css";
 import "./page-journal.css";
+import "./scene-transition.css";
 import { achievementBookMarkup } from "./achievement-book";
 import { helpMarkup } from "./help";
 import { albumCoverPhoto, albumStampPhoto } from "./album-catalog";
@@ -22,7 +23,7 @@ import meadowCover from "./assets/night-meadow-v16.webp";
 import { anniversary, collections } from "./content";
 import { EVENT_IDS } from "./core";
 import { escapeHtml, icon } from "./icons";
-import { prepareTextureCache } from "./texture-cache";
+import { scheduleResourcePreload } from "./texture-cache";
 import roomUrl from "./assets/room-interactive.webp";
 import spriteUrl from "./assets/nemu-sprites.webp";
 
@@ -63,8 +64,19 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
             <div class="scene-top"><span class="location-pill">${icon("moon")} <span id="location-name">ROOM 01 · 晚安小屋</span></span><span class="time-pill" role="timer" aria-live="off">☀ 08:00 · 白昼</span></div>
             <section class="cinema-hud" aria-label="花园小电视放映控制" hidden></section><div class="activity-hud" hidden><div class="activity-heading"><span class="activity-status" role="status" aria-live="polite"></span><button class="activity-close" aria-label="结束当前互动，回到地图">收起 ×</button></div><div class="activity-actions"></div></div><div class="rest-tools" hidden><span></span><button class="camp-letter map-action" type="button" aria-label="读派大星的来信" hidden>读来信</button><button class="stand-up map-action">起身 <kbd>E</kbd></button></div><button class="bed-note-pin map-tool" hidden>♡ 床边便签</button><article class="bed-note" aria-label="小叶子的床边便签" hidden></article>
             <div class="ruin-stamp-flash" role="status" aria-live="polite" aria-atomic="true" hidden></div>
-            <div class="intro-screen"><div class="intro-stars">✧ <span>✦</span> ✧</div><span class="intro-pill">芙眠眠 · 直播一周年纪念</span><h2>今晚的快乐，<br>等你来发现。</h2><p>一间温暖小屋，两座缤纷花园，<br>还有东北山洞深处的回声遗迹。<br>和藏在街角的，一点点喜欢。</p><button class="button primary enter-button" disabled>正在点亮小世界…</button><small>点击开始会播放轻柔音乐 · 可随时关闭 ♡</small></div>
-            <section class="game-letter-reader" aria-label="在游戏中阅读晚安信箱" hidden></section><div class="scene-transition" aria-hidden="true"></div>
+            <div class="intro-screen"><div class="intro-stars">✧ <span>✦</span> ✧</div><span class="intro-pill">芙眠眠 · 直播一周年纪念</span><h2>今晚的快乐，<br>等你来发现。</h2><p>一间温暖小屋，两座缤纷花园，<br>还有东北山洞深处的回声遗迹。<br>和藏在街角的，一点点喜欢。</p>
+              <button class="button primary enter-button" disabled>正在点亮小世界…<span class="scene-loading-track" aria-hidden="true"><span class="scene-loading-fill"></span></span></button><small>点击开始会播放轻柔音乐 · 可随时关闭 ♡</small>
+            </div>
+            <section class="game-letter-reader" aria-label="在游戏中阅读晚安信箱" hidden></section>
+            <div class="scene-transition">
+              <div class="scene-transition-card" aria-hidden="true">
+                <div class="scene-transition-art"><span class="scene-transition-star"><span class="scene-transition-face"></span></span></div>
+                <span class="scene-transition-label">正在前往</span>
+                <strong class="scene-transition-destination"></strong>
+                <span class="scene-loading-track"><span class="scene-loading-fill"></span></span>
+              </div>
+              <span class="scene-transition-status" role="status"></span>
+            </div>
             <button class="bag-toggle" type="button" aria-label="打开纪念背包，快捷键 B" aria-controls="inventory-panel" aria-expanded="false" aria-keyshortcuts="B" title="背包（B）"><span class="bag-trigger-art" aria-hidden="true"></span><kbd aria-hidden="true">B</kbd></button>
             <section id="inventory-panel" class="inventory-panel" aria-label="芙芙的背包" hidden></section>
           </div>
@@ -100,14 +112,14 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 
 document.querySelector(".inline-help")!.innerHTML = helpMarkup;
 // The paper cards render before the deferred game module. Do not present live
-// buttons without handlers while that module (or the cache worker) is loading.
+// buttons without handlers while that module is loading.
 const startupButtons = [...document.querySelectorAll<HTMLButtonElement>("#app button:not([disabled])")];
 for (const button of startupButtons) button.disabled = true;
 document.querySelector("#app")!.setAttribute("aria-busy", "true");
-void prepareTextureCache().then(() => import("./application")).then(({mountGame}) => {
+void import("./application").then(({mountGame}) => {
   for (const button of startupButtons) button.disabled = false;
   mountGame();
-  scheduleAlbumPreviews(collections.album.items);
+  scheduleResourcePreload(() => scheduleAlbumPreviews(collections.album.items));
   document.querySelector("#app")!.removeAttribute("aria-busy");
 })
   .catch(() => {

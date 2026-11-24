@@ -64,6 +64,40 @@ run.addEventListener("click",async()=>{
         demo.src=source;await audible(demo,()=>voice.listen());assert(!demo.error,"示范仍处于错误状态");
       }finally{voice.stop();host.remove();}
     });
+    await check("同音重拨与换弦时，真实混音波形没有截断前音的尖峰", async () => {
+      await context.audioWorklet.addModule("/tests/bass-edge-meter.js");
+      const {voice,host,note}=create();
+      const meter = new AudioWorkletNode(context, "bass-edge-meter");
+      meter.connect(context.destination);
+      const connect = (audio: HTMLAudioElement) => context.createMediaElementSource(audio).connect(meter);
+      host.querySelectorAll("audio").forEach(connect);
+      const observer = new MutationObserver(records => {
+        for (const record of records) for (const node of record.addedNodes)
+          if (node instanceof HTMLAudioElement) connect(node);
+      });
+      observer.observe(host, { childList: true });
+      const readJump = () => new Promise<number>(resolve => {
+        meter.port.onmessage = event => resolve(event.data);
+        meter.port.postMessage("read");
+      });
+      try {
+        voice.setMix({enabled:true, volume:.8});
+        voice.note(31);
+        await wait(() => note.ended);
+        await pause(100);
+        const solo = await readJump();
+        assert(solo > .01, "没有测到单音");
+        for (let i=0; i<18; i++) {
+          voice.note(i%5===0 ? 28 : 31);
+          await pause(72 + i%7*9);
+        }
+        const repeated = await readJump();
+        assert(repeated > .01 && repeated < solo * 3 + .02,
+          `换弦出现突变，单拨 ${solo.toFixed(3)}、连拨 ${repeated.toFixed(3)}`);
+      } finally {
+        observer.disconnect(); meter.disconnect(); meter.port.close(); voice.stop(); host.remove();
+      }
+    });
     await check("快速乱弹与反复停止不误报取消，最后一音有声；停下后没有残留音",async()=>{
       const {voice,host,note,failures}=create();
       try{for(let i=0;i<80;i++){voice.note([31,35,38,43][i%4]);if(i%7===0)voice.stop();await pause(5);}

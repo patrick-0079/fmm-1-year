@@ -1,7 +1,9 @@
 // Original, locally synthesized music and effects. No downloads or audio service.
-import type { SceneId } from "./maps";
+import type { BaseSceneId, SceneId } from "./maps";
+import { isTownInterior } from "./town-interior-id";
 import type { FoxCall } from "./fox-memory";
 import { createLullaby, eighthLength, lullabyPulses } from "./lullaby";
+import type { RadioTrack } from "./town-keepsakes";
 let context: AudioContext | undefined;
 let master: GainNode | undefined;
 let music: GainNode | undefined;
@@ -9,8 +11,8 @@ let effects: GainNode | undefined;
 let enabled = true,
   bgm = true,
   volume = 0.45;
-const quietFor = new Set<"cinema" | "bass">();
-let scene: SceneId = "room",
+const quietFor = new Set<"cinema" | "bass" | "town-radio">();
+let scene: BaseSceneId = "room",
   nextNote = 0,
   step = 0;
 let scheduler: ReturnType<typeof setInterval> | undefined;
@@ -96,11 +98,51 @@ export function setVolume(value: number) {
   levels();
 }
 export function setMusicScene(value: SceneId) {
-  scene = value;
+  scene = isTownInterior(value) ? "room" : value;
 }
-export function duckMusic(value: boolean, source: "cinema" | "bass" = "cinema") {
+export function duckMusic(value: boolean, source: "cinema" | "bass" | "town-radio" = "cinema") {
   if (value) quietFor.add(source); else quietFor.delete(source);
   levels();
+}
+
+export const townRadioDuration = 2.2;
+export function playTownRadio(track?: RadioTrack) {
+  if (!context || !effects || !enabled || !volume || document.hidden || context.state !== "running") return;
+  const bus = context.createGain();
+  bus.connect(effects);
+  const start = context.currentTime + .035;
+  duckMusic(true, "town-radio");
+  if (track === "creek") {
+    const buffer = context.createBuffer(1, Math.ceil(context.sampleRate * townRadioDuration), context.sampleRate);
+    const samples = buffer.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < samples.length; i++) {
+      const t = i / context.sampleRate;
+      last = last * .94 + (Math.random() * 2 - 1) * .06;
+      samples[i] = last * (.33 + .1 * Math.sin(29 * t)) * Math.sin(Math.PI * i / samples.length);
+    }
+    const water = context.createBufferSource();
+    water.buffer = buffer;
+    water.connect(bus);
+    water.start(start);
+    water.onended = () => water.disconnect();
+  } else if (track === "bells") {
+    [88, 83, 91].forEach((pitch, i) => tone(pitch, start + .23 * i, .64, .075, bus));
+  }
+  [64, 67, 71, 74, 72].forEach((pitch, i) => tone(pitch, start + .12 + .29 * i, .7, .15, bus));
+  let active = true;
+  const stop = () => {
+    if (!active) return;
+    active = false;
+    clearTimeout(end);
+    bus.disconnect();
+    duckMusic(false, "town-radio");
+    document.removeEventListener("visibilitychange", onVisibility);
+  };
+  const onVisibility = () => { if (document.hidden) stop(); };
+  const end = setTimeout(stop, (townRadioDuration + .1) * 1000);
+  document.addEventListener("visibilitychange", onVisibility);
+  return stop;
 }
 const echoNotes: Record<string, number[]> = {
   "echo-leaf": [64], "echo-bell": [67], "echo-star": [71],

@@ -1,3 +1,6 @@
+import { ruinsForeground } from "./ruins-foreground";
+import { visibleMapCovers } from "./map-covers";
+import { mapFragment } from "./map-fragment";
 import { arcadesIn } from "./town-data";
 import { echoes, melody, playEcho, trialEcho, type Echo, type EchoMemory } from "./echoes";
 import { townEchoGate, echoAltar, echoPool, ruinsExit, stairLintel } from "./ruins-map";
@@ -6,15 +9,61 @@ import { sfx } from "./sound";
 import type { Activities } from "./activities";
 import type { World, DepthLayer } from "./world";
 import type { GameId } from "./arcade-engines";
+import { drawFlexibleCover } from "./scenery-wind";
 
 const symbols: Record<Echo, PixelMotif> = {leaf:"sprout", bell:"bell", star:"star"};
 const trials = arcadesIn("ruins");
+const masonry = ruinsForeground.map(({ y: depth, points }) => ({ ...mapFragment(points), depth }));
 const options: Echo[] = ["star","leaf","bell"];
 const letter = "旧收音机亮起了第 365 盏灯。「芙芙，这一晚，换我们陪你把晚安说完。」";
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+
+// Relative to the back lip of the painted well. The ripple is clipped to
+// the inside of the stone basin, including the nearer edge in perspective.
+function drawSpringDrop(c: CanvasRenderingContext2D, time: number) {
+  if (time < 0) return;
+  const beat = (time + 1) % 18;
+  const age = beat >= 9.8 ? beat - 9.8 : beat - 2;
+  if (age < 0 || age >= 2.05) return;
+  c.save();
+  c.translate(echoPool.x - 2, echoPool.y - 12);
+  if (age < .96) {
+    const grow = Math.min(1, age / .7);
+    const fall = Math.max(0, (age - .7) / .26);
+    const y = 1.4 + grow * .9 + fall * fall * 3.5;
+    c.fillStyle = "#517478";
+    c.beginPath();
+    c.ellipse(0, y, .45 + grow * .65, .5 + grow * .9 - fall * .45, 0, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = "#c0d5cb";
+    c.fillRect(-.55, y - .7, .85, 1.05);
+  } else {
+    const ripple = (age - .96) / 1.09;
+    c.beginPath();
+    c.ellipse(4.5, 5.1, 14.6, 3.45, -.035, 0, Math.PI * 2);
+    c.clip();
+    if (ripple < .15) {
+      c.fillStyle = "#cddecf";
+      c.fillRect(-1, 5, 2, 1);
+    }
+    for (const delay of [0, .23]) {
+      const p = (ripple - delay) / (1 - delay);
+      if (p <= 0) continue;
+      c.globalAlpha = (1 - p) * .85;
+      c.lineWidth = .85;
+      c.strokeStyle = delay ? "#c4d4bf" : "#94c4c1";
+      c.beginPath();
+      c.ellipse(0, 5.5, 1.2 + p * 6.8, .55 + p * 1.45, -.06, .24, Math.PI * 1.89);
+      c.stroke();
+    }
+  }
+  c.restore();
+}
+
 export class EchoRuins {
   private time = 0;
   private broadcastAt = -10;
+  private nextDripAfter = 0;
   constructor(private world: World, private activities: Activities,
     private memory: () => EchoMemory, private save: () => void) {
     const available = world.available, depth = world.getDepthLayers, tick = world.onTick;
@@ -23,7 +72,7 @@ export class EchoRuins {
     world.onTick = (dt,t) => { tick(dt,t); this.time=t; };
   }
   private get solved() { return this.memory().played === melody.length; }
-  clearEffect() { this.broadcastAt = -10; }
+  clearEffect() { this.broadcastAt = -10; this.nextDripAfter = 0; }
   discover(id: GameId) {
     if (!Object.hasOwn(trialEcho, id) || this.world.scene !== "ruins") return;
     const rune = trialEcho[id as keyof typeof trialEcho], memory = this.memory();
@@ -70,6 +119,7 @@ export class EchoRuins {
   }
   private listen() {
     this.broadcastAt = this.time; sfx("echo-broadcast");
+    this.nextDripAfter = this.world.ambientTime + 6;
     if (!this.memory().listened) { this.memory().listened = true; this.save(); }
     this.menu(letter, [{title:"再听一遍",run:()=>this.listen()},{title:"把晚安收好",run:()=>this.activities.close()}]);
   }
@@ -82,6 +132,7 @@ export class EchoRuins {
     if (this.world.scene !== "ruins") return [];
     const state=this.memory();
     return [
+      ...visibleMapCovers(this.world, masonry),
       ...trials.map(([id, game]) => ({y:game.y, draw:(c:CanvasRenderingContext2D)=>{
         const note=trialEcho[id as keyof typeof trialEcho];
         this.carving(c,game.x,game.y,note,state.found.includes(note));
@@ -97,12 +148,15 @@ export class EchoRuins {
         this.label(c,echoAltar.x,echoAltar.y-49,"回声祭坛");
         this.label(c,ruinsExit.x,ruinsExit.y-3,"南阶 · 回小镇");
       }},
-      {y:499, draw:(c:CanvasRenderingContext2D)=>this.world.drawMapFragment(c,stairLintel)},
+      {y:499, draw:(c:CanvasRenderingContext2D)=>drawFlexibleCover(c,this.world,stairLintel,reduced.matches)},
       {y:echoPool.y+3,draw:(c:CanvasRenderingContext2D)=>{
         const well=this.world.echoWell;
         if (well?.naturalWidth) {
           const h=50*well.naturalHeight/well.naturalWidth;
           c.drawImage(well,echoPool.x-25,echoPool.y+4-h,50,h);
+          if (!reduced.matches && this.time - this.broadcastAt >= 6) {
+            drawSpringDrop(c, this.world.ambientTime - this.nextDripAfter);
+          }
         }
         if (this.solved) this.receiver(c);
       }},

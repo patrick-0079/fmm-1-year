@@ -1,4 +1,4 @@
-import { canStand, touchingHazard, type Point } from "./core.ts";
+import { canArriveAt, touchingHazard, type Point } from "./core.ts";
 import { bloomingGarden, scenes, type SceneId } from "./maps.ts";
 import { meadowOpen } from "./rainbow-flowers.ts";
 
@@ -15,7 +15,7 @@ export function readJourney(raw: string | null, flowers: readonly string[]): Jou
     const unlocked = meadowOpen(flowers);
     const scene = value.scene === "meadow" && !unlocked ? "garden" : value.scene;
     const map = scene === "garden" && unlocked ? bloomingGarden : scenes[scene];
-    const safe = scene === value.scene && canStand(value, map.walls, map.bounds, map.floor, map.surfaces) &&
+    const safe = scene === value.scene && canArriveAt(value, map) &&
       !touchingHazard(value, map.hazards);
     const {x, y} = safe ? value : map.spawn;
     return {scene, x, y, savedAt: value.savedAt};

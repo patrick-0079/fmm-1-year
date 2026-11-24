@@ -214,6 +214,12 @@ export function grantItem(state: InventoryState, id: ItemId): boolean {
   state.owned.push(id);
   return true;
 }
+export function mergeInventoryReceipts(into: InventoryState, from: InventoryState) {
+  const count = into.owned.length, bouquet = into.bouquet;
+  for (const id of from.owned) grantItem(into, id);
+  into.bouquet ||= from.bouquet;
+  return count !== into.owned.length || bouquet !== into.bouquet;
+}
 export function equipItem(state: InventoryState, id: ItemId): boolean {
   if (!state.owned.includes(id)) return false;
   const slot = ITEMS[id].slot;

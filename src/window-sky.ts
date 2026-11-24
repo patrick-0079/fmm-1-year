@@ -1,7 +1,53 @@
 import type { Phase } from "./day";
+import type { DaylightMix } from "./daylight-mix";
 import { sceneArt } from "./scene-art";
 
 const masks = new WeakMap<HTMLImageElement, Path2D>();
+const clouds = new Map<Phase, HTMLCanvasElement>();
+
+// Take one of the actual painted wisps from the day sky. Its little stepped
+// edges and shadows keep the moving cloud in the same style as the still sky.
+function cloudSprite(sky: HTMLImageElement, phase: Phase) {
+  const cached = clouds.get(phase);
+  if (cached) return cached;
+  const canvas = document.createElement("canvas");
+  canvas.width = 108;
+  canvas.height = 45;
+  const c = canvas.getContext("2d", {willReadFrequently: true})!;
+  c.drawImage(sky, 1069, 14, 108, 45, 0, 0, 108, 45);
+  const pixels = c.getImageData(0, 0, 108, 45);
+  for (let i = 0; i < pixels.data.length; i += 4) {
+    const r = pixels.data[i];
+    pixels.data[i + 3] = Math.max(0, Math.min(255, (r - 84) * 4.5));
+    if (phase !== "day") {
+      pixels.data[i] = Math.min(255, r * .76 + 65);
+      pixels.data[i + 1] *= phase === "dusk" ? .73 : .93;
+      pixels.data[i + 2] *= phase === "dusk" ? .84 : .87;
+    }
+  }
+  c.putImageData(pixels, 0, 0);
+  clouds.set(phase, canvas);
+  return canvas;
+}
+
+function skyMotion(c: CanvasRenderingContext2D, sky: HTMLImageElement, phase: Phase, time: number) {
+  if (phase !== "night") {
+    const x = 198 + ((time + 8) % 24) * 7.6;
+    c.globalAlpha *= .86;
+    c.drawImage(cloudSprite(sky, phase), x, 17 + .8 * Math.sin(time * .16), 34, 14);
+    return;
+  }
+  const base = c.globalAlpha;
+  for (const [x, y, delay, size] of [[286, 19, 0, 1], [350, 25, 3.5, .75]]) {
+    const light = (1 + Math.cos((time + delay) * Math.PI * 2 / 7)) / 2;
+    c.globalAlpha = base * (.25 + light * .65);
+    c.fillStyle = "#d4deff";
+    c.fillRect(x - size * 1.5, y, size * 3, size);
+    c.fillRect(x - size * .5, y - size, size, size * 3);
+    c.fillStyle = "#fff4c9";
+    c.fillRect(x - size * .5, y, size, size);
+  }
+}
 function glassMask(artwork: HTMLImageElement) {
   const saved = masks.get(artwork);
   if (saved) return saved;
@@ -30,8 +76,9 @@ function glassMask(artwork: HTMLImageElement) {
 /** Trace the actual glass, leaving the mullions, curtains and sill untouched. */
 export function drawRoomWindow(
   c: CanvasRenderingContext2D,
-  phase: Phase,
+  phase: Phase | DaylightMix,
   artwork?: HTMLImageElement,
+  time = 0,
 ) {
   const sky = sceneArt.skies;
   if (!sky.complete || !sky.naturalWidth) return;
@@ -74,9 +121,20 @@ export function drawRoomWindow(
   }
   c.clip();
   if (artwork?.complete && artwork.naturalWidth) c.clip(glassMask(artwork));
-  const index = { dawn: 0, day: 1, dusk: 2, night: 3 }[phase];
   c.imageSmoothingEnabled = false;
-  c.drawImage(sky, index % 2 * 768, Math.floor(index / 2) * 512 + 28,
-    768, 317, 220, 0, 160, 66);
+  const paneSky = (stop: Phase, opacity: number) => {
+    const index = { dawn: 0, day: 1, dusk: 2, night: 3 }[stop];
+    c.save();
+    c.globalAlpha *= opacity;
+    c.drawImage(sky, index % 2 * 768, Math.floor(index / 2) * 512 + 28,
+      768, 317, 220, 0, 160, 66);
+    skyMotion(c, sky, stop, time);
+    c.restore();
+  };
+  if (typeof phase === "string") paneSky(phase, 1);
+  else {
+    paneSky(phase.from, 1);
+    if (phase.mix > 0) paneSky(phase.to, phase.mix);
+  }
   c.restore();
 }

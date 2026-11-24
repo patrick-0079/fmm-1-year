@@ -1,31 +1,7 @@
 import type { Phase } from "./day.ts";
 import { sceneLights } from "./lights.ts";
-
-const anchors: readonly [number, Phase][] = [
-  [5, "dawn"],
-  [8, "day"],
-  [17, "dusk"],
-  [20, "night"],
-];
-/** A short sunrise or sunset blends across the phase boundary, including midnight. */
-export function townLightMix(hour: number): {
-  from: Phase;
-  to: Phase;
-  mix: number;
-} {
-  let previous: Phase = "night";
-  for (const [at, phase] of anchors) {
-    if (hour < at - 0.4) break;
-    if (hour < at + 0.4)
-      return {
-        from: previous,
-        to: phase,
-        mix: Math.min(1, Math.max(0, (hour - at + 0.4) / 0.8)),
-      };
-    previous = phase;
-  }
-  return { from: previous, to: previous, mix: 0 };
-}
+import { daylightMix } from "./daylight-mix.ts";
+export { daylightMix as townLightMix } from "./daylight-mix.ts";
 const palettes: Record<Phase, [string, string, string, number]> = {
   dawn: ["#ffe3a286", "#ffd6b032", "#a1c8c039", 0.14],
   day: ["#fff8da0b", "#fff4c208", "#e6f6ff08", 0],
@@ -82,7 +58,7 @@ export function drawTownLight(
   time: number,
   still: boolean,
 ) {
-  const { from, to, mix } = townLightMix(hour);
+  const { from, to, mix } = daylightMix(hour);
   c.save();
   if (from !== to && mix > 0) c.globalAlpha = 1 - mix;
   c.drawImage(sky(from), 0, 0, 1536, 1024);

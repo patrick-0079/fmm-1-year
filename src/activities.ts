@@ -30,6 +30,10 @@ interface Particle extends Point {
   maxLife: number;
   sparkle: number;
 }
+interface WorkbenchHandle {
+  cancelInput: () => void;
+  dispose: () => void;
+}
 const colors = ["#f49fbc", "#9ddbe9", "#c1a4ea", "#ffdb80", "#b4e9bc"];
 const narrowDialogue = matchMedia("(max-width: 540px)");
 export class Activities {
@@ -38,6 +42,7 @@ export class Activities {
   private mode = "";
   private dialogueEnd?: () => void;
   private dialogueAt?: { scene: World["scene"]; point: Point };
+  private workbenchHandle?: WorkbenchHandle;
   private hud: HTMLElement;
   private status: HTMLElement;
   private controls: HTMLElement;
@@ -114,11 +119,13 @@ export class Activities {
       this.cutStart = null;
       this.cutStroke = [];
       this.gift.cancelPointer();
+      this.workbenchHandle?.cancelInput();
     };
     const previousAction = world.onAction;
     world.onAction = (pressed) => {
       if (!this.active) return previousAction(pressed);
       if (world.suspended) return true;
+      if (this.mode === "workbench") return true;
       if (this.mode === "cake" && this.cakeStage === 0) {
         this.blowing = pressed;
         if (pressed) sfx("blow");
@@ -159,6 +166,7 @@ export class Activities {
       if (document.hidden) this.blowing = false;
     });
   }
+  get dialogueOpen() { return this.dialogueAt !== undefined; }
   get active() {
     return !!this.mode;
   }
@@ -169,6 +177,8 @@ export class Activities {
   }
   private hidePanel() {
     const returnFocus = this.hud.contains(document.activeElement);
+    this.workbenchHandle?.dispose();
+    this.workbenchHandle = undefined;
     this.dialogueEnd?.();
     this.dialogueEnd = undefined;
     this.dialogueAt = undefined;
@@ -493,6 +503,14 @@ export class Activities {
     this.begin("nature", text, point, zoom);
     for (const option of options) this.action(option.title, option.run);
   }
+  workbench(title: string, mount: (root: HTMLElement, status: HTMLElement) => WorkbenchHandle) {
+    this.begin("workbench", "");
+    this.world.paused = true;
+    this.speaker.textContent = title;
+    this.speaker.hidden = false;
+    this.status.id = "town-workbench-instruction";
+    this.workbenchHandle = mount(this.controls, this.status);
+  }
   dialogue(
     speaker: string,
     text: string,
@@ -501,6 +519,7 @@ export class Activities {
     at: Point,
     onClose?: () => void,
     hint?: string,
+    content?: HTMLElement,
   ) {
     const keepFocus = this.hud.contains(document.activeElement);
     if (this.dialogueAt?.point === at && this.dialogueAt.scene === this.world.scene) {
@@ -531,6 +550,7 @@ export class Activities {
     for (const option of options) this.action(option.title, () => {
       if (this.dialogueAt === encounter && !this.dismissIfOutOfReach()) option.run();
     });
+    if (content) this.controls.append(content);
     this.hud.scrollTop = 0;
     this.status.scrollTop = 0;
     this.updateReadingFocus();
@@ -696,7 +716,6 @@ export class Activities {
   private draw(c: CanvasRenderingContext2D, t: number) {
     c.save();
     if (this.world.scene === "room") {
-      this.drawCake(c, t);
       if (this.mode === "gifts") {
         drawUnwrappingGift(c, this.gift, t, matchMedia("(prefers-reduced-motion: reduce)").matches);
         this.world.drawAvatarAt(c, 503, 318, 1);
@@ -794,7 +813,8 @@ export class Activities {
     }
     c.restore();
   }
-  private drawCake(c: CanvasRenderingContext2D, t: number) {
+  drawCake(c: CanvasRenderingContext2D, t: number) {
+    c.save();
     if (this.cakeImage.complete && this.cakeImage.naturalWidth)
       c.drawImage(this.cakeImage, 267, 177, 66, 62);
     if (this.cakeStage === 0) {
@@ -927,5 +947,6 @@ export class Activities {
         270,
       );
     }
+    c.restore();
   }
 }

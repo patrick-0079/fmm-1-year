@@ -3,7 +3,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { validateStationery } from "./validate-stationery.mjs";
 
-const gates = ["xiaoye", "suyan", "radio-host", "xiaoyou", "guli", "post", "patrick"];
+const gates = ["xiaoye", "suyan", "radio-host", "xiaoyou", "guli", "post", "patrick", "rabe", "dianziyang", "pigeon"];
 const fields = new Set(["id", "title", "author", "text", "delivery", "revision"]);
 
 export async function readLetterCatalogue(sourceDir, { requireStoryLetters = false } = {}) {

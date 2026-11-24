@@ -11,16 +11,17 @@
   },
   "themes": {
     "xiaoye-anniversary-letter": {
-      "title": "狐狸窝的一盏灯", "motif": "xiaoye/motif.webp", "seal": "xiaoye/seal.webp",
+      "title": "一片叶子与一颗心", "motif": "xiaoye/motif.webp", "seal": "xiaoye/seal.webp",
       "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "xiaoye/paper.webp",
-      "flapTint": "#E2EBCF", "pocketTint": "#C9DAB9", "liningTint": "#8B9D77",
-      "paperTint": "#F5F7E8", "ink": "#354435", "accent": "#53693F"
+      "neutralStock": true, "flapTint": "#E2EBCF", "pocketTint": "#E2EBCF", "liningTint": "#A4B992",
+      "paperTint": "#E2EBCF", "ink": "#354435", "accent": "#53693F"
     },
     "yeshenhua-anniversary-letter": {
-      "title": "月下的晚安电台", "motif": "yeshenhua/motif.webp", "seal": "yeshenhua/seal.webp",
+      "title": "一片紫红枫叶", "motif": "yeshenhua/motif.webp", "motifPlacement": "upper-right", "seal": "yeshenhua/seal.webp",
       "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "yeshenhua/paper.webp",
-      "neutralStock": true, "flapTint": "#EBDFF4", "pocketTint": "#DED0ED", "liningTint": "#92739E",
-      "paperTint": "#F8F0FA", "ink": "#493849", "accent": "#704F78"
+      "paperSlices": [26, 28, 124, 132],
+      "neutralStock": true, "flapTint": "#CD99B6", "pocketTint": "#C690AE", "liningTint": "#864467",
+      "paperTint": "#FFF7FA", "ink": "#51283F", "accent": "#793750"
     },
     "kerry-anniversary-letter": {
       "title": "实验台上的好消息", "motif": "kerry/motif.webp", "seal": "kerry/seal.webp",
@@ -38,6 +39,7 @@
       "title": "深夜里的耳机", "motif": "rabe/motif.webp", "seal": "rabe/seal.webp",
       "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "rabe/paper.webp",
       "paperSlices": [101, 150, 211, 198],
+      "paperCornersOnly": true,
       "neutralStock": true, "flapTint": "#DDE3F6", "pocketTint": "#C7D2ED", "liningTint": "#667DA1",
       "paperTint": "#F1F3FA", "ink": "#35405B", "accent": "#505D82"
     },
@@ -58,6 +60,20 @@
       "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "post/paper.webp",
       "flapTint": "#F3E0D0", "pocketTint": "#E5CBBA", "liningTint": "#AA7576",
       "paperTint": "#FCF4E8", "ink": "#4F3B37", "accent": "#7F404D"
+    },
+    "xiaoaimen-anniversary-letter": {
+      "title": "乖乖坐着的红猫", "motif": "xiaoaimen/motif.webp", "seal": "xiaoaimen/seal.webp",
+      "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "xiaoaimen/paper.webp",
+      "paperSlices": [52, 117, 96, 80],
+      "flapTint": "#F8E0D4", "pocketTint": "#F5D8CE", "liningTint": "#D69D95",
+      "paperTint": "#FFF4EB", "ink": "#583730", "accent": "#88443F"
+    },
+    "pigeon-anniversary-letter": {
+      "title": "薄荷色的翅膀", "motif": "pigeon/motif.webp", "seal": "pigeon/seal.webp",
+      "pocket": "_shared/stationery-plain-pocket.webp", "lining": "_shared/stationery-silver-lining.webp", "paper": "pigeon/paper.webp",
+      "paperSlices": [54, 132, 97, 80],
+      "neutralStock": true, "flapTint": "#ECE4F6", "pocketTint": "#E3D7EF", "liningTint": "#9BBAB4",
+      "paperTint": "#F3EDF9", "ink": "#3F3B52", "accent": "#4A6669"
     },
     "patrick-anniversary-letter": {
       "title": "花海营火边的星光", "motif": "patrick/motif.webp", "seal": "patrick/seal.webp",

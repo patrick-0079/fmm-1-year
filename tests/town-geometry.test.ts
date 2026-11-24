@@ -1,10 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canStand, canTravelBetween, movePlayer } from "../src/core.ts";
+import { canStand, canTravelBetween, findPath, movePlayer } from "../src/core.ts";
 import { scenes } from "../src/maps.ts";
 import { townCanopies, festivalProps } from "../src/town-scenery.ts";
 import { townGates, gatePosts, crossedTownGate } from "../src/gate-layout.ts";
-import { arcadesIn } from "../src/town-data.ts";
+import { townAttractionBases, townAttractionSpots, wishPairs } from "../src/town-attraction-layout.ts";
+import { clickedInteraction, nearbyInteraction } from "../src/interaction.ts";
 
 const square = (left: number, right: number) => [
   { x: left, y: 0 },
@@ -42,13 +43,47 @@ test("the painted lanes lead through their real openings and crossings only fire
   }
 });
 
-test("the whole arcade counter stands on native open ground, away from fences and trees", () => {
+test("all raised playground bases stand on open ground and have solid feet", () => {
   const s = scenes.town;
-  for (const [id, g] of arcadesIn("town")) {
-    const terrain = s.walls.filter((w) => w.label !== g.title + "摊位");
-    for (const dx of [-23, 0, 23])
-      assert.ok(canStand({x:g.x+dx, y:g.y+12}, terrain, s.bounds, s.floor, s.surfaces), `${id}: unsupported counter foot ${dx}`);
-    assert.ok(!canStand({x:g.x, y:g.y+10}, s.walls, s.bounds, s.floor, s.surfaces), `${id}: missing solid counter`);
+  const bases = new Set<typeof s.walls[number]>(townAttractionBases);
+  const terrain = s.walls.filter(wall => !bases.has(wall));
+  for (const { label, x, y, w, h } of townAttractionBases) {
+    for (const px of [x + 1, x + w / 2, x + w - 1]) {
+      const point = { x: px, y: y + h / 2 };
+      assert.ok(canStand(point, terrain, s.bounds, s.floor, s.surfaces), `${label}: unsupported foot`);
+      assert.ok(!canStand(point, s.walls, s.bounds, s.floor, s.surfaces), `${label}: missing collision`);
+    }
+  }
+});
+
+test("playground targets and neighbouring NPCs stay separately reachable", () => {
+  const s = scenes.town;
+  const neighbours = ["npc-hop-keeper", "npc-blocks-keeper", "npc-flight-keeper", "npc-snake-keeper", "npc-photo-visitor"];
+  for (const spot of s.spots.filter(spot => neighbours.includes(spot.id) || townAttractionSpots.includes(spot))) {
+    assert.deepEqual(findPath(s.spawn, spot.approach, s)?.at(-1), spot.approach, `${spot.id}: cannot walk up to it`);
+    assert.equal(nearbyInteraction(spot.approach, s.spots)?.id, spot.id);
+  }
+  for (const spot of townAttractionSpots) {
+    for (const { x, y, w, h } of spot.hitAreas!) {
+      for (let px = x; px <= x + w; px++)
+        for (let py = y; py <= y + h; py++)
+          assert.equal(clickedInteraction({ x: px, y: py }, s.spots)?.id, spot.id);
+    }
+  }
+});
+
+test("both flight-ring openings and all the matching stones are walkable", () => {
+  const s = scenes.town;
+  for (const [x, top, bottom] of [[697, 435, 479], [755, 414, 452]]) {
+    const near = { x, y: bottom }, far = { x, y: top };
+    assert.ok(canTravelBetween(near, far, s));
+    assert.ok(canTravelBetween(far, near, s));
+    assert.equal(clickedInteraction(far, s.spots), undefined);
+  }
+  for (const { left, right } of wishPairs) {
+    const a = { x: left.x, y: left.y - 9 }, b = { x: right.x, y: right.y - 9 };
+    assert.ok(canTravelBetween(a, b, s));
+    for (const p of [a, b]) assert.equal(clickedInteraction(p, s.spots)?.id, "arcade-link");
   }
 });
 
@@ -73,9 +108,9 @@ test("the climb to the old mine stays between the memorial wall and the wooded b
   for (const direction of [-1,1])
     assert.ok(canTravelBetween(cat,{x:cat.x+direction*26,y:cat.y-direction*12},street));
 });
-test("the Moon Rabbit counter and its keeper are accessible across the southeast curb in both directions",()=>{
-  const s=scenes.town, street={x:572,y:644}, counter=s.spots.find(p=>p.id==="arcade-hop")!.approach;
-  const sidewalk=[street,{x:546,y:638},{x:507,y:630},{x:477,y:623},counter];
+test("the Moon Rabbit platforms and their keeper are accessible across the southeast curb in both directions",()=>{
+  const s=scenes.town, street={x:572,y:644}, platform=s.spots.find(p=>p.id==="arcade-hop")!.approach;
+  const sidewalk=[street,{x:546,y:638},{x:507,y:630},{x:477,y:623},platform];
   for(let i=1;i<sidewalk.length;i++) {
     assert.ok(canTravelBetween(sidewalk[i-1],sidewalk[i],s));
     assert.ok(canTravelBetween(sidewalk[i],sidewalk[i-1],s));

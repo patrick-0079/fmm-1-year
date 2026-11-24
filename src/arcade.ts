@@ -278,7 +278,7 @@ export class Arcade {
           <button data-game-action="left" aria-label="游戏向左">←</button><button data-game-action="up" aria-label="游戏向上或旋转">↑</button>
           <button data-game-action="right" aria-label="游戏向右">→</button><button data-game-action="down" aria-label="游戏向下或加速">↓</button>
           <button class="game-primary" data-game-action="primary"></button></div>
-        <div class="arcade-extra-actions"></div><button class="arcade-close">${ruinId ? "返回遗迹" : "离开摊位"} ×</button>
+        <div class="arcade-extra-actions"></div><button class="arcade-close">${ruinId ? "返回遗迹" : "回到小镇"} ×</button>
         </div><div class="arcade-guide">
           <div class="arcade-ticket"><img src="${ruinId ? chamberPrints[ruinId] : postcard}" alt="" width="84" height="56">
             <div><small>${ruinId ? "ECHO ARCHIVE · 1ST" : "FUFU ON AIR · 1ST"}</small><b>${ruinId ? "回声遗迹 · 石刻拓本" : "芙芙直播一周年"}</b><span>${ruinId ? booth.stamp : "游园券 № "+booth.number+" / 07"}</span></div></div>

@@ -1,12 +1,17 @@
 import type { AchievementEvent } from "./achievement-events";
+import type { Phase } from "./day";
+import { ResidentChats } from "./resident-chats";
 import roomUrl from "./assets/room-interactive.webp";
-import gardenUrl from "./assets/garden-lanes-v18.webp";
+import gardenUrl from "./assets/anniversary-garden-tree-free.webp";
+import appleBasketUrl from "./assets/apple-basket.webp";
 import challengeUrl from "./assets/courage-garden.webp";
+import creekPropsUrl from "./assets/garden-creek-props.webp";
 import spriteUrl from "./assets/nemu-sprites.webp";
 import restUrl from "./assets/fufu-rest-poses.webp";
 import wreathUrl from "./assets/flower-wreath.webp";
 import townUrl from "./assets/anniversary-town-v13.webp";
 import townDetailUrl from "./assets/anniversary-town-hd-v13.webp";
+import { mapFragment } from "./map-fragment";
 import { dockOpening } from "./town-terraces";
 import meadowUrl from "./assets/night-meadow-v16.webp";
 import ruinsUrl from "./assets/echo-ruins.webp";
@@ -29,11 +34,12 @@ import { enteredMoonCircle } from "./meadow-map";
 import { surfaceOutline } from "./collision";
 import { trapFootprint } from "./trap-art";
 import { drawGardenHazard } from "./garden-hazards";
+import { courageFlowerLayers, courageFlowerUrl } from "./courage-flower-art";
 import { drawDoorRug } from "./door-rug";
 import {
   advancePath,
+  canArriveAt,
   advancePathDistance,
-  canStand,
   facingFromMovement,
   findPath,
   movePlayer,
@@ -43,13 +49,19 @@ import {
   type Hazard,
   type Point,
 } from "./core";
-import { bloomingGarden, scenes, type Hotspot, type SceneId } from "./maps";
+import { bloomingGarden, scenes, type BaseSceneId, type Hotspot, type Scene, type SceneId } from "./maps";
+import { isTownInterior, type TownInteriorId } from "./town-interior-id";
+import { crossedInteriorDoor } from "./town-interiors";
+import { paintTownInterior, paintTownInteriorLight, townInteriorArt } from "./town-interior-art";
+import type { RoomEffect } from "./town-interior-activities";
+import type { DaylightMix } from "./daylight-mix";
 export { scenes, type SceneId } from "./maps";
 export interface RespawnEvent {
   trap: Hazard;
   scene: SceneId;
 }
 const art = {
+  ...townInteriorArt,
   room: roomUrl,
   garden: gardenUrl,
   challenge: challengeUrl,
@@ -57,9 +69,10 @@ const art = {
   meadow: meadowUrl,
   ruins: ruinsUrl,
 };
-const sceneTextures: Record<SceneId, string[]> = {
+const sceneTextures: Record<BaseSceneId, string[]> = {
   room: [roomUrl, spriteUrl, restUrl, wreathUrl, rewardsUrl],
-  garden: [gardenUrl, orchardAtlasUrl], challenge: [challengeUrl, orchardAtlasUrl, trapsUrl],
+  garden: [gardenUrl, appleBasketUrl, orchardAtlasUrl, creekPropsUrl],
+  challenge: [challengeUrl, orchardAtlasUrl, trapsUrl, courageFlowerUrl, creekPropsUrl],
   town: [townUrl], meadow: [meadowUrl, meadowAtlasUrl], ruins: [ruinsUrl, wellUrl],
 };
 export interface DepthLayer {
@@ -73,12 +86,23 @@ export interface ActorPresentation {
   lean?: number;
 }
 
+const avatarWalkCycle = [1, 0, 2, 0] as const;
+const avatarStepLength = 22;
+const avatarStride = avatarStepLength * 2;
+
 export class World {
   canvas: HTMLCanvasElement;
   private inputRegion: HTMLElement;
   private ctx: CanvasRenderingContext2D;
   scene: SceneId = "room";
   townMap = scenes.town;
+  readonly townInteriorMaps = new Map<TownInteriorId, Scene>();
+  gardenMapFor: (base: Scene) => Scene = base => base;
+  currentPhase: Phase = "day";
+  townInteriorEffect: () => RoomEffect | undefined = () => undefined;
+  lightMix: DaylightMix = { from: "day", to: "day", mix: 0 };
+  readonly chats: ResidentChats;
+  isPresentingDialogue: () => boolean = () => false;
   player: Point = { ...scenes.room.spawn };
   private camera: Point = { x: 0, y: 0 };
   private zoom = 1;
@@ -92,9 +116,20 @@ export class World {
   private path: Point[] = [];
   private exitWalk?: (now: number) => void;
   private targetEvent: string | null = null;
+  get pendingInteractionId() { return this.targetEvent; }
+  cancelUnavailableTarget() {
+    if (this.targetEvent && !this.config.spots.some(s => s.id === this.targetEvent && this.available(s))) {
+      this.path = [];
+      this.targetEvent = null;
+      this.walking = false;
+    }
+  }
   facing: Facing = 0;
   private walking = false;
   private time = 0;
+  private scenerySeconds: Partial<Record<SceneId, number>> = {};
+  /** Local time for scenery. Leaving the map or covering it holds its pose. */
+  get ambientTime() { return this.scenerySeconds[this.scene] ?? 0; }
   private last = 0;
   private frameId = 0;
   private reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -210,7 +245,8 @@ export class World {
     if (pet) drawItem(c, pet, 13, -16, 18, 17, images.wreath, images.rewards);
     c.restore();
   }
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, chats = new ResidentChats()) {
+    this.chats = chats;
     this.canvas = canvas;
     this.inputRegion = canvas.closest<HTMLElement>(".game-stage") ?? canvas.parentElement!;
     this.ctx = canvas.getContext("2d")!;
@@ -447,10 +483,11 @@ export class World {
   }
   prepareScene(scene: SceneId): Promise<void> {
     if (!this.canEnter(scene)) return Promise.reject(new Error("尚未集齐七色花"));
-    if (this.images.has(art[scene])) return Promise.resolve();
+    if (this.images.has(art[scene])) return prepareSceneArt(scene).then(() => {});
     const pending = this.mapRequests.get(scene);
     if (pending) return pending;
-    const textures = sceneTextures[scene].filter(url=>!this.images.has(url)).map(async url => {
+    const urls = isTownInterior(scene) ? [art[scene]] : sceneTextures[scene];
+    const textures = urls.filter(url=>!this.images.has(url)).map(async url => {
         const image = new Image();
         image.fetchPriority = "high";
         image.decoding = "async"; image.src = url;
@@ -466,9 +503,15 @@ export class World {
   get meadowSprites() { return this.images.get(meadowAtlasUrl); }
   get echoWell() { return this.images.get(wellUrl); }
   get orchardSprites() { return this.images.get(orchardAtlasUrl); }
+  get appleBasket() { return this.images.get(appleBasketUrl); }
+  get creekProps() { return this.images.get(creekPropsUrl); }
   private paintMap(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
-    const background = (this.scene === "town" && this.townDetail) || this.images.get(art[this.scene]);
+    const background = this.sceneryArtwork;
     if (!background) return;
+    if (isTownInterior(this.scene)) {
+      paintTownInterior(c, background, this.scene, this.currentPhase, this.reducedMotion.matches ? undefined : this.lightMix, this.townInteriorEffect());
+      return;
+    }
     const sx = background.naturalWidth / this.config.width,
       sy = background.naturalHeight / this.config.height;
     c.save();
@@ -500,21 +543,23 @@ export class World {
     c.restore();
   }
   drawMapFragment(c: CanvasRenderingContext2D, points: Point[]) {
-    const x = Math.floor(Math.min(...points.map((p) => p.x))),
-      y = Math.floor(Math.min(...points.map((p) => p.y))),
-      w = Math.ceil(Math.max(...points.map((p) => p.x))) - x,
-      h = Math.ceil(Math.max(...points.map((p) => p.y))) - y;
+    const fragment = mapFragment(points);
+    this.drawMapCover(c, fragment, fragment.mask);
+  }
+  drawMapCover(c: CanvasRenderingContext2D, { x, y, w, h }: { x: number; y: number; w: number; h: number }, mask: Path2D) {
     c.save();
-    c.beginPath();
-    points.forEach((p, i) => (i ? c.lineTo(p.x, p.y) : c.moveTo(p.x, p.y)));
-    c.closePath();
-    c.clip();
+    c.clip(mask);
     this.paintMap(c, x, y, w, h);
     c.restore();
   }
+  get sceneryArtwork() {
+    return (this.scene === "town" && this.townDetail) || this.images.get(art[this.scene]);
+  }
   get config() {
     if (this.scene === "town") return this.townMap;
-    return this.scene === "garden" && this.canEnter("meadow") ? bloomingGarden : scenes[this.scene];
+    if (isTownInterior(this.scene)) return this.townInteriorMaps.get(this.scene) ?? scenes[this.scene];
+    if (this.scene === "garden") return this.gardenMapFor(this.canEnter("meadow") ? bloomingGarden : scenes.garden);
+    return scenes[this.scene];
   }
   get visibleArea() {
     return {
@@ -580,11 +625,8 @@ export class World {
     this.scene = scene;
     if (scene === "town") this.loadTownDetail();
     const s = this.config;
-    this.player = {
-      ...(arrival && canStand(arrival, s.walls, s.bounds, s.floor, s.surfaces)
-        ? arrival
-        : s.spawn),
-    };
+    const landing = arrival && canArriveAt(arrival, s) ? arrival : s.spawn;
+    this.player = { x: landing.x, y: landing.y };
     this.facing = facing;
     this.nearbyId = "";
     this.hoveredSpotId = "";
@@ -632,8 +674,7 @@ export class World {
           const travelled = Math.min(1, Math.max(0, (now - started) / duration)) * distance;
           const step = advancePathDistance(this.player, remaining, travelled - covered, room);
           const dx = step.point.x - this.player.x, dy = step.point.y - this.player.y;
-          this.walking = Math.hypot(dx, dy) > .01;
-          if (this.walking) this.facing = facingFromMovement(this.facing, dx, dy);
+          this.advanceFeet(dx,dy,false);
           this.player = step.point;
           remaining = step.remaining;
           covered = travelled;
@@ -667,7 +708,9 @@ export class World {
     const dt = Math.min((timestamp - (this.last || timestamp)) / 1000, 0.05);
     this.last = timestamp;
     this.time = timestamp / 1000;
-    this.onTick(document.hidden || this.suspended ? 0 : dt, this.time);
+    const foregroundDt = document.hidden || this.suspended ? 0 : dt;
+    if (!this.paused) this.scenerySeconds[this.scene] = this.ambientTime + foregroundDt;
+    this.onTick(foregroundDt, this.time);
     if (this.exitWalk) this.exitWalk(timestamp);
     else if (!this.paused && !this.suspended && !document.hidden) this.update(dt);
     this.updateCamera();
@@ -695,6 +738,7 @@ export class World {
     }
     this.immunity = Math.max(0, this.immunity - dt);
     if (this.restState) return;
+    this.cancelUnavailableTarget();
     const before = { ...this.player };
     if (this.path.length) {
       const result = advancePath(this.player, this.path, dt, this.config);
@@ -725,16 +769,13 @@ export class World {
     }
     const dx = this.player.x - before.x,
       dy = this.player.y - before.y;
-    this.walking = Math.hypot(dx, dy) > 0.01;
-    this.stepDistance += Math.hypot(dx, dy);
-    if (this.stepDistance > 22) {
-      this.stepDistance = 0;
-      this.onStep();
-    }
-    if (this.walking) this.facing = facingFromMovement(this.facing, dx, dy);
+    this.advanceFeet(dx,dy,true);
     if (this.walking && !this.targetEvent) {
+      const gate = this.scene === "town" || isTownInterior(this.scene)
+        ? crossedInteriorDoor(this.config.spots, before, this.player) : undefined;
       const crossing = this.scene === "meadow" && enteredMoonCircle(before,this.player)
-        ? "meadow-exit" : crossedEchoGate(this.scene,before,this.player) ?? crossedTownGate(this.scene,before,this.player)?.id;
+        ? "meadow-exit"
+        : crossedEchoGate(this.scene,before,this.player) ?? crossedTownGate(this.scene,before,this.player)?.id ?? gate?.id;
       if (crossing) { this.clearInput(); this.onInteract(crossing); return; }
     }
     const trap =
@@ -768,6 +809,16 @@ export class World {
       this.nearbyId = nearby?.id ?? "";
       this.onNearby(nearby);
     }
+  }
+  private advanceFeet(dx: number, dy: number, audible: boolean) {
+    const distance = Math.hypot(dx, dy);
+    this.walking = distance > .01;
+    if (!this.walking) return;
+    this.facing = facingFromMovement(this.facing, dx, dy);
+    const next = this.stepDistance + distance;
+    if (audible && Math.floor(next / avatarStepLength) !== Math.floor(this.stepDistance / avatarStepLength))
+      this.onStep();
+    this.stepDistance = next % avatarStride;
   }
   private updateCamera() {
     this.zoom = this.focus?.zoom ?? (this.scene === "town" ? 0.9 : 1);
@@ -844,7 +895,7 @@ export class World {
         c,
         this.restState?.kind ?? "standing",
         presentation?.facing ?? this.facing,
-        this.walking ? 1 + (Math.floor(this.time * 7) % 2) : 0,
+        this.walking ? avatarWalkCycle[Math.floor(this.stepDistance * 4 / avatarStride)] : 0,
         this.equipment,
         this.avatarImages,
       );
@@ -852,12 +903,15 @@ export class World {
     };
     const layers = [
       ...this.getDepthLayers(),
+      ...(this.scene === "challenge" ? courageFlowerLayers(this.images.get(courageFlowerUrl)) : []),
       ...connectionLayers(this.scene),
       { y: this.player.y, draw: drawPlayer },
     ];
     layers.sort((a, b) => a.y - b.y).forEach((layer) => layer.draw(c));
     this.onDraw(c, this.time);
     this.onLighting(c);
+    if (isTownInterior(this.scene) && this.sceneryArtwork)
+      paintTownInteriorLight(c, this.sceneryArtwork, this.scene, this.currentPhase, this.reducedMotion.matches ? undefined : this.lightMix);
     if (this.cuesVisible) drawInteractionGlints(c, this.config.spots.filter(s => this.available(s)), this.scene, this.time, this.reducedMotion.matches, this.activeCueId);
     this.onEffects(c);
     if (this.debug) this.drawDebug();

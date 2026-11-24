@@ -42,6 +42,7 @@ export function placeInteractionPrompt(
   player: PromptBox,
   object: PromptBox,
   obstacles: PromptBox[] = [],
+  touch = false,
 ): PromptPlacement {
   const margin = 6, gap = 8,
     w = Math.min(size.w, Math.max(0, viewport.w - margin * 2)),
@@ -55,6 +56,8 @@ export function placeInteractionPrompt(
     { x: object.x + object.w + gap, y: anchor.y - h / 2 },
     { x: object.x - w - gap, y: anchor.y - h / 2 },
     { x: anchor.x - w / 2, y: object.y + object.h + gap },
+    { x: object.x + object.w + gap, y: anchor.y },
+    { x: object.x - w - gap, y: anchor.y },
   ];
   for (const obstacle of obstacles) {
     candidates.push(
@@ -64,6 +67,21 @@ export function placeInteractionPrompt(
       { x: anchor.x - w / 2, y: obstacle.y - h - gap },
     );
   }
+  // Keep a short walking lane in front of the shoes, including when a keyboard
+  // player switches to the mouse. Touch needs a finger-sized area even when
+  // zoomed far out; a mouse only needs the projected width of the character.
+  const laneWidth = touch ? Math.max(48, player.w) : player.w;
+  const footSpace = {
+    x: player.x + (player.w - laneWidth) / 2, y: player.y + player.h - (touch ? 10 : 4),
+    w: laneWidth, h: Math.max(touch ? 56 : 20, player.h),
+  };
+  const sideY = clamp(anchor.y - h / 2, footSpace.y - h / 2, footSpace.y + footSpace.h - h / 2);
+  candidates.push(
+    { x: footSpace.x + footSpace.w + gap, y: sideY },
+    { x: footSpace.x - w - gap, y: sideY },
+    { x: anchor.x - w / 2, y: footSpace.y + footSpace.h + gap },
+    { x: anchor.x - w / 2, y: footSpace.y - h - gap },
+  );
   const best = candidates.map((point, index) => {
     const box = {
       x: clamp(point.x, margin, Math.max(margin, viewport.w - margin - w)),
@@ -74,6 +92,7 @@ export function placeInteractionPrompt(
       y: clamp(anchor.y, box.y, box.y + h),
     };
     const score = overlap(box, player) * 16 + overlap(box, object) * 5 +
+      overlap(box, footSpace) * 3 +
       obstacles.reduce((sum, obstacle) => sum + overlap(box, obstacle) * 24, 0) +
       Math.hypot(nearest.x - anchor.x, nearest.y - anchor.y) +
       Math.hypot(box.x - point.x, box.y - point.y) * .15 + index * 4;

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig, loadEnv, normalizePath, type Plugin } from "vite";
+import { defineConfig, loadEnv, normalizePath, type Plugin, type Rollup } from "vite";
 import { validateStationery } from "./scripts/validate-stationery.mjs";
 import { readLetterCatalogue } from "./scripts/scan-letters.mjs";
 
@@ -29,6 +29,32 @@ function buildMode(value: string | undefined): "full" | "lite" {
     case "false": return "lite";
     default: throw new Error("FULL_BUILD 必须为 true、false 或不设置。");
   }
+}
+
+const firstFrame = new Set(["src/assets/room-interactive.webp", "src/assets/nemu-sprites.webp"]);
+const mapPreviews = new Set([
+  "src/assets/anniversary-garden-tree-free.webp", "src/assets/courage-garden.webp",
+  "src/assets/anniversary-town-v13.webp", "src/assets/echo-ruins.webp", "src/assets/night-meadow-v16.webp",
+]);
+
+function preloadOrder(file: Rollup.OutputAsset | Rollup.OutputChunk) {
+  if (file.type === "chunk") return 4;
+  const sources = file.originalFileNames.map(normalizePath);
+  if (sources.some(path => firstFrame.has(path))) return 0;
+  if (sources.some(path => mapPreviews.has(path))) return 1;
+  if (sources.some(path => path.startsWith("ref/相册/previews/") || path.startsWith("ref/来信/信笺/") ||
+      path.startsWith("src/assets/stationery-"))) return 2;
+  if (sources.some(path => path.startsWith("src/assets/town-interiors/"))) return 3;
+  if (sources.includes("src/assets/anniversary-town-hd-v13.webp")) return 5;
+  return 4;
+}
+
+function resourceManifest(bundle: Rollup.OutputBundle) {
+  return Object.keys(bundle).filter(name => name.startsWith("assets/")).sort()
+    .map(name => ({ name, file: bundle[name], order: preloadOrder(bundle[name]) }))
+    .sort((a, b) => a.order - b.order)
+    .map(({ name, file }) => [name, createHash("sha256")
+      .update(file.type === "chunk" ? file.code : file.source).digest("base64")]);
 }
 
 function releaseEntry(mode: "full" | "lite"): Plugin {
@@ -79,37 +105,30 @@ function releaseEntry(mode: "full" | "lite"): Plugin {
         if (html?.type !== "asset" || typeof html.source !== "string") this.error("缺少发布首页 index.html");
         hash.update(html.source);
         for (const name of Object.keys(bundle).sort()) hash.update(name);
+        const manifest = mode === "full" ? JSON.stringify(resourceManifest(bundle)) : undefined;
+        const worker = manifest && readFileSync(new URL("./scripts/texture-worker.js", import.meta.url), "utf8");
+        if (manifest && worker) hash.update(manifest).update(worker);
         const version = hash.digest("hex").slice(0, 16);
         html.source = html.source.replace(`data-version="dev-${mode}"`, `data-version="${version}"`);
         this.emitFile({ type: "asset", fileName: "release.json",
           source: marker(version) });
+        if (manifest && worker) {
+          this.emitFile({ type: "asset", fileName: "texture-cache.js",
+            source: `const assetVersion = ${JSON.stringify(version)};\nconst assetFiles = ${manifest};\n${worker}` });
+        }
       },
     },
   };
 }
 
-const textureCache: Plugin = {
-  name: "fufu-texture-cache",
-  apply: "build",
-  generateBundle(_, bundle) {
-    const paths = Object.keys(bundle).filter(path => /\.(webp|png|jpe?g|avif|gif|svg)$/i.test(path)).sort();
-    const textures = paths.map(path => {
-      const file = bundle[path];
-      if (file.type !== "asset") return this.error(`Expected a texture asset at ${path}`);
-      return [path, createHash("sha256").update(file.source).digest("base64")];
-    });
-    const worker = readFileSync(new URL("./scripts/texture-worker.js", import.meta.url), "utf8");
-    this.emitFile({ type: "asset", fileName: "texture-cache.js",
-      source: `const textureFiles = ${JSON.stringify(textures)};\n${worker}` });
-  },
-};
-
 export default defineConfig(({ mode }) => {
   const releaseMode = buildMode(loadEnv(mode, root, "FULL_BUILD").FULL_BUILD);
   return {
     server: { watch: { ignored: ["**/artifacts/**"] } },
+    // The static site serves same-origin assets. Share their HTTP cache with worker fetches in preview too.
+    preview: { cors: false },
     // The default dist/ is inside the Vite root and is emptied on every build.
     build: { copyPublicDir: releaseMode === "full" },
-    plugins: [releaseEntry(releaseMode), releaseMode === "full" && stationeryConfig, releaseMode === "full" && textureCache],
+    plugins: [releaseEntry(releaseMode), releaseMode === "full" && stationeryConfig],
   };
 });

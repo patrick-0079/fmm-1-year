@@ -6,8 +6,8 @@
 | --- | --- |
 | `src/assets/anniversary-town-v13.png` | 整图重绘稿，1536×1024；制作高清分区时的共同参考 |
 | `src/assets/anniversary-town-hd-v13.png` | 四幅分区重绘拼成的 3072×2048 母图 |
-| `src/assets/anniversary-town-hd-v13.webp` | 无损高清运行图，首次进镇后异步解码 |
-| `src/assets/anniversary-town-v13.webp` | 从同一母图缩小的 1536×1024 预览，载入高清图期间可游玩 |
+| `src/assets/anniversary-town-hd-v13.webp` | 烘焙游乐设施后的无损高清运行图，首次进镇后异步解码 |
+| `src/assets/anniversary-town-v13.webp` | 从同一完成图缩小的 1536×1024 预览，载入高清图期间可游玩 |
 | `src/assets/town-gate-v13.png` / `.webp` | 透明玫瑰木门。源图 1254×1254，运行图 384×384，保留透明通道；门牌文字在游戏中清晰绘制 |
 
 ## 拼接与导出

@@ -1,10 +1,12 @@
-import type { SceneId } from "./maps";
+import type { BaseSceneId } from "./maps";
 import { townGates, southStreetLamp } from "./gate-layout.ts";
+import { blockBoard, flightRings, rabbitPlatforms, wishPairs } from "./town-attraction-layout.ts";
 export interface Light {
   x: number;
   y: number;
   radius: number;
   color: string;
+  window?: boolean;
 }
 const warm = (x: number, y: number, radius = 48): Light => ({
   x,
@@ -12,13 +14,13 @@ const warm = (x: number, y: number, radius = 48): Light => ({
   radius,
   color: "#ffc36b",
 });
-export const sceneLights: Record<SceneId, Light[]> = {
+export const sceneLights: Record<BaseSceneId, Light[]> = {
   meadow: [], // Moonlight is painted into the map; the campfire has its own glow.
   ruins: [], // The chambers are lit by their own crystals.
   room: [
     warm(558, 76, 70),
     warm(45, 158, 72),
-    { x: 300, y: 40, radius: 95, color: "#9ab9ef" },
+    { x: 300, y: 40, radius: 95, color: "#9ab9ef", window: true },
   ],
   garden: [
     [351, 142],
@@ -82,6 +84,11 @@ export const sceneLights: Record<SceneId, Light[]> = {
       warm(1204, 409, 70),
       warm(1284, 845, 85),
       warm(1393,54,43), warm(1464,54,43),
+      warm(rabbitPlatforms[1].x + 4, rabbitPlatforms[1].y - 19, 22),
+      warm(blockBoard.x - 44, blockBoard.y - 30, 15),
+      warm(flightRings[1].x, flightRings[1].y - 92, 16),
+      warm(flightRings[0].x - 11, flightRings[0].y - 47, 13),
+      warm((wishPairs[1].left.x + wishPairs[1].right.x) / 2, wishPairs[1].left.y - 4, 15),
     ]),
 };
 for (const g of townGates) {

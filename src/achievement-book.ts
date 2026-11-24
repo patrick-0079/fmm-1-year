@@ -1,5 +1,5 @@
 import { achievementChapters, type AchievementEntry } from "./achievements";
-import { paintAchievementArt } from "./achievement-art";
+import { hasDrawnStamp, paintAchievementArt } from "./achievement-art";
 import { escapeHtml } from "./icons";
 import "./achievement-book.css";
 
@@ -22,7 +22,7 @@ const visibleName = (entry: AchievementEntry) => (concealed(entry) ? "未揭晓�
 export function achievementStampMarkup(entry: AchievementEntry) {
   const unknown = concealed(entry);
   const image =
-    entry.letterId && !unknown
+    entry.letterId && !unknown && !hasDrawnStamp(entry.id)
       ? `<i data-stamp-letter="${escapeHtml(entry.letterId)}"></i>`
       : `<canvas data-stamp-art="${unknown && entry.letterId ? "sealed-letter" : escapeHtml(entry.id)}" ${unknown ? "data-stamp-veiled" : ""} width="32" height="32"></canvas>`;
   return `<span class="achievement-stamp stamp-${entry.chapter} ${entry.earned ? "stamp-earned" : "stamp-pending"}${unknown ? " stamp-secret" : ""}" aria-hidden="true">${image}</span>`;

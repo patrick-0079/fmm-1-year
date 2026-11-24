@@ -1,27 +1,37 @@
 import { eggAvailable, phaseNames, untilNextPhase, worldTime } from "./day";
 import type { Phase } from "./day";
 import { drawTownLight } from "./town-light";
+import { isTownInterior } from "./town-interior-id";
+import { daylightMix } from "./daylight-mix";
+import { drawGardenSurfaceLight, drawSceneDaylight, drawWindowLightOnFloor } from "./scene-daylight";
 import { sfx } from "./sound";
 import { reservedShortcut, readingTarget } from "./input";
 import type { Activities } from "./activities";
 import type { Inventory } from "./inventory";
-import { sceneLights } from "./lights";
 import type { World } from "./world";
 import type { Hotspot } from "./maps";
-import { gardenTrees, creeks } from "./landscape";
-import { drawCreek, drawGardenTree } from "./landscape-renderer";
+import { courageBorder } from "./courage-border";
+import { challengeTrees } from "./landscape";
+import { drawGardenTree } from "./landscape-renderer";
+import { creekDepthLayers, drawCreek } from "./creek-art";
 import benchUrl from "./assets/garden-bench.webp";
 import treeUrl from "./assets/apple-tree.webp";
 import dewUrl from "./assets/morning-dew-flower.webp";
 import roomArtUrl from "./assets/room-interactive.webp";
 import { drawRoomWindow } from "./window-sky";
+import { drawCurtainBreeze, drawFabricGround, fruitShift, windLevel } from "./scenery-wind";
 import { drawKeepsake } from "./scene-art";
 import { drawWildSprite } from "./wild-art";
 import { drawFirefly, fireflyDrift } from "./firefly-art";
+import gardenDetails from "./garden-street-details.json";
+import { prepareMapCovers, visibleMapCovers } from "./map-covers";
 import { gardenForeground } from "./garden-foreground";
 import { gardenGateLamp } from "./garden-gate-lamp";
 import { gardenSign } from "./garden-sign";
+import { roomFurniture } from "./room-furniture";
 import { roomBalloons } from "./room-foreground";
+const gardenCovers = prepareMapCovers(gardenDetails);
+
 interface NatureSave {
   picked: Record<string, number>;
   apple: number;
@@ -50,10 +60,8 @@ export class Nature {
   private state = initial();
   private lastUi = 0;
   private oldPhase = "";
-  private tint = [0, 0, 0, 0];
   private previewPhase: Phase | null = null;
   private reduce = matchMedia("(prefers-reduced-motion: reduce)");
-  private lightMap = document.createElement("canvas");
   constructor(
     private world: World,
     private activities: Activities,
@@ -111,13 +119,13 @@ export class Nature {
     }
     this.saveClock();
     this.world.available = (spot) => this.available(spot);
-    this.world.onEnvironment = (c, t) => this.draw(c, t);
+    this.world.onEnvironment = c => this.draw(c);
     this.world.onLighting = (c) => this.lighting(c);
     this.world.getDepthLayers = () => this.depthLayers();
     const tick = this.world.onTick;
     this.world.onTick = (dt, t) => {
       tick(dt, t);
-      this.tick(dt);
+      this.tick();
     };
     window.addEventListener("keydown", (e) => {
       if (reservedShortcut(e) || this.world.suspended || readingTarget(e.target)) return;
@@ -132,7 +140,7 @@ export class Nature {
         this.toggleCrown();
       }
     });
-    this.tick(0);
+    this.tick();
   }
   get elapsed() {
     return Math.max(0, (Date.now() - this.origin) / 1000 + this.shift);
@@ -143,7 +151,12 @@ export class Nature {
     const hours={dawn:6,day:12,dusk:18,night:22}[phase];
     return {...time,hours,phase,label:String(hours).padStart(2,"0")+":00"};
   }
-  setPreviewPhase(phase:Phase|null) { this.previewPhase=phase; this.refreshClock(); }
+  onTimeJump: () => void = () => {};
+  setPreviewPhase(phase:Phase|null) {
+    this.previewPhase=phase;
+    this.refreshClock();
+    this.onTimeJump();
+  }
   get timePreview() { return this.previewPhase; }
   get pickedEggs() {
     const recorded = new Set(Object.entries(this.state.picked)
@@ -177,7 +190,7 @@ export class Nature {
       localStorage.setItem(NATURE_KEY, JSON.stringify(this.state));
     } catch {}
     this.lastUi = 0;
-    this.tick(0);
+    this.tick();
   }
   reset() {
     this.state = initial();
@@ -188,7 +201,7 @@ export class Nature {
     this.lastUi = 0;
     this.saveClock();
     this.save();
-    this.tick(0);
+    this.tick();
   }
   private available(spot: Hotspot) {
     if (spot.id === "wreath") return !this.inventory.has("wreath");
@@ -270,13 +283,14 @@ export class Nature {
       drop: "捡到了一颗掉落的星屑 · 地上的闪光已经收进小口袋啦",
       dew: "清晨的晨露花，只为早起的小冒险家绽放 · 星屑 +1",
       sunset: "拾起一只金色小纸船 · 愿芙芙一路顺风，黄昏也有光 · 星屑 +1",
-      firefly: "萤火虫绕着你画了一个爱心，又飞回树梢 · 星夜心愿已收好，星屑 +1",
+      firefly: "萤火虫绕着你画了一个爱心，又飞回花丛 · 星夜心愿已收好，星屑 +1",
     };
     this.activities.note(words[id]);
     return true;
   }
   private pickApple() {
     const remaining = 3 - this.picked("apple");
+    const basket = this.world.scene === "garden";
     if (remaining > 0) {
       this.mark("apple");
       this.state.apple++;
@@ -285,9 +299,10 @@ export class Nature {
     }
     this.activities.menu(
       remaining > 0
-        ? `摘到一颗甜苹果！树上的苹果还剩 ${Math.max(0, remaining - 1)} 颗`
-        : "今天树上的苹果摘完啦 · 明天会重新长出来",
-      remaining > 1 ? [{ title: "再摘一颗", run: () => this.pickApple() }] : [],
+        ? `${basket ? "拿到" : "摘到"}一颗甜苹果！${basket ? "果篮里" : "树上"}还剩 ${remaining - 1} 颗`
+        : basket ? "果篮里的苹果拿完啦 · 明天还会补上"
+          : "今天树上的苹果摘完啦 · 明天会重新长出来",
+      remaining > 1 ? [{ title: basket ? "再拿一颗" : "再摘一颗", run: () => this.pickApple() }] : [],
     );
   }
   private pickFlower() {
@@ -318,31 +333,28 @@ export class Nature {
     this.save();
   }
   private rest() {
-    this.shift += untilNextPhase(this.elapsed);
+    this.shift += untilNextPhase(this.elapsed, this.clock.phase);
+    this.previewPhase = null;
     this.saveClock();
-    this.tick(0);
+    this.refreshClock();
+    this.onTimeJump();
     this.activities.note(
       `伸个懒腰，现在是${phaseNames[this.clock.phase]}啦 · 去看看花园里新出现的小惊喜吧`,
     );
     sfx("portal");
   }
-  private tick(dt: number) {
+  private tick() {
     const clock = this.clock;
+    this.world.currentPhase = clock.phase;
+    this.world.lightMix = daylightMix(clock.hours);
     const meadow = this.world.scene === "meadow";
     const ruins = this.world.scene === "ruins";
-    const target: Record<string, number[]> = {
-      dawn: [242, 184, 171, 0.11],
-      day: [255, 234, 167, 0.03],
-      dusk: [223, 126, 155, 0.2],
-      night: [42, 54, 115, 0.35],
-    };
-    const amount = Math.min(1, dt * 1.4);
-    if (this.oldPhase === "") this.tint = [...target[clock.phase]];
-    for (let i = 0; i < 4; i++)
-      this.tint[i] += (target[clock.phase][i] - this.tint[i]) * amount;
     if (this.oldPhase !== clock.phase) {
-      if (this.oldPhase && !meadow && !ruins)
-        this.toast(`${phaseNames[clock.phase]}到了 · ${this.world.scene==="town"?"小镇换了光景":"花园里的风景悄悄变了"}`);
+      if (this.oldPhase && !meadow && !ruins) {
+        const change = this.world.scene === "room" ? "窗外换了光景" :
+          this.world.scene === "town" || isTownInterior(this.world.scene) ? "小镇换了光景" : "花园里的风景悄悄变了";
+        this.toast(`${phaseNames[clock.phase]}到了 · ${change}`);
+      }
       this.oldPhase = clock.phase;
     }
     if (Date.now() - this.lastUi < 350) return;
@@ -359,20 +371,29 @@ export class Nature {
       `苹果 ${this.state.apple} · 花朵 ${this.state.flower} · 星屑 ${this.state.star}`;
     const wearing = this.inventory.state.equipped.head === "wreath";
     this.state.wearing = this.inventory.has("wreath") && wearing;
-    document.querySelector(".day-hint")!.textContent = ruins ? "石廊里的三块铭文，记着一段遗忘的晚安。" : meadow ? "草间有落星，营火旁有一只收着星光的玻璃瓶。" :
+    document.querySelector(".day-hint")!.textContent = isTownInterior(this.world.scene) ? "走回门垫，从南门回小镇街道。" :
+      ruins ? "石廊里的三块铭文，记着一段遗忘的晚安。" : meadow ? "草间有落星，营火旁有一只收着星光的玻璃瓶。" :
       `第 ${clock.day} 天 · 十分钟一昼夜 · ${clock.phase === "dawn" ? "晨露花醒来了" : clock.phase === "dusk" ? "溪边漂来一只纸船" : clock.phase === "night" ? "萤火心愿悄悄出现" : "去勇气花园的长椅休息，等一场黄昏和星夜"}`;
   }
   refreshClock() {
     this.lastUi = 0;
-    this.tick(0);
+    this.tick();
   }
-  private draw(c: CanvasRenderingContext2D, t: number) {
+  private draw(c: CanvasRenderingContext2D) {
+    const t = this.reduce.matches ? 0 : this.world.ambientTime;
     if (this.world.scene === "room") {
-      drawRoomWindow(c, this.clock.phase, this.windowImage);
+      const light = daylightMix(this.clock.hours);
+      drawRoomWindow(c, light, this.windowImage, t);
+      drawWindowLightOnFloor(c, light);
+      if (!this.reduce.matches) drawCurtainBreeze(c,this.world);
       return;
     }
+    if (!this.reduce.matches && (this.world.scene === "ruins" || this.world.scene === "meadow"))
+      drawFabricGround(c,this.world);
     if (this.world.scene !== "garden" && this.world.scene !== "challenge") return;
-    drawCreek(c, creeks[this.world.scene], t);
+    const light = daylightMix(this.clock.hours);
+    drawCreek(c, this.world.creekProps, this.world.scene, t, light);
+    drawGardenSurfaceLight(c, this.world.scene, light);
     const atlas = this.world.orchardSprites;
     if (this.world.scene === "challenge") {
       drawWildSprite(c, atlas, 2, 450, 110, 25);
@@ -409,63 +430,76 @@ export class Nature {
         }
       }
     }
-    // Visible little ripples on the perimeter stream, never on walkable grass.
-    c.strokeStyle = this.clock.phase === "night" ? "#a8d5f2aa" : "#e0f6eaaa";
-    c.lineWidth = 1;
-    for (let i = 0; i < 7; i++) {
-      const sx = this.world.scene === "garden" ? 850 : 65,
-        sy = 140 + i * 46 + Math.sin(t + i) * 3;
-      c.beginPath();
-      c.moveTo(sx - 7, sy);
-      c.lineTo(sx + 7, sy);
-      c.stroke();
-    }
   }
   private depthLayers() {
-    if (this.world.scene === "room") return [{
-      y: 377, draw: (c: CanvasRenderingContext2D) => {
+    if (this.world.scene === "room") return [
+      ...roomFurniture.filter(p => p.id !== "bed" || this.world.restState?.kind !== "lying")
+        .map(p => ({y:p.y, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,p.points)})),
+      {y:249, draw:(c:CanvasRenderingContext2D) => this.activities.drawCake(c, performance.now() / 1000)},
+      {y:377, draw:(c:CanvasRenderingContext2D) => {
         c.save();
         const feet = this.world.player;
         if (feet.x < 110 && feet.y > 295 && feet.y < 377) c.globalAlpha *= 0.68;
         for (const silhouette of roomBalloons) this.world.drawMapFragment(c, silhouette);
         c.restore();
-      },
-    }];
+      }},
+    ];
     if (this.world.scene !== "garden" && this.world.scene !== "challenge")
       return [];
     const scene = this.world.scene,
       apple = this.world.config.spots.find((s) => s.id === "apple")!,
       bench = this.world.config.spots.find((s) => s.id === "rest");
-    return [
-      ...(scene === "garden" ? [
+    const creek = creekDepthLayers(scene, this.world.creekProps);
+    if (scene === "garden") {
+      return [
+        ...creek,
+        ...visibleMapCovers(this.world, gardenCovers),
         ...gardenForeground.map(part => ({y:part.y, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,part.points)})),
+        { y: apple.y + 4, draw: (c: CanvasRenderingContext2D) => {
+          const basket = this.world.appleBasket;
+          c.fillStyle = "#294a3c48";
+          c.beginPath();
+          c.ellipse(apple.x, apple.y + 2, 18, 5, 0, 0, Math.PI * 2);
+          c.fill();
+          if (basket?.naturalWidth) c.drawImage(basket, apple.x - 21, apple.y - 15, 42, 19);
+          for (let i = this.picked("apple"); i < 3; i++) {
+            drawWildSprite(c, this.world.orchardSprites, 0, apple.x + [-10, 10, 0][i],
+              apple.y + [-5, -6, -9][i], [12, 12, 11][i], i === 1);
+          }
+        } },
         { y: 479, draw: (c: CanvasRenderingContext2D) => this.world.drawMapFragment(c, gardenSign) },
         { y: 984 * 600 / 1024, draw: (c: CanvasRenderingContext2D) => {
           for (const outline of gardenGateLamp) this.world.drawMapFragment(c, outline);
         } },
-      ] : []),
-      ...gardenTrees[scene].map((tree) => ({
+      ];
+    }
+    return [
+      ...creek,
+      ...courageBorder.map(({y,points}) => ({y, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,points)})),
+      ...challengeTrees.map((tree) => ({
         y: tree.y + 23 * tree.scale,
         draw: (c: CanvasRenderingContext2D) =>
-          drawGardenTree(c, this.treeImage, tree),
+          drawGardenTree(c, this.treeImage, tree, this.treeBreeze(tree.x,tree.y)),
       })),
       {
         y: apple.y + 23,
         draw: (c: CanvasRenderingContext2D) => {
+          const breeze=this.reduce.matches ? 0 : windLevel(this.world,.95);
           drawGardenTree(c, this.treeImage, {
             x: apple.x,
             y: apple.y,
             scale: 1,
             tone: 0,
-          });
+          },breeze);
           for (let i = this.picked("apple"); i < 3; i++) {
             const x = apple.x + [-19, 17, -1][i], y = apple.y + [-3, -8, -23][i];
-            drawWildSprite(c, this.world.orchardSprites, 0, x, y, [14, 15, 13][i], i === 1);
+            const stem=fruitShift(x-apple.x+36,y-apple.y+43,breeze);
+            drawWildSprite(c, this.world.orchardSprites, 0, x+stem.x, y+stem.y, [14, 15, 13][i], i === 1);
           }
         },
       },
       ...(bench ? [{
-        y: bench.y - 4,
+        y: this.world.restState?.kind === "sitting" ? bench.y : bench.y + 17,
         draw: (c: CanvasRenderingContext2D) => {
           if (this.benchImage.complete && this.benchImage.naturalWidth)
             c.drawImage(this.benchImage, bench.x - 38, bench.y - 25, 76, 46);
@@ -473,76 +507,16 @@ export class Nature {
       }] : []),
     ];
   }
+  private treeBreeze(x:number,y:number) {
+    if (this.reduce.matches) return 0;
+    if (x!==153 && x!==143 && x!==278) return 0;
+    return windLevel(this.world,Math.max(0,(y-145)/300));
+  }
   private lighting(c: CanvasRenderingContext2D) {
-    if (this.world.scene === "meadow" || this.world.scene === "ruins") return;
-    if (this.world.scene === "town") {
-      drawTownLight(c,this.clock.hours,performance.now()/1000,this.reduce.matches); return;
-    }
-    const shade = Math.max(0, Math.min(1, (this.tint[3] - 0.07) / 0.28));
-    if (shade <= 0) return;
-    const { width, height } = this.world.config;
-    const map = this.lightMap;
-    if (map.width !== width || map.height !== height) {
-      map.width = width;
-      map.height = height;
-    }
-    const g = map.getContext("2d")!;
-    g.clearRect(0, 0, width, height);
-    g.globalCompositeOperation = "source-over";
-    // Cut the complete night tint out around each light, keeping the flowers and
-    // paving warm and saturated there rather than leaving a global grey filter.
-    const nightOpacity =
-      this.world.scene === "room"
-          ? 0.18
-          : 0.24;
-    g.fillStyle = `rgba(24,36,70,${shade * nightOpacity})`;
-    g.fillRect(0, 0, width, height);
-    g.globalCompositeOperation = "destination-out";
-    for (const light of sceneLights[this.world.scene]) {
-      const glow = g.createRadialGradient(
-        light.x,
-        light.y,
-        2,
-        light.x,
-        light.y,
-        light.radius,
-      );
-      glow.addColorStop(0, "#000000f2");
-      glow.addColorStop(0.35, "#000000bd");
-      glow.addColorStop(1, "#00000000");
-      g.fillStyle = glow;
-      g.fillRect(
-        light.x - light.radius,
-        light.y - light.radius,
-        light.radius * 2,
-        light.radius * 2,
-      );
-    }
-    g.globalCompositeOperation = "source-over";
-    c.drawImage(map, 0, 0);
-    c.save();
-    c.globalCompositeOperation = "screen";
-    c.globalAlpha = shade * 0.36;
-    for (const light of sceneLights[this.world.scene]) {
-      const glow = c.createRadialGradient(
-        light.x,
-        light.y,
-        1,
-        light.x,
-        light.y,
-        light.radius * 0.9,
-      );
-      glow.addColorStop(0, light.color + "bb");
-      glow.addColorStop(0.3, light.color + "66");
-      glow.addColorStop(1, light.color + "00");
-      c.fillStyle = glow;
-      c.fillRect(
-        light.x - light.radius,
-        light.y - light.radius,
-        light.radius * 2,
-        light.radius * 2,
-      );
-    }
-    c.restore();
+    const scene = this.world.scene;
+    if (scene === "meadow" || scene === "ruins" || isTownInterior(scene)) return;
+    const hours = this.clock.hours;
+    if (scene === "town") drawTownLight(c, hours, this.world.ambientTime, this.reduce.matches);
+    else drawSceneDaylight(c, scene, daylightMix(hours));
   }
 }

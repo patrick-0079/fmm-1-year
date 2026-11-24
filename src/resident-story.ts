@@ -1,4 +1,5 @@
 import type { Memory } from "./content.ts";
+import { mergeChatMemory, readChatMemory, type ChatMemory } from "./resident-chats.ts";
 import { allLetters, handedLetters, letterById, patrickLetter, postLetter, postRevision, publicLetterIds } from "./letters.ts";
 
 export { handedLetters, postLetter, patrickLetter, postRevision as POST_LETTER_REVISION } from "./letters.ts";
@@ -11,6 +12,7 @@ function isNpcLetter(id: string): id is NpcLetterId {
 }
 
 export interface ResidentStory {
+  chats: ChatMemory;
   /** Read receipts for letters available from the start. */
   publicLettersRead: string[];
   npcLetters: Partial<Record<NpcLetterId, "unread" | "read">>;
@@ -40,6 +42,7 @@ export function readResidentStory(value?: Partial<ResidentStory> | null): Reside
     if (status === "unread" || status === "read") npcLetters[id] = status;
   }
   return {
+    chats: readChatMemory(value?.chats),
     publicLettersRead,
     npcLetters,
     postDelivered: value?.postDelivered === true,
@@ -65,7 +68,7 @@ export function mailboxLetters(story: ResidentStory) {
 
 /** These story receipts only advance within one adventure. Keep live reader references valid. */
 export function mergeResidentStory(into: ResidentStory, from: ResidentStory) {
-  let changed = false;
+  let changed = mergeChatMemory(into.chats, from.chats);
   for (const id of from.publicLettersRead) {
     if (!into.publicLettersRead.includes(id)) {
       into.publicLettersRead.push(id);
@@ -135,9 +138,14 @@ export interface LetterHandoff {
 }
 
 export function letterChoice(mail: LetterHandoff, id: HandedLetterId, refresh: () => void) {
-  return mail.received(id)
-    ? { title: "现在读信", run: () => mail.read(id) }
-    : { title: "收下信", run: () => { if (mail.collect(id)) refresh(); } };
+  if (mail.received(id)) return { title: "现在读信", run: () => mail.read(id) };
+  let finished = false;
+  return { title: "收下信", run: () => {
+    // Another tab may have delivered the letter after this choice appeared.
+    if (finished || (!mail.received(id) && !mail.collect(id))) return;
+    finished = true;
+    refresh();
+  }};
 }
 
 export function postUnread(story: ResidentStory, revision = postRevision) {

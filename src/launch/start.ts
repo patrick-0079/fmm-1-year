@@ -27,16 +27,20 @@ export async function startLaunch(loadGame?: () => Promise<unknown>) {
     view?.destroy();
   }
 
+  function showRetry(message: string) {
+    const retry = document.createElement("button");
+    retry.textContent = message;
+    retry.onclick = () => location.reload();
+    root.replaceChildren(retry);
+  }
+
   async function enterGame() {
     stop();
     document.title = gameTitle;
     try {
       await loadGame!();
     } catch {
-      const retry = document.createElement("button");
-      retry.textContent = "小屋未能载入，点击重试";
-      retry.onclick = () => location.reload();
-      root.replaceChildren(retry);
+      showRetry("小屋未能载入，点击重试");
     }
   }
 
@@ -111,8 +115,13 @@ export async function startLaunch(loadGame?: () => Promise<unknown>) {
     return;
   }
   document.title = "芙芙的晚安小屋，即将开门";
-  const { createCountdownView: createView } = await import("./view");
-  view = createView(root);
+  try {
+    const { createCountdownView: createView } = await import("./view");
+    view = createView(root);
+  } catch {
+    showRetry("邀请函未能载入，点击重试");
+    return;
+  }
   window.addEventListener("online", wake);
   window.addEventListener("pageshow", wake);
   document.addEventListener("visibilitychange", wake);

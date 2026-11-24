@@ -42,14 +42,36 @@ test("switching full → invitation → full cleans the deployed directory", asy
   assert.ok(explicit.files.includes("future-game-asset.txt"));
   assert.ok(explicit.files.some(name => name.includes("room-interactive")));
   assert.ok(explicit.files.some(name => name.startsWith("assets/town-guests-")));
+  assert.ok(explicit.files.some(name => name.startsWith("assets/anniversary-town-v13-")));
+  assert.ok(explicit.files.some(name => name.startsWith("assets/anniversary-town-hd-v13-")));
+  assert.ok(explicit.files.some(name => name.startsWith("assets/town-playground-animation-")));
+  const gameArt = ["town-work-poses", "garden-guest-routines", "gardener-hat", "guardian-moonstone", "meadow-jelly-bells",
+    "anniversary-garden-tree-free", "apple-basket", "courage-tall-flowers", "garden-creek-props", "anniversary-visitors"];
+  const walkSheets = await readdir(new URL("../src/assets/resident-walk/", import.meta.url));
+  for (const sheet of walkSheets) {
+    const prefix = "assets/" + sheet.slice(0, -5) + "-";
+    assert.ok(explicit.files.some(file => file.startsWith(prefix) && file.endsWith(".webp")), sheet);
+  }
+  for (const name of gameArt) {
+    assert.ok(explicit.files.some(file => file.startsWith(`assets/${name}-`)), name);
+  }
+  assert.ok(!explicit.files.some(name => /assets\/town-(?:attractions|wish-lawn)-/.test(name)));
   assert.ok(explicit.files.some(name => name.startsWith("assets/patrick-camp-")));
   for (const artwork of ["desk", "fox-letter", "berry-wax", "ivory-flap", "lily-pocket", "rose-lining"]) {
     assert.ok(explicit.files.some(name => name.startsWith(`assets/stationery-${artwork}-`)), artwork);
   }
   const textureWorker = await readFile(join(outDir, "texture-cache.js"), "utf8");
-  for (const asset of explicit.files.filter(name => name.startsWith("assets/") && /\.(webp|png|jpe?g|avif)$/i.test(name))) {
+  assert.ok(textureWorker.startsWith("const assetVersion = " + JSON.stringify(explicit.marker.version) + ";"));
+  const manifest = /^const assetFiles = (.+);$/m.exec(textureWorker);
+  assert.ok(manifest, "full build writes an ordered resource manifest");
+  const entries: [string, string][] = JSON.parse(manifest[1]);
+  assert.deepEqual(entries.map(([file]) => file).sort(), explicit.files.filter(name => name.startsWith("assets/")));
+  assert.match(entries[0][0], /^assets\/nemu-sprites-/);
+  assert.match(entries[1][0], /^assets\/room-interactive-/);
+  assert.match(entries.at(-1)![0], /^assets\/anniversary-town-hd-v13-/);
+  for (const [asset, expected] of entries) {
     const digest = createHash("sha256").update(await readFile(join(outDir, asset))).digest("base64");
-    assert.ok(textureWorker.includes(JSON.stringify([asset, digest])), `texture cache integrity for ${asset}`);
+    assert.equal(digest, expected, "resource cache integrity for " + asset);
   }
   assert.ok(!explicit.files.some(name => name.includes("stationery-cherrywood-box")));
   assert.ok(!explicit.files.some(name => /CharaStudio.*\.png$/i.test(name)));
@@ -62,7 +84,9 @@ test("switching full → invitation → full cleans the deployed directory", asy
     assert.match(file, /^(?:assets|index\.html|release\.json|favicon\.svg|_headers|assets\/(?:[\w.-]+\.(?:js|css)|launch-(?:cottage|fufu|fox-letter|player)-[\w-]+\.webp|fufu-cursor-(?:arrow|play)-[\w-]+\.(?:svg|png)))$/);
     if (/\.(?:js|css|html)$/.test(file)) {
       const body = await readFile(join(outDir, file), "utf8");
-      assert.doesNotMatch(body, /room-interactive|nemu-sprites|town-guests|patrick-camp|texture-cache\.js|rabe-anniversary-letter|patrick-anniversary-letter|star-xiaoye|star-zhenghao|成为了芙妮宝星|CharaStudio|stationery-|1-year\/picture\/|\.mp4\b/);
+      for (const name of gameArt) assert.ok(!body.includes(name), name);
+      assert.doesNotMatch(body, /一卷绷带骨碌碌地滚到芙芙鞋尖|我数左边，你数右边|我们一起数回声/);
+      assert.doesNotMatch(body, /room-interactive|nemu-sprites|town-guests|anniversary-town|town-playground|patrick-camp|texture-cache\.js|rabe-anniversary-letter|patrick-anniversary-letter|star-xiaoye|star-zhenghao|成为了芙妮宝星|CharaStudio|stationery-|1-year\/picture\/|\.mp4\b/);
     }
   }
   assert.ok(lite.files.includes("favicon.svg") && lite.files.includes("_headers"));

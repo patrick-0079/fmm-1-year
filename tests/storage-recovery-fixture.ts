@@ -34,8 +34,8 @@ try {
   if (apple) throw Error("测试须保持小屋初始位置");
   await world!.prepareScene("garden");
   world!.switchScene("garden");
-  const tree = world!.config.spots.find(s => s.id === "apple")!;
-  if (world!.available(tree)) throw Error("损坏时钟使当日采空的树重新奖励苹果");
+  const basket = world!.config.spots.find(s => s.id === "apple")!;
+  if (world!.available(basket)) throw Error("损坏时钟使当日拿空的果篮重新奖励苹果");
   const recovered = JSON.parse(records.get("fufu-world-clock-v1")!);
   if (!Number.isFinite(recovered.origin) || recovered.shift !== 0) throw Error("时钟没有独立恢复");
   report.textContent = "通过：损坏时钟独立恢复；17 苹果 / 9 花朵 / 4 星屑及当日采空记录保留";

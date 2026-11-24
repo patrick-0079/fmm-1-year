@@ -1,4 +1,5 @@
 import test from "node:test";
+import { townAttractionSpots } from "../src/town-attraction-layout.ts";
 import assert from "node:assert/strict";
 import { clickedInteraction, interactionHitY, nearbyInteraction } from "../src/interaction.ts";
 import { scenes, type Hotspot, type SceneId } from "../src/maps.ts";
@@ -87,7 +88,10 @@ test("every authored approach, subject centre and highlight selects its own obje
       const centre = { x: spot.x + objectBox.x + objectBox.w / 2, y: spot.y + objectBox.y + objectBox.h / 2 };
       const glint = { x: spot.x + anchor.x, y: spot.y + anchor.y };
       assert.equal(nearbyInteraction(spot.approach, spots)?.id, spot.id, scene + " approach " + spot.id);
-      for (const point of [centre, glint])
+      // These illustrated bounds surround several parts with walkable space
+      // in between. The playground geometry suite covers every clickable part.
+      const targets = townAttractionSpots.includes(spot) ? [glint] : [centre, glint];
+      for (const point of targets)
         assert.equal(clickedInteraction(point, spots)?.id, spot.id, scene + " subject " + spot.id);
     }
   }

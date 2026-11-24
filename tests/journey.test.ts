@@ -16,9 +16,12 @@ test("resuming respects existing collision, hazards and the seven-flower lock", 
     assert.deepEqual(restore("challenge", pos),{scene:"challenge",...scenes.challenge.spawn,savedAt});
 });
 test("saved positions remain safe after removing the anniversary bench and closing the north gate", () => {
-  const oldNorth = readJourney(JSON.stringify({scene:"challenge",x:450,y:86,savedAt}),[]);
+  const oldNorth = readJourney(JSON.stringify({scene:"challenge",x:450,y:78,savedAt}),[]);
   assert.deepEqual(oldNorth,{scene:"challenge",...scenes.challenge.spawn,savedAt},
-    "a save inside the former north opening returns to the safe south entrance");
+    "a save inside the planted north hedge returns to the safe south entrance");
+  const northPaving = {scene:"challenge",x:450,y:86,savedAt};
+  assert.deepEqual(readJourney(JSON.stringify(northPaving),[]),northPaving,
+    "a save on the pale paving in front of that hedge keeps its position");
   for (const flowers of [[],rainbowIds]) {
     const oldBenchExit = {scene:"garden",x:385,y:447,savedAt};
     assert.deepEqual(readJourney(JSON.stringify(oldBenchExit),flowers),oldBenchExit,
@@ -33,4 +36,14 @@ test("malformed location data cannot enter an unknown scene or disturb earned re
   const state = readProgress(JSON.stringify({completed:["cake"],arcadeBests:{snake:7,hop:-1,unknown:14,blocks:"9"}}));
   assert.deepEqual(state.completed,["cake"]);
   assert.deepEqual(state.arcadeBests,{snake:7});
+});
+
+test("an empty shift mark is a valid saved position in town and both gardens", () => {
+  for (const [scene, id] of [["town","npc-walker"],["garden","garden-guest-suyan"]] as const) {
+    const mark = scenes[scene].spots.find(s => s.id === id)!;
+    const save = {scene, x:mark.x, y:mark.y, savedAt};
+    for (const flowers of [[],rainbowIds]) {
+      assert.deepEqual(readJourney(JSON.stringify(save),flowers),save);
+    }
+  }
 });
