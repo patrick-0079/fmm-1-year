@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import { formatBeijingInput, parseBeijingInput } from "../src/launch/beijing-input.ts";
 
 test("debug fields mean Beijing time regardless of the browser's own timezone", () => {
-  const opening = Date.parse("2026-12-01T14:00:00Z");
-  assert.equal(formatBeijingInput(opening), "2026-12-01T22:00:00");
-  assert.equal(parseBeijingInput("2026-12-01T22:00"), opening);
-  assert.equal(parseBeijingInput("2026-12-01T22:00:09"), opening + 9000);
+  const opening = Date.parse("2026-12-01T14:10:00Z");
+  assert.equal(formatBeijingInput(opening), "2026-12-01T22:10:00");
+  assert.equal(parseBeijingInput("2026-12-01T22:10"), opening);
+  assert.equal(parseBeijingInput("2026-12-01T22:10:09"), opening + 9000);
   assert.equal(formatBeijingInput(Date.parse("2026-12-31T18:00:00Z")), "2027-01-01T02:00:00");
   assert.equal(parseBeijingInput("1970-01-01T08:00:00"), 0);
   assert.equal(formatBeijingInput(parseBeijingInput("9999-12-31T23:59:59")!), "9999-12-31T23:59:59");
