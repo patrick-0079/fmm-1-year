@@ -32,6 +32,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 苹果、可采花丛、勇气花和黄昏纸船 | `src/nature.ts` 按剩余数量和时段绘制，`src/wild-art.ts` 按脚底锚点读取四格图集。周年花园的果篮继续使用原来的 `garden:apple` 每日采集记录，勇气花园可从树上摘苹果。运行 `npm run art:night` 重建花海和采集物图集。[v16 素材说明](doc/artwork/ARTWORK-v16.md) |
 | 烟花祝福 | `src/celebration.ts` 的 `fireworkWishes`；全部是预设文字 |
 | 小镇居民和露天游乐设施 | `src/town-data.ts` 记录居民和游戏 ID，`src/town-attraction-layout.ts` 记录设施的靠近点、点击范围与底座 |
+| 小镇室内 | 在 [室内地图设计稿](doc/artwork/ARTWORK-town-interiors.md) 与七张相邻的 SVG 中修改地图、四时图层和对白，再执行 `node scripts/build-town-interiors.mjs` 重建 WebP 图集与 `src/town-interiors.generated.json`。`src/town-interiors.ts` 连接门槛，`src/town-routines.ts` 运行居民换班，`src/town-interior-activities.ts` 管理屋内互动。 |
 | 庭院来宾与动物 | `src/garden-guests.ts`；对话与跟随逻辑在 `src/garden-life.ts` |
 | 小叶子大猫玩偶 | `src/xiaoye-data.ts` 维护站位和取消规则；`src/xiaoye-embrace.ts` 管理 4.8 秒动作节奏，`src/xiaoye.ts` 绘制分层拥抱、临时人物朝向与提灯；见 [v55 拥抱动画](doc/artwork/ARTWORK-v55.md) |
 | 宠物安全足迹 | `src/companion-motion.ts`；启用与换图先找侧旁可达落点，跟随保持 30px 间距，太近时沿当前侧退让；暂停、睡觉与小游戏期间停止更新 |

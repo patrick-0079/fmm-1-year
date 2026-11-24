@@ -1,4 +1,4 @@
-import type { SceneId } from "./maps";
+import type { BaseSceneId } from "./maps";
 import { townGates, southStreetLamp } from "./gate-layout.ts";
 import { blockBoard, flightRings, rabbitPlatforms, wishPairs } from "./town-attraction-layout.ts";
 export interface Light {
@@ -14,7 +14,7 @@ const warm = (x: number, y: number, radius = 48): Light => ({
   radius,
   color: "#ffc36b",
 });
-export const sceneLights: Record<SceneId, Light[]> = {
+export const sceneLights: Record<BaseSceneId, Light[]> = {
   meadow: [], // Moonlight is painted into the map; the campfire has its own glow.
   ruins: [], // The chambers are lit by their own crystals.
   room: [

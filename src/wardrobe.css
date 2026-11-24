@@ -514,8 +514,45 @@
 }
 .bag-keepsake img { display: block; max-width: 100%; min-height: 0; max-height: 74%; object-fit: contain; }
 .bag-keepsake[data-mail] img { max-height: 47%; }
+.bag-keepsake[data-town-keepsakes] canvas { width: min(75%, 56px); max-height: 48%; object-fit: contain; }
 .bag-mail-count { color: #765343; font-size: clamp(10px, 1.3cqw, 13px); line-height: 1.2; }
 .bag-keepsake.is-locked img { opacity: .5; filter: saturate(.35); }
+.inventory-panel[data-town-keepsakes-open] { display: flex; padding: clamp(8px, 1.5cqw, 16px); }
+.bag-town-paper {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid #c99e77;
+  border-radius: 4px;
+  padding: clamp(5px, 1.3cqw, 14px);
+  background: #fff1d9;
+  font-size: clamp(12px, 1.6cqw, 16px);
+}
+.bag-town-paper header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 5px; }
+.bag-town-paper h4 { margin: 0; font-size: clamp(13px, 2cqw, 19px); }
+.bag-town-paper small { color: #765343; font-size: .83em; }
+.bag-town-paper button {
+  color: inherit;
+  border: 1px solid #bd9877;
+  border-radius: 4px;
+  background: #fff7e6;
+  padding: 3px 7px;
+}
+.bag-town-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; }
+.bag-town-grid button { display: grid; justify-items: center; align-content: start; gap: 1px; line-height: 1.25; }
+.bag-town-grid button:disabled { background: #f2e5cf; color: #675344; }
+.bag-town-grid button:disabled canvas { opacity: .48; filter: grayscale(.5); }
+.bag-town-grid canvas { width: clamp(24px, 5.6cqw, 52px); height: auto; }
+.bag-town-detail { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.bag-town-detail canvas { width: clamp(42px, 13cqw, 116px); height: auto; }
+.bag-town-detail p { max-width: 24em; line-height: 1.55; }
+@container (max-width: 560px) {
+  .bag-keepsakes { gap: 3px; padding: 3px; }
+  .bag-keepsake { padding: 2px; line-height: 1.15; }
+  .bag-town-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
 .inventory-panel.game-letter-reader {
   --mail-backdrop: rgb(220 220 220 / 36%);
   display: flex;

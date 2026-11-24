@@ -8,6 +8,10 @@ import "./achievement-flash.css";
 import { ForegroundPlayClock } from "./playtime";
 import { icon } from "./icons";
 import { World, scenes, type SceneId } from "./world";
+import { isTownInterior } from "./town-interior-id";
+import { townInteriors } from "./town-interiors";
+import { TownInteriorActivities } from "./town-interior-activities";
+import { townKeepsakeInfo } from "./town-keepsakes";
 import { ResidentChats } from "./resident-chats";
 import { InteractionPrompt } from "./interaction-prompt";
 import { resolveCue } from "./interaction-cues";
@@ -250,6 +254,7 @@ export function mountGame() {
     }
   }
   const inventory = new Inventory(world, toast);
+  inventory.townKeepsakes = () => progress.townKeepsakes;
   inventory.mailbox = mailbox;
   inventory.notebookState = () => progress.residents.guardianInvited
     ? { astrolabe: progress.astrolabe, listened: progress.echoes.listened }
@@ -295,6 +300,17 @@ export function mountGame() {
     toast,
     reward: (id) => inventory.grant(id),
   });
+  const interiorActivities = new TownInteriorActivities(world, activities, () => progress.townKeepsakes, (key, track) => {
+    const book = progress.townKeepsakes;
+    if (book.items.includes(key)) return;
+    book.items.push(key);
+    if (key === "radio" && track) book.radioTrack = track;
+    save();
+    inventory.refreshTownKeepsakes();
+    sfx("match");
+    toast(`收到${townKeepsakeInfo[key].name}`);
+  }, key => inventory.openTownKeepsakes(key));
+  world.townInteriorEffect = () => interiorActivities.roomEffect;
   const mail: LetterHandoff = {
     received: id => hasHandedLetter(progress.residents, id),
     collect: id => {
@@ -324,6 +340,7 @@ export function mountGame() {
   const town = new Town(world, activities, inventory, id => visit(ARCADES[id].scene, "arcade-"+id),
     {
       story: () => progress.residents, mail, save, notify: toast,
+      keepsakes: () => progress.townKeepsakes.items,
       readPost: onReturn => {
         if (progress.residents.postDelivered) inventory.openMail(postLetter.id, onReturn);
       },
@@ -331,7 +348,7 @@ export function mountGame() {
   const gardenLife = new GardenLife(world, activities, inventory, () => progress, save);
   nature.onTimeJump = () => {
     if (world.scene === "garden") gardenLife.residents.syncShift(world.currentPhase,world.player);
-    if (world.scene === "town") town.syncShift();
+    if (world.scene === "town" || isTownInterior(world.scene)) town.syncShift();
     world.cancelUnavailableTarget();
   };
   const xiaoye = new Xiaoye(world, activities, mail, () => world.currentPhase);
@@ -389,16 +406,22 @@ export function mountGame() {
     if (!spot || !cue) { prompt.update(null); return; }
     // A phone-sized label beside the south gate can cover Rabe, just as a
     // town conversation can cover a playground. Keep the neighbouring art tappable.
-    const nearbyTargets = world.scene === "town" || world.scene === "garden" || world.scene === "challenge"
-      ? world.config.spots.filter(other => other.id !== spot.id &&
-        (spot.id.startsWith("visitor-") || other.id.startsWith("visitor-") ||
-          (world.scene === "town" && (cue.kind === "game" || other.id.startsWith("arcade-")))) &&
-        Math.abs(other.x - spot.x) < 160 && Math.abs(other.y - spot.y) < 120 && world.available(other))
-        .map(other => cueBox(other, resolveCue(other, world.scene).objectBox))
+    const indoors = isTownInterior(world.scene);
+    const nearbyTargets = indoors || world.scene === "town" || world.scene === "garden" || world.scene === "challenge"
+      ? world.config.spots.filter(other => {
+        if (other.id === spot.id || !world.available(other)) return false;
+        if (indoors) return true;
+        const close = Math.abs(other.x - spot.x) < 160 && Math.abs(other.y - spot.y) < 120;
+        return close && (spot.id.startsWith("visitor-") || other.id.startsWith("visitor-") ||
+          (world.scene === "town" && (cue.kind === "game" || other.id.startsWith("arcade-") ||
+            isTownInterior(spot.portal ?? "") || isTownInterior(other.portal ?? ""))));
+      }).map(other => cueBox(other, resolveCue(other, world.scene).objectBox))
       : undefined;
+    const inRange = world.inInteractionRange(spot);
     prompt.update({
       id: spot.id, action: cue.action, verb: cue.verb, kind: cue.kind,
-      mode: world.cueInputMode, inRange: world.inInteractionRange(spot),
+      mode: world.cueInputMode, inRange,
+      note: inRange ? town.doorNote(spot) : undefined,
       anchor: cuePoint({x:spot.x+cue.anchor.x,y:spot.y+cue.anchor.y}),
       objectBox: cueBox(spot,cue.objectBox),
       playerBox: cueBox(world.player,{x:-16,y:-44,w:32,h:46}),
@@ -528,14 +551,15 @@ export function mountGame() {
     saveLocation();
     if (scene !== "meadow") meadow.leave();
     if (scene !== "ruins") { ruins.clearEffect(); starQuest.clearFlash(); }
-    document.querySelector("#location-name")!.textContent =
-      `${({room:"ROOM 01",garden:"GARDEN 02",challenge:"GARDEN 03",town:"TOWN 04",meadow:"SECRET 05",ruins:"RUINS 06"})[scene]} · ${scenes[scene].title}`;
+    const district = isTownInterior(scene) ? "TOWN 04"
+      : ({room:"ROOM 01",garden:"GARDEN 02",challenge:"GARDEN 03",town:"TOWN 04",meadow:"SECRET 05",ruins:"RUINS 06"})[scene];
+    document.querySelector("#location-name")!.textContent = `${district} · ${scenes[scene].title}`;
     document
       .querySelectorAll<HTMLButtonElement>(".scene-nav button[data-scene]")
       .forEach((button) => {
         button.setAttribute(
           "aria-pressed",
-          String(button.dataset.scene === scene),
+          String(button.dataset.scene === (isTownInterior(scene) ? "town" : scene)),
         );
       });
     setMusicScene(scene);
@@ -553,6 +577,7 @@ export function mountGame() {
     reader.close();
     dismissRevive();
     prompt.update(null);
+    if (interiorActivities.interact(spot)) return;
     if (flowerTrail.interact(id) || meadow.interact(id) || ruins.interact(id) || starQuest.interact(id)) return;
     if (id === foxNook.id) { activities.close(); fox.pet(); return; }
     if (id.startsWith("arcade-")) {
@@ -725,7 +750,9 @@ export function mountGame() {
     .forEach((button) =>
       button.addEventListener("click", () => {
         begin();
-        transition(button.dataset.scene as SceneId);
+        const destination = button.dataset.scene as SceneId;
+        const door = destination === "town" && isTownInterior(world.scene) ? townInteriors[world.scene].exterior.id : undefined;
+        transition(destination, door);
       }),
     );
   const visit = (scene: SceneId, id: string) => {
@@ -795,6 +822,7 @@ export function mountGame() {
     const other = readProgress(event.newValue);
     if (other.generation !== progress.generation) { reloadAfterSharedReset(); return; }
     mergeCollections(progress, other);
+    inventory.refreshTownKeepsakes();
     if (mergeResidentStory(progress.residents, other.residents)) {
       refreshMailboxViews();
       refreshCampLetter();

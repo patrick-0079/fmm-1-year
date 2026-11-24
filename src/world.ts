@@ -49,13 +49,19 @@ import {
   type Hazard,
   type Point,
 } from "./core";
-import { bloomingGarden, scenes, type Hotspot, type Scene, type SceneId } from "./maps";
+import { bloomingGarden, scenes, type BaseSceneId, type Hotspot, type Scene, type SceneId } from "./maps";
+import { isTownInterior, type TownInteriorId } from "./town-interior-id";
+import { crossedInteriorDoor } from "./town-interiors";
+import { paintTownInterior, paintTownInteriorLight, townInteriorArt } from "./town-interior-art";
+import type { RoomEffect } from "./town-interior-activities";
+import type { DaylightMix } from "./daylight-mix";
 export { scenes, type SceneId } from "./maps";
 export interface RespawnEvent {
   trap: Hazard;
   scene: SceneId;
 }
 const art = {
+  ...townInteriorArt,
   room: roomUrl,
   garden: gardenUrl,
   challenge: challengeUrl,
@@ -63,7 +69,7 @@ const art = {
   meadow: meadowUrl,
   ruins: ruinsUrl,
 };
-const sceneTextures: Record<SceneId, string[]> = {
+const sceneTextures: Record<BaseSceneId, string[]> = {
   room: [roomUrl, spriteUrl, restUrl, wreathUrl, rewardsUrl],
   garden: [gardenUrl, appleBasketUrl, orchardAtlasUrl, creekPropsUrl],
   challenge: [challengeUrl, orchardAtlasUrl, trapsUrl, courageFlowerUrl, creekPropsUrl],
@@ -90,8 +96,11 @@ export class World {
   private ctx: CanvasRenderingContext2D;
   scene: SceneId = "room";
   townMap = scenes.town;
+  readonly townInteriorMaps = new Map<TownInteriorId, Scene>();
   gardenMapFor: (base: Scene) => Scene = base => base;
   currentPhase: Phase = "day";
+  townInteriorEffect: () => RoomEffect | undefined = () => undefined;
+  lightMix: DaylightMix = { from: "day", to: "day", mix: 0 };
   readonly chats: ResidentChats;
   isPresentingDialogue: () => boolean = () => false;
   player: Point = { ...scenes.room.spawn };
@@ -118,11 +127,9 @@ export class World {
   facing: Facing = 0;
   private walking = false;
   private time = 0;
-  private scenerySeconds: Record<SceneId, number> = {
-    room: 0, garden: 0, challenge: 0, town: 0, ruins: 0, meadow: 0,
-  };
+  private scenerySeconds: Partial<Record<SceneId, number>> = {};
   /** Local time for scenery. Leaving the map or covering it holds its pose. */
-  get ambientTime() { return this.scenerySeconds[this.scene]; }
+  get ambientTime() { return this.scenerySeconds[this.scene] ?? 0; }
   private last = 0;
   private frameId = 0;
   private reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -479,7 +486,8 @@ export class World {
     if (this.images.has(art[scene])) return prepareSceneArt(scene).then(() => {});
     const pending = this.mapRequests.get(scene);
     if (pending) return pending;
-    const textures = sceneTextures[scene].filter(url=>!this.images.has(url)).map(async url => {
+    const urls = isTownInterior(scene) ? [art[scene]] : sceneTextures[scene];
+    const textures = urls.filter(url=>!this.images.has(url)).map(async url => {
         const image = new Image();
         image.fetchPriority = "high";
         image.decoding = "async"; image.src = url;
@@ -500,6 +508,10 @@ export class World {
   private paintMap(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
     const background = this.sceneryArtwork;
     if (!background) return;
+    if (isTownInterior(this.scene)) {
+      paintTownInterior(c, background, this.scene, this.currentPhase, this.reducedMotion.matches ? undefined : this.lightMix, this.townInteriorEffect());
+      return;
+    }
     const sx = background.naturalWidth / this.config.width,
       sy = background.naturalHeight / this.config.height;
     c.save();
@@ -545,6 +557,7 @@ export class World {
   }
   get config() {
     if (this.scene === "town") return this.townMap;
+    if (isTownInterior(this.scene)) return this.townInteriorMaps.get(this.scene) ?? scenes[this.scene];
     if (this.scene === "garden") return this.gardenMapFor(this.canEnter("meadow") ? bloomingGarden : scenes.garden);
     return scenes[this.scene];
   }
@@ -696,7 +709,7 @@ export class World {
     this.last = timestamp;
     this.time = timestamp / 1000;
     const foregroundDt = document.hidden || this.suspended ? 0 : dt;
-    if (!this.paused) this.scenerySeconds[this.scene] += foregroundDt;
+    if (!this.paused) this.scenerySeconds[this.scene] = this.ambientTime + foregroundDt;
     this.onTick(foregroundDt, this.time);
     if (this.exitWalk) this.exitWalk(timestamp);
     else if (!this.paused && !this.suspended && !document.hidden) this.update(dt);
@@ -758,8 +771,11 @@ export class World {
       dy = this.player.y - before.y;
     this.advanceFeet(dx,dy,true);
     if (this.walking && !this.targetEvent) {
+      const gate = this.scene === "town" || isTownInterior(this.scene)
+        ? crossedInteriorDoor(this.config.spots, before, this.player) : undefined;
       const crossing = this.scene === "meadow" && enteredMoonCircle(before,this.player)
-        ? "meadow-exit" : crossedEchoGate(this.scene,before,this.player) ?? crossedTownGate(this.scene,before,this.player)?.id;
+        ? "meadow-exit"
+        : crossedEchoGate(this.scene,before,this.player) ?? crossedTownGate(this.scene,before,this.player)?.id ?? gate?.id;
       if (crossing) { this.clearInput(); this.onInteract(crossing); return; }
     }
     const trap =
@@ -894,6 +910,8 @@ export class World {
     layers.sort((a, b) => a.y - b.y).forEach((layer) => layer.draw(c));
     this.onDraw(c, this.time);
     this.onLighting(c);
+    if (isTownInterior(this.scene) && this.sceneryArtwork)
+      paintTownInteriorLight(c, this.sceneryArtwork, this.scene, this.currentPhase, this.reducedMotion.matches ? undefined : this.lightMix);
     if (this.cuesVisible) drawInteractionGlints(c, this.config.spots.filter(s => this.available(s)), this.scene, this.time, this.reducedMotion.matches, this.activeCueId);
     this.onEffects(c);
     if (this.debug) this.drawDebug();

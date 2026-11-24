@@ -11,6 +11,10 @@ export function mergeCollections(into: Progress, from: Progress) {
   addMissing(into.completed, from.completed);
   addMissing(into.rainbowFlowers, from.rainbowFlowers);
   addMissing(into.creditStars, from.creditStars);
+  addMissing(into.townKeepsakes.items, from.townKeepsakes.items);
+  // Creeks break ties if two tabs made their first recordings at the same time.
+  const track = from.townKeepsakes.radioTrack;
+  if (track && (!into.townKeepsakes.radioTrack || track === "creek")) into.townKeepsakes.radioTrack = track;
   into.bedNoteUnlocked ||= from.bedNoteUnlocked;
   into.bassSongPlayed ||= from.bassSongPlayed;
   into.decoratorMet ||= from.decoratorMet;

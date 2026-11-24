@@ -20,13 +20,24 @@ import suyanUrl from "./assets/suyan.webp";
 import townGuestsUrl from "./assets/town-guests.webp";
 import patrickCampUrl from "./assets/patrick-camp.webp";
 import visitorsUrl from "./assets/anniversary-visitors.webp";
-import type { SceneId } from "./maps";
+import townNpcsUrl from "./assets/town-npcs.webp";
+import type { BaseSceneId, SceneId } from "./maps";
+import { isTownInterior } from "./town-interior-id";
 export { keepsakesUrl, skiesUrl, relicsUrl };
 
 export const sceneArt = {foxRest:new Image(), balloonGuest:new Image(), gardenerWork:new Image(), playgroundAnimations:new Image(), keepsakes:new Image(), skies:new Image(), gate:new Image(), bass:new Image(), relics:new Image(), astrolabeProps:new Image(), fox:new Image(), picnic:new Image(), peachWalk:new Image(), quarry:new Image(), elders:new Image(), xiaoye:new Image(), xiaoyeEmbrace:new Image(), yeshenhua:new Image(), suyan:new Image(), townGuests:new Image(), patrickCamp:new Image(), anniversaryVisitors:new Image()};
+export const townNpcSheet = new Image();
+let npcRequest: Promise<void> | undefined;
+function prepareTownNpcSheet() {
+  if (!npcRequest) {
+    townNpcSheet.src = townNpcsUrl;
+    npcRequest = townNpcSheet.decode().catch(error => { npcRequest = undefined; throw error; });
+  }
+  return npcRequest;
+}
 type Prop = keyof typeof sceneArt;
 const urls: Record<Prop,string> = {foxRest:foxRestUrl, balloonGuest:balloonGuestUrl, gardenerWork:gardenerWorkUrl, playgroundAnimations:playgroundAnimationsUrl, keepsakes:keepsakesUrl, skies:skiesUrl, gate:gateUrl, bass:bassUrl, relics:relicsUrl, astrolabeProps:astrolabePropsUrl, fox:foxUrl, picnic:picnicUrl, peachWalk:peachWalkUrl, quarry:townQuarryUrl, elders:elderResidentsUrl, xiaoye:xiaoyeUrl, xiaoyeEmbrace:xiaoyeEmbraceUrl, yeshenhua:yeshenhuaUrl, suyan:suyanUrl, townGuests:townGuestsUrl, patrickCamp:patrickCampUrl, anniversaryVisitors:visitorsUrl};
-const propsByScene: Record<SceneId,Prop[]> = {
+const propsByScene: Record<BaseSceneId,Prop[]> = {
   room:["skies","bass","fox"], garden:["keepsakes","gate","picnic","peachWalk","xiaoye","xiaoyeEmbrace","suyan","anniversaryVisitors"], challenge:["keepsakes","elders","anniversaryVisitors"],
   town:["gate","quarry","yeshenhua","townGuests","anniversaryVisitors"], meadow:["patrickCamp"], ruins:["relics","astrolabeProps","elders"],
 };
@@ -45,9 +56,13 @@ export function prepareProp(key: Prop, priority: "high" | "low" = "high") {
   return ready;
 }
 export function prepareSceneArt(scene: SceneId) {
+  if (isTownInterior(scene))
+    return scene === "town-radio" ? Promise.all([prepareTownNpcSheet(), prepareProp("yeshenhua")]) : prepareTownNpcSheet();
   const idle = idleArtByScene[scene];
   if (idle) void prepareProp(idle, "low").catch(() => {});
-  return Promise.all(propsByScene[scene].map(key => prepareProp(key)));
+  const props = propsByScene[scene].map(key => prepareProp(key));
+  if (scene === "town") props.push(prepareTownNpcSheet());
+  return Promise.all(props);
 }
 
 /** The three-frame ambient strips share a foot anchor at (96,180) in each 192px cell. */

@@ -677,10 +677,10 @@ q("#check-bass").addEventListener("click",()=>void run(async()=>{
   dbg("map:town").click(); await wait(()=>world.scene==="town" && !world.suspended);
   const photos=q("#town-samples");photos.replaceChildren();
   const rosters=new Set<string>();
-  for(const [phase,label] of [["dawn","清晨"],["day","白昼"],["dusk","黄昏"],["night","星夜"]]) {
+  for(const [phase,label,count] of [["dawn","清晨",8],["day","白昼",8],["dusk","黄昏",10],["night","星夜",7]] as const) {
     q(".debug-trigger").click();dbg("time:"+phase).click();
     const residents=world.config.spots.map(s=>s.id).filter(id=>id.startsWith("npc-"));
-    expect(world.suspended && residents.length===10,"打开调试面板时小镇班次未同步");
+    expect(world.suspended && residents.length===count,"打开调试面板时小镇班次未同步");
     rosters.add(residents.sort().join(","));
     q(".debug-close").click();
     await new Promise<void>(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r())));

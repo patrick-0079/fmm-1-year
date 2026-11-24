@@ -9,6 +9,7 @@ export interface PromptState {
   kind: InteractionCueKind;
   mode: "keyboard" | "pointer" | "touch";
   inRange: boolean;
+  note?: string;
   anchor: PromptPoint;
   playerBox: PromptBox;
   objectBox: PromptBox;
@@ -129,7 +130,7 @@ export class InteractionPrompt {
       if (hadFocus) this.canvas?.focus({ preventScroll: true });
       return;
     }
-    const signature = [state.id, state.action, state.verb, state.kind, state.mode, state.inRange].join("\u001f");
+    const signature = [state.id, state.action, state.verb, state.kind, state.mode, state.inRange, state.note].join("\u001f");
     if (signature !== this.signature) {
       this.signature = signature;
       this.element.dataset.spotId = state.id;
@@ -137,15 +138,15 @@ export class InteractionPrompt {
       this.element.dataset.kind = state.kind;
       this.element.dataset.reachable = String(state.inRange);
       this.action.textContent = state.action;
-      const hint = state.mode === "touch"
+      const hint = state.note ?? (state.mode === "touch"
         ? state.inRange ? "轻触" : "轻触走近"
         : state.mode === "pointer"
           ? state.inRange ? "点击" : "点击走近"
-          : state.inRange ? "" : "走近后可互动";
+          : state.inRange ? "" : "走近后可互动");
       this.hint.textContent = hint;
       this.hint.hidden = !hint;
       this.key.hidden = state.mode !== "keyboard" || !state.inRange;
-      this.element.setAttribute("aria-label", `${state.action}${state.inRange ? "" : "，走近后互动"}`);
+      this.element.setAttribute("aria-label", `${state.action}${state.inRange ? "" : "，走近后互动"}${state.note ? "，" + state.note : ""}`);
       if (state.mode === "keyboard" && state.inRange) this.element.setAttribute("aria-keyshortcuts", "E");
       else this.element.removeAttribute("aria-keyshortcuts");
       this.icon.innerHTML = `<svg viewBox="0 0 16 16" focusable="false" aria-hidden="true"><path d="${paths[state.kind]}"/></svg>`;

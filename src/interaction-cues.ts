@@ -1,5 +1,7 @@
 import type { Point } from "./core.ts";
-import type { Hotspot, SceneId } from "./maps.ts";
+import type { BaseSceneId, Hotspot, SceneId } from "./maps.ts";
+import { isTownInterior } from "./town-interior-id.ts";
+import { townInteriors } from "./town-interiors.ts";
 
 export type InteractionCueKind = "talk" | "pet" | "collect" | "read" | "rest" | "celebrate" | "game" | "exit" | "mechanism";
 export interface InteractionCue {
@@ -55,7 +57,7 @@ const objects: Record<string, InteractionCue> = {
   "meadow-camp": cue("rest", "在营火边坐坐", 13, -15, [-24, -28, 48, 43], true),
   "meadow-jar": cue("read", "看看星光瓶", 5, -15, [-9, -24, 18, 28], true, "查看"),
 };
-const destinations: Record<SceneId, string> = {
+const destinations: Record<BaseSceneId, string> = {
   room: "晚安小屋", garden: "周年花园", challenge: "勇气花园", town: "周年小镇", meadow: "花海", ruins: "回声遗迹",
 };
 const names = (spot: Hotspot) => spot.title.split(" · ")[0];
@@ -65,7 +67,8 @@ export function resolveCue(spot: Hotspot, scene: SceneId): InteractionCue {
   if (spot.cue) return spot.cue;
   if (spot.portal) {
     const tall = spot.id === "echo-gate" || spot.id === "prism-arch";
-    return cue("exit", "前往" + destinations[spot.portal], 0, tall ? -31 : -7,
+    const title = isTownInterior(spot.portal) ? townInteriors[spot.portal].scene.title : destinations[spot.portal];
+    return cue("exit", "前往" + title, 0, tall ? -31 : -7,
       tall ? [-35, -72, 70, 76] : [-27, -20, 54, 30], true);
   }
   const known = objects[spot.id];

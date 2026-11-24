@@ -1,8 +1,11 @@
-import { facingFromMovement, type Point, type Rect } from "./core.ts";
+import { canArriveAt, facingFromMovement, findPath, obstacleContainsFoot, type Point, type Rect } from "./core.ts";
 import type { Facing } from "./equipment.ts";
 import type { Phase } from "./day.ts";
 import { TOWN_NPCS, type TownNpc } from "./town-data.ts";
 import type { TownResidentId } from "./town-dialogue.ts";
+import { townScene } from "./town-map.ts";
+import { townInteriorId } from "./town-interior-id.ts";
+import { interiorForResident, townInteriors, type TownArea, type TownInterior } from "./town-interiors.ts";
 
 type Schedule = "always" | "morning" | "afternoon" | "evening" | "late";
 const shifts: Record<Schedule, readonly Phase[]> = {
@@ -15,10 +18,10 @@ type Shift = { shift: Schedule; stops: Point[]; doorway?: Point[] };
 export const townLives: Record<TownResidentId, Shift> = {
   post: { shift:"always", stops:[p(337,674)] },
   welcome: { shift:"always", stops:[] },
-  florist: { shift:"morning", stops:[p(448,303)], doorway:[p(500,364),p(492,372),p(428,388),p(368,396)] },
-  baker: { shift:"morning", stops:[p(766,310)], doorway:[p(756,252),p(747,252),p(733,252),p(726,250),p(718,246),p(715,245)] },
+  florist: { shift:"morning", stops:[p(448,303)] },
+  baker: { shift:"morning", stops:[p(766,310)] },
   "flight-keeper": { shift:"morning", stops:[p(785,488)], doorway:[p(789,484)] },
-  maker: { shift:"morning", stops:[p(1164,423)], doorway:[p(1161,422),p(1151,408),p(1166,402),p(1192,405)] },
+  maker: { shift:"morning", stops:[p(1164,423)] },
   "blocks-keeper": { shift:"afternoon", stops:[p(1065,551)], doorway:[p(1172,500),p(1166,448),p(1161,422),p(1151,408)] },
   walker: { shift:"afternoon", stops:[p(558,718)], doorway:[p(474,815)] },
   xiaoyou: { shift:"afternoon", stops:[p(451,905)], doorway:[p(448,925)] },
@@ -26,18 +29,44 @@ export const townLives: Record<TownResidentId, Shift> = {
   bunny: { shift:"evening", stops:[], doorway:[p(755,523)] },
   guli: { shift:"evening", stops:[p(948,332),p(968,352)], doorway:[p(820,324),p(780,316),p(777,289),p(772,270),p(756,252),p(747,252),p(733,252),p(726,250),p(718,246),p(715,245)] },
   qianxiao: { shift:"evening", stops:[p(1198,522)], doorway:[p(1170,469),p(1166,448),p(1161,422),p(1151,408)] },
-  "radio-host": { shift:"evening", stops:[], doorway:[p(1303,828),p(1288,817)] },
+  "radio-host": { shift:"evening", stops:[] },
   "hop-keeper": { shift:"late", stops:[p(514,613)], doorway:[p(497,605)] },
-  books: { shift:"late", stops:[p(867,757)], doorway:[p(867,753)] },
+  books: { shift:"late", stops:[p(839,803)] },
   "snake-keeper": { shift:"late", stops:[p(516,406)], doorway:[p(516,406),p(368,396)] },
-  "photo-visitor": { shift:"late", stops:[p(900,452),p(879,451)], doorway:[p(1124,508),p(1204,500),p(1315,545)] },
+  "photo-visitor": { shift:"late", stops:[p(900,452),p(879,451)] },
 };
 export const worksInTown = (id: TownResidentId, phase: Phase) => shifts[townLives[id].shift].includes(phase);
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 const onScreen = (a: Point, v: Rect) => a.x > v.x - 21 && a.x < v.x + v.w + 21 && a.y > v.y - 8 && a.y < v.y + v.h + 48;
+interface Station { scene: TownArea; foot: Point; approach?: Point }
+const streetStations = new Map<TownResidentId, Station>(TOWN_NPCS.map(npc =>
+  [npc.id, { scene: "town", foot: npc }]));
+const indoorStations = new Map([...interiorForResident].map(([id, room]) => [
+  id, Object.fromEntries(Object.entries(room.shifts).map(([phase, stop]) => [
+    phase, { ...stop, scene: townInteriorId(room.key) },
+  ])) as Partial<Record<Phase, Station>>,
+]));
+function station(id: TownResidentId, phase: Phase) {
+  const inside = indoorStations.get(id)?.[phase];
+  return inside ?? (worksInTown(id, phase) ? streetStations.get(id) : undefined);
+}
+export function residentTownScene(id: TownResidentId, phase: Phase) {
+  return station(id, phase)?.scene;
+}
+const streetGeometry = { ...townScene, walls: townScene.walls.filter(w => !w.yieldsOnArrival) };
+const geometry = (scene: TownArea) => scene === "town" ? streetGeometry : townInteriors[scene].scene;
+const doorIn = (house: TownInterior, scene: TownArea) => scene === "town" ? house.exterior : house.exit;
+const threshold = (house: TownInterior, scene: TownArea) => {
+  const door = doorIn(house, scene);
+  return door.crossing ? p(door.x, door.y) : door.approach;
+};
+
 type Status = "absent" | "arriving" | "present" | "leaving";
 export interface ResidentMotion extends Point {
   id: TownResidentId;
+  scene: TownArea;
+  destination?: Station;
+  approach?: Point;
   status: Status;
   route: Point[];
   away: boolean;
@@ -47,11 +76,15 @@ export interface ResidentMotion extends Point {
   walking: boolean;
   opacity: number;
   workTime: number;
+  avoiding?: Point;
 }
 function initialize(n: TownNpc, i: number, phase: Phase): ResidentMotion {
-  return {id:n.id, x:n.x, y:n.y, status:worksInTown(n.id,phase) ? "present" : "absent",
+  const destination = station(n.id, phase);
+  const foot = destination?.foot ?? n;
+  return {id:n.id, x:foot.x, y:foot.y, scene:destination?.scene ?? "town", destination,
+    approach:destination?.approach, status:destination ? "present" : "absent",
     route:[], away:false, wait:2.5+(i*4.13)%15, odometer:0, facing:0, walking:false,
-    opacity:1, workTime:(i*2.37)%13};
+    opacity:1, workTime:(i*2.37)%13, avoiding: undefined};
 }
 
 export class TownRoutines {
@@ -67,36 +100,105 @@ export class TownRoutines {
 
   syncShift(phase:Phase, speaking?:TownResidentId) {
     this.phase=phase;
-    this.heldAfterJump=speaking && !worksInTown(speaking,phase) ? speaking : undefined;
+    this.heldAfterJump=speaking;
     TOWN_NPCS.forEach((npc,index)=>{
       const actor=this.people.get(npc.id)!;
-      const status=worksInTown(npc.id,phase) ? "present" : "absent";
-      if (npc.id!==speaking && actor.status!==status) {
+      const target = station(npc.id, phase);
+      if (npc.id!==speaking && (actor.destination !== target || actor.status !== (target ? "present" : "absent"))) {
         Object.assign(actor,initialize(npc,index,phase));
       }
     });
   }
 
-  tick(dt:number, phase:Phase, player:Point, view:Rect, held:string|null, speaking:string|undefined, still:boolean) {
+  private arrive(actor: ResidentMotion, destination: Station, house: TownInterior) {
+    const door = threshold(house, destination.scene);
+    Object.assign(actor, { scene: destination.scene, x: door.x, y: door.y, approach: undefined, away: false,
+      status: "arriving", opacity: 0, avoiding: undefined,
+      route: findPath(door, destination.foot, geometry(destination.scene)) ?? [] });
+  }
+
+  private commute(actor: ResidentMotion, npc: TownNpc, house: TownInterior, phase: Phase, visible: boolean,
+    area: TownArea, view: Rect, still: boolean) {
+    const next = station(npc.id, phase);
+    if (actor.destination === next) return;
+    const arrivingInView = next?.scene === area && onScreen(next.foot, view);
+    if (still || (!visible && !arrivingInView && actor.status !== "leaving")) {
+      Object.assign(actor, initialize(npc, TOWN_NPCS.indexOf(npc), phase));
+      return;
+    }
+    actor.destination = next;
+    if (actor.status === "absent") {
+      if (next) this.arrive(actor, next, house);
+      return;
+    }
+    const sameRoom = next?.scene === actor.scene;
+    const target = sameRoom ? next.foot : threshold(house, actor.scene);
+    actor.status = sameRoom ? "arriving" : "leaving";
+    actor.approach = undefined;
+    actor.avoiding = undefined;
+    actor.route = findPath(actor, target, geometry(actor.scene)) ?? [];
+  }
+
+  private detour(actor: ResidentMotion, house: TownInterior, player: Point, clearance: Rect) {
+    if (actor.avoiding && distance(actor.avoiding, player) < 4) return;
+    if (obstacleContainsFoot(actor, clearance)) return;
+    actor.avoiding = { ...player };
+    const map = geometry(actor.scene), guarded = { ...map, walls: [...map.walls, clearance] };
+    const target = actor.status === "leaving" ? threshold(house, actor.scene) : actor.destination!.foot;
+    const crossing = doorIn(house, actor.scene).crossing;
+    // Leave an occupied doorway using the clear side of the same opening.
+    const alternatives = actor.status === "leaving" && obstacleContainsFoot(target, clearance)
+      ? [-11, 11, -14, 14, -17, 17].map(dx => p(target.x + dx, target.y))
+      : [target];
+    if (!crossing && alternatives.length > 1) alternatives.push(p(target.x, target.y + 16));
+    for (const stop of alternatives) {
+      if (!canArriveAt(stop, guarded)) continue;
+      const path = findPath(actor, stop, guarded);
+      const end = path?.at(-1);
+      if (path && end?.x === stop.x && end.y === stop.y) { actor.route = path; return; }
+    }
+  }
+
+  private finishRoute(actor: ResidentMotion, npc: TownNpc, house?: TownInterior) {
+    if (actor.status === "leaving") {
+      if (house && actor.destination) this.arrive(actor, actor.destination, house);
+      else { actor.status = "absent"; actor.opacity = 0; }
+      return;
+    }
+    actor.status = "present";
+    actor.opacity = 1;
+    actor.approach = actor.destination?.approach;
+    actor.wait = 6 + (TOWN_NPCS.indexOf(npc) * 2.61 + actor.odometer * .08) % 9;
+  }
+
+  tick(dt:number, phase:Phase, player:Point, view:Rect, held:string|null, speaking:string|undefined, still:boolean,
+    area: TownArea = "town") {
     if (this.heldAfterJump && speaking!==this.heldAfterJump) {
-      if (!worksInTown(this.heldAfterJump,phase)) {
-        const actor=this.people.get(this.heldAfterJump)!;
-        actor.status="absent"; actor.walking=false; actor.route=[];
-      }
+      const npc = TOWN_NPCS.find(person => person.id === this.heldAfterJump)!;
+      const actor = this.people.get(npc.id)!;
+      if (actor.destination !== station(npc.id, phase)) Object.assign(actor, initialize(npc, TOWN_NPCS.indexOf(npc), phase));
       this.heldAfterJump=undefined;
     }
     if (!dt && phase===this.phase) return;
     this.phase=phase;
     // Continue the two moving feet already in view before offering a new turn to a neighbour.
     const ordered = [...this.people.values()].sort((a,b)=>Number(b.walking)-Number(a.walking) || a.wait-b.wait);
+    const clearance = { x: player.x - 6, y: player.y - 6, w: 12, h: 12 };
     let walkingInView=0;
     for (const a of ordered) {
       const npc = TOWN_NPCS.find(n=>n.id===a.id)!;
-      const life=townLives[a.id], visible=onScreen(a,view);
+      const house = interiorForResident.get(a.id);
+      const sameArea = a.scene === area;
+      const life=townLives[a.id], visible=sameArea && onScreen(a,view);
       const duty=worksInTown(a.id,phase), talking=speaking===a.id;
-      const reserved=duty && held==="npc-"+a.id;
+      const available = a.status === "present" || a.status === "arriving" && a.opacity >= .8;
+      const reserved=sameArea && available && held==="npc-"+a.id &&
+        (house ? a.destination === station(a.id, phase) : duty);
       a.walking=false;
-      if (!talking && !reserved) {
+      if (house) {
+        if (!talking && !reserved) this.commute(a, npc, house, phase, visible, area, view, still);
+      } else if (!talking && !reserved) {
+        a.destination=station(npc.id,phase);
         if (!duty && (!visible || still)) {
           a.status="absent"; a.opacity=0; a.route=[]; continue;
         }
@@ -128,7 +230,7 @@ export class TownRoutines {
       if (talking || reserved) { a.wait=Math.max(a.wait,1.4); continue; }
       if (a.status==="present") {
         a.workTime+=dt;
-        if (still || distance(player,a)<43 || !life.stops.length) continue;
+        if (a.scene !== "town" || still || sameArea && distance(player,a)<43 || !life.stops.length) continue;
         if (!a.route.length) {
           a.wait-=dt;
           if (a.wait>0) continue;
@@ -141,17 +243,24 @@ export class TownRoutines {
       while (a.route.length && distance(a,a.route[0])<.1) a.route.shift();
       const next=a.route[0];
       if (!next) {
-        if (a.status==="leaving") { a.status="absent"; a.opacity=0; }
-        else { a.status="present"; a.opacity=1; a.wait=6+(TOWN_NPCS.indexOf(npc)*2.61+a.odometer*.08)%9; }
+        this.finishRoute(a, npc, house);
         continue;
       }
       const gap=distance(a,next), dx=(next.x-a.x)/gap, dy=(next.y-a.y)/gap;
-      const speed=a.id==="cat"?14 : a.id==="guli"?19 : a.id==="walker"?17 : 13;
+      const speed=house && a.status !== "present" ? 43 : a.id==="cat"?14 : a.id==="guli"?19 : a.id==="walker"?17 : 13;
       const step=Math.min(gap,dt*speed);
       const x=a.x+dx*step, y=a.y+dy*step;
-      // Traffic yields to the player and to an occupied doorstep.
-      if (distance({x,y},player)<14 && distance({x,y},player)<distance(a,player)) continue;
-      if (a.status==="arriving" && distance(a,player)<13 && a.opacity===0) continue;
+      // Commuters use the open side of an occupied corridor or doorway.
+      const nextGap = distance({x,y}, player), currentGap = distance(a, player);
+      if (a.scene === area && nextGap < 14) {
+        if (!house || a.status === "present") {
+          if (nextGap < currentGap) continue;
+        } else if (obstacleContainsFoot({x,y}, clearance) &&
+            (nextGap <= currentGap || !obstacleContainsFoot(a, clearance))) {
+          this.detour(a, house, player, clearance);
+          continue;
+        }
+      }
       a.x=x; a.y=y; a.facing=facingFromMovement(a.facing,dx,dy); a.walking=step>0;
       a.odometer+=step;
       if (visible && a.walking) walkingInView++;
@@ -159,10 +268,7 @@ export class TownRoutines {
       if (a.status==="arriving") a.opacity=Math.min(1,a.opacity+step/12);
       if (step>=gap) {
         a.route.shift();
-        if (!a.route.length) {
-          if (a.status==="leaving") {a.status="absent"; a.opacity=0;}
-          else {a.status="present"; a.opacity=1; a.wait=6+(TOWN_NPCS.indexOf(npc)*2.61+a.odometer*.08)%9;}
-        }
+        if (!a.route.length) this.finishRoute(a, npc, house);
       }
     }
   }

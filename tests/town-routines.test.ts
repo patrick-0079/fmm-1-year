@@ -5,20 +5,22 @@ import { canTravelBetween, canStand, findPath } from "../src/core.ts";
 import { clickedInteraction } from "../src/interaction.ts";
 import { TOWN_NPCS } from "../src/town-data.ts";
 import { TownResidentMap } from "../src/town-resident-map.ts";
-import { TownRoutines, townLives, worksInTown } from "../src/town-routines.ts";
+import { residentTownScene, TownRoutines, townLives } from "../src/town-routines.ts";
 
 const street=scenes.town, empty={x:-5000,y:-5000};
 const view={x:0,y:0,w:1800,h:1200};
 const fixed={...street,walls:street.walls.filter(w=>!w.label?.startsWith("镇民 · "))};
-test("each stable phase has exactly ten residents and the three closest neighbours work opposite shifts",()=>{
+test("the four stable shifts assign all 18 residents between street, interiors and rest",()=>{
   const seen=new Set<string>();
-  for(const phase of ["day","dusk","night","dawn"] as const){
-    const everyone=TOWN_NPCS.filter(n=>worksInTown(n.id,phase)).map(n=>n.id);
-    everyone.forEach(id=>seen.add(id));
-    assert.equal(everyone.length,10);
-    for(const id of ["post","welcome"] as const)assert.ok(everyone.includes(id));
+  for(const [phase, outdoors, indoors] of [["dawn",8,3],["day",8,3],["dusk",10,5],["night",7,3]] as const){
+    const roster=TOWN_NPCS.map(n=>({ id:n.id, scene:residentTownScene(n.id,phase) }));
+    roster.filter(n=>n.scene).forEach(n=>seen.add(n.id));
+    const onStreet=roster.filter(n=>n.scene==="town").map(n=>n.id);
+    assert.equal(onStreet.length,outdoors);
+    assert.equal(new Set(roster.filter(n=>n.scene && n.scene!=="town").map(n=>n.scene)).size,indoors);
+    assert.ok(onStreet.includes("welcome"));
     for(const [a,b] of [["flight-keeper","bunny"],["baker","guli"],["maker","qianxiao"]] as const)
-      assert.equal(Number(everyone.includes(a))+Number(everyone.includes(b)),1);
+      assert.ok(Number(onStreet.includes(a))+Number(onStreet.includes(b))<=1);
   }
   assert.equal(seen.size,18);
 });
@@ -84,13 +86,13 @@ test("manual changes settle all commutes while keeping an off-duty letter author
     cast.syncShift(phase,"xiaoyou");
     cast.tick(0,phase,empty,view,null,"xiaoyou",false);
     map.update(empty,undefined,undefined,cast.people);
-    assert.equal(map.scene.spots.filter(s=>s.id.startsWith("npc-")).length,11);
+    assert.equal(map.scene.spots.filter(s=>s.id.startsWith("npc-")).length,phase === "night" ? 8 : 9);
     assert.ok(map.scene.spots.includes(map.anchor("xiaoyou")));
     assert.deepEqual({x:author.x,y:author.y},foot);
     assert.ok([...cast.people.values()].every(a=>a.status==="present" || a.status==="absent"));
   }
   cast.tick(0,"night",empty,view,null,undefined,false);
   map.update(empty,undefined,undefined,cast.people);
-  assert.equal(map.scene.spots.filter(s=>s.id.startsWith("npc-")).length,10);
+  assert.equal(map.scene.spots.filter(s=>s.id.startsWith("npc-")).length,7);
   assert.equal(map.scene.spots.includes(map.anchor("xiaoyou")),false);
 });

@@ -15,6 +15,7 @@ import { plazaWalls } from "./town-plaza.ts";
 import { townTerraceWalls } from "./town-terraces.ts";
 import { townCanopies, festivalProps } from "./town-scenery.ts";
 import { townGates, gatePosts, gateSpot } from "./gate-layout.ts";
+import { residentFeet, residentSpot, townInteriors } from "./town-interiors.ts";
 export const townScene: Scene = {
   title: "晚安周年小镇",
   width: 1536,
@@ -150,30 +151,16 @@ export const townScene: Scene = {
   hazards: [],
   spots: [
     townEchoGate,
-    ...TOWN_NPCS.map((n) => ({
-      id: "npc-" + n.id,
-      title: n.name + " · " + n.role,
-      x: n.x,
-      y: n.y,
+    ...Object.values(townInteriors).map(interior => interior.exterior),
+    ...TOWN_NPCS.map(n => residentSpot(n, { x: n.x, y: n.y },
       // The gifts and card stay visible when the player approaches from the side.
-      approach: n.approach ?? {
+      n.approach ?? {
         x: n.x + (n.id === "photo-visitor" ? 17 : 0),
         y: n.y + 26,
-      },
-      radius: 56,
-      markerOffset: n.id === "guli" ? 34 : n.appearance === "guest" || n.id === "hop-keeper" ? 44 : 53,
-      color: "#ceab63",
-    })),
+      })),
     ...townAttractionSpots,
     ...townGates.filter((g) => g.scene === "town").map(gateSpot),
   ],
 };
 for (const npc of TOWN_NPCS)
-  townScene.walls.push({
-    label: "镇民 · " + npc.name,
-    yieldsOnArrival: true,
-    x: npc.x - 5,
-    y: npc.y - 6,
-    w: 10,
-    h: 9,
-  });
+  townScene.walls.push(residentFeet(npc, npc));

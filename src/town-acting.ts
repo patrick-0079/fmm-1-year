@@ -198,6 +198,16 @@ function postbox(c: Brush, slotY: number) {
   rect(c, cream, x + 3, slotY + 3.4, 6, 3.8);
   stroke(c, "#b78574", [x + 3, slotY + 3.4, x + 6, slotY + 5.3, x + 9, slotY + 3.4], 0.65);
 }
+const postHome = TOWN_NPCS.find(person => person.id === "post")!;
+export const townPostboxLayer: DepthLayer = {
+  y: postHome.y - .1,
+  draw(c) {
+    c.save();
+    c.translate(postHome.x, postHome.y);
+    postbox(c, -TOWN_FRAMES[postHome.sprite].h * 43 / 337 * .28);
+    c.restore();
+  },
+};
 function drawWhiteboardInk(c: Brush, page: string, t: number, still: boolean, h: number) {
   // Illustration on the little physical board; all of Lili's writing is also
   // in the dialogue HUD at full text size.
@@ -227,15 +237,14 @@ function drawWhiteboardInk(c: Brush, page: string, t: number, still: boolean, h:
   }
   c.restore();
 }
-function actorProps(c: Brush, n: TownNpc, page: string, t: number, still: boolean) {
+function actorProps(c: Brush, n: TownNpc, page: string, t: number, still: boolean, indoors = false) {
   const f = TOWN_FRAMES[n.sprite],
     h = n.appearance === "yeshenhua" ? 43 : (f.h * 43) / 337,
     y = -h * 0.28;
   switch (n.id) {
     case "post": {
       if (page === "letter" || page === "delivered") {
-        const home=TOWN_NPCS.find(person=>person.id==="post")!;
-        const inboxX=home.x-n.x, inboxY=home.y-n.y;
+        const inboxX=indoors ? 8 : postHome.x-n.x, inboxY=indoors ? 0 : postHome.y-n.y;
         const drop = page === "delivered" ? (still ? 1 : ease(t / 0.75)) : 0;
         if (drop < 0.98) {
           c.save();
@@ -644,7 +653,7 @@ export function townResidentLayers(
             );
           } else c.drawImage(sprites, f.x, f.y, f.w, f.h, -width / 2, -height, width, height);
         }
-        if (page && !guest) actorProps(c, npc, page, still ? 1 : t, still);
+        if (page && !guest) actorProps(c, npc, page, still ? 1 : t, still, world.scene !== "town");
         else if (npc.id === "books" && !routine?.walking) actorProps(c, npc, "", time, still);
         c.restore();
         if (!page && (!routine || routine.status==="present") && world.activeCueId !== "npc-" + npc.id && Math.hypot(world.player.x - foot.x, world.player.y - foot.y) < 100) {
@@ -655,12 +664,6 @@ export function townResidentLayers(
       },
     },
   ];
-  if (npc.id==="post") {
-    const home=TOWN_NPCS.find(person=>person.id==="post")!;
-    layers.push({y:home.y-.1,draw(c){
-      c.save();c.translate(home.x,home.y);postbox(c,-height*.28);c.restore();
-    }});
-  }
   const gift = npc.id === "xiaoyou"
     ? orangeLayer(npc, page, t, world, still, reverse)
     : presentLayer(npc, page, t, world.player, still);

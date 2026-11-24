@@ -1,6 +1,7 @@
 import { eggAvailable, phaseNames, untilNextPhase, worldTime } from "./day";
 import type { Phase } from "./day";
 import { drawTownLight } from "./town-light";
+import { isTownInterior } from "./town-interior-id";
 import { daylightMix } from "./daylight-mix";
 import { drawGardenSurfaceLight, drawSceneDaylight, drawWindowLightOnFloor } from "./scene-daylight";
 import { sfx } from "./sound";
@@ -345,12 +346,13 @@ export class Nature {
   private tick() {
     const clock = this.clock;
     this.world.currentPhase = clock.phase;
+    this.world.lightMix = daylightMix(clock.hours);
     const meadow = this.world.scene === "meadow";
     const ruins = this.world.scene === "ruins";
     if (this.oldPhase !== clock.phase) {
       if (this.oldPhase && !meadow && !ruins) {
         const change = this.world.scene === "room" ? "窗外换了光景" :
-          this.world.scene === "town" ? "小镇换了光景" : "花园里的风景悄悄变了";
+          this.world.scene === "town" || isTownInterior(this.world.scene) ? "小镇换了光景" : "花园里的风景悄悄变了";
         this.toast(`${phaseNames[clock.phase]}到了 · ${change}`);
       }
       this.oldPhase = clock.phase;
@@ -369,7 +371,8 @@ export class Nature {
       `苹果 ${this.state.apple} · 花朵 ${this.state.flower} · 星屑 ${this.state.star}`;
     const wearing = this.inventory.state.equipped.head === "wreath";
     this.state.wearing = this.inventory.has("wreath") && wearing;
-    document.querySelector(".day-hint")!.textContent = ruins ? "石廊里的三块铭文，记着一段遗忘的晚安。" : meadow ? "草间有落星，营火旁有一只收着星光的玻璃瓶。" :
+    document.querySelector(".day-hint")!.textContent = isTownInterior(this.world.scene) ? "走回门垫，从南门回小镇街道。" :
+      ruins ? "石廊里的三块铭文，记着一段遗忘的晚安。" : meadow ? "草间有落星，营火旁有一只收着星光的玻璃瓶。" :
       `第 ${clock.day} 天 · 十分钟一昼夜 · ${clock.phase === "dawn" ? "晨露花醒来了" : clock.phase === "dusk" ? "溪边漂来一只纸船" : clock.phase === "night" ? "萤火心愿悄悄出现" : "去勇气花园的长椅休息，等一场黄昏和星夜"}`;
   }
   refreshClock() {
@@ -511,7 +514,7 @@ export class Nature {
   }
   private lighting(c: CanvasRenderingContext2D) {
     const scene = this.world.scene;
-    if (scene === "meadow" || scene === "ruins") return;
+    if (scene === "meadow" || scene === "ruins" || isTownInterior(scene)) return;
     const hours = this.clock.hours;
     if (scene === "town") drawTownLight(c, hours, this.world.ambientTime, this.reduce.matches);
     else drawSceneDaylight(c, scene, daylightMix(hours));

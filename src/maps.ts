@@ -17,7 +17,10 @@ import { xiaoyeSpot, xiaoyeFootprint } from "./xiaoye-data.ts";
 import { suyanSpot, suyanFootprint } from "./suyan-data.ts";
 import { anniversaryVisitors } from "./anniversary-visitor-spots.ts";
 import type { InteractionCue } from "./interaction-cues.ts";
-export type SceneId = "room" | "garden" | "challenge" | "town" | "meadow" | "ruins";
+import { townInteriorScenes } from "./town-interiors.ts";
+import type { TownInteriorId } from "./town-interior-id.ts";
+export type BaseSceneId = "room" | "garden" | "challenge" | "town" | "meadow" | "ruins";
+export type SceneId = BaseSceneId | TownInteriorId;
 export interface Hotspot {
   id: string;
   title: string;
@@ -30,6 +33,7 @@ export interface Hotspot {
   radius?: number;
   portal?: SceneId;
   portalExit?: string;
+  crossing?: { sign: -1 | 1; halfWidth: number };
   markerOffset?: number;
   /** The illustrated object is itself the click target. */
   selfMarked?: boolean;
@@ -51,6 +55,7 @@ const polygon = (label: string, coordinates: number[][]) => ({
 
 // Logical pixels. Follow visible object bases, not their overhead decorations.
 export const scenes: Record<SceneId, Scene> = {
+  ...townInteriorScenes,
   town: townScene,
   ruins: ruinsScene,
   meadow: meadowScene,

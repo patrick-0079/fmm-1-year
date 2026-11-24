@@ -5,19 +5,23 @@ import { TOWN_NPCS, type TownNpc } from "./town-data";
 import { residentOpening, townDailyActions, townDialogues, type TownPage } from "./town-dialogue";
 import { townChatTopics } from "./town-chat-topics";
 import { handedLetters, letterChoice, postUnread, type LetterHandoff, type ResidentStory } from "./resident-story";
-import { townResidentLayers, residentPlacement, drawResidentPortrait, type TownAct } from "./town-acting";
+import { townResidentLayers, residentPlacement, drawResidentPortrait, townPostboxLayer, type TownAct } from "./town-acting";
 import { TownResidentMap } from "./town-resident-map";
-import { TownRoutines, worksInTown } from "./town-routines";
+import { TownRoutines, residentTownScene } from "./town-routines";
 import { prepareTownWork } from "./town-work-art";
 import { prepareResidentWalk } from "./resident-walk";
-import type { SceneId } from "./maps";
+import type { Hotspot, SceneId } from "./maps";
+import type { Phase } from "./day";
 import { townMapCovers, townOverheadDepth } from "./town-map-covers";
 import { prepareMapCovers } from "./map-covers";
 import plazaTreeOutlines from "./town-plaza-trees.json";
 import { townScene } from "./town-map";
 import { drawWishLights, townAttractionLayers } from "./town-attraction-art";
 import type { GameId } from "./arcade-engines";
-import npcUrl from "./assets/town-npcs.webp";
+import { townNpcSheet } from "./scene-art";
+import { isTownInterior, type TownInteriorId, type TownInteriorKey } from "./town-interior-id";
+import { townInteriors, type TownArea } from "./town-interiors";
+import { interiorFurniture, paintHallSideSign } from "./town-interior-art";
 import { drawPartyProp } from "./party-art";
 import { northStreetCanopies } from "./town-north-street-details";
 import { workshopCanopies } from "./town-workshop-vegetation";
@@ -39,21 +43,36 @@ const treeCrowns = [
   ...prepareMapCovers(plazaTreeOutlines).map(cover => ({y:cover.depth, cover})),
 ];
 export const TOWN_TALKED_KEY = "fufu-town-talked-v1";
+const shiftNotes: Record<TownInteriorKey, Partial<Record<Phase, string>>> = {
+  florist: { dawn: "在温室开窗", day: "在东边花阶", dusk: "在压花台" },
+  baker: { dawn: "在屋里开炉", day: "在烘焙屋外", dusk: "在屋里收盘" },
+  maker: { dawn: "在工坊外", day: "在试光台打样", dusk: "在东侧试灯" },
+  post: { dawn: "正在街上送信", day: "在局里分信", dusk: "正在街上收信", night: "在局里封晚邮" },
+  books: { dawn: "在书屋外", dusk: "在装帧桌边", night: "在阅读角夜读" },
+  radio: { dawn: "在电台收播", dusk: "在溪边听水声", night: "在电台播音" },
+  hall: { dawn: "在街上晨拍", day: "在馆里选片", dusk: "在馆里挂照片", night: "在街上拍夜景" },
+};
 interface StoryHooks {
   story: () => ResidentStory;
   mail: LetterHandoff;
   readPost: (onReturn: () => void) => void;
   save: () => void;
   notify: (text: string) => void;
+  keepsakes: () => readonly TownInteriorKey[];
 }
 
 export class Town {
-  private sprites = new Image();
+  private sprites = townNpcSheet;
   private visited = new Set<string>();
   private time = 0;
   private pond = new TownPond();
   private reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
-  private residents = new TownResidentMap(townScene);
+  private street = new TownResidentMap(townScene);
+  private interiors = new Map<TownInteriorId, TownResidentMap>();
+  private area?: TownArea;
+  private get residents() {
+    return this.area && this.area !== "town" ? this.interiors.get(this.area)! : this.street;
+  }
   private lives = new TownRoutines();
   private placement?: ReturnType<typeof residentPlacement>;
   private act?: TownAct & { npc: TownNpc; after?: TownPage["after"] };
@@ -64,9 +83,13 @@ export class Town {
     private visitGame: (id: GameId) => void,
     private hooks: StoryHooks,
   ) {
-    world.townMap = this.residents.scene;
+    world.townMap = this.street.scene;
+    for (const id of Object.keys(townInteriors) as TownInteriorId[]) {
+      const room = new TownResidentMap(townInteriors[id].scene, id);
+      this.interiors.set(id, room);
+      world.townInteriorMaps.set(id, room.scene);
+    }
     this.enterScene(world.scene);
-    this.sprites.src = npcUrl;
     try {
       const list = JSON.parse(
         localStorage.getItem(TOWN_TALKED_KEY) || "[]",
@@ -85,11 +108,11 @@ export class Town {
     };
     world.onTick = (dt, t) => {
       tick(dt, t);
-      if (world.scene === "town") {
+      if (this.area) {
         this.time = world.ambientTime;
         if (!world.paused) this.updateAct(dt);
         this.lives.tick(world.paused ? 0 : dt,world.currentPhase,world.player,world.visibleArea,
-          world.pendingInteractionId,this.act?.npcId,this.reducedMotion.matches);
+          world.pendingInteractionId,this.act?.npcId,this.reducedMotion.matches,this.area);
         const performer = this.act?.npc;
         this.placement = performer && residentPlacement(performer, world.player, this.act);
         this.residents.update(world.player,performer?.id,this.placement?.foot,this.lives.people);
@@ -99,6 +122,12 @@ export class Town {
     };
   }
   get talkedIds(): ReadonlySet<string> { return this.visited; }
+  doorNote(spot: Hotspot) {
+    if (!spot.portal || !isTownInterior(spot.portal)) return;
+    const room = townInteriors[spot.portal];
+    const resident = TOWN_NPCS.find(npc => npc.id === room.resident)!;
+    return resident.name + (shiftNotes[room.key][this.world.currentPhase] ?? "在休息");
+  }
   syncShift() {
     this.lives.syncShift(this.world.currentPhase,this.act?.npc.id);
     this.residents.update(this.world.player,this.act?.npc.id,this.placement?.foot,this.lives.people);
@@ -106,14 +135,16 @@ export class Town {
   enterScene(scene:SceneId) {
     this.act=undefined;
     this.placement=undefined;
-    this.lives.enter(this.world.currentPhase);
-    this.residents.update(scene==="town"?this.world.player:undefined,undefined,undefined,this.lives.people);
+    const area = scene === "town" || isTownInterior(scene) ? scene : undefined;
+    if (area && !this.area) this.lives.enter(this.world.currentPhase);
+    this.area = area;
+    if (area) this.residents.update(this.world.player, undefined, undefined, this.lives.people);
     if (scene === "town") {
       prepareTownWork();
       for (const npc of TOWN_NPCS) {
-        if (worksInTown(npc.id, this.world.currentPhase)) prepareResidentWalk(npc.id);
+        if (residentTownScene(npc.id, this.world.currentPhase) === "town") prepareResidentWalk(npc.id);
       }
-    }
+    } else if (isTownInterior(scene)) prepareResidentWalk(townInteriors[scene].resident);
   }
 
   reset() {
@@ -122,13 +153,13 @@ export class Town {
     this.save();
   }
   interact(id: string) {
-    if (this.world.scene !== "town" || !id.startsWith("npc-")) return false;
+    if (!this.area || !id.startsWith("npc-")) return false;
     const npc = TOWN_NPCS.find((n) => n.id === id.slice(4));
-    if (!npc || !this.residents.scene.spots.includes(this.residents.anchor(npc.id))) return false;
+    if (!npc || !this.residents.scene.spots.some(spot => spot.id === id)) return false;
     // A second tap on the same actor leaves their current page and shift intact.
     if (this.act?.npcId === npc.id && this.activities.dialogueOpen) return true;
     const person=this.lives.people.get(npc.id)!;
-    if (!worksInTown(npc.id,this.world.currentPhase)) return false;
+    if (residentTownScene(npc.id, this.world.currentPhase) !== this.area) return false;
     if (!this.visited.has(npc.id)) {
       this.visited.add(npc.id);
       this.save();
@@ -144,7 +175,7 @@ export class Town {
     const act = this.act;
     if (!act) return;
     const anchor = this.residents.anchor(act.npcId);
-    if (this.world.scene !== "town" || Math.hypot(this.world.player.x - anchor.x, this.world.player.y - anchor.y) > 72) {
+    if (Math.hypot(this.world.player.x - anchor.x, this.world.player.y - anchor.y) > 72) {
       this.act = undefined;
       return;
     }
@@ -154,7 +185,9 @@ export class Town {
   }
 
   private showDaily(npc: TownNpc) {
-    const topic = this.world.chats.next("npc-" + npc.id, townChatTopics[npc.id], this.world.currentPhase);
+    const interior = this.area && this.area !== "town" ? townInteriors[this.area] : undefined;
+    const memory = "npc-" + npc.id + (interior ? "-inside" : "");
+    const topic = this.world.chats.next(memory, interior?.chat ?? townChatTopics[npc.id], this.world.currentPhase);
     const actions = (townDailyActions[npc.id] ?? []).map(([title, target]) => ({
       title, run: () => this.answer(npc, target),
     }));
@@ -212,9 +245,12 @@ export class Town {
     switch (target) {
       case "@post": {
         const person = this.lives.people.get("post");
+        const area = this.area;
         this.hooks.readPost(() => {
+          if (this.area !== area || !person || person.scene !== area ||
+              !this.residents.scene.spots.some(spot => spot.id === "npc-post")) return;
           const anchor = this.residents.anchor("post");
-          if (this.world.scene !== "town" || !person || person !== this.lives.people.get("post") ||
+          if (person !== this.lives.people.get("post") ||
               this.world.busy || this.world.suspended || this.world.paused || this.activities.active ||
               !this.hooks.story().postDelivered || Math.hypot(this.world.player.x - anchor.x, this.world.player.y - anchor.y) > 72) return;
           this.showPage({...npc, x: person.x, y: person.y}, postUnread(this.hooks.story()) ? "unread" : "read");
@@ -266,14 +302,30 @@ export class Town {
     } catch {}
   }
   private layers(): DepthLayer[] {
-    if (this.world.scene !== "town") return [];
+    const area = this.area;
+    if (!area) return [];
     const view = this.world.visibleArea;
     const visible = (x: number, y: number) =>
       x + 64 >= view.x && x - 64 <= view.x + view.w && y + 18 >= view.y && y - 76 <= view.y + view.h;
+    const residents = TOWN_NPCS.flatMap(n => {
+      const person = this.lives.people.get(n.id)!;
+      if (person.scene !== area || person.status === "absent" || !visible(person.x, person.y)) return [];
+      const placed = this.act?.npcId === n.id ? this.act.npc : { ...n, x: person.x, y: person.y };
+      return townResidentLayers(placed, this.sprites, this.world, this.visited.has(n.id), this.time, this.act,
+        this.act?.npcId === n.id ? this.placement : undefined, person, this.hooks.story().welcomeReceived);
+    });
+    if (area !== "town") {
+      const image = this.world.sceneryArtwork;
+      return image ? [...interiorFurniture(image, area, this.world.currentPhase, this.hooks.keepsakes(),
+        this.world.townInteriorEffect(), this.reducedMotion.matches ? 0 : this.time), ...residents] : residents;
+    }
     const props = festivalProps.filter(p => visible(p.x,p.y));
     const propTime = this.reducedMotion.matches ? 0 : this.time;
+    const { x, y } = townInteriors["town-hall"].exterior;
     return [
       ...townMapCovers(this.world),
+      { y, draw: c => paintHallSideSign(c, x, y) },
+      townPostboxLayer,
       ...treeCrowns.map((t) => ({
         y: t.y,
         draw: (c: CanvasRenderingContext2D) => drawTownCrown(c, this.world, t, this.reducedMotion.matches),
@@ -301,13 +353,7 @@ export class Town {
         draw: (c: CanvasRenderingContext2D) => drawFestivalGarland(c, p, propTime, windAllowance(this.world)),
       })),
       ...townAttractionLayers(this.time, this.reducedMotion.matches),
-      ...TOWN_NPCS.flatMap(n => {
-        const person=this.lives.people.get(n.id)!;
-        if(person.status==="absent" || !visible(person.x,person.y)) return [];
-        const placed=this.act?.npcId===n.id ? this.act.npc : {...n,x:person.x,y:person.y};
-        return townResidentLayers(placed,this.sprites,this.world,this.visited.has(n.id),this.time,this.act,
-          this.act?.npcId===n.id ? this.placement : undefined,person,this.hooks.story().welcomeReceived);
-      }),
+      ...residents,
     ];
   }
   private drawSigns(c: CanvasRenderingContext2D) {

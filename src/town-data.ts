@@ -150,8 +150,9 @@ export const TOWN_NPCS: TownNpc[] = [
     id: "books",
     name: "墨桃",
     role: "相册书屋店主",
-    x: 867,
-    y: 782,
+    x: 838,
+    y: 798,
+    approach: { x: 851, y: 804 },
     sprite: 5,
   },
   {
