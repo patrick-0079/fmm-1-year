@@ -142,6 +142,25 @@ test("the live indoor maps share the collision and depth footprint for each illu
   }
 });
 
+test("the hall aisle reaches the new display and the workshop cabinet has a walkable side", () => {
+  const hall = townInteriors["town-hall"];
+  const display = hall.scene.spots.find(spot => spot.id === "town-hall-extra")!;
+  assert.ok(canTravelBetween(hall.scene.spawn, display.approach, hall.scene));
+  assert.ok(!canTravelBetween(display.approach, { x: 300, y: 145 }, hall.scene));
+  assert.equal(nearbyInteraction(display.approach, hall.scene.spots)?.id, display.id);
+  const cabinet = hall.art.props.find(prop => prop.name === "七屋纪念展柜")!;
+  const [, , width, height, left, top] = cabinet.variants.day;
+  assert.equal(Object.keys(hall.art.models).length, 7);
+  for (const [, , w, h, x, y] of Object.values(hall.art.models)) {
+    assert.ok(x >= left && x + w / hall.art.scale <= left + width / hall.art.scale);
+    assert.ok(y >= top && y + h / hall.art.scale <= top + height / hall.art.scale);
+  }
+
+  const workshop = townInteriors["town-maker"].scene;
+  assert.ok(!canTravelBetween({ x: 104, y: 216 }, { x: 104, y: 274 }, workshop));
+  assert.ok(canTravelBetween({ x: 169, y: 268 }, { x: 169, y: 206 }, workshop));
+});
+
 test("the HD atlas frames fit their textures and preserve the logical room size", async () => {
   for (const { key, scene, art } of Object.values(townInteriors)) {
     const file = fileURLToPath(new URL(`../src/assets/town-interiors/${key}.webp`, import.meta.url));

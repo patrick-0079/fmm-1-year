@@ -16,7 +16,7 @@ const phaseNames = { dawn: "清晨", day: "白昼", dusk: "黄昏", night: "星�
 const footprints = {
   温室花架: "温室花架脚", 温室木玻隔断: "温室隔断", 砖炉和炉膛: "砖炉炉基",
   手绘白板脚: "白板两只木脚", 临池侧窗木座: "临池侧窗窗座",
-  七屋模型展桌: "模型展桌底与桌脚", 隔音玻璃与底轨: "隔音玻璃底轨",
+  隔音玻璃与底轨: "隔音玻璃底轨",
 };
 
 function groups(source, attribute) {
@@ -134,7 +134,7 @@ async function compile(place) {
     shelf = Math.max(shelf, sprite.height + 2 * gutter);
   }
   const pixels = await sharp({ create: { width, height: y + shelf, channels: 4, background: "#00000000" } })
-    .composite(layers).webp({ lossless: true, effort: 5 }).toBuffer();
+    .composite(layers).webp({ quality: 95, alphaQuality: 100, smartSubsample: true, effort: 5 }).toBuffer();
   await writeFile(new URL(place + ".webp", assetFolder), pixels);
   console.log(place, width + "×" + (y + shelf), Math.round(pixels.length / 1024) + " KiB");
   return { title, plan, walls, chat, art: JSON.parse(JSON.stringify(frames, (_, v) => typeof v === "function" ? v() : v)) };

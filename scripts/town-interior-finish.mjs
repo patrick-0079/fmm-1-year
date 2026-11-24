@@ -1,42 +1,32 @@
 import sharp from "sharp";
 import { readFile } from "node:fs/promises";
 import { decorateTownInterior } from "./town-interior-celebration.mjs";
+import { drawTownWallFurnishings, townFurnishingDefs, redrawTownFurnishing } from "./town-interior-furnishings.mjs";
 
 const colors = {
-  florist: { wall: "#dce3bf", trim: "#537553", wood: "#b48254", accent: "#bd6884", cloth: "#efd7b0", stitch: "#a4536d", window: [405, 59, 89, 38] },
-  baker: { wall: "#f4ddb3", trim: "#ab5846", wood: "#d39a70", accent: "#b85450", cloth: "#ae5756", stitch: "#ffe3aa", window: [250, 59, 80, 38] },
-  maker: { wall: "#ddc1d7", trim: "#714b78", wood: "#a6715d", accent: "#9870b1", cloth: "#634671", stitch: "#f2c68b", window: [212, 57, 92, 40] },
-  post: { wall: "#eddbaf", trim: "#456757", wood: "#bd8455", accent: "#b36356", cloth: "#426d62", stitch: "#eed8a6", window: [348, 60, 78, 37] },
-  books: { wall: "#d8dab6", trim: "#3f6d5d", wood: "#a67650", accent: "#548579", cloth: "#3e6c62", stitch: "#e1d9a1", window: [407, 59, 69, 38] },
-  radio: { wall: "#9facc0", trim: "#494760", wood: "#687181", accent: "#bd6c87", cloth: "#784c66", stitch: "#edbcac", window: [410, 59, 92, 37] },
-  hall: { wall: "#f0d9b8", trim: "#8e4e51", wood: "#d1ad86", accent: "#ad5667", cloth: "#944c59", stitch: "#f3cd98", window: [218, 57, 143, 42] },
+  florist: { wall: "#e2dfb8", trim: "#54795a", wood: "#ca955e", accent: "#c76f8a", cloth: "#f4dbaf", stitch: "#af5671", window: [405, 59, 89, 38] },
+  baker: { wall: "#f5dfb7", trim: "#ad5c45", wood: "#d9a174", accent: "#c26b61", cloth: "#b96464", stitch: "#ffe3aa", window: [250, 59, 80, 38] },
+  maker: { wall: "#e2c7d9", trim: "#745582", wood: "#bd8b6c", accent: "#9a73b6", cloth: "#70517f", stitch: "#f2c68b", window: [212, 57, 92, 40] },
+  post: { wall: "#f0deae", trim: "#4c7762", wood: "#c7915d", accent: "#bf635c", cloth: "#46786c", stitch: "#eed8a6", window: [348, 60, 78, 37] },
+  books: { wall: "#e0dfb9", trim: "#4b7965", wood: "#bb895c", accent: "#5f927d", cloth: "#4b776b", stitch: "#e1d9a1", window: [407, 59, 69, 38] },
+  radio: { wall: "#a8b3c3", trim: "#4c506e", wood: "#737b8d", accent: "#c47795", cloth: "#784c66", stitch: "#edbcac", window: [410, 59, 92, 37] },
+  hall: { wall: "#f4dfbd", trim: "#965760", wood: "#dfbc91", accent: "#b96375", cloth: "#a25567", stitch: "#f3cd98", window: [218, 57, 143, 42] },
 };
 
 const phases = ["dawn", "day", "dusk", "night"];
 const clothShape = {
   florist: [465, 207, 101, 53, "rose"], maker: [300, 221, 100, 53, "star"],
   post: [274, 207, 104, 43, "envelope"], books: [460, 177, 103, 54, "flower"],
-  hall: [295, 212, 138, 68, "laurel"],
 };
-const replaceFloorTextiles = new Set(["baker", "maker", "books"]);
-const furnitureDress = {
-  florist: { 花墙矮柜: [["florist", 309, 106, 40]], 缎带边桌: [["florist", 493, 253, 41]] },
-  baker: { 烘焙原料柜: [["baker", 324, 112, 57]] },
-  post: { 长柜台: [["post", 185, 116, 52]] },
-};
-const wallDisplays = {
-  florist: [202, 51, 115, 66], baker: [144, 51, 102, 64], maker: [329, 46, 164, 66],
-  post: [433, 48, 131, 63], books: [183, 47, 151, 67], radio: [40, 43, 151, 71],
-};
+const replaceFloorTextiles = new Set(["baker", "maker", "books", "hall"]);
 const facePanels = {
-  压花台: [415, 167, 102, 9], 木面压模案: [132, 150, 86, 8], 中央试光台: [248, 214, 103, 8],
-  邮戳机工作桌: [464, 217, 60, 7], 调音台: [65, 159, 134, 10], 七屋模型展桌: [208, 220, 172, 11],
+  木面压模案: [132, 150, 86, 8], 中央试光台: [248, 214, 103, 8],
 };
 const glowSpots = {
   florist: [[538, 82, 39, 33], [466, 159, 83, 56]], baker: [[82, 109, 55, 53], [474, 106, 55, 47]],
   maker: [[334, 173, 60, 53], [445, 84, 48, 37]], post: [[492, 195, 54, 42], [142, 76, 44, 35]],
   books: [[503, 142, 62, 57], [150, 123, 66, 45]], radio: [[263, 72, 48, 27], [110, 143, 60, 40]],
-  hall: [[424, 88, 86, 44], [478, 113, 48, 45]],
+  hall: [[418, 85, 75, 40], [478, 113, 48, 45], [300, 147, 99, 31]],
 };
 
 const shade = (color, target, amount) => {
@@ -63,20 +53,6 @@ function random(seed) {
   };
 }
 
-async function readAtlas(name, names) {
-  const image = await readFile(new URL(`../doc/artwork/town-interiors/${name}-atlas.webp`, import.meta.url));
-  const { width, height } = await sharp(image).metadata();
-  const cellW = width / 4, cellH = height / 2;
-  const entries = await Promise.all(names.map(async (key, index) => {
-    const cell = await sharp(image).extract({ left: (index % 4) * cellW, top: Math.floor(index / 4) * cellH,
-      width: cellW, height: cellH }).png().toBuffer();
-    const { data, info } = await sharp(cell).trim({ background: "#00000000", threshold: 9 })
-      .png().toBuffer({ resolveWithObject: true });
-    return [key, { url: png(data), aspect: info.height / info.width }];
-  }));
-  return Object.fromEntries(entries);
-}
-
 async function readPortraits() {
   const album = new URL("../ref/相册/", import.meta.url);
   const { photos } = JSON.parse(await readFile(new URL("album.json", album), "utf8"));
@@ -88,25 +64,72 @@ async function readPortraits() {
   return Object.fromEntries(portraits);
 }
 
+// Keep the luminance of the strokes from the live map paintings and tint them over each room's colors.
+async function surfaceSample(image, bounds, amount) {
+  const { data, info } = await sharp(image)
+    .extract(bounds).removeAlpha().toColourspace("srgb").raw().toBuffer({ resolveWithObject: true });
+  const { width, height, channels } = info;
+  const values = Array.from({ length: width * height }, (_, i) =>
+    data[i * channels] * .25 + data[i * channels + 1] * .64 + data[i * channels + 2] * .11);
+  const columns = new Float32Array(width), rows = new Float32Array(height);
+  for (const [i, value] of values.entries()) {
+    columns[i % width] += value / height;
+    rows[Math.floor(i / width)] += value / width;
+  }
+  const mean = columns.reduce((sum, value) => sum + value, 0) / width;
+  const pixels = Buffer.alloc(values.length * 4);
+  for (const [i, value] of values.entries()) {
+    const x = i % width, y = Math.floor(i / width);
+    // Remove the baked light sweep and blend away the sample edges before tiling.
+    const delta = value - mean - (columns[x] - mean) * .94 - (rows[y] - mean) * .75;
+    const taper = Math.min(1, (x + .5) * 14 / width, (width - x - .5) * 14 / width,
+      (y + .5) * 8 / height, (height - y - .5) * 8 / height);
+    const [r, g, b] = delta < 0 ? [93, 64, 59] : [255, 231, 179];
+    pixels.set([r, g, b, Math.round(Math.min(55, Math.abs(delta) * amount) * taper)], i * 4);
+  }
+  return png(await sharp(pixels, { raw: { width, height, channels: 4 } }).png().toBuffer());
+}
+
+async function readSurfaceSamples() {
+  const [cottage, paving] = await Promise.all([
+    readFile(new URL("../src/assets/room-interactive.webp", import.meta.url)),
+    readFile(new URL("../src/assets/town-paving-v12.webp", import.meta.url)),
+  ]);
+  const [oak1, oak2, stone, fabric] = await Promise.all([
+    surfaceSample(cottage, { left: 485, top: 304, width: 304, height: 24 }, 5.2),
+    surfaceSample(cottage, { left: 645, top: 332, width: 338, height: 25 }, 4.8),
+    surfaceSample(paving, { left: 301, top: 89, width: 56, height: 35 }, 2.2),
+    surfaceSample(cottage, { left: 1190, top: 315, width: 118, height: 67 }, 1.8),
+  ]);
+  return { oak1, oak2, stone, fabric };
+}
+
+function surfacePatterns({ oak1, oak2, stone, fabric }) {
+  return `<pattern id="cottage-oak" width="146" height="33" patternUnits="userSpaceOnUse">
+    <image href="${oak1}" width="146" height="16.5" preserveAspectRatio="none"/>
+    <image href="${oak2}" y="16.5" width="146" height="16.5" preserveAspectRatio="none"/>
+  </pattern><pattern id="town-stone" width="32" height="23" patternUnits="userSpaceOnUse">
+    <image href="${stone}" width="32" height="23" preserveAspectRatio="none"/>
+  </pattern><pattern id="cottage-fabric" width="31" height="19" patternUnits="userSpaceOnUse">
+    <image href="${fabric}" width="31" height="19" preserveAspectRatio="none"/>
+  </pattern>`;
+}
+
 export async function readTownInteriorArt() {
-  const names = Object.keys(colors);
-  const [decor, walls, celebration, portraits, skies, town] = await Promise.all([
-    readAtlas("dressing", [...names, "ivy"]), readAtlas("wall", [...names, "pendants"]),
-    readAtlas("celebration", [...names, "swag"]), readPortraits(),
+  const [portraits, materials, skies] = await Promise.all([
+    readPortraits(), readSurfaceSamples(),
     readFile(new URL("../src/assets/window-skies-v12.webp", import.meta.url)),
-    readFile(new URL("../src/assets/anniversary-town-hd-v13.webp", import.meta.url)),
   ]);
   const skyFrames = await Promise.all(phases.map(async (phase, index) => [phase, png(await sharp(skies)
     .extract({ left: index % 2 * 768, top: Math.floor(index / 2) * 512 + 28, width: 768, height: 317 })
     .resize(255, 110).png().toBuffer())]));
-  const pond = png(await sharp(town).extract({ left: 1350, top: 1626, width: 114, height: 204 })
-    .resize(66, 118).png().toBuffer());
-  return { decor, walls, celebration, portraits, pond, skies: Object.fromEntries(skyFrames) };
+  return { portraits, materials, skies: Object.fromEntries(skyFrames) };
 }
 
 function floor(color, kind, x, y, width, height, next) {
-  const parts = [rect(x, y, width, height, dark(color, .53))];
   const tiles = kind === "terracotta" || kind === "stone" || kind === "greenhouse";
+  const parts = [rect(x, y, width, height, dark(color, tiles ? .49 : .42))];
+  const texture = tiles ? "url(#town-stone)" : "url(#cottage-oak)";
   const stepY = kind === "stone" ? 29 : tiles ? 19 : 17;
   for (let row = 0; row * stepY < height; row++) {
     const top = row * stepY, h = Math.min(stepY, height - top);
@@ -118,12 +141,14 @@ function floor(color, kind, x, y, width, height, next) {
       right += length;
       if (w < 1) continue;
       const bx = x + left, by = y + top;
-      const tone = shade(color, (row + Math.floor(left / period)) % 2 ? "#f7dbae" : "#503342", next() * .24);
-      parts.push(rect(bx + .45, by + .4, Math.max(.1, w - .85), Math.max(.1, h - .75), tone, tiles ? 'rx="1.2"' : 'rx=".6"'));
+      const tone = shade(color, (row + Math.floor(left / period)) % 2 ? "#fae4b3" : "#713e38", next() * (tiles ? .23 : .16));
+      const tile = [bx + .45, by + .4, Math.max(.1, w - .85), Math.max(.1, h - .75)];
+      const radius = tiles ? 'rx="1.6"' : 'rx=".85"';
+      parts.push(rect(...tile, tone, radius), rect(...tile, texture, radius + ' opacity=".87"'));
       if (w < 5 || h < 4) continue;
-      parts.push(line(`M${bx + 2} ${by + 1.4}h${w - 4}`, light(tone, .8), .7, .62));
-      parts.push(line(`M${bx + 1.8} ${by + h - 1.6}h${w - 4}`, dark(tone, .62), .7, .48));
-      for (let i = 0; i < Math.ceil(w / 7); i++) {
+      parts.push(line(`M${bx + 2} ${by + 1.35}h${w - 4}`, light(tone, .83), .75, .72));
+      parts.push(line(`M${bx + 1.8} ${by + h - 1.15}h${w - 4}`, dark(tone, .58), .6, .50));
+      for (let i = 0; i < Math.ceil(w / 20); i++) {
         const gx = round(bx + 2 + next() * (w - 4)), gy = round(by + 2 + next() * (h - 4));
         const stroke = round(Math.min(bx + w - gx - 1, 2 + next() * (tiles ? 9 : 25)));
         if (stroke > 1) parts.push(line(`M${gx} ${gy}q${round(stroke * .4)} ${round(next() - .5)} ${stroke} 0`,
@@ -171,44 +196,6 @@ function ovenMasonry() {
     line("M41 136h83", "#ffe1a4", 1.1, .74);
 }
 
-function studioPanel() {
-  const ink = "#322c3e", gold = "#c9a06e";
-  const details = [rect(63.5, 125, 41, 15, "#302d3a", `rx="1.2" stroke="${gold}" stroke-width=".7"`),
-    rect(105, 126, 22, 12.5, "#34313c", 'rx="1" stroke="#685d63" stroke-width=".6"'),
-    line("M64 142h63m0-17v23m3 0h73", gold, .59, .84),
-    rect(66, 144, 8, 2.2, "#986476", 'rx=".7" stroke="#3b293a" stroke-width=".45"'),
-    rect(78, 144, 8, 2.2, "#607e77", 'rx=".7" stroke="#3b293a" stroke-width=".45"')];
-  for (let x = 132; x < 197; x += 10) {
-    details.push(circle(x, 127, 1.55, gold, `stroke="${ink}" stroke-width=".6"`),
-      line(`M${x} 126.3v.8`, "#fff1bf", .55, .87),
-      line(`M${x + 3} 132h1m-1 3h1m-1 3h1m-1 3h1m-1 3h1`, "#ead3a2", .47, .85));
-  }
-  return details.join("");
-}
-
-function miniatureTown() {
-  const trees = [[207, 168], [233, 162], [246, 174], [271, 164], [324, 167],
-    [348, 162], [369, 171], [383, 177], [367, 191], [379, 208], [339, 208], [316, 201],
-    [244, 208], [223, 202], [204, 201]];
-  const parts = [rect(191, 152, 205, 64, "url(#miniature-meadow)"),
-    path("M202 191q21-9 38-2t49 0 36 7 51-4l13 17q-66-11-99 0t-74-2-21-7Z", "#82976c", 'opacity=".77"'),
-    path("M198 158q67 12 96 4t97 7", "none", 'stroke="#565c4a" stroke-width="2.5" opacity=".43"'),
-    line("M198 157q67 12 96 4t97 7", "#dce0a1", 1, .8),
-    line("M378 156q-9 12 4 24t-1 30", "#457d7b", 6, .85),
-    line("M378 156q-9 12 4 24t-1 30", "#9bd1b3", 4.2, .86),
-    line("M213 176q23 15 52 11t40 4t47-1m-106 11q16-7 34-12m1 0q13 11 32 15t44-2m-69-24q12-5 19-11", "#6c6653", 4.6, .49),
-    line("M213 176q23 15 52 11t40 4t47-1m-106 11q16-7 34-12m1 0q13 11 32 15t44-2m-69-24q12-5 19-11", "#e9d2a1", 3, .96),
-    line("M213 176q23 15 52 11t40 4t47-1m-106 11q16-7 34-12m1 0q13 11 32 15t44-2", "#a78c6b", .57, .87)];
-  trees.forEach(([x, y], i) => {
-    const blossom = i % 4 === 0;
-    parts.push(line(`M${x} ${y - 1}v3.4`, "#6d5350", 1, .86),
-      circle(x + .5, y, 2.55, blossom ? "#9a6772" : "#618064"),
-      circle(x - .4, y - 1, 2, blossom ? "#db9b9e" : "#9bb681"),
-      circle(x - 1.15, y - 1.4, .68, blossom ? "#ffccb5" : "#d1d59c"));
-  });
-  return `<g clip-path="url(#miniature-board)">${parts.join("")}</g>`;
-}
-
 function rug(x, y, rx, ry, color, stitch, motif) {
   const petals = motif === "rose" || motif === "flower";
   const ring = (scale, n, waved) => Array.from({ length: n }, (_, i) => {
@@ -222,19 +209,27 @@ function rug(x, y, rx, ry, color, stitch, motif) {
     carpet(1, dark(color, .34), dark(color, .61), 1.4), carpet(.977, light(color, .17), stitch, 1.3),
     carpet(.93, color, dark(stitch, .37), .8), carpet(.87, "none", stitch, .95, 'stroke-dasharray=".8 2.3"'),
     carpet(.78, light(color, .075), light(color, .24), .65),
+    carpet(.92, "url(#cottage-fabric)", "none", 0, 'opacity=".43"'),
   ];
   const emblem = {
     rose: "M-6 1Q-9 -4 -4 -5Q-4 -9 0 -7Q4 -9 5 -4Q9 -4 7 1Q3 7 0 8Q-4 5-6 1Z",
     flower: "M0 -6C2 -10 6 -6 4 -2C9 -4 10 1 5 2C8 7 2 8 0 4C-3 8-8 7-5 2C-10 1-8 -4-4 -2C-6 -6-2 -10 0 -6Z",
     star: "M0 -9L2.3 -2.8 8.5 -2.8 3.7 1.4 5.4 7.4 0 4 -5.4 7.4 -3.7 1.4 -8.5 -2.8 -2.3 -2.8Z",
     envelope: "M-8 -4H8V5H-8Z M-8 -4L0 1 8 -4",
-    laurel: "M-5 -7L-2 -3L0 3L2 -3L5 -7M-7 -1L-4 2L0 4L4 2L7 -1M-5 4L0 8L5 4",
   }[motif];
   for (let i = 0; i < 16; i++) {
     const a = i * Math.PI / 8, px = round(x + rx * .83 * Math.cos(a)), py = round(y + ry * .83 * Math.sin(a));
     const angle = i * 22.5 + 90;
     fabric.push(`<g transform="translate(${px} ${py}) rotate(${angle}) scale(.62 .51)">${path(emblem,
       petals ? (i % 2 ? stitch : "#816c57") : "none", `stroke="${stitch}" stroke-width="1.35" opacity=".87"`)}</g>`);
+  }
+  if (petals) {
+    fabric.push(carpet(.98, "none", light(stitch, .62), 1, 'stroke-dasharray=".9 2.35" opacity=".72"'));
+    for (let i = 0; i < 30; i++) {
+      const a = i * Math.PI / 15, px = round(x + rx * .77 * Math.cos(a)), py = round(y + ry * .77 * Math.sin(a));
+      const angle = i * 12 + 83;
+      fabric.push(`<g transform="translate(${px} ${py}) rotate(${angle})"><path d="M0 0q2-2.7 4-.8Q3.5 1.5 0 0Z" fill="${i % 2 ? "#92a078" : "#bb907e"}" opacity=".68"/></g>`);
+    }
   }
   const threads = Array.from({ length: 22 }, (_, i) => {
     const along = (i - 10.5) / 12;
@@ -249,6 +244,7 @@ function clothStrip(x, y, w, h, color, trim, gingham = false) {
   const body = [rect(x, y + 2, w, h + 1.5, "#492636", 'rx="3" opacity=".29"'),
     rect(x, y, w, h, dark(color, .25), `rx="3" stroke="${dark(color, .53)}" stroke-width=".9"`),
     rect(x + 2, y + 2, w - 4, h - 4, color, `rx="1" stroke="${trimColor}" stroke-width=".95"`),
+    rect(x + 2.5, y + 2.5, w - 5, h - 5, "url(#cottage-fabric)", 'rx="1" opacity=".39"'),
     rect(x + 4, y + 4, w - 8, h - 8, "none", `stroke="${light(trim, .25)}" stroke-dasharray="1.1 2" stroke-width=".7"`)];
   for (let i = 7; i < w - 5; i += 6) {
     body.push(line(`M${x + i} ${y + 1}v${h - 2}`, gingham ? trimColor : dark(color, .4), gingham ? 2.3 : .43, gingham ? .22 : .24));
@@ -258,22 +254,35 @@ function clothStrip(x, y, w, h, color, trim, gingham = false) {
   return body.join("");
 }
 
+function galleryRunner(theme) {
+  return clothStrip(246, 203, 108, 126, theme.cloth, theme.stitch) +
+    line("M254 224v-13h13m66 0h13v13m-92 83v13h13m66 0h13v-13", theme.stitch, .94, .68) +
+    line("M300 245l16 16-16 16-16-16Z M300 251l10 10-10 10-10-10Z", theme.stitch, 1.05, .58) +
+    line("M278 261q-7-9-14-8q4 6 14 8q-10 1-13 8q8-1 13-8m44 0q7-9 14-8q-4 6-14 8q10 1 13 8q-8-1-13-8", theme.stitch, .85, .62);
+}
+
 function builtInFrame(theme, doorX) {
   const { wood, trim, accent } = theme;
-  const outline = [rect(0, 0, 600, 400, "url(#room-surround)"), rect(8, 20, 584, 351, "url(#edge-wood)",
-    'rx="5" stroke="#392839" stroke-width="3"'), rect(14, 29, 572, 338, dark(wood, .39), 'rx="3"'),
-  rect(17, 33, 566, 323, "url(#frame-patina)", 'rx="2"')];
-  for (const [y, opacity] of [[22, .65], [28, .42], [39, .8], [367, .43], [373, .28]]) {
-    outline.push(line(`M13 ${y}H587`, light(wood, .64), 1.25, opacity));
+  const beam = `stroke="${dark(wood, .64)}" stroke-width="1.2"`;
+  const outline = [rect(0, 0, 600, 400, "url(#room-surround)"),
+    rect(5, 10, 590, 367, "url(#edge-wood)", `rx="5" ${beam}`),
+    rect(12, 18, 576, 353, "url(#frame-patina)", 'rx="3"'),
+    rect(14, 19, 572, 350, "url(#cottage-oak)", 'rx="3" opacity=".62"'),
+    rect(17, 32, 566, 325, dark(wood, .41), 'rx="2"'),
+    rect(20, 40, 560, 315, light(theme.wall, .17), 'rx="1"')];
+  for (const [y, opacity] of [[12, .82], [23, .5], [34, .71], [359, .58], [370, .72]]) {
+    outline.push(line(`M13 ${y}H587`, light(wood, .78), 1.3, opacity));
   }
   for (let x = 32; x < 580; x += 38) {
     outline.push(line(`M${x} 35q12 -2 29 -1 M${x} 25q7 1 20 -.3`, dark(wood, .61), .7, .45));
   }
-  outline.push(rect(9, 25, 12, 346, "url(#edge-wood)", `rx="2" stroke="${dark(wood, .7)}" stroke-width="1.15"`),
-    rect(579, 25, 12, 346, "url(#edge-wood)", `rx="2" stroke="${dark(wood, .7)}" stroke-width="1.15"`));
+  outline.push(path("M8 15h41L22 49l-5 2Z M592 15h-41l27 34 5 2Z", light(wood, .34), beam),
+    line("M13 17h28L21 43m566-26h-28l20 26", light(wood, .68), .85, .84),
+    rect(8, 39, 13, 333, "url(#edge-wood)", `rx="1.6" ${beam}`),
+    rect(579, 39, 13, 333, "url(#edge-wood)", `rx="1.6" ${beam}`));
   for (const x of [13, 584]) {
-    outline.push(line(`M${x} 28V365`, light(wood, .62), .8, .71));
-    for (const y of [35, 114, 213, 306, 357]) outline.push(circle(x + 2, y, 1.25, light(accent, .56), `stroke="${dark(trim, .69)}" stroke-width=".7"`));
+    outline.push(line(`M${x} 41V369`, light(wood, .74), .85, .77));
+    for (const y of [47, 114, 213, 306, 357]) outline.push(circle(x + 2, y, 1.25, light(accent, .63), `stroke="${dark(trim, .57)}" stroke-width=".7"`));
   }
   // Treads below the walkable landing give the cropped room a visible doorway.
   outline.push(path(`M${doorX - 30} 348h60l5 37h-70Z`, "url(#edge-wood)", 'stroke="#4b322f" stroke-width="1.1"'),
@@ -295,16 +304,6 @@ function windowBackdrop(backWall, theme, skies) {
   return next;
 }
 
-function pondWindow(furniture, pond) {
-  const colors = { dawn: ["#ffe0a7", .16], day: ["#c5ebce", .05], dusk: ["#e78e92", .24], night: ["#292c5a", .53] };
-  // Retain the four real blind positions above the pond pixels.
-  return furniture.replace(/(<g class="phase-view phase-(dawn|day|dusk|night)[^"]*" display="(?:none|inline)">\s*)<rect x="28" y="164" width="33" height="59"[^>]*\/>[\s\S]*?(?=<rect x="28" y="164" width="33" height="5\.25")/g,
-    (_, header, phase) => {
-      const [tint, amount] = colors[phase];
-      return `${header}<image href="${pond}" x="28" y="164" width="33" height="59"/>${rect(28, 164, 33, 59, tint, `opacity="${amount}"`)}`;
-    });
-}
-
 function cabinetPanel(name, theme) {
   const panel = facePanels[name];
   if (!panel) return "";
@@ -315,12 +314,8 @@ function cabinetPanel(name, theme) {
     line(`M${x + 3} ${y + h - 1.2}h${w - 6}`, light(theme.trim, .49), .55, .7)];
   for (let i = 8; i <= w - 8; i += 12) {
     const bx = x + i, cy = y + h / 2;
-    if (name === "调音台") {
-      pieces.push(line(`M${bx - 4} ${cy + 1}h8m-8 -2h8`, light(theme.trim, .27), .75, .9));
-    } else {
-      pieces.push(path(`M${bx} ${cy - 1.9}l3 1.9-3 1.9-3-1.9Z`, theme.accent,
-        `stroke="${gold}" stroke-width=".55"`));
-    }
+    pieces.push(path(`M${bx} ${cy - 1.9}l3 1.9-3 1.9-3-1.9Z`, theme.accent,
+      `stroke="${gold}" stroke-width=".55"`));
   }
   return pieces.join("");
 }
@@ -330,15 +325,6 @@ function cabinetPanel(name, theme) {
 export function finishTownInterior(place, plan, base, assets) {
   const theme = colors[place];
   const celebration = decorateTownInterior(place, plan, assets);
-  const art = ({ url, aspect }, x, y, w) => `<image href="${url}" x="${x}" y="${y}" width="${w}" height="${round(w * aspect)}"/>`;
-  const stamp = (name, x, y, w, byFoot = false) => {
-    const sprite = assets.decor[name];
-    return art(sprite, x, byFoot ? y - round(w * sprite.aspect) : y, w);
-  };
-  const mount = (name, x, y, w, h) => {
-    const sprite = assets.walls[name], width = round(Math.min(w, h / sprite.aspect));
-    return art(sprite, x + round((w - width) / 2), y + round((h - width * sprite.aspect) / 2), width);
-  };
   const randomFloor = random(Array.from(place).reduce((key, char) => key * 13 + char.charCodeAt(0), 619));
   const finish = new Set();
   const surfaces = part => part.replace(/<(?:rect|polygon)\b[^>]*>/g, tag => {
@@ -357,9 +343,10 @@ export function finishTownInterior(place, plan, base, assets) {
   const kind = place === "baker" ? "terracotta" : place === "hall" ? "stone" : place === "maker" ? "parquet" : "wood";
   const architecture = base.architecture.replace(/<rect x="0" y="0" width="600" height="400" fill="[^"]+"\s*\/>/, builtInFrame(theme, plan.exit[0]))
     .replace('<rect x="24" y="51" width="552" height="63" fill="url(#wall)" />',
-      rect(24, 51, 552, 63, "url(#painted-wall)") + wainscot(theme))
+      rect(24, 51, 552, 63, "url(#painted-wall)") + rect(24, 51, 552, 63, "url(#cottage-oak)", 'opacity=".19"') + wainscot(theme))
     .replace(/<rect x="24" y="112" width="552" height="239" fill="url\(#floor\)"\s*\/>/,
-      floor(theme.wood, kind, 24, 112, 552, 239, randomFloor) + rect(24, 113, 552, 237, "url(#footlight)"));
+      floor(theme.wood, kind, 24, 112, 552, 239, randomFloor) + rect(24, 113, 552, 237, "url(#footlight)") +
+      rect(24, 113, 552, 237, "url(#warm-floor)", place === "radio" ? 'opacity=".49"' : ""));
   let floorDetails = base.floorDetails;
   if (place === "florist") {
     const firstPhase = floorDetails.indexOf('<g class="phase-view');
@@ -371,44 +358,40 @@ export function finishTownInterior(place, plan, base, assets) {
     floorDetails = timedFloorLight(floorDetails);
   }
   const rugArgs = clothShape[place];
-  const runner = place === "hall" ? clothStrip(263, 236, 74, 93, "#a55362", "#ecc790")
+  const runner = place === "hall" ? galleryRunner(theme)
+    : place === "maker" ? rug(104, 236, 68, 37, "#684f67", theme.stitch, "star")
     : place === "books" ? clothStrip(270, 218, 70, 111, "#5e7769", "#dac999") : "";
   const textiles = rugArgs ? rug(...rugArgs.slice(0, 4), theme.cloth, theme.stitch, rugArgs[4])
     : place === "baker" ? clothStrip(169, 230, 243, 39, theme.cloth, theme.stitch, true) : "";
   const doorstep = clothStrip(plan.spawn[0] - 27, 325, 54, 23, theme.trim, theme.stitch);
   const backWall = windowBackdrop(base.backWall, theme, assets.skies);
-  const mounted = place === "hall" ? mount("pendants", 365, 48, 99, 47) : mount(place, ...wallDisplays[place]);
-  const greenery = place === "florist" ? stamp("ivy", 510, 45, 53) : "";
-  const background = architecture + runner + textiles + floorDetails + celebration.floor + doorstep + backWall + mounted + greenery + celebration.wall;
+  const mounted = drawTownWallFurnishings(place);
+  const background = architecture + runner + textiles + floorDetails + celebration.floor + doorstep + backWall + mounted + celebration.wall;
   const furniture = base.furniture.map(part => {
     const name = part.match(/data-object="([^"]+)"/)[1];
-    const accessories = furnitureDress[place]?.[name]?.map(args => stamp(...args, true)).join("") ?? "";
-    const source = name === "临池侧窗木座" ? pondWindow(part, assets.pond) : part;
-    let painted = name.includes("隔断") || name.includes("玻璃") ? source : surfaces(source);
+    const redrawn = redrawTownFurnishing(place, name, part);
+    if (redrawn) return redrawn + celebration.furniture(name);
+    let painted = name.includes("隔断") || name.includes("玻璃") ? part : surfaces(part);
     if (name === "砖炉和炉膛") {
       for (const color of ["#b67c65", "#d59a77", "#6f554d"]) {
         finish.add(color);
         painted = painted.replace(`fill="${color}"`, `fill="url(#paint-${color.slice(1)})"`);
       }
       painted = painted.replace('<path d="M51 135', ovenMasonry() + '<path d="M51 135');
-    } else if (name === "调音台") {
-      painted = painted.replace('<g class="phase-view', studioPanel() + '<g class="phase-view');
-    } else if (name === "七屋模型展桌") {
-      painted = painted.replace(/<path d="M213 176[^>]*\/>[\s\S]*?<path d="M378 156[^>]*\/>/, miniatureTown());
     }
-    return painted + cabinetPanel(name, theme) + accessories + celebration.furniture(name);
+    return painted + cabinetPanel(name, theme) + celebration.furniture(name);
   });
-  const defs = [gradient("room-surround", dark(theme.trim, .75), dark(theme.trim, .97)),
-    gradient("edge-wood", light(theme.wood, .48), dark(theme.wood, .57)),
-    gradient("frame-patina", dark(theme.wood, .22), dark(theme.wood, .47)),
-    gradient("painted-wall", light(theme.wall, .21), shade(theme.wall, theme.trim, .25)),
+  const defs = [gradient("room-surround", shade(theme.wood, "#563843", .71), shade(theme.wood, "#54353f", .82)),
+    gradient("edge-wood", light(theme.wood, .58), dark(theme.wood, .43)),
+    gradient("frame-patina", light(theme.wood, .24), dark(theme.wood, .43)),
+    gradient("painted-wall", light(theme.wall, .35), shade(theme.wall, theme.trim, .24)),
     gradient("wainscot", light(theme.trim, .38), dark(theme.trim, .14)),
     '<linearGradient id="footlight" x2="0" y2="1"><stop stop-color="#392736" stop-opacity=".3"/><stop offset=".17" stop-color="#533848" stop-opacity=".02"/><stop offset=".72" stop-color="#fff0b2" stop-opacity=".045"/><stop offset="1" stop-color="#533848" stop-opacity=".18"/></linearGradient>',
+    '<radialGradient id="warm-floor" cx="55%" cy="38%" r="68%"><stop stop-color="#ffe3a2" stop-opacity=".23"/><stop offset=".59" stop-color="#fff2be" stop-opacity=".08"/><stop offset="1" stop-color="#793f39" stop-opacity=".06"/></radialGradient>',
     '<radialGradient id="reflected-lamp"><stop stop-color="#ffc982" stop-opacity=".45"/><stop offset=".42" stop-color="#ffd986" stop-opacity=".16"/><stop offset="1" stop-color="#ffce89" stop-opacity="0"/></radialGradient>',
-    '<pattern id="furniture-grain" width="32" height="13" patternUnits="userSpaceOnUse"><path d="M-2 3q7 -1 15 .3t21 .1M2 10q8 -.7 14 .3t15 .1" fill="none" stroke="#3e2c37" stroke-width=".52" opacity=".19"/><path d="M2 6q4 .5 10 .1m8 6q6-1 11-.2" fill="none" stroke="#fff1c1" stroke-width=".68" opacity=".26"/></pattern>',
+    `<pattern id="furniture-grain" width="80" height="10" patternUnits="userSpaceOnUse"><image href="${assets.materials.oak2}" width="80" height="10" preserveAspectRatio="none" opacity=".89"/></pattern>`,
     '<clipPath id="oven-brick-face"><path d="M42 137v-30q0-40 40-41q43 1 43 41v30Z M50 137v-26q0-27 31-28q31 0 33 28v26Z" clip-rule="evenodd"/></clipPath>',
-    '<clipPath id="miniature-board"><polygon points="199,155 383,155 393,162 396,208 386,214 202,214 192,207 193,163"/></clipPath>',
-    gradient("miniature-meadow", "#c7c899", "#91a779"),
+    surfacePatterns(assets.materials), townFurnishingDefs(place),
     celebration.defs,
     ...Array.from(finish, color => gradient("paint-" + color.slice(1), light(color, .23), dark(color, .29))),
   ].join("");

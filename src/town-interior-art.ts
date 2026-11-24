@@ -75,7 +75,7 @@ export function interiorFurniture(
       : effect?.kind === "sort" && prop.name === "分信格柜底" ? "day"
       : phase;
     paint(c, image, prop.variants[override], scale);
-    if (prop.name === "七屋模型展桌") {
+    if (prop.name === "七屋纪念展柜") {
       for (const key of keepsakes) {
         const lit = models[key];
         if (lit) paint(c, image, lit, scale);

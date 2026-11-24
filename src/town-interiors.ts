@@ -46,7 +46,7 @@ const actions = {
   post: ["盖下月牙邮戳", "翻看分信格"],
   books: ["装帧池畔折页", "拉起临池竹帘"],
   radio: ["录一段晚安片头", "坐下试听"],
-  hall: ["摇动手摇影箱", "查看七屋模型桌"],
+  hall: ["摇动手摇影箱", "查看七屋纪念展柜"],
 } as const;
 
 // Objects may be taller than their foot anchors. The glass handle at the
@@ -58,7 +58,7 @@ const objectBounds: Record<TownInteriorKey, [[number, number, number, number], [
   post: [[-38, -55, 83, 56], [-49, -67, 110, 68]],
   books: [[-66, -53, 123, 55], [-5, -33, 12, 40]],
   radio: [[-82, -65, 155, 67], [-23, -41, 46, 42]],
-  hall: [[-39, -78, 81, 79], [-105, -85, 205, 86]],
+  hall: [[-39, -78, 81, 79], [-103, -50, 204, 53]],
 };
 
 // Face areas are traced on the existing town painting. The gate stays at
