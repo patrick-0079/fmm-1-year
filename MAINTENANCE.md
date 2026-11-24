@@ -32,7 +32,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 苹果、可采花丛、勇气花和黄昏纸船 | `src/nature.ts` 按剩余数量和时段绘制，`src/wild-art.ts` 按脚底锚点读取四格图集。周年花园的果篮继续使用原来的 `garden:apple` 每日采集记录，勇气花园可从树上摘苹果。运行 `npm run art:night` 重建花海和采集物图集。[v16 素材说明](doc/artwork/ARTWORK-v16.md) |
 | 烟花祝福 | `src/celebration.ts` 的 `fireworkWishes`；全部是预设文字 |
 | 小镇居民和露天游乐设施 | `src/town-data.ts` 记录居民和游戏 ID，`src/town-attraction-layout.ts` 记录设施的靠近点、点击范围与底座 |
-| 小镇室内 | [室内地图设计稿](doc/artwork/ARTWORK-town-interiors.md) 与七张相邻的 SVG 记录对白、门槛、占地和四时机关。地板、墙面和陈设由 `scripts/town-interior-finish.mjs` 绘制，陈设源图集与草图同目录。修改后执行 `node scripts/build-town-interiors.mjs` 重建 WebP 图集与 `src/town-interiors.generated.json`。`src/town-interiors.ts` 连接门槛，`src/town-routines.ts` 运行居民换班，`src/town-interior-activities.ts` 管理屋内互动。 |
+| 小镇室内 | [七张室内原画](doc/artwork/town-interiors/daylight-concepts/README.md) 使用 1200 × 800 像素。[设计稿](doc/artwork/ARTWORK-town-interiors.md) 和相邻 SVG 记录对白、门槛与占地。`scripts/town-interior-traces.mjs` 按 600 × 400 逻辑坐标描出遮挡轮廓和展柜各格，运行 `node scripts/build-town-interiors.mjs` 重建地图图集和坐标。工作台画具在 `src/assets/town-interiors/workbench.webp`，取图范围在 `src/town-workbench-frames.json`。用 `node scripts/verify-town-interiors.mjs 390` 实跑触屏手作、碰撞与领取流程，传入 1366 可跑桌面鼠标，第二个参数可指定截图目录。 |
 | 庭院来宾与动物 | `src/garden-guests.ts`；对话与跟随逻辑在 `src/garden-life.ts` |
 | 小叶子大猫玩偶 | `src/xiaoye-data.ts` 维护站位和取消规则；`src/xiaoye-embrace.ts` 管理 4.8 秒动作节奏，`src/xiaoye.ts` 绘制分层拥抱、临时人物朝向与提灯；见 [v55 拥抱动画](doc/artwork/ARTWORK-v55.md) |
 | 宠物安全足迹 | `src/companion-motion.ts`；启用与换图先找侧旁可达落点，跟随保持 30px 间距，太近时沿当前侧退让；暂停、睡觉与小游戏期间停止更新 |

@@ -166,8 +166,8 @@ test("painted controls can be targeted during every indoor shift", () => {
   const controls = [
     ["baker", "main", { x: 213, y: 130 }],
     ["post", "main", { x: 524, y: 176 }],
-    ["books", "extra", { x: 50, y: 185 }],
-    ["books", "extra", { x: 61, y: 220 }],
+    ["books", "extra", { x: 424, y: 75 }],
+    ["books", "extra", { x: 477, y: 79 }],
     ["radio", "extra", { x: 487, y: 145 }],
     ["hall", "main", { x: 528, y: 126 }],
   ] as const;
@@ -191,8 +191,9 @@ test("the HD atlas frames fit their textures and preserve the logical room size"
       assert.deepEqual([w / art.scale, h / art.scale, left, top], [scene.width, scene.height, 0, 0], key);
     }
     const frames = [
-      ...Object.values(art.backgrounds), ...Object.values(art.lights),
-      ...art.props.flatMap(prop => [...Object.values(prop.variants), ...Object.values(prop.raisedVariants ?? {})]),
+      ...Object.values(art.backgrounds), ...Object.values(art.skies), ...Object.values(art.lights),
+      ...art.props.flatMap(prop => Object.values(prop.variants)), ...Object.values(art.collection ?? {}),
+      ...Object.values(art.blind?.raised ?? {}), ...Object.values(art.blind?.lowered ?? {}),
     ];
     for (const [x, y, w, h] of frames) {
       assert.ok(x >= 0 && y >= 0 && w > 0 && h > 0 && x + w <= width && y + h <= height, key);
@@ -201,14 +202,77 @@ test("the HD atlas frames fit their textures and preserve the logical room size"
 });
 
 test("the bookshop has a separate raised blind in every phase", () => {
-  const blind = townInteriors["town-books"].art.props.find(prop => prop.name === "临池侧窗木座")!;
-  const raised = blind.raisedVariants!;
+  const { art, scene } = townInteriors["town-books"];
+  const blind = art.blind!;
+  const raised = blind.raised;
   const phases = ["dawn", "day", "dusk", "night"] as const;
   assert.equal(new Set(phases.map(phase => raised[phase]?.join(","))).size, phases.length);
   for (const phase of phases) {
     assert.ok(raised[phase]);
-    assert.notDeepEqual(raised[phase], blind.variants[phase]);
-    assert.deepEqual(raised[phase].slice(2), blind.variants[phase].slice(2));
+    assert.notDeepEqual(raised[phase], blind.lowered[phase]);
+    assert.deepEqual(raised[phase].slice(2), blind.lowered[phase].slice(2));
+    assert.ok(raised[phase][4] >= 400 && raised[phase][5] < 60);
+  }
+  assert.ok(canTravelBetween({ x: 38, y: 228 }, { x: 51, y: 266 }, scene));
+  assert.equal(clickedInteraction({ x: 50, y: 185 }, scene.spots), undefined);
+});
+
+test("daylight maps sample the approved paintings, with translucent panes and open space around the furniture", async () => {
+  for (const { key, art } of Object.values(townInteriors)) {
+    const atlas = fileURLToPath(new URL(`../src/assets/town-interiors/${key}.webp`, import.meta.url));
+    const original = fileURLToPath(new URL(`../doc/artwork/town-interiors/daylight-concepts/${key}.png`, import.meta.url));
+    const [left, top, width, height] = art.backgrounds.day;
+    const sample = async (image: ReturnType<typeof sharp>) =>
+      image.resize(90, 60, { fit: "fill" }).removeAlpha().raw().toBuffer();
+    const [actual, approved] = await Promise.all([sample(sharp(atlas).extract({ left, top, width, height })), sample(sharp(original))]);
+    const difference = actual.reduce((sum, value, index) => sum + Math.abs(value - approved[index]), 0);
+    assert.ok(difference / actual.length < 3.5, key + " uses its approved daylight illustration");
+    const panes = art.props.filter(prop => /隔断|隔音玻璃/.test(prop.name));
+    if (key === "florist" || key === "radio") {
+      assert.equal(panes.length, 2);
+      const [px, py, opening] = key === "florist" ? [180, 154, 242] : [349, 158, 281];
+      const [x, y, , , l, t] = panes[0].variants.day;
+      const [alpha] = await sharp(atlas).extract({ left: x + (px - l) * 2, top: y + (py - t) * 2, width: 1, height: 1 })
+        .extractChannel("alpha").raw().toBuffer();
+      assert.ok(alpha > 30 && alpha < 155, key + " shows the actor through glass");
+      for (const pane of panes) {
+        const [, , , h, , top] = pane.variants.day;
+        assert.ok(opening < top || opening > top + h / 2, key + " passage has no foreground pane");
+      }
+    }
+    if (key === "maker") {
+      const [x, y, , , l, t] = art.props.find(p => p.name === "中央试光台")!.variants.day;
+      for (const [px, py, opaque] of [[260, 190, true], [246, 231, true], [291, 232, false]] as const) {
+        const [alpha] = await sharp(atlas).extract({ left: x + (px - l) * 2, top: y + (py - t) * 2, width: 1, height: 1 })
+          .extractChannel("alpha").raw().toBuffer();
+        assert.equal(alpha > 200, opaque, "tabletop, foot and clearance between the legs");
+      }
+    }
+  }
+});
+
+test("each owned keepsake restores only its own painted compartment in the empty hall", async () => {
+  const { art } = townInteriors["town-hall"];
+  const file = fileURLToPath(new URL("../src/assets/town-interiors/hall.webp", import.meta.url));
+  const original = fileURLToPath(new URL("../doc/artwork/town-interiors/daylight-concepts/hall.png", import.meta.url));
+  const cells = art.collection!;
+  assert.deepEqual(Object.keys(cells).sort(), [...townInteriorKeys].sort());
+  const [bx, by] = art.backgrounds.day;
+  const cabinet = art.props.find(p => p.name === "七屋纪念展柜")!.variants.day;
+  for (const [key, , cx, cy] of hallCollectionSlots) {
+    const [x, y, width, height, l, t] = cells[key];
+    const left = l * art.scale, top = t * art.scale;
+    assert.ok(cx >= l && cx <= l + width / 2 && cy >= t && cy <= t + height / 2, key);
+    const crop = (path: string, left: number, top: number) =>
+      sharp(path).extract({ left, top, width, height }).removeAlpha().raw().toBuffer();
+    const [owned, empty, front, reference] = await Promise.all([
+      crop(file, x, y), crop(file, bx + left, by + top), crop(file, cabinet[0] + left - cabinet[4] * 2, cabinet[1] + top - cabinet[5] * 2),
+      crop(original, left, top),
+    ]);
+    const error = (a: Buffer, b: Buffer) => a.reduce((sum, v, i) => sum + Math.abs(v - b[i]), 0) / a.length;
+    assert.ok(error(owned, reference) < 13, key + " collected illustration");
+    assert.ok(error(owned, empty) > 15, key + " empty shelf");
+    assert.ok(error(front, empty) < 8, key + " empty front layer cannot reveal an unearned item");
   }
 });
 

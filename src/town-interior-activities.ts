@@ -6,6 +6,8 @@ import { drawTownKeepsake } from "./town-keepsake-art";
 import { radioTrackName, townKeepsakeInfo, type RadioTrack, type TownKeepsakes } from "./town-keepsakes";
 import { townInteriors } from "./town-interiors";
 import { TownWorkbench } from "./town-workbench";
+import { drawWorkbenchReceipt } from "./town-workbench-art";
+import { anniversary } from "./launch/anniversary";
 import { copperTolerance } from "./town-workbench-steps";
 import type { World } from "./world";
 
@@ -99,12 +101,12 @@ export class TownInteriorActivities {
             this.effect = { kind: "reel", frame: step === "ticket" ? 3 : Math.floor(rotation / 120) };
           } else this.effect = undefined;
         },
-        collect: track => {
+        collect: (track, choice) => {
           const first = this.collect(key, track);
           this.activities.dialogue(spot.title, first ? "收下了" + name + "。" + note : note, [
             { title: "查看纪念物", run: () => { this.activities.close(); this.openBag(key); } },
             { title: "再做一次", run: () => this.workbench(spot, key) },
-          ], c => drawTownKeepsake(c, key, 0, 2), spot.approach);
+          ], c => drawWorkbenchReceipt(c, key, choice), spot.approach);
         },
       });
       return {
@@ -139,7 +141,9 @@ export class TownInteriorActivities {
         state.textContent = collected ? "已收集" : "待收集";
       }
     };
-    content.append(count, list);
+    const dates = document.createElement("small");
+    dates.textContent = `${anniversary.start} — ${anniversary.end}`;
+    content.append(count, dates, list);
     update();
     this.activities.dialogue(spot.title, "", [], null, spot.approach, () => {
       this.refreshDisplay = undefined;
@@ -173,9 +177,9 @@ export class TownInteriorActivities {
         break;
       case "town-books": {
         sfx("flip");
-        const pond = { dawn: "睡莲叶上还留着水珠。", day: "正午的池光照到窗座。", dusk: "窗外的桥影落在水面。", night: "一盏街灯照着岸边的睡莲。" };
-        const compare = { title: "展开折页对照", run: () => show("折页里的木栏刚好接在窗外那一段。" + pond[phase], [], { kind: "blind" }, undefined, true) };
-        show("竹帘卷起来了。" + pond[phase], items.includes("books") ? [compare] : [], { kind: "blind" });
+        const view = { dawn: "对街的青瓦上闪着晨露。", day: "树梢在青瓦前轻轻摇晃。", dusk: "斜阳给屋檐描了一条金边。", night: "树影后面，街灯已经亮了。" };
+        const compare = { title: "展开折页对照", run: () => show("折页里池岸边的屋顶，和窗外的青瓦是同一种颜色。" + view[phase], [], { kind: "blind" }, undefined, true) };
+        show("竹帘卷起来了。" + view[phase], items.includes("books") ? [compare] : [], { kind: "blind" });
         break;
       }
       case "town-radio": {

@@ -2,8 +2,9 @@
   inset-inline: 50% auto;
   transform: translateX(-50%);
   width: min(100%, 540px);
-  background: #fff4e5f7;
-  border: 1.5px solid #c69b78;
+  background: linear-gradient(106deg, #fff6e6 5%, #f7e8cf 80%, #f1ddc0);
+  border: 1.5px solid #a87c56;
+  box-shadow: inset 0 2px #fff9ea, 0 -3px 12px #4d332e29;
   border-radius: 11px 11px 0 0;
   color: #634d54;
 }
@@ -35,12 +36,14 @@
   position: relative;
   border-radius: 8px;
   outline-offset: 2px;
+  box-shadow: 0 1px 3px #5f432e70;
 }
 
 .town-workbench-surface canvas {
   display: block;
   width: 100%;
   height: auto;
+  border-radius: inherit;
 }
 
 .town-workbench-keys {
@@ -92,7 +95,7 @@
 .town-workbench-claim {
   margin-top: 4px;
   border-color: #b58173;
-  background: #f4dfbd;
+  background: linear-gradient(#fff1d4, #efd0a0);
   color: #6f434c;
   min-width: 5em;
   min-height: 34px;
@@ -113,6 +116,7 @@
 }
 
 .collection-count { color: #694651; }
+.town-collection-list > small { margin-inline-start: .8em; color: #745747; }
 
 .town-collection-list li {
   display: flex;
