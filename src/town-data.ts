@@ -133,7 +133,7 @@ export const TOWN_NPCS: TownNpc[] = [
     id: "maker",
     name: "紫凌",
     role: "饰品工匠",
-    x: 1173,
+    x: 1168,
     y: 437,
     sprite: 3,
   },

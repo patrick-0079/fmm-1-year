@@ -26,7 +26,7 @@ export const townLives: Record<TownResidentId, Shift> = {
   bunny: { shift:"evening", stops:[], doorway:[p(755,523)] },
   guli: { shift:"evening", stops:[p(948,332),p(968,352)], doorway:[p(820,324),p(780,316),p(777,289),p(772,270),p(756,252),p(747,252),p(733,252),p(726,250),p(718,246),p(715,245)] },
   qianxiao: { shift:"evening", stops:[p(1198,522)], doorway:[p(1170,469),p(1166,448),p(1161,422),p(1151,408)] },
-  "radio-host": { shift:"evening", stops:[], doorway:[p(1288,817)] },
+  "radio-host": { shift:"evening", stops:[], doorway:[p(1303,828),p(1288,817)] },
   "hop-keeper": { shift:"late", stops:[p(514,613)], doorway:[p(497,605)] },
   books: { shift:"late", stops:[p(867,757)], doorway:[p(867,753)] },
   "snake-keeper": { shift:"late", stops:[p(516,406)], doorway:[p(516,406),p(368,396)] },

@@ -10,6 +10,7 @@ import { townForeground } from "../src/town-foreground";
 import playgroundMasks from "../src/town-playground-masks.generated.json";
 import streetlightMasks from "../src/town-streetlight-outlines.json";
 import waterfrontMasks from "../src/town-waterfront-masks.json";
+import streetFurnitureMasks from "../src/town-street-furniture-masks.json";
 import plazaTreeOutlines from "../src/town-plaza-trees.json";
 import gardenDetails from "../src/garden-street-details.json";
 import meadowScenery from "../src/meadow-scenery-outlines.json";
@@ -42,6 +43,8 @@ interface DepthCase {
   // at DPR 1 on a 390 px screen; permit edge antialiasing, never an opaque fill.
   subpixelClear?:number[];
   actor?:{x:number;positions:number[]};
+  // Compare the real avatar with the empty painting at a reported standing position.
+  actorOverlap?:{feet:Point;facing:World["facing"];covered:Point[];visible:Point};
   canopyEdge?:Point;
   existingOutline?:Point[];
   fragments?:Point[][];
@@ -57,7 +60,7 @@ const pixel=(x:number,y:number)=>gp(x+.5,y+.5);
 const foregroundByScene = { room:roomFurniture, garden:gardenForeground, town:townForeground,
   challenge:courageBorder, ruins:ruinsForeground, meadow:[] };
 const masksByScene = {
-  town: [...playgroundMasks, ...streetlightMasks, ...waterfrontMasks, ...plazaTreeOutlines],
+  town: [...playgroundMasks, ...streetlightMasks, ...waterfrontMasks, ...streetFurnitureMasks, ...plazaTreeOutlines],
   garden: gardenDetails,
   meadow: meadowScenery,
 };
@@ -70,6 +73,21 @@ const cases:DepthCase[]=[
   {id:"south-stair-west-jamb",scene:"ruins",depth:553,solid:[{x:391,y:506}],clear:[{x:450,y:511},{x:450,y:480}]},
   {id:"photo-east-border",scene:"garden",depth:483,solid:[{x:231,y:439}],clear:[{x:235,y:418},{x:212,y:433}]},
   {id:"photo-south-boulder",scene:"garden",depth:528,solid:[{x:144,y:510}],clear:[{x:140,y:500},{x:162,y:511}]},
+  {id:"workshop-tea-middle-post",scene:"town",depth:436.5,solid:[{x:1251.3,y:417.8},{x:1251,y:431}],clear:[{x:1248,y:413},{x:1262,y:415}],actor:{x:1251.9,positions:[414,430,443]}},
+  {id:"workshop-tea-front-east-1",scene:"town",depth:436.75,solid:[{x:1262,y:422.3},{x:1262,y:430}],clear:[{x:1262,y:426.2},{x:1262,y:414}]},
+  {id:"workshop-tea-inner-east-post",scene:"town",depth:431,solid:[{x:1256.5,y:404.4},{x:1256.5,y:411}],clear:[{x:1261.5,y:408},{x:1256,y:426}]},
+  {id:"workshop-tea-umbrella",scene:"town",depth:399,solid:[{x:1302,y:355.5},{x:1299,y:366},{x:1305,y:379},{x:1302,y:384.5}],clear:[{x:1297,y:384.5},{x:1307,y:384}],
+    actor:{x:1302.1,positions:[385.7,398,424]},actorOverlap:{feet:{x:1302.1,y:385.7},facing:2,covered:[{x:1302,y:355.5},{x:1302,y:365},{x:1305,y:379},{x:1302,y:384.5}],visible:{x:1301,y:350}}},
+  {id:"workshop-tea-back-chairs",scene:"town",depth:413,solid:[{x:1286,y:393},{x:1308,y:392}],clear:[{x:1314.8,y:391.7},{x:1289,y:384}]},
+  {id:"rabbit-north-east-post",scene:"town",depth:444.5,solid:[{x:438.6,y:424.3},{x:438.4,y:433.5}],clear:[{x:432,y:423.5},{x:445,y:423.5}],actor:{x:438.1,positions:[433.5,441,449]}},
+  {id:"rabbit-north-middle-rail-3",scene:"town",depth:438.88,solid:[{x:428.7,y:420.6}],clear:[{x:428.7,y:425.1},{x:428.7,y:415.5}]},
+  {id:"rabbit-north-east-rail-3",scene:"town",depth:452.94,solid:[{x:458,y:435.3}],clear:[{x:458,y:439.8},{x:458,y:432}]},
+  {id:"workshop-tea-table-and-front-seats",scene:"town",depth:419,solid:[{x:1300,y:400},{x:1275,y:405.5}],clear:[{x:1267,y:405},{x:1294.5,y:384}]},
+  {id:"lookout-east-turn-post",scene:"town",depth:902.5,solid:[{x:1287,y:881},{x:1286,y:895}],clear:[{x:1280,y:891},{x:1294,y:882}],actor:{x:1286,positions:[892,902,911]}},
+  {id:"lookout-east-side-2",scene:"town",depth:912.81,solid:[{x:1293.8,y:895.9}],clear:[{x:1293.8,y:888.5},{x:1293.8,y:911}]},
+  {id:"lookout-west-path-three-1",scene:"town",depth:899.5,solid:[{x:1193.5,y:880.8},{x:1193.5,y:889.4}],clear:[{x:1193.5,y:885.3},{x:1193.5,y:894.2}]},
+  {id:"lookout-south-west-1",scene:"town",depth:934,solid:[{x:1275,y:922.5},{x:1275,y:930}],clear:[{x:1275,y:926.9},{x:1275,y:949}]},
+  {id:"lookout-stair-east-stone",scene:"town",depth:880,solid:[{x:1333,y:858}],clear:[{x:1314,y:856},{x:1314,y:865}]},
   {id:"dock-north-post",scene:"town",depth:895.8,solid:[{x:870,y:877}],clear:[{x:864,y:866},{x:877,y:870}]},
   {id:"dock-north-back-0-1",scene:"town",depth:900,solid:[{x:893,y:882.7}],clear:[{x:893,y:887},{x:893,y:898}],actor:{x:888.2,positions:[891.7,900,910]}},
   {id:"wheat-stair-solitary-post",scene:"town",depth:740,solid:[{x:156,y:725}],clear:[{x:146,y:721},{x:165,y:725}]},
@@ -217,10 +235,11 @@ async function verify(test:DepthCase){
   await world.prepareScene(test.scene);world.switchScene(test.scene);
   const center={x:(Math.min(...target!.points.map(p=>p.x))+Math.max(...target!.points.map(p=>p.x)))/2,y:test.depth-30};
   const saved={layers:world.getDepthLayers,hidden:world.actorHidden,paused:world.paused,
-    light:world.onLighting,effects:world.onEffects,overlay:world.onOverlay,draw:world.onDraw,player:{...world.player}};
+    light:world.onLighting,effects:world.onEffects,overlay:world.onOverlay,draw:world.onDraw,player:{...world.player},facing:world.facing};
   const section=document.createElement("section"),heading=document.createElement("h2"),images=document.createElement("div");
   heading.textContent=test.scene+" · "+test.id;images.className="depth-images";section.append(heading,images);gallery.append(section);
   const bounds=[...target!.points,...test.solid,...test.clear,{x:center.x,y:test.depth+15}];
+  if(test.actorOverlap) bounds.push(test.actorOverlap.visible,{x:test.actorOverlap.feet.x,y:test.actorOverlap.feet.y-50});
   const photo=(title:string)=>{const figure=document.createElement("figure"),img=document.createElement("img"),caption=document.createElement("figcaption");img.src=capture(bounds);img.alt=title;caption.textContent=title;figure.append(img,caption);images.append(figure);};
   const points=[...test.solid,...test.clear];
   const probe=(depth:number):DepthLayer=>({y:depth,draw(c){c.fillStyle="#ff00ff";for(const p of points)c.fillRect(p.x-4,p.y-4,8,8);}});
@@ -261,6 +280,18 @@ async function verify(test:DepthCase){
       figure.append(img,caption);images.append(figure);
     }
     world.getDepthLayers=saved.layers;world.actorHidden=false;
+    if(test.actorOverlap){
+      const {feet,facing,covered,visible}=test.actorOverlap;
+      const landmarks=[...covered,visible];
+      world.player=feet;world.facing=facing;world.actorHidden=true;drawNow();
+      const bare=landmarks.map(sample);
+      world.actorHidden=false;world.getDepthLayers=()=>[];drawNow();
+      const changed=(point:Sample,i:number)=>point.rgb.some((v,j)=>Math.abs(v-bare[i].rgb[j])>8);
+      assert(landmarks.map(sample).every(changed),"人物没有经过指定像素，请核实脚点和朝向");
+      world.getDepthLayers=saved.layers;drawNow();
+      assert(!covered.map(sample).some(changed)&&changed(sample(visible),covered.length),"人物与伞顶、伞沿或伞杆的前后关系有误");
+      photo("反馈位置：人物站在伞后，头顶从伞面上方露出");
+    }
     const positions=test.actor?.positions??[test.solid[0].y+24,test.depth-18,test.depth+15];
     for(const [index,label]of ["人物经过上方背后","人物位于门洞／支柱中段","人物站在门前／柱前"].entries()){world.player={x:test.actor?.x??center.x,y:positions[index]};drawNow();photo(label);}
     if(test.edges){
@@ -286,7 +317,7 @@ async function verify(test:DepthCase){
     const report=document.createElement("pre");report.textContent=JSON.stringify(record,null,2);section.append(report);
     world.getDepthLayers=saved.layers;world.actorHidden=saved.hidden;world.paused=saved.paused;
     world.onLighting=saved.light;world.onEffects=saved.effects;world.onOverlay=saved.overlay;world.onDraw=saved.draw;
-    world.player=saved.player;world.setFocus(null);drawNow();
+    world.player=saved.player;world.facing=saved.facing;world.setFocus(null);drawNow();
   }
 }
 async function verifyAll(){

@@ -1,10 +1,35 @@
 import type { Obstacle, Point } from "./core.ts";
+import { fenceSegments } from "./fences.ts";
 
 const outline = (vertices: number[][]): Point[] => vertices.map(([x, y]) => ({x,y}));
+
+// The brown fence borders the diagonal street. The white pickets bend back
+// around the tree and meet it halfway along its first span.
+const rabbitFence = [[376.5,410.5],[396,420],[412.5,429.5],[439,444],[470.5,458]];
+const rabbitPickets = [[307,447],[315,450],[325,452],[340,453],[353,448],
+  [360,439],[370,430],[379,427],[396,420]];
+const treeCornerRail = [[275,412],[288.5,420.5],[306.5,437],[307,447]];
 
 // The post office sits on three different levels. Trace both sides of the
 // paving at each stair instead of interpolating a strip between the levels.
 export const postStreets = [
+  // The street opens around the western end post onto the grass by the tree.
+  // Further east the pots mark the end of the flowerbed, leaving an open curb
+  // between the road and the bench path.
+  outline([
+    [302,390],[326,383],[345,385],[359,385],[371,379],[387,370],[411,375],[436,382],
+    [459,389],[481,397],[502,401],[523,395],[539,389],[551,384],[604,384],
+    [625,392],[641,401],[641,410],[628,414],[615,420],[604,426],[593,431],
+    [582,435],[574,442],[586,453],[595,462],[581,480],[565,478],
+    [550,500],[534,486],[517,473],[502,468],[482,463],
+    ...rabbitFence.slice(1).reverse(), ...rabbitPickets.slice(0,-1).reverse(),
+    ...treeCornerRail.slice(0,-1).reverse(),[276,400],[287,391],
+  ]),
+  outline([
+    [404,489],[424,483],[451,478],[473,474],[489,477],[506,470],
+    [517,461],[537,474],[558,498],[563,522],[547,529],[519,515],
+    [487,504],[457,498],[425,504],[406,506],
+  ]),
   // Upper terrace, stairs beside the pink fence and the postman's landing.
   outline([
     [119,598],[133,590],[145,580],[168,588],[194,600],[218,607],
@@ -34,6 +59,19 @@ export const postStreets = [
 
 const solid = (label: string, vertices: number[][]): Obstacle => ({label, points:outline(vertices)});
 export const postObstacles = [
+  ...fenceSegments("月兔台北街木栏", rabbitFence, 2),
+  ...fenceSegments("月兔台树旁白栅栏", rabbitPickets, 2),
+  ...fenceSegments("月兔台树西木栏", treeCornerRail, 2),
+  // The foot of a round post is wider than its connecting rails.
+  ...[[376.5,410.5,3.1],[412.5,429.5,3.6],[439,444,3.7],[470.5,458,3.8]].map(([x,y,r]) =>
+    solid("月兔台北街栏柱", [[x-r,y-2],[x-r+1,y-3],[x+r-1,y-3],[x+r,y-1.5],
+      [x+r-.5,y],[x+1,y+1],[x-1.5,y+1],[x-r,y]])),
+  solid("月兔台北街花床", [...rabbitFence.slice(1),[476,464],[479,472],
+    [466,479],[441,483],[412,488],[399,493],[380,492],[360,480],[320,462],
+    [307,450], ...rabbitPickets.slice(0,-1)]),
+  solid("月兔台北街白花盆", [[475,474],[481,471],[488,471],[495,472],
+    [502,467],[510,467],[513,470],[513,480],[510,483],[503,483],
+    [499,487],[493,488.5],[487,487.5],[483,484],[478,484],[474,481]]),
   solid("邮局外墙与柜台", [[125,449],[355,449],[355,573],[344,588],[333,592],
     [312,596],[298,602],[280,605],[251,612],[232,612],[218,615],
     [194,607],[171,598],[149,587],[125,579]]),

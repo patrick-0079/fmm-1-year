@@ -36,9 +36,57 @@ test("pond deck posts stop feet while both sides of the stair and connecting lan
   }
 });
 
+test("the lower radio lookout opens onto the street west of its entrance post", () => {
+  const entrance = [[1260,879],[1264,890],[1266,903],[1280,916]].map(point);
+  for (let i = 1; i < entrance.length; i++) {
+    assert.ok(canTravelBetween(entrance[i-1], entrance[i], town));
+    assert.ok(canTravelBetween(entrance[i], entrance[i-1], town));
+  }
+  // The main stairs and the exposed tread east of the post both connect to
+  // the lookout via the street. A click must reach the tile itself.
+  const lookout = point([1278,913]);
+  for (const start of [town.spawn, point([1307,857]), point([1323,872]), point([1302,897])]) {
+    assert.deepEqual(findPath(start, lookout, town)?.at(-1), lookout);
+    assert.deepEqual(findPath(lookout, start, town)?.at(-1), start);
+  }
+});
+
+test("the radio lookout guards follow the brick rim and protect the entrance post", () => {
+  for (const foot of [[1289.5,897.3],[1286.5,902],[1250,917],[1286,933],[1316,906],[1327,872],[1292,837]].map(point)) {
+    assert.equal(canStand(foot, town.walls, town.bounds, town.floor, town.surfaces), false);
+  }
+  // Check the timber independently of the drop, including the diagonal
+  // between two otherwise walkable surfaces on opposite sides of the east rail.
+  const solids = {bounds:town.bounds, walls:town.walls};
+  for (const [inside, outside] of [[[1278,908],[1302,897]],[[1278,908],[1278,945]],[[1259,914],[1239,926]]]) {
+    assert.equal(canTravelBetween(point(inside), point(outside), solids), false);
+    assert.equal(canTravelBetween(point(outside), point(inside), solids), false);
+  }
+});
+
+test("the workshop tea deck reaches the actual rail and its stairs clear the planter", () => {
+  const deck = point([1251.9,414]);
+  for (const feet of [[1248,425],[1265,413],[1285,388],[1302.1,385.7],[1212,397]].map(point)) {
+    assert.deepEqual(findPath(deck, feet, town)?.at(-1), feet);
+    assert.deepEqual(findPath(feet, deck, town)?.at(-1), deck);
+  }
+  const fixed = {...town, walls:town.walls.filter(w => !w.yieldsOnArrival)};
+  const stair = point([1159,439]), teaRail = point([1248,425]);
+  assert.deepEqual(findPath(stair, teaRail, fixed)?.at(-1), teaRail);
+  assert.deepEqual(findPath(teaRail, stair, fixed)?.at(-1), stair);
+  for (const foot of [[1230,434],[1251,435],[1241,431],[1256,421],[1276,417],[1176,435],[1180,442]].map(point)) {
+    assert.equal(canStand(foot, fixed.walls, fixed.bounds, fixed.floor, fixed.surfaces), false);
+  }
+  // The broad stair remains open beside the planter when the resident leaves.
+  assert.ok(canTravelBetween(point([1170,429]), point([1166,437]), fixed));
+  const solids = {walls:fixed.walls, bounds:fixed.bounds};
+  assert.equal(canTravelBetween(point([1248,425]), point([1248,446]), solids), false);
+  assert.equal(canTravelBetween(point([1248,446]), point([1248,425]), solids), false);
+});
+
 test("the shop terraces, stairs and dock gates can be walked in both directions", () => {
   const walks = {
-    花店双入口: [[370,406],[328,400],[294,388],[268,367],[246,346],[233,322],
+    花店双入口: [[369,406],[328,400],[294,388],[268,367],[246,346],[233,322],
       [233,303],[233,278],[240,260],[270,251],[305,251],[355,249],[396,248],
       [424,233],[441,231],[455,254],[474,275],[484,296]],
     广场西北入口: [[655,374],[674,394],[686,414],[704,434],[739,435]],
