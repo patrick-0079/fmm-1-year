@@ -12,6 +12,7 @@ import { southNotebook, ringSpots, moonPlate, mirrorSpots } from "../src/ruins-m
 import { INVENTORY_KEY, readInventory } from "../src/items";
 import { elderPlaces } from "../src/elders-data";
 import { ARCADES } from "../src/town-data";
+import { townInteriors } from "../src/town-interiors";
 import { verifyGuests, verifyGardenDiscovery } from "./guest-cases";
 import { verifyAchievementBook } from "./achievement-book-cases";
 import { verifyFullBadgeRoute } from "./full-badge-route";
@@ -691,6 +692,18 @@ q("#check-bass").addEventListener("click",()=>void run(async()=>{
   }
   expect(rosters.size===4,"小镇四个时段的居民名单没有切换");
   q(".debug-trigger").click();dbg("time:auto").click();q(".debug-close").click();
+  for (const [id, { scene }] of Object.entries(townInteriors)) {
+    q(".debug-trigger").click();
+    const destination = dbg("map:" + id);
+    expect(destination?.textContent === scene.title, "调试地图缺少室内入口：" + scene.title);
+    destination.click();
+    await wait(() => world.scene === id && !world.paused && !world.suspended);
+    expect(world.player.x === scene.spawn.x && world.player.y === scene.spawn.y,
+      "调试室内落点错误：" + scene.title);
+  }
+  q(".debug-trigger").click(); dbg("map:town").click();
+  await wait(() => world.scene === "town" && !world.paused && !world.suspended);
+  log("调试地图定位可从街道直达室内、在七栋室内间切换，并返回小镇街道");
   const board=world.canvas.parentElement!; board.scrollIntoView({block:"center",behavior:"instant"});
   const sy=scrollY;
   world.switchScene("town",scenes.town.spots.find(s=>s.id==="arcade-hop")!.approach);

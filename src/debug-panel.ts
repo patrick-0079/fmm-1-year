@@ -4,6 +4,7 @@ import type { Nature } from "./nature";
 import type { FlowerTrail } from "./flower-trail";
 import { rainbowFlowers } from "./rainbow-flowers";
 import { ARCADES } from "./town-data";
+import { townInteriors } from "./town-interiors";
 import { phaseNames, type Phase } from "./day";
 import { reservedShortcut } from "./input";
 import { getDeadline, setDebugDeadline } from "./launch/time";
@@ -56,9 +57,13 @@ export function mountDebugPanel(
         <p class="debug-mail-count" role="status"></p>
       </details>
       <section><h4>时段预览</h4><div>${button("time:auto", "自然时间")}${(Object.entries(phaseNames) as [Phase, string][]).map(([id, name]) => button("time:" + id, name)).join("")}</div></section>
-      <details open><summary>地图定位</summary><div>${Object.entries(maps)
-        .map(([id, name]) => button("map:" + id, name))
-        .join("")}</div></details>
+      <details open><summary>地图定位</summary>
+        <div>${Object.entries(maps).map(([id, name]) => button("map:" + id, name)).join("")}</div>
+        <p id="debug-indoor-maps">小镇室内</p>
+        <div role="group" aria-labelledby="debug-indoor-maps">${Object.entries(townInteriors)
+          .map(([id, { scene }]) => button("map:" + id, scene.title))
+          .join("")}</div>
+      </details>
       <details class="debug-flowers"><summary>七色花与花海</summary><div>${button("flower-door", "临时开放花门")}</div><p>点花名到达花旁，是否采下由你决定。</p><div>${rainbowFlowers.map((f, i) => button("flower:" + i, f.name)).join("")}</div></details>
       <details><summary>小镇与遗迹小游戏</summary><div>${Object.entries(ARCADES)
         .map(([id, g]) => button("game:" + id, g.title))
