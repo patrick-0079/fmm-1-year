@@ -71,6 +71,7 @@ const cases:DepthCase[]=[
   {id:"photo-east-border",scene:"garden",depth:483,solid:[{x:231,y:439}],clear:[{x:235,y:418},{x:212,y:433}]},
   {id:"photo-south-boulder",scene:"garden",depth:528,solid:[{x:144,y:510}],clear:[{x:140,y:500},{x:162,y:511}]},
   {id:"dock-north-post",scene:"town",depth:895.8,solid:[{x:870,y:877}],clear:[{x:864,y:866},{x:877,y:870}]},
+  {id:"dock-north-back-0-1",scene:"town",depth:900,solid:[{x:893,y:882.7}],clear:[{x:893,y:887},{x:893,y:898}],actor:{x:888.2,positions:[891.7,900,910]}},
   {id:"wheat-stair-solitary-post",scene:"town",depth:740,solid:[{x:156,y:725}],clear:[{x:146,y:721},{x:165,y:725}]},
   {id:"blocks-pine",scene:"town",depth:607,solid:[{x:1124,y:544}],clear:[{x:1109,y:523},{x:1136,y:520}],existingOutline:workshopCanopies[0].points,fragments:[workshopCanopies[0].points]},
   {id:"camp-kettle",scene:"meadow",depth:145,solid:[{x:250,y:117.5},{x:253,y:135}],clear:[{x:251,y:123},{x:238,y:141}]},

@@ -2,9 +2,29 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { canStand, canTravelBetween, findPath } from "../src/core.ts";
 import { scenes } from "../src/maps.ts";
+import { readJourney } from "../src/journey.ts";
 
 const town = scenes.town;
 const point = ([x, y]: number[]) => ({ x, y });
+
+test("the pond deck ends at the water-side rail and joins the stone stairs only through the opening", () => {
+  const oldFoot = {x:888.2, y:891.7};
+  const plank = {x:888.2, y:909};
+  assert.equal(canStand(oldFoot, town.walls, town.bounds, town.floor, town.surfaces), false);
+  // Check the beams independently of the floor edge, including a diagonal at
+  // the join with the divider. A missing beam must not pass behind a solid bank.
+  const solids = {bounds:town.bounds, walls:town.walls};
+  for (const [land, deck] of [[oldFoot,plank],[point([821,898]),point([842,907])],
+    [point([895,891]),point([898,912])],[point([810,920]),point([826,925])]]) {
+    assert.equal(canTravelBetween(land,deck,solids), false);
+    assert.equal(canTravelBetween(deck,land,solids), false);
+  }
+  assert.deepEqual(findPath(town.spawn,plank,town)?.at(-1), plank);
+  assert.deepEqual(findPath(plank,town.spawn,town)?.at(-1), town.spawn);
+  const save = (p:typeof oldFoot) => ({scene:"town", ...p, savedAt:1});
+  assert.deepEqual(readJourney(JSON.stringify(save(oldFoot)),[]), save(town.spawn));
+  assert.deepEqual(readJourney(JSON.stringify(save(plank)),[]), save(plank));
+});
 
 test("pond deck posts stop feet while both sides of the stair and connecting landing remain reachable", () => {
   for (const [x,y] of [[870,895],[819,906]]) {
@@ -53,7 +73,7 @@ test("both bookshop terraces connect to the town entrance past their planters an
 
 test("solid deck rails, bank, lamp feet and furniture cannot be crossed", () => {
   for (const [name, feet] of [
-    ["书屋西侧花墙",[600,718]], ["码头北护栏",[872,875]], ["码头隔栏上柱",[903,903]],
+    ["书屋西侧花墙",[600,718]], ["码头北护栏",[881,897.5]], ["北栏外花地",[872,875]], ["码头隔栏上柱",[903,903]],
     ["码头隔栏下柱",[889,926]], ["码头长椅",[850,889]], ["工坊茶桌",[1300,401]],
     ["电台留声机",[1425,818]], ["庆典彩旗灯柱",[1242,882]], ["东桥后栏",[1405,532]],
     ["东桥前栏",[1442,559]], ["广场东口石柱",[903,432]], ["广场路灯",[834,434]], ["烘焙屋花坛",[720,262]],

@@ -3,6 +3,11 @@ import { fenceSegments } from "./fences.ts";
 
 const outline = (corners: number[][]): Point[] => corners.map(([x, y]) => ({ x, y }));
 
+// Follow the post feet from the pond steps, behind the bench and around the
+// last post beside the stone stairs. The same line bounds the wooden floor.
+const dockWaterRail = [[805,955],[809.5,931],[819,906.5],[832.5,891.5],
+  [870.5,895.5],[903.5,902],[903,908]];
+
 // Each outline follows the ground at the foot of the retaining wall, fence or
 // steps. Upper and lower terraces only meet where the artwork has a stair.
 export const townTerraces = [
@@ -80,8 +85,8 @@ export const townTerraces = [
   [[947,748],[963,749],[979,743],[985,734],[998,720],[1009,716],[1017,716],
     [1015,738],[1001,751],[984,760],[969,767],[945,771],[930,758]],
   // Two adjoining pond decks have different railing lines and their own steps.
-  [[815,876],[828,863],[846,864],[904,875],[913,882],[942,894],[947,906],
-    [931,919],[907,930],[880,935],[842,939],[831,958],[804,958],[809,933],[808,908]],
+  [...dockWaterRail,[913,892],[942,894],[947,906],[931,919],[907,930],
+    [880,935],[842,939],[831,958],[804,958]],
   // East radio terrace, southwest steps and the small landing under the pennants.
   [[1184,793],[1233,793],[1251,805],[1300,814],[1347,814],[1395,803],[1445,789],
     [1442,810],[1408,830],[1365,840],[1336,844],[1326,867],[1306,883],
@@ -113,9 +118,7 @@ export const townTerraceWalls: Obstacle[] = [
   ...fence("书屋院子栅栏", [[570,726],[609,747],[657,759],[718,768],[782,779],[827,789]]),
   ...fence("书屋茶座内栏", [[665,724],[686,727],[705,732],[732,738]]),
   ...fence("书屋右侧栅栏", [[884,791],[910,792],[927,785],[948,777],[970,769],[990,760],[1005,750],[1017,742]]),
-  ...fence("木码头北护栏", [[822,871],[839,870],[872,875],[903,882]]),
-  ...fence("木码头西护栏", [[822,871],[813,891],[807,914],[806,939]]),
-  ...fence("木码头隔栏", [[906,874],[903,906]]),
+  ...fence("木码头临水护栏", dockWaterRail, 2),
   ...fence("木码头隔栏下段", [[889,926],[874,944]]),
   ...fence("木码头外护栏", [[876,939],[849,933],[837,931]]),
   ...fence("电台露台西栏", [[1165,797],[1188,820],[1220,830],[1257,836],[1279,840]]),
