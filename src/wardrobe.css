@@ -35,9 +35,9 @@
   background: linear-gradient(150deg, #fff9e7, #f8dbb5);
   box-shadow: inset -1px 0 0 1px #fff6db, 1px 1px 2px #55392d55;
 }
-/* Leave the cottage shelves and the meadow's return portal tappable. */
+/* Leave the cottage shelves, meadow portal and bookshop window tappable. */
 @container (max-width: 640px) {
-  .scene-wrap:is([data-current-map="room"], [data-current-map="meadow"]) > .bag-toggle { top: 52cqw; }
+  .scene-wrap:is([data-current-map="room"], [data-current-map="meadow"], [data-current-map="town-books"]) > .bag-toggle { top: 52cqw; }
 }
 .bag-trigger-art {
   display: block;

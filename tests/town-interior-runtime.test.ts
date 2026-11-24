@@ -161,6 +161,26 @@ test("the hall aisle reaches the new display and the workshop cabinet has a walk
   assert.ok(canTravelBetween({ x: 169, y: 268 }, { x: 169, y: 206 }, workshop));
 });
 
+test("painted controls can be targeted during every indoor shift", () => {
+  const controls = [
+    ["baker", "main", { x: 213, y: 130 }],
+    ["post", "main", { x: 524, y: 176 }],
+    ["books", "extra", { x: 50, y: 185 }],
+    ["books", "extra", { x: 94, y: 230 }],
+    ["radio", "extra", { x: 487, y: 145 }],
+    ["hall", "main", { x: 528, y: 126 }],
+  ] as const;
+  const phases = ["dawn", "day", "dusk", "night"] as const;
+  for (const [key, action, at] of controls) {
+    const id = townInteriorId(key), room = townInteriors[id];
+    for (const phase of phases) {
+      const dynamic = new TownResidentMap(room.scene, id);
+      dynamic.update(room.scene.spawn, undefined, undefined, new TownRoutines(phase).people);
+      assert.equal(clickedInteraction(at, dynamic.scene.spots)?.id, id + "-" + action, id + " " + phase);
+    }
+  }
+});
+
 test("the HD atlas frames fit their textures and preserve the logical room size", async () => {
   for (const { key, scene, art } of Object.values(townInteriors)) {
     const file = fileURLToPath(new URL(`../src/assets/town-interiors/${key}.webp`, import.meta.url));

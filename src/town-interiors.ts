@@ -49,16 +49,15 @@ const actions = {
   hall: ["摇动手摇影箱", "查看七屋纪念展柜"],
 } as const;
 
-// Objects may be taller than their foot anchors. The glass handle at the
-// bookshop stays right of the mobile backpack control.
+// Trace the painted objects above their feet, including handles that project past the base.
 const objectBounds: Record<TownInteriorKey, [[number, number, number, number], [number, number, number, number]]> = {
   florist: [[-54, -55, 109, 57], [-44, -83, 86, 75]],
-  baker: [[-33, -48, 66, 49], [-32, -85, 64, 79]],
+  baker: [[-38, -50, 116, 51], [-32, -85, 64, 79]],
   maker: [[-45, -62, 109, 63], [-45, -67, 109, 67]],
-  post: [[-38, -55, 83, 56], [-49, -67, 110, 68]],
+  post: [[-38, -64, 83, 65], [-49, -67, 110, 68]],
   books: [[-66, -53, 123, 55], [-5, -33, 12, 40]],
-  radio: [[-82, -65, 155, 67], [-23, -41, 46, 42]],
-  hall: [[-39, -78, 81, 79], [-103, -50, 204, 53]],
+  radio: [[-82, -65, 155, 67], [-23, -44, 48, 45]],
+  hall: [[-45, -78, 101, 79], [-103, -50, 204, 53]],
 };
 
 // Face areas are traced on the existing town painting. The gate stays at
@@ -110,12 +109,15 @@ function activitySpot(key: TownInteriorKey, index: number, station: RoomData["pl
   const at = point(station.anchor);
   const [x, y, w, h] = objectBounds[key][index];
   const title = actions[key][index];
+  const hitAreas = [{ x: at.x + x, y: at.y + y, w, h }];
+  // Both the slats and the cord raise the blind. Keep the prompt on the cord.
+  if (key === "books" && index === 1) hitAreas.push({ x: 32, y: 165, w: 28, h: 55 });
   // The handle on the left stays clear of Hongjian's morning workstation.
   const cueX = key === "post" && index === 1 ? .32 : .56;
   return {
     id: townInteriorId(key) + (index === 0 ? "-main" : "-extra"),
     title, ...at, approach: point(station.approach), color: doorColors[key], radius: 48,
-    markerOffset: -y / 2, hitAreas: [{ x: at.x + x, y: at.y + y, w, h }],
+    markerOffset: -y / 2, hitAreas,
     cue: { kind: "mechanism", action: title, verb: "查看", natural: false, objectBox: { x, y, w, h },
       anchor: { x: x + w * cueX, y: y + h * .5 } },
   };
