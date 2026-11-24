@@ -64,11 +64,9 @@ async function compile(place) {
     .replace(/<polyline\b[^>]*37\.5[^>]*\/>/g, "");
   const furniture = groups(group(source, "furniture"), / data-object="/);
   const lighting = group(source, "room-light");
-  const wall = group(source, "back-wall-details");
-  const [sketchPhotos] = groups(wall, / id="review-photo-prints"/);
   if (furniture.length !== walls.length) throw Error(place + " furniture and ground shapes must correspond");
   const finished = finishTownInterior(place, plan, {
-    architecture, floorDetails: group(source, "floor-details"), backWall: sketchPhotos ? wall.replace(sketchPhotos, "") : wall, furniture,
+    architecture, floorDetails: group(source, "floor-details"), backWall: group(source, "back-wall-details"), furniture,
   }, furnishings);
   const defs = source.match(/<defs>[\s\S]*?<\/defs>/)[0]
     .replace(/<style>[\s\S]*?<\/style>/, "")

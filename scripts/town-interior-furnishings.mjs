@@ -190,14 +190,6 @@ function clothBook(p, x, y, w, color) {
     line(`M${x + 2} ${y + 1.3}h${w - 4}`, p.edge, .61, .73);
 }
 
-function mountedPrint(p, photo, x, y, w, h) {
-  return rect(x + 1.2, y + 1.6, w, h, p.ink, 'rx="1" opacity=".37"') +
-    rect(x, y, w, h, "#ddbd91", `rx="1" ${edge(p, .81)}`) +
-    `<image href="${photo}" x="${x + 2}" y="${y + 2}" width="${w - 4}" height="${h - 4}" preserveAspectRatio="xMidYMid slice"/>` +
-    rect(x + 1.6, y + 1.6, w - 3.2, h - 3.2, "none", `stroke="${p.ink}" stroke-width=".52"`) +
-    line(`M${x + 1.2} ${y + h - 1.2}V${y + 1.2}h${w - 2.4}`, "#f4d9ae", .52, .85);
-}
-
 function sideWindow(p) {
   const pane = "M32 165l27-9v54l-27 13Z";
   const states = [
@@ -391,7 +383,7 @@ export function drawTownWallFurnishings(place) {
   }
 }
 
-export function redrawTownFurnishing(place, name, source, { portraits }) {
+export function redrawTownFurnishing(place, name, source) {
   const p = finishes[place];
   switch (name) {
     case "温室花桶":
@@ -526,19 +518,8 @@ export function redrawTownFurnishing(place, name, source, { portraits }) {
     }
     case "手摇影箱柜":
       return shadowBox(p);
-    case "靠墙照片边柜":
+    case "周岁徽章边柜":
       return anniversaryDisplay(p);
-    case "筹备相片展架":
-      return oval(97, 237, 37, 5.3, "url(#furnishing-contact)") +
-        path("M68 194h6v45h-6ZM120 194h6v45h-6Z", p.face, edge(p, .83)) +
-        line("M69.6 212v24m52-24v24m-50-3h50", p.edge, .69, .9) +
-        rect(61, 176, 71, 50, "url(#furnishing-front)", `rx="2" ${edge(p, 1.06)}`) +
-        rect(64, 179, 65, 44, "#9f7f83", `rx="1.25" stroke="${p.edge}" stroke-width=".79"`) +
-        rect(66, 181, 61, 40, "url(#cottage-fabric)", 'opacity=".65"') +
-        mountedPrint(p, portraits.morning, 67, 183, 29, 31) +
-        mountedPrint(p, portraits.reading, 100, 183, 25, 18) +
-        mountedPrint(p, portraits.bass, 101, 204, 24, 15) +
-        line("M64 224h64", p.edge, .69);
     case "周年册小展台":
       return desk(p, 376, 218, 58, 13, 246,
         path("M381 219l7-10h37l4 10v9h-48Z", p.dark, edge(p, .78)) +

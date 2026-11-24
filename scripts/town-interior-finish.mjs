@@ -53,17 +53,6 @@ function random(seed) {
   };
 }
 
-async function readPortraits() {
-  const album = new URL("../ref/相册/", import.meta.url);
-  const { photos } = JSON.parse(await readFile(new URL("album.json", album), "utf8"));
-  const portraits = await Promise.all(["morning", "reading", "fox", "bass"].map(async name => {
-    const { id, version } = photos.find(photo => photo.id === `fufu-${name}`);
-    const image = await readFile(new URL(`previews/${id}.${version}.webp`, album));
-    return [name, png(await sharp(image).resize(154, 108, { fit: "cover" }).png().toBuffer())];
-  }));
-  return Object.fromEntries(portraits);
-}
-
 // Keep the luminance of the strokes from the live map paintings and tint them over each room's colors.
 async function surfaceSample(image, bounds, amount) {
   const { data, info } = await sharp(image)
@@ -116,14 +105,14 @@ function surfacePatterns({ oak1, oak2, stone, fabric }) {
 }
 
 export async function readTownInteriorArt() {
-  const [portraits, materials, skies] = await Promise.all([
-    readPortraits(), readSurfaceSamples(),
+  const [materials, skies] = await Promise.all([
+    readSurfaceSamples(),
     readFile(new URL("../src/assets/window-skies-v12.webp", import.meta.url)),
   ]);
   const skyFrames = await Promise.all(phases.map(async (phase, index) => [phase, png(await sharp(skies)
     .extract({ left: index % 2 * 768, top: Math.floor(index / 2) * 512 + 28, width: 768, height: 317 })
     .resize(255, 110).png().toBuffer())]));
-  return { portraits, materials, skies: Object.fromEntries(skyFrames) };
+  return { materials, skies: Object.fromEntries(skyFrames) };
 }
 
 function floor(color, kind, x, y, width, height, next) {
@@ -360,7 +349,7 @@ function cabinetPanel(name, theme) {
 // accessory assigned to the same depth layer as the object supporting it.
 export function finishTownInterior(place, plan, base, assets) {
   const theme = colors[place];
-  const celebration = decorateTownInterior(place, plan, assets);
+  const celebration = decorateTownInterior(place, plan);
   const randomFloor = random(Array.from(place).reduce((key, char) => key * 13 + char.charCodeAt(0), 619));
   const finish = new Set();
   const surfaces = part => part.replace(/<(?:rect|polygon)\b[^>]*>/g, tag => {
@@ -407,7 +396,7 @@ export function finishTownInterior(place, plan, base, assets) {
   const background = architecture + runner + textiles + floorDetails + celebration.floor + doorstep + backWall + mounted + celebration.wall;
   const furniture = base.furniture.map(part => {
     const name = part.match(/data-object="([^"]+)"/)[1];
-    const redrawn = redrawTownFurnishing(place, name, part, assets);
+    const redrawn = redrawTownFurnishing(place, name, part);
     if (redrawn) return redrawn + celebration.furniture(name);
     let painted = name.includes("隔断") || name.includes("玻璃") ? part : surfaces(part);
     if (name === "砖炉和炉膛") {

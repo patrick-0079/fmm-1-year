@@ -252,27 +252,6 @@
     <polyline points="551,213 553,213" fill="none" stroke="#e8cb98" stroke-width="0.65" />
   </g>
   <g id="back-wall-details">
-    <rect x="75" y="63" width="25" height="27" fill="#64483b" opacity="0.2" />
-    <rect x="74" y="61" width="25" height="27" rx="0.6" fill="#d7a16c" stroke="#523e3a" stroke-width="0.85" />
-    <rect x="76" y="63" width="21" height="23" fill="#fff3d9" />
-    <rect x="78" y="65" width="17" height="19" fill="#a4c7bf" />
-    <circle cx="89.9" cy="70.32" r="2.3" fill="#f4d398" />
-    <polygon points="78,76.59 82.76,73.17 87.01,76.78 91.26,72.41 95,74.31 95,84 78,84" fill="#718977" />
-    <polyline points="80,79.82 87.35,79.82" fill="none" stroke="#e4cda7" stroke-width="0.7" />
-    <rect x="108" y="63" width="25" height="27" fill="#64483b" opacity="0.2" />
-    <rect x="107" y="61" width="25" height="27" rx="0.6" fill="#d7a16c" stroke="#523e3a" stroke-width="0.85" />
-    <rect x="109" y="63" width="21" height="23" fill="#fff3d9" />
-    <rect x="111" y="65" width="17" height="19" fill="#a4c7bf" />
-    <circle cx="122.9" cy="70.32" r="2.3" fill="#f4d398" />
-    <polygon points="111,76.59 115.76,73.17 120.01,76.78 124.26,72.41 128,74.31 128,84 111,84" fill="#718977" />
-    <polyline points="113,79.82 120.35,79.82" fill="none" stroke="#e4cda7" stroke-width="0.7" />
-    <rect x="142" y="63" width="25" height="27" fill="#64483b" opacity="0.2" />
-    <rect x="141" y="61" width="25" height="27" rx="0.6" fill="#d7a16c" stroke="#523e3a" stroke-width="0.85" />
-    <rect x="143" y="63" width="21" height="23" fill="#fff3d9" />
-    <rect x="145" y="65" width="17" height="19" fill="#a4c7bf" />
-    <circle cx="156.9" cy="70.32" r="2.3" fill="#f4d398" />
-    <polygon points="145,76.59 149.76,73.17 154.01,76.78 158.26,72.41 162,74.31 162,84 145,84" fill="#718977" />
-    <polyline points="147,79.82 154.35,79.82" fill="none" stroke="#e4cda7" stroke-width="0.7" />
     <rect x="404" y="56" width="75" height="45" rx="1.5" fill="#aa7652" stroke="#523e3a" stroke-width="1" />
     <g class="phase-view phase-dawn" display="none">
       <rect x="407" y="59" width="69" height="38" fill="#eccda9" />
@@ -348,6 +327,49 @@
     <polyline points="218,67 225,67" fill="none" stroke="#8c846f" stroke-width="0.7" />
     <polyline points="218,73 224,73" fill="none" stroke="#8c846f" stroke-width="0.7" />
     <polyline points="218,79 226,79" fill="none" stroke="#8c846f" stroke-width="0.7" />
+    <g id="wall-illustrations" stroke-linecap="round" stroke-linejoin="round">
+      <title>池边的晨光、白昼与夜灯</title>
+      <rect x="50" y="63.5" width="37" height="33.5" rx="2" fill="#4b2f40" opacity=".31" stroke="none"/>
+      <rect x="50" y="61" width="36" height="34" rx="1.4" fill="#4d5e52" stroke="#cba36d" stroke-width=".95"/>
+      <rect x="52" y="63" width="32" height="30" rx=".55" fill="#e7c69c" stroke="#f7d7a7" stroke-width=".52"/>
+      <g transform="translate(55 66) scale(0.5417 0.8)">
+        <path d="M0 0H48V30H0Z" fill="#dbb79b"/>
+        <circle cx="34" cy="8" r="3.9" fill="#f3d59d"/>
+        <path d="M0 14q9-5.9 19 .3q4.6-5 10-4q8.7-4.5 19 1.4V30H0Z" fill="#8c9b85"/>
+        <path d="M0 21q14-2.2 25-3.2q11 1.7 23-2.8v15H0Z" fill="#8aa49d"/>
+        <path d="M5 23h9m5.5-2h7m6-1h9M27 24h9m-16 3h6" fill="none" stroke="#efd4ab" stroke-width=".62" opacity=".73"/>
+        <path d="M0 24q3.2.1 4.6 1.6q-3.8.3-4.6.9m0-3.8q5 1 8.3 6.8H0Z" fill="#8c9b85" opacity=".88"/>
+      </g>
+      <path d="M55 90V66H81" fill="none" stroke="#6c504b" stroke-width=".64"/>
+      <path d="M53 92l2.3-2.3m25.4 0 2.3 2.3" fill="none" stroke="#f7deb0" stroke-width=".7"/>
+      <rect x="96" y="61.5" width="37" height="34.5" rx="2" fill="#4b2f40" opacity=".31" stroke="none"/>
+      <rect x="96" y="59" width="36" height="35" rx="1.4" fill="#4d5e52" stroke="#cba36d" stroke-width=".95"/>
+      <rect x="98" y="61" width="32" height="31" rx=".55" fill="#e7c69c" stroke="#f7d7a7" stroke-width=".52"/>
+      <g transform="translate(101 64) scale(0.5417 0.8333)">
+        <path d="M0 0H48V30H0Z" fill="#acc7b8"/>
+        <circle cx="34" cy="8" r="3.9" fill="#f4dfa6"/>
+        <path d="M0 14q9-5.9 19 .3q4.6-5 10-4q8.7-4.5 19 1.4V30H0Z" fill="#71927c"/>
+        <path d="M0 21q14-2.2 25-3.2q11 1.7 23-2.8v15H0Z" fill="#7aa6a1"/>
+        <path d="M5 23h9m5.5-2h7m6-1h9M27 24h9m-16 3h6" fill="none" stroke="#efd4ab" stroke-width=".62" opacity=".73"/>
+        <path d="M0 24q3.2.1 4.6 1.6q-3.8.3-4.6.9m0-3.8q5 1 8.3 6.8H0Z" fill="#71927c" opacity=".88"/>
+      </g>
+      <path d="M101 89V64H127" fill="none" stroke="#6c504b" stroke-width=".64"/>
+      <path d="M99 91l2.3-2.3m25.4 0 2.3 2.3" fill="none" stroke="#f7deb0" stroke-width=".7"/>
+      <rect x="142" y="63.5" width="37" height="33.5" rx="2" fill="#4b2f40" opacity=".31" stroke="none"/>
+      <rect x="142" y="61" width="36" height="34" rx="1.4" fill="#4d5e52" stroke="#cba36d" stroke-width=".95"/>
+      <rect x="144" y="63" width="32" height="30" rx=".55" fill="#e7c69c" stroke="#f7d7a7" stroke-width=".52"/>
+      <g transform="translate(147 66) scale(0.5417 0.8)">
+        <path d="M0 0H48V30H0Z" fill="#6d748a"/>
+        <circle cx="34" cy="8" r="3.9" fill="#ebd1a0"/>
+        <path d="M0 14q9-5.9 19 .3q4.6-5 10-4q8.7-4.5 19 1.4V30H0Z" fill="#5f786e"/>
+        <path d="M0 21q14-2.2 25-3.2q11 1.7 23-2.8v15H0Z" fill="#657f89"/>
+        <path d="M5 23h9m5.5-2h7m6-1h9M27 24h9m-16 3h6" fill="none" stroke="#efd4ab" stroke-width=".62" opacity=".73"/>
+        <path d="M0 24q3.2.1 4.6 1.6q-3.8.3-4.6.9m0-3.8q5 1 8.3 6.8H0Z" fill="#5f786e" opacity=".88"/>
+        <path d="M32 18v-6m-1.2.7h2.4m-1.6-.4v-1.25h.8v1.25" stroke="#ebcb8d" stroke-width=".76" fill="none"/>
+      </g>
+      <path d="M147 90V66H173" fill="none" stroke="#6c504b" stroke-width=".64"/>
+      <path d="M145 92l2.3-2.3m25.4 0 2.3 2.3" fill="none" stroke="#f7deb0" stroke-width=".7"/>
+    </g>
   </g>
   <g id="furniture">
     <g data-object="临池侧窗木座">

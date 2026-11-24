@@ -2,45 +2,44 @@ const scheme = {
   florist: {
     ink: "#64394c", silk: "#af596d", enamel: "#446d56",
     sign: { x: 341, y: 69, w: 62, h: 36, title: "晚安花礼", detail: "芙眠眠一周年", size: 11 },
-    pictures: [["morning", 503, 68, 55, 37]], swag: [300, 39, 63],
+    swag: [300, 39, 63],
     balloons: { 花店南壁盆栽: [552, 318, 1] }, strand: [191, 559, 40, 15, 17],
   },
   baker: {
     ink: "#783546", silk: "#c36468", enamel: "#8d4446",
     sign: { x: 341, y: 51, w: 96, h: 34, title: "周年甜点", detail: "草莓与奶油", size: 13 },
-    pictures: [["morning", 512, 69, 49, 33]], swag: [431, 37, 78],
+    swag: [431, 37, 78],
     balloons: { 南角香草盆: [55, 317, -1] }, strand: [47, 553, 40, 14, 21],
   },
   maker: {
     ink: "#472e57", silk: "#84649e", enamel: "#66517c",
     sign: { x: 59, y: 57, w: 99, h: 32, title: "周年星月饰", detail: "芙眠眠一周年", size: 12 },
-    pictures: [["fox", 509, 66, 53, 36]], swag: [156, 38, 62],
+    swag: [156, 38, 62],
     balloons: {}, strand: [40, 560, 40, 11, 20],
   },
   post: {
     ink: "#344d47", silk: "#ac625c", enamel: "#395e50",
     sign: { x: 187, y: 63, w: 132, h: 40, title: "寄一封晚安", detail: "芙眠眠直播一周年", size: 14 },
-    pictures: [["fox", 49, 46, 39, 26], ["morning", 104, 45, 40, 27]], swag: [411, 39, 67],
+    swag: [411, 39, 67],
     balloons: { 信袋底: [516, 303, 1] }, strand: [48, 558, 39, 13, 19],
   },
   books: {
     ink: "#3e4c44", silk: "#5f8a78", enamel: "#3d6660",
     sign: { x: 491, y: 64, w: 72, h: 35, title: "晚安留影", detail: "芙眠眠一周年", size: 12 },
-    pictures: [["reading", 48, 63, 49, 34], ["fox", 105, 60, 54, 37]], swag: [328, 37, 69],
+    swag: [328, 37, 69],
     balloons: {}, strand: [41, 550, 40, 14, 18],
   },
   radio: {
     ink: "#392e51", silk: "#825169", enamel: "#444967",
     sign: { x: 210, y: 84, w: 131, h: 30, title: "一周年特别节目", detail: "晚安电台", size: 12 },
-    pictures: [["bass", 514, 65, 48, 34]], swag: [348, 39, 65],
+    swag: [348, 39, 65],
     balloons: {}, strand: [48, 560, 39, 12, 17],
   },
   hall: {
     ink: "#733047", silk: "#af536d", enamel: "#883e50",
     sign: { x: 196, y: 88, w: 208, h: 34, title: "芙眠眠直播一周年", date: true, size: 15 },
-    pictures: [["reading", 117, 54, 47, 34], ["bass", 183, 62, 29, 26]],
     swag: [474, 38, 90],
-    balloons: { 相片墙旁绿植: [48, 280, -1], 展厅东南角绿植: [544, 306, 1] }, strand: [43, 557, 40, 15, 25],
+    balloons: { 展厅西侧绿植: [48, 280, -1], 展厅东南角绿植: [544, 306, 1] }, strand: [43, 557, 40, 15, 25],
   },
 };
 
@@ -63,15 +62,6 @@ function curtainTie([x, y, width], design) {
   }).join("");
   return path(lower, design.silk, `stroke="${design.ink}" stroke-width=".82"`) +
     path(lower, "url(#celebration-velvet)") + stroke(`M${x + 5} ${y + 9}q${width * .45} 23 ${width - 10} 0`, highlight, .72, .77) + bows;
-}
-
-function picture(photo, x, y, w, h, design) {
-  return rect(x - 2, y + 2, w + 4, h + 3, shadow, 'rx="2" opacity=".34"') +
-    rect(x - 2, y - 2, w + 4, h + 4, design.ink, `rx="1.5" stroke="${brass}" stroke-width="1"`) +
-    rect(x + 1, y + 1, w - 2, h - 2, "#efd0a4", `stroke="${highlight}" stroke-width=".55"`) +
-    `<image href="${photo}" x="${x + 4}" y="${y + 4}" width="${w - 8}" height="${h - 8}" preserveAspectRatio="xMidYMid slice"/>` +
-    stroke(`M${x + 4} ${y + h - 4}V${y + 4}H${x + w - 4}`, "#543343", .65, .7) +
-    stroke(`M${x + 1} ${y + h - 2}l4 -4m${w - 10} 0 4 4`, highlight, .9);
 }
 
 function plaque(design) {
@@ -146,16 +136,15 @@ function floorTrim(design, doorX) {
   return pieces.join("");
 }
 
-export function decorateTownInterior(place, plan, assets) {
+export function decorateTownInterior(place, plan) {
   const design = scheme[place];
   const { art, glow } = garland(design.strand, design);
-  const photos = design.pictures.map(([photo, ...bounds]) => picture(assets.portraits[photo], ...bounds, design)).join("");
   const swag = curtainTie(design.swag, design);
   return {
     defs: '<linearGradient id="celebration-velvet" x2="0" y2="1"><stop stop-color="#ffe2bf" stop-opacity=".28"/><stop offset=".45" stop-color="#edbdac" stop-opacity="0"/><stop offset="1" stop-color="#34152e" stop-opacity=".33"/></linearGradient>' +
       '<radialGradient id="celebration-bulb"><stop stop-color="#fff297" stop-opacity=".55"/><stop offset="1" stop-color="#ffc577" stop-opacity="0"/></radialGradient>',
     floor: floorTrim(design, plan.spawn[0]),
-    wall: swag + photos + plaque(design) + art,
+    wall: swag + plaque(design) + art,
     glows: ["dusk", "night"].map(phase => `<g class="phase-view phase-${phase}" display="none" opacity="${phase === "night" ? .94 : .67}">${glow}</g>`).join(""),
     sign: design.sign,
     furniture(name) {

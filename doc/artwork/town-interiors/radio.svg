@@ -414,6 +414,23 @@
     </g>
     <polygon points="540,78 545,74 550,78" fill="#e2a65e" stroke="#523e3a" stroke-width="0.75" />
     <rect x="541.5" y="88" width="7" height="1.8" fill="#523e3a" />
+    <g id="wall-illustrations" stroke-linecap="round" stroke-linejoin="round">
+      <title>声波与晚安节目磁带</title>
+      <rect x="513" y="66.5" width="51" height="35.5" rx="2" fill="#4b2f40" opacity=".31" stroke="none"/>
+      <rect x="513" y="64" width="50" height="36" rx="1.4" fill="#4b405a" stroke="#cba36d" stroke-width=".95"/>
+      <rect x="515" y="66" width="46" height="32" rx=".55" fill="#e7c69c" stroke="#f7d7a7" stroke-width=".52"/>
+      <g transform="translate(518 69) scale(0.8333 0.8667)">
+        <path d="M0 0H48V30H0Z" fill="#526179"/>
+        <path d="M5 8h8l2-2 1.5 4 2-6 2 7 2-4h4l1.5-2 2 3h6" fill="none" stroke="#e2be92" stroke-width="1.05"/>
+        <path d="M10 13.5h28v11H10Z" fill="#c79198" stroke="#3b4259" stroke-width="1"/>
+        <path d="M12 15.4h24v4.2H12Z" fill="#e4c7a7"/>
+        <path d="M16 16.6h16v2.4H16Z" fill="#4b5065"/>
+        <circle cx="19.1" cy="17.8" r="1.1" fill="#dfc599"/><circle cx="28.9" cy="17.8" r="1.1" fill="#dfc599"/>
+        <path d="M16 23l1.6-2.1h12.8L32 23Z" fill="#815b75"/><path d="M40 8q2-2 .7-3.8q-1.5 1.9-.7 3.8Z" fill="#edd3a8"/>
+      </g>
+      <path d="M518 95V69H558" fill="none" stroke="#6c504b" stroke-width=".64"/>
+      <path d="M516 97l2.3-2.3m39.4 0 2.3 2.3" fill="none" stroke="#f7deb0" stroke-width=".7"/>
+    </g>
   </g>
   <g id="furniture">
     <g data-object="调音台">
