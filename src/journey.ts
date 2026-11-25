@@ -4,6 +4,17 @@ import { meadowOpen } from "./rainbow-flowers.ts";
 
 export const JOURNEY_KEY = "fufu-journey-v1";
 export interface Journey extends Point { scene: SceneId; savedAt: number }
+export function showJourneyStatus(element: HTMLElement, journey: Journey | null) {
+  if (!journey) {
+    element.textContent = "开始冒险后自动保存";
+    element.removeAttribute("title");
+    return;
+  }
+  const date = new Date(journey.savedAt);
+  const when = date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+  element.textContent = `本机已保存 · ${scenes[journey.scene].title} ${when}`;
+  element.title = date.toLocaleString("zh-CN");
+}
 export function readJourney(raw: string | null, flowers: readonly string[]): Journey | null {
   try {
     if (!raw) return null;

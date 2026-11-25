@@ -10,7 +10,7 @@ import { reservedShortcut } from "./input";
 import { getDeadline, setDebugDeadline } from "./launch/time";
 import { allLetters } from "./letters";
 
-import { attachDownloadMonitor } from "./network-debug";
+import { attachDownloadMonitor, pinDebugDock } from "./network-debug";
 import { debugIsOpen, rememberDebugOpen } from "./launch/debug-open";
 
 const maps = {
@@ -94,13 +94,7 @@ export function mountDebugPanel(
   root.append(holder);
   const panel = holder.querySelector<HTMLElement>(".debug-panel")!,
     trigger = holder.querySelector<HTMLButtonElement>(".debug-trigger")!;
-  const help = document.querySelector<HTMLDialogElement>("#game-help");
-  const placeDock = () => {
-    const target = help?.open && !panel.hidden ? help : document.fullscreenElement ?? root;
-    if (target !== holder.parentElement && !(target instanceof HTMLVideoElement)) target.append(holder);
-  };
-  if (help) new MutationObserver(placeDock).observe(help, { attributes: true, attributeFilter: ["open"] });
-  document.addEventListener("fullscreenchange", placeDock);
+  pinDebugDock(holder, panel, root);
   void import("./launch/debug").then(({ mountCountdownDebug }) => {
     mountCountdownDebug(panel.querySelector<HTMLElement>(".debug-launch-time")!, {
       mode: "game",

@@ -180,3 +180,8 @@ export function markLetterRead(story: ResidentStory, id: string) {
   }
   return false;
 }
+
+export function mailSummary(story: ResidentStory) {
+  const unread = unreadLetterIds(story).length;
+  return { unread, label: mailboxLetters(story).length + " 封来信" + (unread ? ` · ${unread} 封未读` : "") };
+}

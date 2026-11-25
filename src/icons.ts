@@ -10,6 +10,7 @@ const paths: Record<string, string> = {
   sound: '<path d="M7 3h2v12H7v-2H5v-2H1V7h4V5h2zm4 3h2v6h-2zm3-3h2v12h-2Z"/>',
   effects: '<path d="M1 8h2v3H1zm4-4h2v10H5zm4-3h2v16H9zm4 5h2v7h-2zm3 2h2v3h-2z"/>',
   effectsOff: '<path d="M1 8h2v3H1zm4-4h2v10H5zm4-3h2v16H9z"/><path d="m12 6 5 6m0-6-5 6" fill="none" stroke="currentColor" stroke-width="1.7"/>',
+  backpack: '<g stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"><path d="M6.7 5V3.9a2.3 2.3 0 0 1 4.6 0V5" fill="none"/><rect x="3.2" y="4.5" width="11.6" height="11.2" rx="3" fill="#e8b8bd"/><path d="M3.3 7.1c2.6 2.4 8.8 2.4 11.4 0" fill="none"/><rect x="7.45" y="8" width="3.1" height="3.4" rx=".9" fill="#fff3de"/></g>',
   mute: '<path d="M7 3h2v12H7v-2H5v-2H1V7h4V5h2zm4 3h2v2h2V6h2v2h-2v2h2v2h-2v-2h-2v2h-2v-2h2V8h-2Z"/>',
   arrow: '<path d="M2 8h10V6h-2V4h2v2h2v2h2v2h-2v2h-2v2h-2v-2h2v-2H2Z"/>',
   moon: '<path d="M8 1h3v2H9v2H7v5h2v2h6v-2h2v4h-2v2H5v-2H3V4h2V2h3Z"/>',

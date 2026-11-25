@@ -1,3 +1,4 @@
+import { NATURE_KEY } from "./nature-save";
 import type { World } from "./world";
 import {
   ITEMS,
@@ -83,7 +84,7 @@ export class Inventory {
       legacy = null;
     try {
       raw = this.storage?.getItem(INVENTORY_KEY) ?? null;
-      legacy = this.storage?.getItem("fufu-garden-bag-v1") ?? null;
+      legacy = this.storage?.getItem(NATURE_KEY) ?? null;
     } catch {}
     this.earned = readInventory(raw, legacy);
     this.wreath.onload = () => this.drawIcons();

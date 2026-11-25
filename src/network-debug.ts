@@ -50,6 +50,21 @@ function monitor(panel: HTMLElement) {
 
 let removeEarly: (() => boolean) | undefined;
 
+export function pinDebugDock(dock: HTMLElement, panel: HTMLElement, root: Element) {
+  const dialogs = [...document.querySelectorAll<HTMLDialogElement>("#game-help, #anniversary-badges")];
+  const place = () => {
+    const modal = !panel.hidden && dialogs.find(dialog => dialog.open);
+    const target = modal || document.fullscreenElement || root;
+    if (target !== dock.parentElement && !(target instanceof HTMLVideoElement)) target.append(dock);
+  };
+  const observer = new MutationObserver(place);
+  for (const dialog of dialogs) observer.observe(dialog, { attributes: true, attributeFilter: ["open"] });
+  observer.observe(panel, { attributes: true, attributeFilter: ["hidden"] });
+  document.addEventListener("fullscreenchange", place);
+  place();
+  return () => { observer.disconnect(); document.removeEventListener("fullscreenchange", place); };
+}
+
 export function mountLoadingMonitor() {
   if (!traffic) return;
   performance.setResourceTimingBufferSize?.(1500);
@@ -69,7 +84,8 @@ export function mountLoadingMonitor() {
   document.body.append(dock);
   if (debugIsOpen()) toggle();
   const stop = monitor(panel);
-  removeEarly = () => { stop(); dock.remove(); return !panel.hidden; };
+  const unpin = pinDebugDock(dock, panel, document.body);
+  removeEarly = () => { stop(); unpin(); dock.remove(); return !panel.hidden; };
 }
 
 export function attachDownloadMonitor(panel: HTMLElement) {

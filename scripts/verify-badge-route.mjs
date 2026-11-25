@@ -76,7 +76,9 @@ try {
   assert.deepEqual((await earned()).sort(), catalogue);
   await page.reload();
   const total = catalogue.length;
+  await page.locator("[data-book-toggle]").click();
   await page.locator(".achievement-count strong").filter({ hasText: `${total} / ${total}` }).waitFor();
+  await page.locator(".book-close").click();
   assert.deepEqual((await earned()).sort(), catalogue);
   assert.deepEqual(errors, []);
   console.log(`${width}px · 同档从 0 到 ${total}，刷新后仍为 ${total} 枚`);

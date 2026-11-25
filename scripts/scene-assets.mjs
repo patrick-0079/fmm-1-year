@@ -1,6 +1,7 @@
 import rooms from "../src/town-interiors.generated.json" with { type: "json" };
 const interiors = Object.keys(rooms).map(name => "town-" + name);
 const groups = [
+  [["page"], "journal-letter journal-album journal-cinema meadow-postcard"],
   [["room"], "room-interactive window-skies-v12 white-bass-v18 fufu-room-fox fox-tail-rest anniversary-cake gift-v37 xiaoye-note"],
   [["room", "garden", "town", "town-baker"], "cake-slice-v11"],
   [["room", "garden"], "party-props-v11"],
@@ -19,7 +20,7 @@ const groups = [
   [["ruins"], "echo-ruins echo-well echo-mines echo-miner echo-snake astrolabe-mechanisms guardian-moonstone"],
   [["meadow"], "night-meadow-v16 meadow-life-v16 patrick-camp meadow-jelly-bells star-bottle-closeup"],
   [["*"], "nemu-sprites fufu-rest-poses fufu-footwear-v38 fufu-garments-v15 flower-wreath wardrobe-v11 reward-icons strawberry-flats-v38 qingya-bouquet stationery-sealed stationery-desk astrolabe-relics peach-walk"],
-  [["*"], "arcade-postcard-v14 meadow-postcard stationery-album"],
+  [["*"], "arcade-postcard-v14 stationery-album steam-achievement"],
 ];
 const byName = new Map(groups.flatMap(([scenes, names]) => names.split(" ").map(name => [name, scenes])));
 

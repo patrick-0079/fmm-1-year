@@ -1,7 +1,7 @@
 import type { World, DepthLayer } from "./world";
 import type { Inventory } from "./inventory";
 import type { Activities } from "./activities";
-import { TOWN_NPCS, type TownNpc } from "./town-data";
+import { TOWN_NPCS, TOWN_TALKED_KEY, readTownVisits, type TownNpc } from "./town-data";
 import { residentOpening, townDailyActions, townDialogues, type TownPage } from "./town-dialogue";
 import { townChatTopics } from "./town-chat-topics";
 import { handedLetters, letterChoice, postUnread, type LetterHandoff, type ResidentStory } from "./resident-story";
@@ -43,7 +43,7 @@ const treeCrowns = [
   // The bookshop ridge and the fence cut across the two south-plaza crowns.
   ...prepareMapCovers(plazaTreeOutlines).map(cover => ({y:cover.depth, cover})),
 ];
-export const TOWN_TALKED_KEY = "fufu-town-talked-v1";
+export { TOWN_TALKED_KEY } from "./town-data";
 const shiftNotes: Record<TownInteriorKey, Partial<Record<Phase, string>>> = {
   florist: { dawn: "在温室开窗", day: "在东边花阶", dusk: "在压花台" },
   baker: { dawn: "在屋里开炉", day: "在烘焙屋外", dusk: "在屋里收盘" },
@@ -290,13 +290,9 @@ export class Town {
   }
 
   mergeVisits(raw: string | null, reconcile = false) {
-    try {
-      const list = JSON.parse(raw ?? "null");
-      if (!Array.isArray(list)) return;
-      const residents = TOWN_NPCS.filter(npc => list.includes(npc.id));
-      for (const npc of residents) this.visited.add(npc.id);
-      if (reconcile && residents.length && this.visited.size > residents.length) this.save();
-    } catch {}
+    const ids = readTownVisits(raw);
+    for (const id of ids) this.visited.add(id);
+    if (reconcile && ids.length && this.visited.size > ids.length) this.save();
   }
   private save(reset = false) {
     if (!this.hooks.canSave()) return;

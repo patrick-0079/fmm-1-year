@@ -4,7 +4,11 @@
   --book-muted: #78656b;
   --book-rule: #e3d5c3;
   min-width: 0;
-  align-self: start;
+  width: min(530px, calc(100vw - 28px));
+  max-height: min(84dvh, 760px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
   border: 1px solid #b58b83;
   border-radius: 5px 13px 12px 5px;
   background: #fffbef;
@@ -12,15 +16,19 @@
   color: var(--book-ink);
   font-family: system-ui, sans-serif;
 }
+.achievement-book[open] { display: flex; flex-direction: column; }
+.achievement-book::backdrop { background: #382a39a6; }
+html:has(.achievement-book[open]) { overflow: hidden; scrollbar-gutter: stable; }
 .achievement-cover {
   isolation: isolate;
-  min-height: 110px;
+  flex: none;
+  min-height: 84px;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 20px 18px 22px 26px;
+  padding: 14px 18px 14px 26px;
   overflow: hidden;
   border-radius: 4px 12px 0 0;
   background:
@@ -41,7 +49,8 @@
 .achievement-cover-title > span { font-size: 13px; color: #ffe5c7; letter-spacing: .12em; }
 .achievement-cover h2 { margin: 2px 0 0; color: #fff2d5; font: 720 clamp(20px,1.65vw,23px)/1.5 system-ui,sans-serif; letter-spacing: .07em; }
 .achievement-cover-emblem {
-  display: grid; place-items: center; width: 53px; aspect-ratio: 1; flex: none;
+  margin-right: auto; margin-left: 10px;
+  display: grid; place-items: center; width: 44px; aspect-ratio: 1; flex: none;
   background: #ffe5b5; border: 1px solid #b58461; border-radius: 48% 48% 47% 47%;
   outline: 1px solid #f4d4a8; outline-offset: 2px;
   box-shadow: inset 0 0 0 3px #f2d5a5, inset 0 0 0 4px #c99870, 1px 3px 0 #753f50;
@@ -51,7 +60,8 @@
 .achievement-page {
   background: linear-gradient(90deg,#d9b9a338,transparent 11px), linear-gradient(145deg,#fff9ec,#fffdf6 52%,#f9f1e2);
   border-radius: 0 0 11px 4px;
-  padding: 13px 14px 8px 18px;
+  padding: 16px 22px 20px;
+  overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable;
 }
 .achievement-book :is(button,select) { font-family: inherit; color: inherit; }
 .achievement-book h3 { margin: 12px 0 5px; color: var(--book-ink); font: 650 13px/1.6 system-ui,sans-serif; letter-spacing: .035em; }
@@ -92,16 +102,11 @@
 .achievement-stamp.stamp-secret { --stamp-paper: #ece5de; --stamp-rim: #b9aaa0; }
 .achievement-pick-copy { flex: 1; min-width: 0; }
 .achievement-pick-copy strong { display: block; color: var(--book-ink); font-size: 14px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
-.achievement-browse {
-  min-height: 44px; border: 1px solid #b4878f; border-radius: 5px;
-  background: #f7e7e5; color: #79485b; font-size: 14px; font-weight: 600;
+.book-close {
+  display: inline-flex; gap: 7px; align-items: center; min-height: 44px; padding: 4px 12px;
+  border: 1px solid #e4b5af; border-radius: 7px; background: #874b5c; color: #fff4dc; font-size: 14px;
 }
-.achievement-browse {
-  display: flex; justify-content: space-between; align-items: center; gap: 8px;
-  width: 100%; margin: 13px 0 0; padding: 6px 13px;
-  box-shadow: inset 0 0 0 2px #fff5e8,0 2px 0 #dac3bb;
-}
-.achievement-browse[aria-expanded=true] { background: #f8f0de; border-color: #c5ae8d; }
+.book-close span { font-size: 19px; }
 .achievement-chapters nav { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); margin-top: 12px; border-bottom: 1px solid #ceb89e; }
 .achievement-chapters nav button {
   min-height: 44px; padding: 3px 0; background: transparent; border: 0; border-bottom: 3px solid transparent;
@@ -131,15 +136,9 @@
 .achievement-detail p { margin: 7px 0 4px; }
 .achievement-detail ul { margin: 5px 0; padding-left: 1.2em; }
 .achievement-complete { color: #597452; font-size: 14px; line-height: 1.7; }
-.achievement-book .local-save { margin: 10px 0 0; padding: 6px 0 0; }
 .achievement-book :focus-visible { outline: 2px solid #8e5a74; outline-offset: 1px; }
 @media (hover:hover) {
-  .achievement-pick:hover,.achievement-browse:hover,.achievement-chapters nav button:hover { background-color: #f6e9df; }
-}
-@media (min-width: 600px) and (max-width: 1099px) {
-  .achievement-book { display: grid; grid-template-columns: 185px minmax(0,1fr); }
-  .achievement-cover { flex-direction: column; justify-content: flex-start; align-items: flex-start; gap: 20px; border-radius: 4px 0 0 4px; }
-  .achievement-page { padding: 12px 20px; border-radius: 0 12px 12px 0; }
+  .achievement-pick:hover,.achievement-chapters nav button:hover { background-color: #f6e9df; }
 }
 @media (max-width:599px) {
   .achievement-cover { min-height: 84px; padding-block: 12px; }

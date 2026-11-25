@@ -2,9 +2,8 @@ import { anniversary, collections, encouragements, type Memory } from "./content
 import { EVENT_IDS, GAME_IDS, SAVE_KEY, readProgress } from "./core";
 import { mergeCollections } from "./shared-collections";
 import { mergeAchievementProgress, migrateAchievementFacts, reconcileAchievements, recordAchievementFact } from "./achievements";
-import { mountAchievementBook, achievementStampMarkup } from "./achievement-book";
-import { paintAchievementArt } from "./achievement-art";
-import "./achievement-flash.css";
+import type { mountAchievementBook } from "./achievement-book";
+import { mountAchievementNotices } from "./achievement-notice";
 import { ForegroundPlayClock } from "./playtime";
 import { icon } from "./icons";
 import { World, scenes, type SceneId } from "./world";
@@ -35,7 +34,7 @@ import { FlowerTrail } from "./flower-trail";
 import { NightMeadow } from "./night-meadow";
 import { EchoRuins } from "./echo-ruins";
 import { Elders } from "./elders";
-import { collectHandedLetter, grantDebugLetters, handedLetters, hasHandedLetter, mailboxLetters, markLetterRead, mergeResidentStory, postLetter,
+import { collectHandedLetter, grantDebugLetters, handedLetters, hasHandedLetter, mailboxLetters, markLetterRead, mergeResidentStory, mailSummary, postLetter,
   unreadLetterIds, type LetterHandoff } from "./resident-story";
 import { AstrolabeQuest } from "./astrolabe-quest";
 import { RoomBass } from "./room-bass";
@@ -43,7 +42,7 @@ import { bassStand, foxNook } from "./room-props";
 import { RoomFox } from "./room-fox";
 import { mountDebugPanel } from "./debug-panel";
 import { meadowOpen } from "./rainbow-flowers";
-import { JOURNEY_KEY, type Journey } from "./journey";
+import { JOURNEY_KEY, showJourneyStatus, type Journey } from "./journey";
 import { prepareGameResources } from "./texture-cache";
 import { showResourceCount } from "./loading-meter";
 import { openCollection } from "./media";
@@ -58,7 +57,7 @@ import {
   sfx,
 } from "./sound";
 
-export function mountGame(progress: ReturnType<typeof readProgress>, journey: Journey | null, onReady: () => void) {
+export function mountGame(progress: ReturnType<typeof readProgress>, journey: Journey | null, achievementBook: ReturnType<typeof mountAchievementBook>) {
   let started = false, transitioning = false;
   let worldReady = false, resetInProgress = false, lastPositionCheck = 0;
   let sharedResetPending = false;
@@ -101,9 +100,8 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
   mailCard.disabled = true;
   albumCard.disabled = true;
   function updateMailCount() {
-    const story = progress.residents;
-    const unread = unreadLetterIds(story).length;
-    mailCount.textContent = mailboxLetters(story).length + " 封来信" + (unread ? ` · ${unread} 封未读` : "");
+    const { label, unread } = mailSummary(progress.residents);
+    mailCount.textContent = label;
     mailCard.classList.toggle("has-unread", unread > 0);
     inventory.refreshMailCount();
   }
@@ -135,13 +133,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
   const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
   const saveNow = document.querySelector<HTMLButtonElement>(".save-now")!;
   const saveStatus = document.querySelector<HTMLElement>(".save-status")!;
-  const showJourney = () => {
-    if (!journey) { saveStatus.textContent = "开始冒险后自动保存"; saveStatus.removeAttribute("title"); return; }
-    const date = new Date(journey.savedAt);
-    const when = date.toLocaleTimeString("zh-CN", {hour: "2-digit", minute: "2-digit"});
-    saveStatus.textContent = `本机已保存 · ${scenes[journey.scene].title} ${when}`;
-    saveStatus.title = date.toLocaleString("zh-CN");
-  };
+  const showJourney = () => showJourneyStatus(saveStatus, journey);
   const saveLocation = (manual = false) => {
     if (!started || !worldReady || resetInProgress || world.busy) return;
     if (world.scene==="meadow" && !meadowOpen(progress.rainbowFlowers)) return;
@@ -768,7 +760,6 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
       enter.innerHTML = `${journey ? "继续上次的冒险" : "开始小冒险"} ${icon("arrow")}`;
       document.querySelector(".intro-screen small")!.textContent = journey ?
         `本机存档 · ${scenes[world.scene].title} · 点击继续` : "点击开始会播放轻柔音乐 · 可随时关闭 ♡";
-      onReady();
       cinema.prepare();
     })
     .catch(() => {
@@ -840,14 +831,10 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     world.canvas.focus({ preventScroll: true });
     revealMapIfOffscreen();
   };
-  const achievementBook = mountAchievementBook();
-  const flash = document.createElement("div");
-  flash.className = "achievement-flash";
-  flash.hidden = true;
-  flash.setAttribute("role", "status");
-  flash.setAttribute("aria-live", "polite");
-  sceneWrap.append(flash);
-  let flashTimer: ReturnType<typeof setTimeout> | undefined;
+  const notices = mountAchievementNotices();
+  achievementBook.onOpen = () => {};
+  achievementBook.onChange = open => world.suspend("achievements", open);
+  achievementBook.onChange(achievementBook.isOpen);
   const achievementContext = () => ({
     townTalked: town.talkedIds,
     owned: (["wreath", "petCat", "petBunny"] as const).filter(id => inventory.has(id)),
@@ -858,18 +845,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
   refreshAchievements = (announce = true) => {
     const {entries, fresh} = reconcileAchievements(progress, achievementContext());
     achievementBook.update(entries, progress.achievements.earned.at(-1));
-    // The ruins already stamp their journal in the corner of the map.
-    const notices = fresh.filter(id => !id.startsWith("ruin-"));
-    const recent = announce && notices.length ? entries.find(entry => entry.id === notices.at(-1)) : undefined;
-    if (recent) {
-      clearTimeout(flashTimer);
-      flash.innerHTML = achievementStampMarkup(recent) + "<span><small></small><strong></strong></span>";
-      flash.querySelector("small")!.textContent = notices.length === 1 ? "周年徽章册 · 新徽章" : `周年徽章册 · ${notices.length} 枚新徽章`;
-      flash.querySelector("strong")!.textContent = recent.name;
-      flash.hidden = false;
-      paintAchievementArt(flash);
-      flashTimer = setTimeout(() => { flash.hidden = true; }, 2700);
-    }
+    if (announce && fresh.length) notices.show(entries.filter(entry => fresh.includes(entry.id)));
     return fresh.length > 0;
   };
   world.onAchievementEvent = event => {
@@ -964,8 +940,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     try { localStorage.removeItem(JOURNEY_KEY); } catch { /* optional storage */ }
     const { muted, sound, bgm, bassSound, volume } = progress;
     achievementBook.reset();
-    clearTimeout(flashTimer);
-    flash.hidden = true;
+    notices.clear();
     progress = { ...readProgress(null), generation: crypto.randomUUID?.() ?? String(Date.now()), muted, sound, bgm, bassSound, volume };
     elders.reset();
     xiaoye.reset();

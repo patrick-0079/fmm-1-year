@@ -97,13 +97,24 @@ try {
     const context = await browser.newContext({ viewport: restored ? { width: 390, height: 844 } : { width: 827, height: 763 },
       isMobile: restored, hasTouch: restored, reducedMotion: "reduce", serviceWorkers: restored ? "block" : "allow" });
     const visit = { scene: "town-radio", x: 240, y: 222, savedAt: 1700000000000 };
-    if (restored) await context.addInitScript(value => localStorage.setItem("fufu-journey-v1", JSON.stringify(value)), visit);
+    if (restored) await context.addInitScript(value => {
+      localStorage.setItem("fufu-journey-v1", JSON.stringify(value));
+      localStorage.setItem("nemu-anniversary-v1", JSON.stringify({ completed: ["gifts"] }));
+      localStorage.setItem("fufu-garden-bag-v1", JSON.stringify({ wearing: true, picked: {
+        "1:garden:dew": 1, "2:challenge:sunset": 1, "3:garden:firefly": 1,
+      } }));
+    }, visit);
     let films = 0, originals = 0;
     await context.route(/^https:\/\/cdn\./, route => {
       if (/\.mp4(?:\?|$)/i.test(route.request().url())) films++; else originals++;
       return route.fulfill({ status: 503, headers: { "Access-Control-Allow-Origin": "*" }, body: "QA: offline CDN" });
     });
     const page = await context.newPage(), errors = [], warnings = [];
+    let albumRequests = 0;
+    if (restored) await page.route("**/assets/journal-album-*", route => {
+      if (++albumRequests === 1) return route.fulfill({ status: 503, headers: { "Cache-Control": "no-store" } });
+      return route.continue();
+    });
     page.on("pageerror", error => errors.push(error.message));
     page.on("console", message => { if (/Images loaded lazily and replaced with placeholders/i.test(message.text())) warnings.push(message.text()); });
     await page.clock.setFixedTime(new Date("2026-12-02T12:00:00+08:00"));
@@ -115,7 +126,28 @@ try {
     const savedMap = restored ? hold("/" + toHold) : null;
     const destination = hold(restored ? roomMap : townMap), last = hold(asset("meadow-jelly-bells"));
     const backgroundPath = asset("anniversary-garden-tree-free"), background = hold(backgroundPath, true);
+    const cover = hold(asset("journal-cinema"), true);
     await page.goto(base, { waitUntil: "domcontentloaded" });
+    await cover.seen;
+    await page.waitForFunction(() => [...document.querySelectorAll(".memory-letter img,.memory-album img,.page-meadow-note > img")]
+      .length === 3 && [...document.querySelectorAll(".memory-letter img,.memory-album img,.page-meadow-note > img")].every(image => image.complete && image.naturalWidth));
+    assert.ok(!requests.some(path => path.startsWith("/game-assets-") || path === roomMap || path === firstPath),
+      "game downloads started before the page covers finished");
+    const journalImages = ["journal-letter", "journal-album", "journal-cinema", "meadow-postcard"].map(asset);
+    assert.deepEqual(requests.filter(path => /\.(webp|wav)$/i.test(path) && !journalImages.includes(path)), []);
+    assert.ok(await entrance.isDisabled());
+    await page.waitForFunction(() => document.querySelector(".entry-progress")?.getAttribute("aria-valuetext") === "3/4");
+    assert.equal(await meter.getAttribute("aria-valuetext"), "3/4");
+    if (restored) assert.equal(albumRequests, 2, "the journal recovered its failed cover before the game started");
+    const toggleBook = page.getByRole("button", { name: "周年徽章册", exact: true });
+    await toggleBook.click();
+    assert.ok(await page.locator("#anniversary-badges").evaluate(dialog => dialog.matches(":modal")));
+    // Legacy saves also retain the original public letter from Kerry as already read.
+    const historical = ["day-secrets", "gifts", "letter-kerry", "wreath"];
+    assert.equal(await page.locator(".achievement-count strong").textContent(), restored ? `${historical.length} / 54` : "0 / 54");
+    await page.keyboard.press("Escape");
+    assert.ok(await toggleBook.evaluate(button => button === document.activeElement));
+    cover.release();
     await Promise.all([starting.seen, page.waitForFunction(() => {
       const bar = document.querySelector(".entry-progress");
       return bar && bar.value > 0 && bar.value < bar.max;
@@ -123,6 +155,8 @@ try {
     assert.ok(await entrance.isDisabled());
     assert.ok(await page.locator('[data-memory="letters"]').isDisabled());
     assert.ok(await meter.isVisible());
+    assert.deepEqual(await page.locator(".memory-cover img, .page-meadow-note > img").evaluateAll(images =>
+      images.map(image => image.complete && image.naturalWidth > 0)), [true, true, true, true]);
     const checkRatio = async (selector, scene) => {
       const total = files.filter(([, , group]) => group.includes("*") || group.includes(scene)).length;
       const bar = page.locator(selector);
@@ -169,6 +203,13 @@ try {
     await page.getByRole("button", { name: restored ? /继续上次的冒险/ : /开始小冒险/ }).click();
     const current = page.locator(".scene-wrap");
     assert.equal(await current.getAttribute("data-current-map"), restored ? "town-radio" : "room");
+    if (restored) {
+      await toggleBook.click();
+      assert.equal(await page.locator(".achievement-count strong").textContent(), `${historical.length} / 54`);
+      assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("nemu-anniversary-v1")).achievements.earned.sort()), historical);
+      await page.locator(".book-close").click();
+      assert.ok(await page.locator(".achievement-flash").isHidden(), "loading legacy achievements must stay silent");
+    }
     await page.locator(".bag-toggle").click();
     assert.ok(await page.locator(".bag-avatar").evaluate(canvas =>
       canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data.some((value, i) => i % 4 === 3 && value)));
@@ -244,6 +285,29 @@ try {
   assert.deepEqual(errors, []);
   await context.close();
   console.log("全部 13 张地图（含七间室内）按存档直接进入通过");
+  const recovered = await browser.newContext({ serviceWorkers: "block" });
+  try {
+    let offline = true;
+    await recovered.route(/^https:\/\//, route => route.abort());
+    await recovered.route("**/assets/journal-letter-*", route => offline
+      ? route.fulfill({ status: 503, headers: { "Cache-Control": "no-store" } }) : route.continue());
+    const page = await recovered.newPage();
+    await page.clock.setFixedTime(new Date("2026-12-03T09:00:00+08:00"));
+    const map = hold(asset("room-interactive"));
+    await page.goto(base, { waitUntil: "domcontentloaded" });
+    await map.seen;
+    assert.ok(await page.locator(".memory-letter .cover-fallback").isVisible());
+    offline = false;
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await page.waitForFunction(() => {
+      const img = document.querySelector(".memory-letter img");
+      return img && !img.hidden && img.complete && img.naturalWidth > 0;
+    });
+    map.release();
+    await page.getByRole("button", { name: /开始小冒险/ }).waitFor();
+    console.log("首页封面连续失败时保留图标，网络恢复后补回插图，地图可正常进入");
+  } finally { await recovered.close(); }
+
   if (process.argv.includes("--debug")) {
     film = await recordLocalFilm(browser, base);
     filmPause = Promise.withResolvers();
@@ -274,8 +338,12 @@ try {
     await held.seen;
     await page.waitForFunction(() => parseFloat(document.querySelector('[data-speed="assets"]')?.textContent) > 0);
     assert.equal(await readout.locator('[data-speed="film"]').innerText(), "0 B/s");
+    await page.locator("[data-book-toggle]").click();
+    await page.locator("#anniversary-badges[open] #loading-debug:visible").waitFor();
     held.release();
-    await page.locator("#game-debug-panel .debug-network:visible").waitFor();
+    await page.locator("#anniversary-badges[open] #game-debug-panel .debug-network:visible").waitFor();
+    await page.locator(".book-close").click();
+    assert.ok(await page.locator("#game-debug-panel").isVisible());
     const panel = page.locator("#game-debug-panel");
     const wardrobe = panel.locator('[data-debug="wardrobe"]');
     assert.equal(await wardrobe.getAttribute("aria-pressed"), "false");

@@ -82,6 +82,14 @@ try {
 
   await enter.click();
   assert.equal(await game.locator(".debug-trigger,.launch-debug-trigger,[data-debug]").count(), 0);
+  const frame = await game.locator(".adventure-layout").boundingBox();
+  const canvas = await game.locator("#world").boundingBox();
+  assert.ok(Math.abs(frame.width - canvas.width) <= 4 && Math.abs(canvas.width / canvas.height - 1.5) < .01);
+  const book = game.getByRole("button", { name: "周年徽章册", exact: true });
+  await book.click();
+  assert.ok(await game.locator("#anniversary-badges").evaluate(dialog => dialog.matches(":modal")));
+  await game.mouse.click(2, 2);
+  assert.equal(await book.getAttribute("aria-expanded"), "false");
   const helpButton = game.locator('.window-tools button[aria-controls="game-help"]');
   const help = game.getByRole("dialog", { name: "小冒险怎么玩" });
   await helpButton.click();

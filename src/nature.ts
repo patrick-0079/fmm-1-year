@@ -1,3 +1,4 @@
+import { NATURE_KEY, pickedGardenEggs, readGardenBag } from "./nature-save";
 import { eggAvailable, phaseNames, untilNextPhase, worldTime } from "./day";
 import type { Phase } from "./day";
 import { drawTownLight } from "./town-light";
@@ -38,24 +39,8 @@ import { roomBalloons } from "./room-foreground";
 const gardenCovers = prepareMapCovers([...gardenDetails, ...cinemaSurroundings]);
 const roomFloralCovers = prepareMapCovers(roomFlowers);
 
-interface NatureSave {
-  picked: Record<string, number>;
-  apple: number;
-  flower: number;
-  star: number;
-  wearing: boolean;
-  wreath: boolean;
-}
-export const NATURE_KEY = "fufu-garden-bag-v1";
+export { NATURE_KEY } from "./nature-save";
 const CLOCK_KEY = "fufu-world-clock-v1";
-const initial = (): NatureSave => ({
-  picked: {},
-  apple: 0,
-  flower: 0,
-  star: 0,
-  wearing: false,
-  wreath: false,
-});
 export class Nature {
   private treeImage = sceneImage(treeUrl);
   private benchImage = sceneImage(benchUrl);
@@ -63,7 +48,7 @@ export class Nature {
   private windowImage = sceneImage(roomArtUrl);
   private origin = Date.now();
   private shift = 0;
-  private state = initial();
+  private state = readGardenBag();
   private lastUi = 0;
   private oldPhase = "";
   private previewPhase: Phase | null = null;
@@ -90,35 +75,7 @@ export class Nature {
     } catch {
       // A damaged clock starts a fresh day, without discarding the separate bag.
     }
-    try {
-      const data = JSON.parse(localStorage.getItem(NATURE_KEY) || "null");
-      if (data && typeof data === "object") {
-        for (const field of ["apple", "flower", "star"] as const)
-          if (Number.isInteger(data[field]) && data[field] >= 0)
-            this.state[field] = Math.min(data[field], 9999);
-        this.state.wearing = data.wearing === true;
-        this.state.wreath =
-          data.wreath === true ||
-          data.wearing === true ||
-          (Number.isInteger(data.flower) && data.flower > 0);
-        if (
-          data.picked &&
-          typeof data.picked === "object" &&
-          !Array.isArray(data.picked)
-        ) {
-          for (const [key, count] of Object.entries(data.picked))
-            if (
-              /^\d+:(garden|challenge):[a-z]+$/.test(key) &&
-              typeof count === "number" &&
-              count >= 0 &&
-              count <= 3
-            )
-              this.state.picked[key] = Math.floor(count);
-        }
-      }
-    } catch {
-      /* read-only play remains available */
-    }
+    try { this.state = readGardenBag(localStorage.getItem(NATURE_KEY)); } catch { /* Optional storage. */ }
     this.saveClock();
     this.world.available = (spot) => this.available(spot);
     this.world.onEnvironment = c => this.draw(c);
@@ -160,12 +117,7 @@ export class Nature {
     this.onTimeJump();
   }
   get timePreview() { return this.previewPhase; }
-  get pickedEggs() {
-    const recorded = new Set(Object.entries(this.state.picked)
-      .filter(([, count]) => count > 0)
-      .map(([key]) => key.split(":").at(-1)));
-    return (["dew", "sunset", "firefly"] as const).filter(id => recorded.has(id));
-  }
+  get pickedEggs() { return pickedGardenEggs(this.state); }
   private key(id: string) {
     return `${this.clock.day}:${this.world.scene}:${id}`;
   }
@@ -195,7 +147,7 @@ export class Nature {
     this.tick();
   }
   reset() {
-    this.state = initial();
+    this.state = readGardenBag();
     this.origin = Date.now();
     this.shift = 0;
     this.previewPhase=null;

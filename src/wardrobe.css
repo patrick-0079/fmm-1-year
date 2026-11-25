@@ -1,4 +1,4 @@
-/* Keep the wardrobe measured against the game, including when the page has a journal beside it. */
+/* The wardrobe and its map tab scale with the game window. */
 .scene-wrap {
   container-type: inline-size;
 }
@@ -29,24 +29,23 @@
   width: var(--bag-tab-size);
   height: var(--bag-tab-size);
   box-sizing: border-box;
-  border: 1px solid #886047;
+  border: 1px solid #af8d88;
   border-left: 0;
   border-radius: 0 8px 8px 0;
-  background: linear-gradient(150deg, #fff9e7, #f8dbb5);
-  box-shadow: inset -1px 0 0 1px #fff6db, 1px 1px 2px #55392d55;
+  background: #fff6e9;
+  box-shadow: 0 2px 4px #55392d33;
 }
 /* Leave the cottage shelves, meadow portal and bookshop window tappable. */
 @container (max-width: 640px) {
   .scene-wrap:is([data-current-map="room"], [data-current-map="meadow"], [data-current-map="town-books"]) > .bag-toggle { top: 52cqw; }
 }
-.bag-trigger-art {
+.bag-toggle .bag-trigger-art {
   display: block;
   position: relative;
-  width: calc(var(--bag-tab-size) - 7px);
-  margin-left: 3px;
-  aspect-ratio: 1;
-  /* The strawberry picnic bag occupies the first cell in the atlas's lower row. */
-  background: url("./assets/wardrobe-v11.webp") 2.56% 92.08% / 438% 240.4% no-repeat;
+  width: calc(var(--bag-tab-size) - 9px);
+  height: calc(var(--bag-tab-size) - 9px);
+  margin-left: 4px;
+  color: #76515c;
 }
 .bag-toggle kbd {
   position: absolute;
@@ -71,7 +70,7 @@
   border-color: #b36b76;
 }
 .scene-wrap:has(.intro-screen:not(.dismissed)) > .bag-toggle {
-  visibility: hidden;
+  display: none;
 }
 .scene-wrap:has(> .inventory-panel:not([hidden], .game-letter-reader))::after {
   content: "";

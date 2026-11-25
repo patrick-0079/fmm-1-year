@@ -284,3 +284,12 @@ export const TOWN_FRAMES = [
   { x: 993, y: 735, w: 146, h: 272 },
   { x: 1263, y: 771, w: 187, h: 236 },
 ];
+
+export const TOWN_TALKED_KEY = "fufu-town-talked-v1";
+export function readTownVisits(raw: string | null) {
+  try {
+    const list = JSON.parse(raw ?? "null");
+    if (Array.isArray(list)) return TOWN_NPCS.filter(npc => list.includes(npc.id)).map(npc => npc.id);
+  } catch { /* Optional local save. */ }
+  return [];
+}

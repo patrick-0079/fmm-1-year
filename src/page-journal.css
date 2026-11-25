@@ -23,12 +23,19 @@
 .page-journal .date-stamp strong { font-size: 15px; letter-spacing: .5px; font-weight: 600; margin-top: 4px; color: #a46883; }
 .page-journal .date-stamp small { color: #907f82; line-height: 1.5; margin-top: 5px; font-size: 12px !important; }
 .page-journal .date-stamp i { background: #faf7f0; right: 8px; }
-.page-journal .adventure-layout { grid-template-columns: minmax(0,1fr) 272px; gap: 24px; align-items: start; }
+.page-journal .adventure-layout { grid-template-columns: minmax(0,1fr); }
 .game-stage-frame { position: relative; min-width: 0; }
 
-.page-journal .local-save { display: flex; margin-top: 13px; padding-top: 12px; border-top: 1px dashed #dfd2c6; gap: 8px; }
-.page-journal .local-save .save-status { flex: 1 1 120px; font-size: 12px !important; color: #867781; }
-.page-journal .local-save .save-now { min-height: 44px; padding: 6px 10px; font-size: 12px; border-color: #d7c6b7; background: #f9f0e3; color: #80675e; }
+.adventure-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 9px; }
+.page-journal .local-save { display: flex; align-items: center; justify-content: end; flex-wrap: nowrap; gap: 8px; padding: 0; min-width: 0; }
+.local-save .save-status { color: var(--page-muted); font-size: 12px; text-align: right; }
+.page-journal .local-save .save-now, .book-trigger {
+  display: inline-flex; align-items: center; justify-content: center; flex: none; gap: 7px; min-height: 44px; padding: 5px 12px;
+  border: 1px solid #d9bfc5; border-radius: 7px; background: #fff8f0; color: #805569; font: inherit; font-size: 13px;
+}
+.book-trigger { font-size: 14px; font-weight: 600; }
+.book-trigger .icon { width: 17px; height: 17px; }
+.book-trigger:hover { background: #f7e7e5; }
 
 .page-memory-section { margin-top: 42px; }
 .page-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 21px; }
@@ -38,30 +45,16 @@
 .page-memory-cards { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; align-items: stretch; }
 .page-memory-card { appearance: none; min-width: 0; width: 100%; margin: 0; padding: 12px; display: flex; flex-direction: column; text-align: left; color: var(--page-ink); border: 1px solid #e2d2c4; border-radius: 10px; background: #fff9ed; box-shadow: 0 4px 0 #e6d9c64d; transition: transform .18s,border-color .18s; }
 .page-memory-card:hover { transform: translateY(-3px); border-color: #bf9d9f; }
-.page-memory-card .memory-cover { position: relative; display: block; width: 100%; height: 180px; min-height: 0; overflow: hidden; border-radius: 5px; background: #ede1d0; }
+.page-memory-card .memory-cover { display: block; width: 100%; aspect-ratio: 1.65; overflow: hidden; border: 1px solid #e7d8c4; border-radius: 5px; background: #f9ecda; }
 .memory-cover > img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.memory-cover .memory-postmark { position: absolute; left: 9px; top: 9px; padding: 5px 7px; display: flex; align-items: center; gap: 5px; border: 1px dashed #b28c9b; border-radius: 2px; background: #fff9e5eb; color: #9d7281; font-size: 12px; transform: rotate(-5deg); }
-.memory-postmark .icon { width: 14px; height: 14px; }
-.memory-cover .memory-flower-seal { position: absolute; right: 11px; bottom: 10px; width: 33px; height: 33px; display: grid; place-items: center; font-size: 25px; color: #fff0df; background: #c78c9d; border-radius: 50%; box-shadow: 0 1px 0 2px #e5bdc4; }
-.memory-letter { background: linear-gradient(155deg,#fffaf0,#faf0df); }
-.page-memory-card.memory-letter .memory-cover { background: radial-gradient(ellipse at center,#f4dfc54d,transparent 75%),#f7efe0; }
-.letter-envelope { display: block; width: 100%; height: 100%; transform: rotate(-3deg); }
-.memory-album { background: #fffdfa; border-color: #ded8d0; }
-.page-memory-card.memory-album .memory-cover { border: 7px solid #fffdfa; border-bottom-width: 29px; border-radius: 0; overflow: visible; box-shadow: 0 2px 6px #8879651a; }
-.memory-album .memory-cover > img { object-position: center 45%; }
-.photo-tape { position: absolute; width: 62px; height: 15px; background: #dacdb5a6; left: calc(50% - 31px); top: -12px; transform: rotate(-5deg); }
-.photo-caption { position: absolute; bottom: -24px; left: 0; right: 0; font-size: 12px; text-align: center; color: #9c7a87; }
-.page-memory-card.memory-cinema { border: 1px solid #c9d9dc; border-radius: 10px; background: #eef6f6; padding: 12px; color: var(--page-ink); }
-.memory-cinema .memory-cover { background: #cedde0; }
-.memory-cinema .cinema-play { position: absolute; inset: calc(50% - 22px) auto auto calc(50% - 22px); width: 44px; height: 44px; border-radius: 50%; background: #fff9e9e8; color: #a67b87; display: grid; place-items: center; padding-left: 3px; box-shadow: 0 2px 10px #58445033; font-size: 20px; }
-.memory-cinema .memory-film-label { position: absolute; right: 8px; bottom: 8px; color: #fff7e4; background: #665663bb; font-size: 12px; padding: 3px 8px; border-radius: 2px; }
+.memory-cover > img[hidden], .memory-cover .cover-fallback, .page-meadow-note > img[hidden] { display: none; }
+.memory-cover:has(img[hidden]) { display: grid; place-items: center; }
+.memory-cover img[hidden] + .cover-fallback { display: block; width: 28%; height: auto; color: #a47c89; }
 .page-memory-card .memory-card-copy { display: flex; flex-direction: column; flex: 1; min-width: 0; padding: 17px 9px 4px; }
 .page-memory-card .memory-card-title { font-size: 20px; font-weight: 650; line-height: 1.5; color: var(--page-ink); }
 .page-memory-card .memory-description { font-size: 15px; line-height: 1.8; color: var(--page-muted); margin-top: 6px; }
 .page-memory-card small { display: block; margin: 10px 0 12px; font-size: 12px !important; color: #9b7487; line-height: 1.7; }
-.page-memory-card.memory-cinema small { color: #65838c; }
 .page-memory-card .memory-card-action { margin-top: auto; padding-top: 12px; border-top: 1px dashed #decbbc; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 600; color: #9f6c82; min-height: 44px; }
-.memory-cinema .memory-card-action { color: #63838e; border-color: #bdcfd3; }
 .memory-card-action .icon { width: 16px; height: 16px; }
 
 .page-journal .page-meadow-note { display: flex; align-items: center; position: relative; isolation: isolate; overflow: hidden; border: 1px solid #aebbb0; border-radius: 10px; margin-top: 42px; padding: 30px 36px; min-height: 215px; text-align: left; background: #30413e; }
@@ -81,11 +74,7 @@
 .page-journal [data-page-ui] :is(button,a,summary):focus-visible { outline: 2px solid #b28394; outline-offset: 3px; }
 
 @media (max-width: 1099px) {
-  .page-journal .adventure-layout { grid-template-columns: minmax(0,1fr); gap: 22px; }
-  .page-journal .local-save { margin-top: 9px; padding-top: 8px; }
-  .page-journal .local-save .save-status { flex: 0 1 auto; }
   .page-journal .date-stamp { width: 148px; }
-  .page-memory-card .memory-cover { height: 155px; }
   .page-memory-card .memory-card-copy { padding: 14px 5px 3px; }
   .page-memory-card .memory-card-title { font-size: 18px; }
   .page-memory-card .memory-description { font-size: 14px; }
@@ -112,18 +101,8 @@
   .page-section-heading h2 { font-size: 23px; }
   .page-section-heading > p { font-size: 13px; }
   .page-memory-cards { grid-template-columns: 1fr; gap: 13px; }
-  .page-memory-card,.page-memory-card.memory-cinema { display: grid; grid-template-columns: 104px minmax(0,1fr); gap: 12px; padding: 10px; }
-  .page-memory-card .memory-cover { width: 100%; height: 100%; min-height: 151px; border-radius: 4px; }
-  .memory-cover > img { object-position: 52% 50%; }
-  .page-memory-card.memory-letter .memory-postmark { font-size: 0; left: 8px; top: 10px; padding: 5px; }
-  .memory-letter .memory-postmark .icon { width: 16px; height: 16px; }
-  .memory-cover .memory-postmark { left: 5px; top: 6px; font-size: 12px; padding: 4px; gap: 3px; }
-  .memory-postmark .icon { width: 11px; height: 11px; }
-  .memory-cover .memory-flower-seal { width: 26px; height: 26px; right: 8px; bottom: 9px; font-size: 21px; }
-  .page-memory-card.memory-album .memory-cover { border-width: 4px; border-bottom-width: 23px; min-height: 151px; }
-  .photo-caption { display: none; }
-  .photo-tape { width: 42px; left: calc(50% - 21px); height: 12px; top: -8px; }
-  .memory-cinema .memory-film-label { left: 5px; right: 5px; bottom: 5px; padding: 3px; font-size: 12px; text-align: center; }
+  .page-memory-card { display: grid; grid-template-columns: 104px minmax(0,1fr); gap: 12px; padding: 10px; }
+  .page-memory-card .memory-cover { align-self: center; aspect-ratio: 1; }
   .page-memory-card .memory-card-copy { padding: 2px 1px 0; }
   .page-memory-card .memory-card-title { font-size: 18px; }
   .page-memory-card .memory-description { font-size: 14px; line-height: 1.7; margin-top: 5px; }
@@ -144,7 +123,7 @@
   .page-journal .brand small { font-size: 12px !important; max-width: 180px; }
   .page-journal .bili-link .icon { display: none; }
   .page-journal .page-intro h1 { font-size: 24px; }
-  .page-memory-card,.page-memory-card.memory-cinema { grid-template-columns: 88px minmax(0,1fr); gap: 10px; padding: 9px; }
+  .page-memory-card { grid-template-columns: 88px minmax(0,1fr); gap: 10px; padding: 9px; }
   .page-memory-card .memory-card-title { font-size: 17px; }
 }
 /* Keep the existing welcome overlay inside the smallest 3:2 stage. The

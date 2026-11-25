@@ -75,8 +75,11 @@ test("switching full → invitation → full cleans the deployed directory", asy
   }
   for (const prefix of ["wardrobe-v11", "reward-icons", "flower-wreath", "fufu-garments", "fufu-footwear",
     "strawberry-flats", "qingya-bouquet", "stationery-sealed", "stationery-album", "astrolabe-relics",
-    "keepsakes", "meadow-postcard", "arcade-postcard", "fufu-cursor-arrow", "fufu-cursor-play"]) {
+    "keepsakes", "steam-achievement", "arcade-postcard", "fufu-cursor-arrow", "fufu-cursor-play"]) {
     assert.ok(entries.some(([path, , scenes]) => path.startsWith("assets/" + prefix + "-") && scenes.includes("*")), prefix);
+  }
+  for (const prefix of ["journal-letter", "journal-album", "journal-cinema", "meadow-postcard"]) {
+    assert.deepEqual(entries.find(([path]) => path.startsWith("assets/" + prefix + "-"))?.[2], ["page"], prefix);
   }
   assert.deepEqual(entries.map(([file]) => file).sort(), explicit.files.filter(name => name.startsWith("assets/")));
   assert.match(entries[0][0], /^assets\/nemu-sprites-/);

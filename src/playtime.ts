@@ -8,7 +8,7 @@ interface ClockRecord {
   through: number;
   epoch: string;
 }
-function readClock(raw: string | null): ClockRecord {
+export function readClock(raw: string | null): ClockRecord {
   try {
     const record = JSON.parse(raw ?? "null") as ClockRecord | null;
     if (record && Number.isSafeInteger(record.milliseconds) && record.milliseconds >= 0 &&

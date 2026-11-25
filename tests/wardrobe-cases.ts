@@ -20,6 +20,10 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   scene.scrollIntoView({block:"center",behavior:"instant"});
   await frame();
   const bounds = world.canvas.getBoundingClientRect();
+  const tab = trigger.getBoundingClientRect();
+  const art = trigger.querySelector("svg.bag-trigger-art");
+  check(art && art.getBoundingClientRect().width >= 18, "地图背包图标没有绘制");
+  if (matchMedia("(pointer: coarse)").matches) check(tab.width >= 44 && tab.height >= 44, "触屏背包入口过小");
   const scroll = scrollY;
   const sameFrame = () => {
     const current = world.canvas.getBoundingClientRect();

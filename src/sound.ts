@@ -1,5 +1,6 @@
-// Original, locally synthesized music and effects. No downloads or audio service.
+// Scene music and synthesized effects share the mixer with the bundled badge chime.
 import type { BaseSceneId, SceneId } from "./maps";
+import achievementSound from "./assets/steam-achievement.wav";
 import { isTownInterior } from "./town-interior-id";
 import type { FoxCall } from "./fox-memory";
 import { createLullaby, eighthLength, lullabyPulses } from "./lullaby";
@@ -8,6 +9,27 @@ let context: AudioContext | undefined;
 let master: GainNode | undefined;
 let music: GainNode | undefined;
 let effects: GainNode | undefined;
+let badgeBuffer: Promise<AudioBuffer> | undefined;
+function loadBadgeSound(audio: AudioContext) {
+  return badgeBuffer ??= fetch(achievementSound, { mode: "same-origin" })
+    .then(response => {
+      if (!response.ok) throw Error("徽章提示音未能载入");
+      return response.arrayBuffer();
+    }).then(bytes => audio.decodeAudioData(bytes))
+    .catch(error => { badgeBuffer = undefined; throw error; });
+}
+export async function playAchievementSound() {
+  if (!context || !effects || !enabled || !volume || document.hidden) return;
+  try {
+    const buffer = await loadBadgeSound(context);
+    if (!enabled || !volume || document.hidden || context.state !== "running") return;
+    const voice = context.createBufferSource();
+    voice.buffer = buffer;
+    voice.connect(effects);
+    voice.start();
+    voice.onended = () => voice.disconnect();
+  } catch { /* A missing audio device must not interrupt the badge notification. */ }
+}
 let enabled = true,
   bgm = true,
   volume = 0.45;
@@ -61,6 +83,7 @@ export function unlockAudio() {
     music.connect(master);
     effects.connect(master);
     master.connect(context.destination);
+    void loadBadgeSound(context).catch(() => {});
     const playPulse = createLullaby(context, music);
     nextNote = context.currentTime + 0.05;
     scheduler = setInterval(() => {

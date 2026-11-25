@@ -76,28 +76,6 @@
 .game-window:has(.cinema-active) .touch-controls {
   display: none;
 }
-.cinema-shortcut {
-  display: block;
-  width: 100%;
-  text-align: left;
-  margin-top: 10px;
-  border: 2px solid #c5ac91;
-  background: #f7ebd3;
-  padding: 10px 12px;
-  border-radius: 0;
-  color: #92677d;
-}
-.cinema-shortcut span {
-  display: block;
-  font-size: 11px;
-}
-.cinema-shortcut small {
-  display: block;
-  margin-top: 5px;
-  font-size: 8px;
-  line-height: 1.8;
-  color: #aa947d;
-}
 @media (max-width: 540px) {
   .cinema-hud {
     position: relative;
