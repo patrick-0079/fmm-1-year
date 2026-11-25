@@ -28,6 +28,14 @@ test("saved positions remain safe after removing the anniversary bench and closi
       "removing the bench does not move players saved at its former get-up point");
   }
 });
+test("a garden save on the old waterfall ledge resumes on dry land", () => {
+  const ledge = {scene:"garden",x:791,y:400,savedAt};
+  const bank = {scene:"garden",x:773,y:440,savedAt};
+  for (const flowers of [[],rainbowIds]) {
+    assert.deepEqual(readJourney(JSON.stringify(ledge),flowers),{...ledge,...scenes.garden.spawn});
+    assert.deepEqual(readJourney(JSON.stringify(bank),flowers),bank);
+  }
+});
 test("malformed location data cannot enter an unknown scene or disturb earned records", () => {
   for (const raw of [null, "{", "null", JSON.stringify({scene:"constructor",x:30,y:40,savedAt}),
     JSON.stringify({scene:["room"],x:40,y:40,savedAt}), JSON.stringify({scene:"room",x:40,y:40,savedAt:Number.MAX_SAFE_INTEGER}),

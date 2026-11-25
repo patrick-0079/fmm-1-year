@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canStand, canTravelBetween, findPath } from "../src/core.ts";
-import { scenes, type SceneId } from "../src/maps.ts";
+import { canStand, canTravelBetween, findPath, movePlayer } from "../src/core.ts";
+import { bloomingGarden, scenes, type SceneId } from "../src/maps.ts";
 import { creeks } from "../src/creek-layout.ts";
 import { lightBrick, mirrorSpots, moonPlate } from "../src/ruins-map.ts";
 
@@ -25,6 +25,32 @@ test("garden feet follow the pond fence, western bench, cinema seats and balloon
   checkFeet("garden",
     [[78,391],[82,198],[620,291],[715,225],[197,440],[212,202],[250,185],[275,287]],
     [[100,150],[813,430],[53,365],[395,557],[482,559],[185,473],[650,264],[668,285],[250,206]]);
+});
+
+test("the picnic waterfall stops feet at the upper rocks, cliff and pool while the lawn stays connected", () => {
+  const edges = [
+    { lawn:{x:755,y:400}, water:{x:791,y:400} },
+    { lawn:{x:773,y:440}, water:{x:791,y:440} },
+    { lawn:{x:737,y:503}, water:{x:761,y:503} },
+  ];
+  for (const map of [scenes.garden, bloomingGarden]) {
+    for (const {lawn, water} of edges) {
+      assert.deepEqual(findPath(map.spawn,lawn,map)?.at(-1),lawn);
+      assert.equal(canStand(water,map.walls,map.bounds,map.floor),false);
+      assert.equal(canTravelBetween(lawn,water,map),false);
+      const route = findPath(lawn,water,map);
+      let foot = lawn;
+      for (const next of route ?? []) {
+        assert.ok(canTravelBetween(foot,next,map));
+        foot = next;
+      }
+      assert.notDeepEqual(foot,water);
+      foot = lawn;
+      for (let tick=0; tick<20; tick++) foot = movePlayer(foot,{x:1,y:0},.05,map.walls,map.bounds,map.floor);
+      assert.ok(foot.x>lawn.x && foot.x<water.x);
+      assert.ok(canStand(foot,map.walls,map.bounds,map.floor));
+    }
+  }
 });
 
 test("both stream bridges admit crossings in each direction and stop feet at either rail", () => {
