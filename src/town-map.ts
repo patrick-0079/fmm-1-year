@@ -141,6 +141,9 @@ export const townScene: Scene = {
       [334,617],[339,634],[346,646],[356,656],
     ]),
     ...plazaWalls, ...southWestPostWalls, ...workshopVegetationWalls, ...northStreetWalls,
+    ...fenceSegments("心愿草坪东侧短栏", [[606,366],[614,370],[634,359],[642,351]], 2.5),
+    {label:"心愿草坪树旁花盆", points:[[676,350],[689,349],[692,351],
+      [690,353.5],[680,355],[675.5,353]].map(([x,y])=>({x,y}))},
     ...southWestFoliageWalls,
     ...northEastFoliageWalls,
     ...fenceSegments("南侧池塘栅栏", [

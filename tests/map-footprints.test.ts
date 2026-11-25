@@ -34,6 +34,36 @@ test("the garden south lantern can be approached behind its pier while both neig
   assert.ok(canTravelBetween({x:573,y:543},{x:573,y:569},scenes.garden));
 });
 
+test("both lower plaza fences stop feet at the stone and leave the centre path and both sides walkable", () => {
+  checkFeet("garden",
+    [[341,383],[352,386],[355,420],[543,382],[530,386],[525,420],[440,421]],
+    [[338,392],[350,402],[363,406],[376,412],[547,392],[532,402],[518,406],[506,412]]);
+  for (const map of [scenes.garden,bloomingGarden]) {
+    for (const x of [350,532]) {
+      assert.equal(canTravelBetween({x,y:382},{x,y:425},map),false);
+      assert.equal(canTravelBetween({x,y:425},{x,y:382},map),false);
+    }
+    assert.ok(canTravelBetween({x:440,y:382},{x:440,y:435},map));
+  }
+});
+
+test("the wish lawn joins the eastern road past the tree in either direction", () => {
+  const map=scenes.town, west={x:596,y:340}, east={x:718,y:340};
+  checkFeet("town", [[596,340],[610,340],[631,339],[665,333],[696,336],[718,340]],
+    [[614,369],[634,358],[659,356],[682,353],[608,269]]);
+  for (const [start,end] of [[west,east],[east,west]]) {
+    const route=findPath(start,end,map);
+    assert.deepEqual(route?.at(-1),end);
+    let previous=start;
+    for (const next of route!) {
+      assert.ok(canTravelBetween(previous,next,map));
+      assert.ok(next.y>=315 && next.y<=348,"the crossing stays by the tiles");
+      previous=next;
+    }
+  }
+  assert.ok(canTravelBetween(west,{x:627,y:340},map));
+});
+
 test("the picnic waterfall stops feet at the upper rocks, cliff and pool while the lawn stays connected", () => {
   const edges = [
     { lawn:{x:755,y:400}, water:{x:791,y:400} },
