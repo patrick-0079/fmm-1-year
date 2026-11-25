@@ -44,6 +44,8 @@ interface DepthCase {
   overhead?:boolean;
   solid:Point[];
   clear:Point[];
+  // Pixel centres on a separately drawn prop in front of the painted scenery.
+  frontProp?:Point[];
   // The old lamp's right handle aperture is less than two device pixels wide
   // at DPR 1 on a 390 px screen; permit edge antialiasing, never an opaque fill.
   subpixelClear?:number[];
@@ -145,6 +147,17 @@ const cases:DepthCase[]=[
     solid:[[625,844],[610,852],[639,857],[625,874],[625,901],[626,908],[625,934],[635,976]].map(([x,y])=>pixel(x,y)),
     clear:[[607,875],[610,886],[619,899],[631,903],[621,905],[636,914],[640,924],[640,939],[616,966],[616,854],[635,855]].map(([x,y])=>pixel(x,y)),
   }},
+  {id:"south-gate-east-lantern",scene:"garden",depth:577,
+    solid:[gp(878,845),gp(878,875),gp(878,903)],clear:[gp(870.8,854.2),gp(885.9,853.8),gp(859,877)],
+    actorOverlap:{feet:{x:514,y:540.2},facing:0,covered:[gp(878,875),gp(878,888),gp(878,902)],visible:{x:507,y:516}}},
+  {id:"south-gate-east-lantern-pier",scene:"garden",depth:577,
+    solid:[gp(877,920),gp(876,948),gp(870,975)],clear:[gp(866,911),gp(858,945),gp(888,976)]},
+  // The painted fence shares the wicket's sorting plane so the wooden leaf stays in front.
+  {id:"south-gate-east-heart-fence",scene:"garden",depth:555,
+    solid:[gp(897,935),gp(917,946),gp(911,949)],clear:[gp(901.5,946.4),gp(897,926)],
+    frontProp:[gp(930,938),gp(915,935)]},
+  {id:"south-gate-east-fence-post",scene:"garden",depth:555,
+    solid:[gp(943.4,921),gp(943.5,954)],clear:[gp(951.9,955),gp(954,966)],frontProp:[gp(941,929)]},
   {id:"northwest-path-lamp",scene:"garden",depth:418*gardenScale,solid:[gp(670,345)],clear:[gp(710,365),gp(670,433)],edges:{
     solid:[[672,325],[667,333],[670,347],[672,362]].map(([x,y])=>pixel(x,y)),
     clear:[[668,318],[661,329],[659,345],[679,362]].map(([x,y])=>pixel(x,y)),
@@ -217,8 +230,8 @@ const cases:DepthCase[]=[
   {id:"garden-sign",scene:"garden",depth:479,solid:[{x:191,y:415},{x:208,y:415}],clear:[{x:197,y:420},{x:205,y:471}],existingOutline:gardenSign,fragments:[gardenSign]},
   {id:"garden-screen",scene:"garden",depth:273,solid:[{x:708,y:163},{x:721,y:164}],clear:[{x:716,y:169},{x:680,y:175}],existingOutline:televisionSilhouette,fragments:[televisionSilhouette]},
   {id:"town-west-tree",scene:"town",depth:432,solid:[{x:340,y:350},{x:320,y:370}],clear:[{x:330,y:331},{x:345,y:334}],existingOutline:townCanopies[0].points,fragments:[townCanopies[0].points]},
-  {id:"south-road-west-crowns",scene:"town",depth:1025,solid:[{x:533,y:966},{x:579,y:978}],clear:[{x:560,y:970},{x:595,y:984}],canopyEdge:{x:533,y:996},existingOutline:southEdgeCanopies[0].points,fragments:[southEdgeCanopies[0].points]},
-  // Use a leaf inside the face aperture with a stable colour on both town textures.
+  // Sample the interior of a leaf in the face aperture on both town textures.
+  {id:"south-road-west-crowns",scene:"town",depth:1025,solid:[{x:531,y:968},{x:579,y:978}],clear:[{x:560,y:970},{x:595,y:984}],canopyEdge:{x:533,y:996},existingOutline:southEdgeCanopies[0].points,fragments:[southEdgeCanopies[0].points]},
   {id:"south-road-east-crowns",scene:"town",depth:1025,solid:[{x:737,y:970},{x:804,y:1001}],clear:[{x:775,y:970},{x:791,y:991}],canopyEdge:{x:737,y:998},existingOutline:southEdgeCanopies[1].points,fragments:[southEdgeCanopies[1].points]},
 ];
 const run=document.querySelector<HTMLButtonElement>("#depth-run")!;
@@ -292,6 +305,13 @@ async function verify(test:DepthCase){
     world.onLighting=()=>{};world.onEffects=()=>{};world.onOverlay=()=>{};world.onDraw=()=>{};
     world.setFocus(center,1.3);
     drawNow();photo("原景（不含人物）");
+    if(test.frontProp){
+      const complete=test.frontProp.map(sample);
+      // World adds the connection gate after getDepthLayers(), even with no scenery layers.
+      world.getDepthLayers=()=>[];drawNow();
+      for(const [i,p] of test.frontProp.entries())
+        assert(sample(p).rgb.every((v,j)=>Math.abs(v-complete[i].rgb[j])<=3),"围栏盖住了相邻的木门");
+    }
     world.getDepthLayers=()=>[...saved.layers(),probe(test.depth-1)];drawNow();
     record.behind=points.map(sample);photo("脚底在柱后：拱顶遮挡；门洞保留（其他前景树仍会遮挡）");
     const frontDepth=test.overhead ? world.config.height+1 : test.depth+1;
@@ -333,8 +353,8 @@ async function verify(test:DepthCase){
       const changed=(point:Sample,i:number)=>point.rgb.some((v,j)=>Math.abs(v-bare[i].rgb[j])>8);
       assert(landmarks.map(sample).every(changed),"人物没有经过指定像素，请核实脚点和朝向");
       world.getDepthLayers=saved.layers;drawNow();
-      assert(!covered.map(sample).some(changed)&&changed(sample(visible),covered.length),"人物与伞顶、伞沿或伞杆的前后关系有误");
-      photo("反馈位置：人物站在伞后，头顶从伞面上方露出");
+      assert(!covered.map(sample).some(changed)&&changed(sample(visible),covered.length),"实景物体未按轮廓遮住人物，或轮廓外的人物消失");
+      photo("反馈位置：实景轮廓内遮住人物，轮廓外的人物可见");
     }
     const positions=test.actor?.positions??[test.solid[0].y+24,test.depth-18,test.depth+15];
     for(const [index,label]of ["人物经过上方背后","人物位于门洞／支柱中段","人物站在门前／柱前"].entries()){world.player={x:test.actor?.x??center.x,y:positions[index]};drawNow();photo(label);}

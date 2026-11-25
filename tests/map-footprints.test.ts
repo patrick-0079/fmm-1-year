@@ -27,6 +27,13 @@ test("garden feet follow the pond fence, western bench, cinema seats and balloon
     [[100,150],[813,430],[53,365],[395,557],[482,559],[185,473],[650,264],[668,285],[250,206]]);
 });
 
+test("the garden south lantern can be approached behind its pier while both neighbouring passages stay open", () => {
+  checkFeet("garden",
+    [[514,540.2],[531,540],[450,568],[573,551],[566,568]],
+    [[514,576],[536,554],[552,563]]);
+  assert.ok(canTravelBetween({x:573,y:543},{x:573,y:569},scenes.garden));
+});
+
 test("the picnic waterfall stops feet at the upper rocks, cliff and pool while the lawn stays connected", () => {
   const edges = [
     { lawn:{x:755,y:400}, water:{x:791,y:400} },
