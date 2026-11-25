@@ -76,19 +76,30 @@ try {
       if (name !== "day") await picture(room + "-window-" + name);
     }
   }
-  await phase("day");
   // Compare the same patch of map before and after the player walks behind the prop.
-  for (const [x, y, solid, air] of [
-    [178, 281, [176,278], [175,269]], [61,279,[58,252],[59,244]],
-    [50,235,[55,208],[44,207]], [300,124,[306,96],[295,98]],
+  for (const [room, time, size, poses] of [
+    ["baker", "day", 3, [
+      [178,281,[176,278],[175,269]], [61,279,[58,252],[59,244]],
+      [50,235,[55,208],[44,207]], [300,124,[306,96],[295,98]],
+    ]],
+    ["radio", "dusk", 2, [[193,145,[198,115],[195,109]]]],
+    ["hall", "night", 2, [[111,124,[108,108],[109,100]]]],
+    ["books", "dawn", 2, [
+      [181,131,[191,114],[187,112]], [557,184,[553,170],[559,180]],
+    ]],
   ]) {
-    await stand("town-baker", 300, 340);
-    const floor = await pixels(...air, 3, 3), prop = await pixels(...solid, 3, 3);
-    await stand("town-baker", x, y);
-    assert.ok(difference(floor, await pixels(...air, 3, 3)) > 7, "character visible beside bakery prop at " + [x,y]);
-    assert.ok(difference(prop, await pixels(...solid, 3, 3)) < 5, "solid bakery contour at " + [x,y]);
-    await picture("baker-" + x + "-" + y);
+    await phase(time);
+    const scene = "town-" + room;
+    for (const [x, y, solid, air] of poses) {
+      await stand(scene, 300, 340);
+      const floor = await pixels(...air, size, size), prop = await pixels(...solid, size, size);
+      await stand(scene, x, y);
+      assert.ok(difference(floor, await pixels(...air, size, size)) > 7, scene + " character visible at " + air);
+      assert.ok(difference(prop, await pixels(...solid, size, size)) < 5, scene + " furniture covers the character at " + solid);
+      await picture(room + "-" + x + "-" + y);
+    }
   }
+  await phase("day");
   async function walkTo(x, y) {
     await hit(await page.evaluate(([x, y]) => window.contentQA.pointAt(x, y), [x, y]));
     await page.waitForFunction(([x, y]) => {

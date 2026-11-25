@@ -121,14 +121,20 @@ test("a departing shopkeeper can walk around a stationary player in the corridor
   }
 });
 
-test("the live indoor maps share the collision and depth footprint for each illustrated prop", () => {
+test("indoor props sort at their supporting footprint and all actions stay reachable", () => {
   for (const room of Object.values(townInteriors)) {
     const id = townInteriorId(room.key);
     assert.equal(room.art.props.length, room.scene.walls.length);
     room.art.props.forEach((prop, index) => {
       const wall = room.scene.walls[index];
       assert.ok("points" in wall);
-      assert.equal(prop.depth, Math.max(...wall.points.map(p => p.y)));
+      if (room.key === "radio" && prop.name === "话筒底座") {
+        const consoleDepth = room.art.props.find(item => item.name === "调音台")!.depth;
+        assert.equal(prop.depth, consoleDepth);
+        assert.ok(Math.max(...wall.points.map(p => p.y)) < consoleDepth);
+      } else {
+        assert.equal(prop.depth, Math.max(...wall.points.map(p => p.y)));
+      }
     });
     for (const phase of Object.keys(room.shifts) as Phase[]) {
       const dynamic = new TownResidentMap(room.scene, id);
@@ -312,6 +318,57 @@ test("the bakery silhouettes follow tin lids, cake tiers, balloons and the space
     const opacity = ([px, py]: readonly number[]) => mask[(py - 2 * y) * width + px - 2 * x] ?? 0;
     for (const point of inside) assert.ok(opacity(point) > 235, art.props[index].name + " solid at " + point);
     for (const point of outside) assert.ok(opacity(point) < 20, art.props[index].name + " clear at " + point);
+  }
+});
+
+test("furniture cutouts cover painted objects and leave the adjoining floor visible", async () => {
+  // Landmarks taken from the original 1200 × 800 paintings, independently of the masks.
+  const rooms = [
+    ["florist", [
+      ["花墙矮柜", [[565,208]], [[580,198]]],
+    ]],
+    ["baker", [
+      ["回折陈列柜", [[1070,445]], [[1075,437]]],
+    ]],
+    ["maker", [
+      ["材料抽屉柜", [[288,138]], [[302,121]]],
+      ["藤紫南角花盆", [[112,606],[94,608]], [[57,620]]],
+    ]],
+    ["post", [
+      ["邮戳机工作桌", [[995,386]], [[985,380],[1039,382]]],
+      ["待寄包裹柜", [[605,641]], [[721,566],[670,644]]],
+    ]],
+    ["books", [
+      ["装帧桌", [[384,229]], [[374,229],[382,223]]],
+      ["矮书架", [[645,300],[662,301]], [[606,197]]],
+      ["临窗阅读椅", [[1080,282]], [[1072,308]]],
+      ["茶几", [[1047,343],[1069,327]], [[1122,365],[1067,322]]],
+    ]],
+    ["radio", [
+      ["调音台", [[306,250]], [[308,245]]],
+      ["话筒底座", [[366,246],[400,230]], [[401,223]]],
+      ["监听设备架", [[1074,405],[1048,409]], [[1041,402]]],
+    ]],
+    ["hall", [
+      ["周岁徽章边柜", [[217,217]], [[224,205]]],
+      ["小镇街景展架", [[186,455]], [[186,447]]],
+      ["展厅西侧绿植", [[60,465],[89,450]], [[66,493]]],
+      ["展厅东南角绿植", [[1083,499]], [[1061,512]]],
+    ]],
+  ] as const;
+  for (const [key, pieces] of rooms) {
+    const { art } = townInteriors[townInteriorId(key)];
+    const filename = fileURLToPath(new URL(`../src/assets/town-interiors/${key}.webp`, import.meta.url));
+    const atlas = await sharp(filename).extractChannel("alpha").raw().toBuffer({ resolveWithObject: true });
+    for (const [name, solid, clear] of pieces) {
+      const [sx, sy, w, h, l, t] = art.props.find(prop => prop.name === name)!.variants.day;
+      const alpha = ([x, y]: readonly [number, number]) => {
+        const col = x - l * art.scale, row = y - t * art.scale;
+        return col < 0 || row < 0 || col >= w || row >= h ? 0 : atlas.data[(sy + row) * atlas.info.width + sx + col];
+      };
+      for (const point of solid) assert.ok(alpha(point) > 235, name + " solid at " + point);
+      for (const point of clear) assert.ok(alpha(point) < 20, name + " clear at " + point);
+    }
   }
 });
 

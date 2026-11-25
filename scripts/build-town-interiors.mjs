@@ -143,7 +143,9 @@ async function compile(place) {
   let maskY = 0;
   for (const [i, [name, left, top, width, height]] of silhouettes[place].entries()) {
     if ((matchingFoot[name] ?? name) !== walls[i].label) throw Error("Mismatched footprint: " + name);
-    const depth = Math.max(...walls[i].points.map(p => p[1]));
+    // The boom is bolted to the mixing desk. Its narrow base still blocks feet independently.
+    const support = place === "radio" && name === "话筒底座" ? walls.find(wall => wall.label === "调音台") : walls[i];
+    const depth = Math.max(...support.points.map(p => p[1]));
     const rgb = await sharp(base).extract({ left, top, width, height }).removeAlpha().png().toBuffer();
     const alpha = await sharp(maskSheet).extract({ left: 0, top: maskY, width, height }).extractChannel(0).raw().toBuffer();
     const sprite = await sharp(rgb).joinChannel(alpha, { raw: { width, height, channels: 1 } }).png().toBuffer();
