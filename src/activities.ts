@@ -515,7 +515,7 @@ export class Activities {
     speaker: string,
     text: string,
     options: { title: string; run: () => void }[],
-    paint: ((c: CanvasRenderingContext2D) => void) | null,
+    paint: ((c: CanvasRenderingContext2D) => void) | { draw: (c: CanvasRenderingContext2D) => void; ready: Promise<boolean> } | null,
     at: Point,
     onClose?: () => void,
     hint?: string,
@@ -545,7 +545,8 @@ export class Activities {
       const c = this.portrait.getContext("2d")!;
       c.clearRect(0, 0, 48, 56);
       c.imageSmoothingEnabled = false;
-      paint(c);
+      if (typeof paint === "function") paint(c);
+      else void paint.ready.then(ok => { if (ok && this.dialogueAt === encounter) paint.draw(c); });
     }
     for (const option of options) this.action(option.title, () => {
       if (this.dialogueAt === encounter && !this.dismissIfOutOfReach()) option.run();

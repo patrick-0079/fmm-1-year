@@ -1,7 +1,7 @@
 import { motif, type PixelMotif } from "./arcade-pixels";
 import { applyStationeryTheme } from "./stationery-themes";
 import { townInteriorKeys } from "./town-interior-id";
-import { drawTownKeepsake } from "./town-keepsake-art";
+import { drawTownKeepsake, prepareTownKeepsakeArt, townKeepsakeArtReady } from "./town-keepsake-art";
 import { townKeepsakeBadge } from "./town-keepsakes";
 
 type Ink = CanvasRenderingContext2D;
@@ -536,11 +536,14 @@ const art: Record<string, (c: Ink) => void> = {
   },
 };
 
-for (const key of townInteriorKeys) art[townKeepsakeBadge(key)] = c => drawTownKeepsake(c, key, 1, 0, 30);
+for (const key of townInteriorKeys) art[townKeepsakeBadge(key)] = c => drawTownKeepsake(c, key, undefined, 1, 0, 30);
 
 export const hasDrawnStamp = (id: string) => Object.hasOwn(art, id);
 
 export function paintAchievementArt(root: HTMLElement) {
+  if (!townKeepsakeArtReady() && root.querySelector('[data-stamp-art^="town-keepsake-"]')) {
+    void prepareTownKeepsakeArt().then(ok => { if (ok && root.isConnected) paintAchievementArt(root); });
+  }
   for (const canvas of root.querySelectorAll<HTMLCanvasElement>("canvas[data-stamp-art]")) {
     const c = canvas.getContext("2d");
     if (!c) continue;

@@ -11,7 +11,7 @@ import { World, scenes, type SceneId } from "./world";
 import { isTownInterior } from "./town-interior-id";
 import { townInteriors } from "./town-interiors";
 import { TownInteriorActivities } from "./town-interior-activities";
-import { collectTownKeepsake, mergeTownKeepsakes, townKeepsakeInfo } from "./town-keepsakes";
+import { collectTownKeepsake, mergeTownKeepsakes, townKeepsakeChoice, townKeepsakeInfo } from "./town-keepsakes";
 import { ResidentChats } from "./resident-chats";
 import { InteractionPrompt } from "./interaction-prompt";
 import { resolveCue } from "./interaction-cues";
@@ -224,11 +224,13 @@ export function mountGame() {
   function mergeLiveCollections(other: ReturnType<typeof readProgress>) {
     const flowers = progress.rainbowFlowers.length, visited = progress.visited.length;
     const { items, radioTrack } = progress.townKeepsakes;
+    const flower = townKeepsakeChoice(progress.townKeepsakes, "florist"), postcard = townKeepsakeChoice(progress.townKeepsakes, "post");
     const souvenirs = items.length;
     mergeCollections(progress, other);
     if (flowers !== progress.rainbowFlowers.length) flowerTrail.refresh();
     if (visited !== progress.visited.length) document.querySelector("#explored")!.textContent = String(progress.visited.length);
-    if (souvenirs !== items.length || radioTrack !== progress.townKeepsakes.radioTrack) {
+    if (souvenirs !== items.length || radioTrack !== progress.townKeepsakes.radioTrack
+      || flower !== townKeepsakeChoice(progress.townKeepsakes, "florist") || postcard !== townKeepsakeChoice(progress.townKeepsakes, "post")) {
       inventory.refreshTownKeepsakes();
       interiorActivities.refreshCollection();
     }
@@ -325,7 +327,7 @@ export function mountGame() {
     toast,
     reward: (id) => inventory.grant(id),
   });
-  const interiorActivities = new TownInteriorActivities(world, activities, () => progress.townKeepsakes, (key, track) => {
+  const interiorActivities = new TownInteriorActivities(world, activities, () => progress.townKeepsakes, (key, choice) => {
     if (resetInProgress || sharedResetPending) return false;
     const book = progress.townKeepsakes;
     // Recheck the shared receipt before collecting. A player in another tab
@@ -339,7 +341,7 @@ export function mountGame() {
         mergeAchievementProgress(progress, other);
       }
     } catch { /* The souvenir can still be collected for this session. */ }
-    if (!collectTownKeepsake(book, key, track)) {
+    if (!collectTownKeepsake(book, key, choice)) {
       inventory.refreshTownKeepsakes();
       refreshAchievements?.(false);
       return false;
@@ -381,7 +383,7 @@ export function mountGame() {
     {
       canSave: canSaveReceipts,
       story: () => progress.residents, mail, save, notify: toast,
-      keepsakes: () => progress.townKeepsakes.items,
+      keepsakes: () => progress.townKeepsakes,
       readPost: onReturn => {
         if (progress.residents.postDelivered) inventory.openMail(postLetter.id, onReturn);
       },

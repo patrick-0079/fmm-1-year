@@ -23,6 +23,7 @@ import visitorsUrl from "./assets/anniversary-visitors.webp";
 import townNpcsUrl from "./assets/town-npcs.webp";
 import type { BaseSceneId, SceneId } from "./maps";
 import { isTownInterior } from "./town-interior-id";
+import { prepareTownKeepsakeArt } from "./town-keepsake-art";
 export { keepsakesUrl, skiesUrl, relicsUrl };
 
 export const sceneArt = {foxRest:new Image(), balloonGuest:new Image(), gardenerWork:new Image(), playgroundAnimations:new Image(), keepsakes:new Image(), skies:new Image(), gate:new Image(), bass:new Image(), relics:new Image(), astrolabeProps:new Image(), fox:new Image(), picnic:new Image(), peachWalk:new Image(), quarry:new Image(), elders:new Image(), xiaoye:new Image(), xiaoyeEmbrace:new Image(), yeshenhua:new Image(), suyan:new Image(), townGuests:new Image(), patrickCamp:new Image(), anniversaryVisitors:new Image()};
@@ -56,6 +57,7 @@ export function prepareProp(key: Prop, priority: "high" | "low" = "high") {
   return ready;
 }
 export function prepareSceneArt(scene: SceneId) {
+  if (scene === "town-hall") return Promise.all([prepareTownNpcSheet(), prepareTownKeepsakeArt()]);
   if (isTownInterior(scene))
     return scene === "town-radio" ? Promise.all([prepareTownNpcSheet(), prepareProp("yeshenhua")]) : prepareTownNpcSheet();
   const idle = idleArtByScene[scene];

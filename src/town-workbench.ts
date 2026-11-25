@@ -20,7 +20,7 @@ interface PointerGesture {
 
 interface WorkbenchHooks {
   preview: (step: string | undefined, rotation: number) => void;
-  collect: (track?: RadioTrack, choice?: string) => void;
+  collect: (choice?: string) => void;
 }
 
 const clamp = (value: number, max = 1) => Math.max(0, Math.min(max, value));
@@ -105,7 +105,7 @@ export class TownWorkbench {
       claim.addEventListener("click", () => {
         if (this.closed || this.collected) return;
         this.collected = true;
-        this.hooks.collect(this.track, this.choice);
+        this.hooks.collect(this.choice);
       });
       this.surface.append(claim);
       if (focus) claim.focus({ preventScroll: true });

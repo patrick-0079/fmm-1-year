@@ -2,7 +2,7 @@ import type { Point } from "./core";
 import type { TownInteriorKey } from "./town-interior-id";
 import workshopUrl from "./assets/town-interiors/workbench.webp";
 import frames from "./town-workbench-frames.json";
-import { drawTownKeepsake } from "./town-keepsake-art";
+import { drawFinishedKeepsake, prepareTownKeepsakeArt } from "./town-keepsake-art";
 import { workbenchSize, type WorkbenchStep } from "./town-workbench-steps";
 
 type Ink = CanvasRenderingContext2D;
@@ -28,7 +28,7 @@ export function prepareWorkbenchArt() {
     image.src = workshopUrl;
     loading = image.decode().then(() => { sheet = image; }).catch(() => { loading = undefined; });
   }
-  return loading;
+  return Promise.all([loading, prepareTownKeepsakeArt()]);
 }
 
 function path(c: Ink, shape: string, color: string, fill = false) {
@@ -146,39 +146,6 @@ function film(c: Ink, count: number, rotation: number, ticket: boolean) {
   if (ticket) box(c, 202, 76, 5, 19, "#503a31", 1, "#d2a569");
 }
 
-function result(c: Ink, room: TownInteriorKey, choice?: string) {
-  switch (room) {
-    case "books": foldedAlbum(c, "unfold", 1); break;
-    case "florist": {
-      c.save(); c.translate(169, 69); c.rotate(-.1);
-      box(c, -24, -44, 48, 88, "#f3e7ca", 3, "#ab8159");
-      box(c, -20, -40, 40, 80, "#fff7db", 2, "#dfc18f");
-      path(c, "M-4 30Q-1 10 8-10m-10 34-7-7m9-1 6-7", "#86905a");
-      item(c, choice === "cream" ? "cream" : "lilac", 1, -4, 33, 33);
-      path(c, "M0-40Q-14-48-8-51Q-3-51 0-42Q6-52 11-48Q14-44 0-40Z", "#b97d86", true);
-      c.restore(); break;
-    }
-    case "post": {
-      item(c, choice === "lamps" ? "lamps" : "flags", 168, 67, 141, 97);
-      disc(c, 218, 37, 10, "#ad5346", "#7e4539");
-      path(c, "M219 30Q208 33 214 42Q220 47 225 40Q215 43 219 30Z", "#f1d9ab", true); break;
-    }
-    case "baker": item(c, "biscuitTin", 168, 67, 117, 99); break;
-    case "maker": item(c, "copper", 168, 67, 99, 99); break;
-    case "radio": item(c, choice === "bells" ? "bells" : "creek", 168, 67, 134, 90); break;
-    case "hall": item(c, "ticket", 168, 67, 153, 94); break;
-  }
-}
-
-export function drawWorkbenchReceipt(c: Ink, room: TownInteriorKey, choice?: string) {
-  if (!sheet) { drawTownKeepsake(c, room, 0, 2); return; }
-  const widths = { florist: 112, baker: 117, maker: 106, post: 145, books: 198, radio: 139, hall: 158 };
-  const scale = 44 / widths[room];
-  c.save(); c.translate(24, 26); c.scale(scale, scale); c.translate(-168, -67);
-  result(c, room, choice);
-  c.restore();
-}
-
 const toolSizes: Partial<Record<Sprite, [number, number]>> = {
   lilac: [39, 38], cream: [39, 38], press: [104, 68], mold: [46, 48], tray: [72, 48], cookies: [65, 49],
   flags: [65, 44], lamps: [65, 44], lever: [33, 17], creek: [66, 43], bells: [66, 43], fader: [27, 16], ticket: [58, 32],
@@ -211,6 +178,7 @@ export function drawWorkbench(c: Ink, view: WorkbenchView) {
   c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
   if (!sheet) {
     box(c, 1, 1, 334, 132, "#cfb28a", 7, "#946d4c");
+    if (!step) drawFinishedKeepsake(c, room, choice, 168, 67);
     if (step && step.kind !== "wait") {
       guide(c, step, aligned);
       c.font = 'bold 11px "Microsoft YaHei", sans-serif'; c.textAlign = "center";
@@ -224,7 +192,7 @@ export function drawWorkbench(c: Ink, view: WorkbenchView) {
     return;
   }
   plate(c, room, 168, 67, 336, 134);
-  if (!step) { result(c, room, choice); return; }
+  if (!step) { drawFinishedKeepsake(c, room, choice, 168, 67); return; }
   switch (room) {
     case "florist":
       plate(c, "paper", 218, 67, 120, 76);

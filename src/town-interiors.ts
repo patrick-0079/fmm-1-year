@@ -33,7 +33,7 @@ interface RoomData {
     skies: Record<Phase, Frame>;
     lights: Record<Phase, Frame>;
     blind?: { raised: Record<Phase, Frame>; lowered: Record<Phase, Frame> };
-    collection?: Record<TownInteriorKey, Frame>;
+    collection?: Record<TownInteriorKey, [x: number, y: number, width: number, height: number]>;
     props: { name: string; depth: number; variants: Record<Phase, Frame> }[];
   };
 }

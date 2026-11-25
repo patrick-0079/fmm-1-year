@@ -20,6 +20,7 @@ import { drawWishLights, townAttractionLayers } from "./town-attraction-art";
 import type { GameId } from "./arcade-engines";
 import { townNpcSheet } from "./scene-art";
 import { isTownInterior, type TownInteriorId, type TownInteriorKey } from "./town-interior-id";
+import type { TownKeepsakes } from "./town-keepsakes";
 import { townInteriors, type TownArea } from "./town-interiors";
 import { interiorFurniture, paintHallSideSign } from "./town-interior-art";
 import { drawPartyProp } from "./party-art";
@@ -60,7 +61,7 @@ interface StoryHooks {
   readPost: (onReturn: () => void) => void;
   save: () => void;
   notify: (text: string) => void;
-  keepsakes: () => readonly TownInteriorKey[];
+  keepsakes: () => TownKeepsakes;
 }
 
 export class Town {

@@ -1,8 +1,14 @@
 import { townInteriorKeys, type TownInteriorKey } from "./town-interior-id.ts";
 
 export type RadioTrack = "creek" | "bells";
+type PaperShop = "florist" | "post";
+type PaperDesign = "cream" | "lilac" | "flags" | "lamps";
+const paperShops: readonly PaperShop[] = ["florist", "post"];
+const validDesign = (key: PaperShop, value: unknown): value is PaperDesign =>
+  key === "florist" ? value === "cream" || value === "lilac" : value === "flags" || value === "lamps";
 export interface TownKeepsakes {
   items: TownInteriorKey[];
+  designs?: Partial<Record<PaperShop, { choice: PaperDesign; at: number }>>;
   radioTrack?: RadioTrack;
   radioRecordedAt?: number;
 }
@@ -11,18 +17,33 @@ export function readTownKeepsakes(raw: unknown): TownKeepsakes {
   const saved = raw as Partial<TownKeepsakes> | null | undefined;
   const savedItems = saved?.items;
   const items = Array.isArray(savedItems) ? townInteriorKeys.filter(key => savedItems.includes(key)) : [];
+  const book: TownKeepsakes = { items };
+  for (const key of paperShops) {
+    const design = saved?.designs?.[key];
+    if (items.includes(key) && design && validDesign(key, design.choice) && Number.isFinite(design.at) && design.at > 0) {
+      (book.designs ??= {})[key] = { choice: design.choice, at: design.at };
+    }
+  }
   const track = saved?.radioTrack;
-  if (!items.includes("radio") || (track !== "creek" && track !== "bells")) return { items };
+  if (!items.includes("radio") || (track !== "creek" && track !== "bells")) return book;
+  book.radioTrack = track;
   const recorded = saved?.radioRecordedAt;
-  return typeof recorded === "number" && Number.isFinite(recorded) && recorded > 0
-    ? { items, radioTrack: track, radioRecordedAt: recorded } : { items, radioTrack: track };
+  if (typeof recorded === "number" && Number.isFinite(recorded) && recorded > 0) book.radioRecordedAt = recorded;
+  return book;
 }
 
-export function collectTownKeepsake(book: TownKeepsakes, key: TownInteriorKey, track?: RadioTrack, at = Date.now()) {
+export function townKeepsakeChoice(book: TownKeepsakes, key: TownInteriorKey) {
+  if (key === "florist") return book.designs?.florist?.choice ?? "lilac";
+  if (key === "post") return book.designs?.post?.choice ?? "flags";
+  if (key === "radio") return book.radioTrack ?? "creek";
+}
+
+export function collectTownKeepsake(book: TownKeepsakes, key: TownInteriorKey, choice?: string, at = Date.now()) {
   if (book.items.includes(key)) return false;
   book.items.push(key);
-  if (key === "radio" && track) {
-    book.radioTrack = track;
+  if ((key === "florist" || key === "post") && validDesign(key, choice)) (book.designs ??= {})[key] = { choice, at };
+  if (key === "radio" && (choice === "creek" || choice === "bells")) {
+    book.radioTrack = choice;
     book.radioRecordedAt = at;
   }
   return true;
@@ -30,6 +51,12 @@ export function collectTownKeepsake(book: TownKeepsakes, key: TownInteriorKey, t
 
 export function mergeTownKeepsakes(into: TownKeepsakes, from: TownKeepsakes) {
   for (const key of from.items) if (!into.items.includes(key)) into.items.push(key);
+  for (const key of paperShops) {
+    const incoming = from.designs?.[key], current = into.designs?.[key];
+    if (incoming && (!current || incoming.at < current.at || (incoming.at === current.at && incoming.choice < current.choice))) {
+      (into.designs ??= {})[key] = { ...incoming };
+    }
+  }
   if (!from.radioTrack) return;
   // An undated recording was made by an earlier version. For new recordings
   // both tabs converge on the first take even if their writes arrived out of order.

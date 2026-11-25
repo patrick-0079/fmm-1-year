@@ -58,6 +58,37 @@ try {
     return Array.from(c.getImageData(0, 0, w, h).data);
   }, [x, y, w, h]);
   const difference = (a, b) => a.reduce((sum, v, i) => sum + Math.abs(v - b[i]), 0) / a.length;
+  async function phase(name) {
+    await page.locator(".debug-trigger").click();
+    await page.locator('[data-debug="time:' + name + '"]').click();
+    await page.locator(".debug-close").click();
+    await page.waitForFunction(name => document.querySelector(".time-pill").dataset.phase === name, name);
+  }
+  const windowSamples = { florist: [61,91], baker: [277,66], maker: [266,85], post: [372,62], books: [452,88], radio: [437,70], hall: [301,62] };
+  const previous = {};
+  for (const name of ["day", "dusk", "night"]) {
+    await phase(name);
+    for (const [room, [x, y]] of Object.entries(windowSamples)) {
+      await visit("town-" + room);
+      const glass = await pixels(x, y, 3, 3);
+      if (previous[room]) assert.ok(difference(previous[room], glass) > 3, room + " rendered " + name + " window");
+      previous[room] = glass;
+      if (name !== "day") await picture(room + "-window-" + name);
+    }
+  }
+  await phase("day");
+  // Compare the same patch of map before and after the player walks behind the prop.
+  for (const [x, y, solid, air] of [
+    [178, 281, [176,278], [175,269]], [61,279,[58,252],[59,244]],
+    [50,235,[55,208],[44,207]], [300,124,[306,96],[295,98]],
+  ]) {
+    await stand("town-baker", 300, 340);
+    const floor = await pixels(...air, 3, 3), prop = await pixels(...solid, 3, 3);
+    await stand("town-baker", x, y);
+    assert.ok(difference(floor, await pixels(...air, 3, 3)) > 7, "character visible beside bakery prop at " + [x,y]);
+    assert.ok(difference(prop, await pixels(...solid, 3, 3)) < 5, "solid bakery contour at " + [x,y]);
+    await picture("baker-" + x + "-" + y);
+  }
   async function walkTo(x, y) {
     await hit(await page.evaluate(([x, y]) => window.contentQA.pointAt(x, y), [x, y]));
     await page.waitForFunction(([x, y]) => {
@@ -102,11 +133,23 @@ try {
     await page.locator(".activity-hud:visible").waitFor();
   }
   const close = () => page.locator(".activity-close:visible").click();
+  const emptyCells = {};
   async function collection(total) {
     await activity("hall", "extra", [300, 143]);
     assert.match(await page.locator(".collection-count").innerText(), new RegExp(total + " / 7"));
     assert.equal(await page.locator('.collection-state[data-collected="true"]').count(), total);
     await close();
+    await stand("town-hall", 300, 327);
+    const cells = await page.evaluate(async () => (await import("/src/town-interiors.ts")).townInteriors["town-hall"].art.collection);
+    const owned = (await state()).townKeepsakes.items;
+    for (const [key, [x, y, w, h]] of Object.entries(cells)) {
+      const cell = await pixels(x + 2, y + 2, w - 4, h - 4);
+      if (!total) emptyCells[key] = cell;
+      else {
+        const changed = difference(cell, emptyCells[key]);
+        assert.ok(owned.includes(key) ? changed > 1.5 : changed < 2, key + " display cell at " + total + "/7: " + changed);
+      }
+    }
     await picture("hall-" + total);
   }
   async function pointer(type, p) {
@@ -154,6 +197,39 @@ type: { down: "touchStart", move: "touchMove", up: "touchEnd" }[type],
 florist: [422, 150], baker: [191, 131], maker: [331, 189], post: [523, 177],
     books: [105, 132], radio: [120, 145], hall: [536, 123]
 };
+  async function iconPixels(selector) {
+    await page.waitForFunction(selector => {
+      const c = document.querySelector(selector)?.getContext("2d");
+      return c && c.getImageData(0, 0, 48, 52).data.some((v, i) => i % 4 === 3 && v > 200);
+    }, selector);
+    return page.locator(selector).evaluate(canvas =>
+      Array.from(canvas.getContext("2d").getImageData(0, 0, 48, 52).data));
+  }
+  function sameIcon(actual, expected, message) {
+    const count = actual.reduce((n, value, i) => n + Number(value !== expected[i]), 0);
+    assert.equal(count, 0, message + "; different channels: " + count + ", mean difference: " + difference(actual, expected).toFixed(3));
+  }
+  const received = {};
+  const choiceFor = (key, alternate) => ({ florist: alternate ? "cream" : "lilac", post: alternate ? "lamps" : "flags", radio: alternate ? "bells" : "creek" })[key];
+  async function verifyFinishedPiece(room) {
+    const choice = choiceFor(room, touch);
+    const matches = await page.evaluate(async ([room, choice]) => {
+      const { default: tools } = await import("/src/town-workbench-frames.json");
+      const { default: prizes } = await import("/src/town-keepsake-frames.json");
+      const load = async name => { const image = new Image(); image.src = "/src/assets/town-interiors/" + name + ".webp"; await image.decode(); return image; };
+      const [workbench, souvenirs] = await Promise.all([load("workbench"), load("keepsakes")]);
+      const board = document.querySelector(".town-workbench canvas"), reference = document.createElement("canvas");
+      reference.width = board.width; reference.height = board.height;
+      const c = reference.getContext("2d"); c.scale(2, 2); c.imageSmoothingQuality = "high";
+      c.drawImage(workbench, ...tools[room], 0, 0, 336, 134);
+      const [sx, sy, w, h, x, y] = prizes[room + "-" + choice] ?? prizes[room];
+      c.drawImage(souvenirs, sx, sy, w, h, 168 + x, 67 + y, w / 3, h / 3);
+      const a = c.getImageData(0, 0, board.width, board.height).data;
+      const b = board.getContext("2d").getImageData(0, 0, board.width, board.height).data;
+      return a.every((value, index) => value === b[index]);
+    }, [room, choice]);
+    assert.ok(matches, room + " finished workbench shows the collected sprite and selected design");
+  }
   const secondary = {
 florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
     books: [477, 79], radio: [486, 155]
@@ -193,6 +269,7 @@ florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
     }
     for (const stage of steps[key]) await perform(stage, key);
     await page.locator('.town-workbench[data-step="ready"]').waitFor();
+    await verifyFinishedPiece(key);
     const badge = "town-keepsake-" + key;
     assert.ok(!(await state()).achievements.earned.includes(badge), key + " unclaimed");
     assert.equal((await state()).townKeepsakes.items.length, i);
@@ -201,7 +278,11 @@ florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
     assert.ok(earned.achievements.earned.includes(badge), badge);
     assert.ok(earned.townKeepsakes.items.includes(key));
     if (key === "radio") assert.equal(earned.townKeepsakes.radioTrack, touch ? "bells" : "creek");
-    await close();
+    if (key === "florist" || key === "post") assert.equal(earned.townKeepsakes.designs[key].choice, choiceFor(key, touch));
+    received[key] = await iconPixels(".dialogue-portrait");
+    await page.getByRole("button", { name: "查看纪念物" }).click();
+    sameIcon(await iconPixels(".bag-town-detail canvas"), received[key], key + " receipt and bag use identical pixels");
+    await page.locator(".bag-close").click();
     if (key === "books") {
       await activity(key, "extra", secondary.books);
       await page.getByRole("button", { name: "展开折页对照" }).click();
@@ -215,18 +296,42 @@ florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
     console.log(width, key, "entrance, controls, claim, exit passed");
   }
   await collection(7);
-  await page.reload(); await enter(); await collection(7);
+  // Reopen the bag on a fresh document while the shared illustration is still downloading.
+  await visit("town-baker");
+  await page.locator(".save-now").click();
+  let release;
+  const delayed = new Promise(resolve => { release = resolve; });
+  const prizeRequest = /\/src\/assets\/town-interiors\/keepsakes\.webp(?:\?.*)?$/;
+  await page.route(prizeRequest, async route => {
+    if (route.request().resourceType() === "image") await delayed;
+    await route.continue();
+  });
+  await page.reload(); await enter();
+  await page.locator(".bag-toggle").click();
+  await page.locator('[data-tab="keepsakes"]').click();
+  await page.locator("[data-town-keepsakes]").click();
+  release();
+  for (const key of Object.keys(steps)) sameIcon(await iconPixels('canvas[data-town-icon="' + key + '"]'), received[key], key + " cold inventory");
+  await page.unroute(prizeRequest);
+  await page.locator(".bag-close").click();
+  await phase("day");
+  await collection(7);
   const saved = await state();
   assert.equal(new Set(saved.townKeepsakes.items).size, 7);
   assert.equal(saved.achievements.earned.filter(id => id.startsWith("town-keepsake-")).length, 7);
-  await activity("radio", "main", main.radio);
-  for (const stage of steps.radio) await perform(stage, "radio", !touch);
-  await page.getByRole("button", { name: "收下", exact: true }).click();
-  assert.deepEqual((await state()).townKeepsakes, saved.townKeepsakes, "recording again preserves the first take");
+  for (const key of ["florist", "post", "radio"]) {
+    await activity(key, "main", main[key]);
+    for (const stage of steps[key]) await perform(stage, key, !touch);
+    await page.getByRole("button", { name: "收下", exact: true }).click();
+    assert.deepEqual((await state()).townKeepsakes, saved.townKeepsakes, key + " replay preserves the original collection");
+    sameIcon(await iconPixels(".dialogue-portrait"), received[key], key + " replay receipt");
+    if (key !== "radio") await close();
+  }
   await page.getByRole("button", { name: "查看纪念物" }).click();
   assert.match(await page.locator(".bag-town-detail").innerText(), touch ? /檐铃/ : /溪水/);
   await page.getByRole("button", { name: "返回小镇小物" }).click();
   assert.equal(await page.locator(".bag-town-grid button:enabled").count(), 7);
+  for (const key of Object.keys(steps)) sameIcon(await iconPixels('canvas[data-town-icon="' + key + '"]'), received[key], key + " persisted icon");
   assert.deepEqual(errors, []);
   console.log(width, "seven paintings and workbenches, gallery 0/3/7, reload, replay and inventory passed");
 } finally {

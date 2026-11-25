@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
+import masks from "../doc/artwork/town-interiors/masks/props.json" with { type: "json" };
 import sharp from "sharp";
 import { canTravelBetween, findPath, readProgress, type Point } from "../src/core.ts";
 import type { Phase } from "../src/day.ts";
@@ -11,7 +12,7 @@ import { ResidentChats } from "../src/resident-chats.ts";
 import { mergeCollections } from "../src/shared-collections.ts";
 import { townInteriorId, townInteriorKeys } from "../src/town-interior-id.ts";
 import { crossedInteriorDoor, hallCollectionSlots, townInteriors } from "../src/town-interiors.ts";
-import { collectTownKeepsake, mergeTownKeepsakes, readTownKeepsakes } from "../src/town-keepsakes.ts";
+import { collectTownKeepsake, mergeTownKeepsakes, readTownKeepsakes, townKeepsakeChoice } from "../src/town-keepsakes.ts";
 import { TownResidentMap } from "../src/town-resident-map.ts";
 import { residentTownScene, TownRoutines } from "../src/town-routines.ts";
 
@@ -192,7 +193,7 @@ test("the HD atlas frames fit their textures and preserve the logical room size"
     }
     const frames = [
       ...Object.values(art.backgrounds), ...Object.values(art.skies), ...Object.values(art.lights),
-      ...art.props.flatMap(prop => Object.values(prop.variants)), ...Object.values(art.collection ?? {}),
+      ...art.props.flatMap(prop => Object.values(prop.variants)),
       ...Object.values(art.blind?.raised ?? {}), ...Object.values(art.blind?.lowered ?? {}),
     ];
     for (const [x, y, w, h] of frames) {
@@ -251,28 +252,110 @@ test("daylight maps sample the approved paintings, with translucent panes and op
   }
 });
 
-test("each owned keepsake restores only its own painted compartment in the empty hall", async () => {
+test("all seven velvet cells match the empty case, including the foreground drawn over actors", async () => {
   const { art } = townInteriors["town-hall"];
-  const file = fileURLToPath(new URL("../src/assets/town-interiors/hall.webp", import.meta.url));
-  const original = fileURLToPath(new URL("../doc/artwork/town-interiors/daylight-concepts/hall.png", import.meta.url));
+  const atlas = fileURLToPath(new URL("../src/assets/town-interiors/hall.webp", import.meta.url));
+  const emptyCase = fileURLToPath(new URL("../doc/artwork/town-interiors/empty-case.webp", import.meta.url));
+  const inserts = [[59,163,180,84],[255,163,177,84],[446,163,174,84],[634,163,171,84],[59,259,254,89],[329,259,227,89],[571,259,234,89]];
   const cells = art.collection!;
   assert.deepEqual(Object.keys(cells).sort(), [...townInteriorKeys].sort());
-  const [bx, by] = art.backgrounds.day;
-  const cabinet = art.props.find(p => p.name === "七屋纪念展柜")!.variants.day;
-  for (const [key, , cx, cy] of hallCollectionSlots) {
-    const [x, y, width, height, l, t] = cells[key];
-    const left = l * art.scale, top = t * art.scale;
-    assert.ok(cx >= l && cx <= l + width / 2 && cy >= t && cy <= t + height / 2, key);
-    const crop = (path: string, left: number, top: number) =>
-      sharp(path).extract({ left, top, width, height }).removeAlpha().raw().toBuffer();
-    const [owned, empty, front, reference] = await Promise.all([
-      crop(file, x, y), crop(file, bx + left, by + top), crop(file, cabinet[0] + left - cabinet[4] * 2, cabinet[1] + top - cabinet[5] * 2),
-      crop(original, left, top),
+  const cabinet = art.props.find(prop => prop.name === "七屋纪念展柜")!.variants.day;
+  for (const [i, [key, , cx, cy]] of hallCollectionSlots.entries()) {
+    const [x, y, w, h] = cells[key], [left, top, width, height] = inserts[i];
+    assert.ok(cx >= x && cx <= x + w && cy >= y && cy <= y + h);
+    const reference = await sharp(emptyCase).extract({ left, top, width, height })
+      .resize(w * 2, h * 2, { fit: "fill" }).removeAlpha().raw().toBuffer();
+    for (const [sx, sy, , , dx, dy] of [art.backgrounds.day, cabinet]) {
+      const pixels = await sharp(atlas).extract({ left: sx + (x - dx) * 2, top: sy + (y - dy) * 2, width: w * 2, height: h * 2 })
+        .removeAlpha().raw().toBuffer();
+      const error = pixels.reduce((total, value, j) => total + Math.abs(value - reference[j]), 0) / pixels.length;
+      assert.ok(error < 8, key + " only acquires an illustration when drawn from the collection");
+    }
+  }
+});
+
+test("every foreground frame retains the source silhouette and its exact registration", async () => {
+  for (const { key, art } of Object.values(townInteriors)) {
+    const asset = fileURLToPath(new URL(`../src/assets/town-interiors/${key}.webp`, import.meta.url));
+    const mask = fileURLToPath(new URL(`../doc/artwork/town-interiors/masks/${key}.png`, import.meta.url));
+    const [atlas, source] = await Promise.all([
+      sharp(asset).extractChannel("alpha").raw().toBuffer({ resolveWithObject: true }),
+      sharp(mask).extractChannel(0).raw().toBuffer({ resolveWithObject: true }),
     ]);
-    const error = (a: Buffer, b: Buffer) => a.reduce((sum, v, i) => sum + Math.abs(v - b[i]), 0) / a.length;
-    assert.ok(error(owned, reference) < 13, key + " collected illustration");
-    assert.ok(error(owned, empty) > 15, key + " empty shelf");
-    assert.ok(error(front, empty) < 8, key + " empty front layer cannot reveal an unearned item");
+    let top = 0;
+    for (const [i, prop] of art.props.entries()) {
+      const [x, y, w, h, l, t] = prop.variants.day;
+      assert.deepEqual([prop.name, l * 2, t * 2, w, h], masks[key][i]);
+      for (let row = 0; row < h; row++) {
+        const a = (y + row) * atlas.info.width + x, b = (top + row) * source.info.width;
+        assert.ok(atlas.data.subarray(a, a + w).equals(source.data.subarray(b, b + w)), key + "/" + prop.name);
+      }
+      top += h;
+    }
+    assert.equal(top, source.info.height);
+  }
+});
+
+test("the bakery silhouettes follow tin lids, cake tiers, balloons and the spaces between the jars", async () => {
+  const { art } = townInteriors["town-baker"];
+  const atlas = fileURLToPath(new URL("../src/assets/town-interiors/baker.webp", import.meta.url));
+  // Coordinates in the 1200 × 800 painting. Each pair straddles a visible contour.
+  const marks = [
+    [7, [[289,543],[351,551],[409,566],[353,578]], [[323,543],[380,550],[245,552]]],
+    [6, [[88,477],[120,511],[68,528],[113,635]], [[57,484],[132,482],[101,562]]],
+    [4, [[134,397],[143,430],[154,451],[185,474]], [[97,399],[182,405],[167,516]]],
+    [3, [[625,188],[679,185],[735,187],[653,238]], [[652,200],[709,203],[586,209]]],
+  ] as const;
+  for (const [index, inside, outside] of marks) {
+    const [left, top, width, height, x, y] = art.props[index].variants.day;
+    const mask = await sharp(atlas).extract({ left, top, width, height }).extractChannel("alpha").raw().toBuffer();
+    const opacity = ([px, py]: readonly number[]) => mask[(py - 2 * y) * width + px - 2 * x] ?? 0;
+    for (const point of inside) assert.ok(opacity(point) > 235, art.props[index].name + " solid at " + point);
+    for (const point of outside) assert.ok(opacity(point) < 20, art.props[index].name + " clear at " + point);
+  }
+});
+
+test("all phases follow individual windowpanes and preserve indoor frames, curtains and blossoms", async () => {
+  const samples = {
+    florist: { glass: [[110,90],[125,184],[285,34],[925,146]], interior: [[169,116],[191,142],[580,61],[282,121],[903,122]] },
+    baker: { glass: [[555,134],[615,173]], interior: [[575,131],[600,153],[629,188]] },
+    maker: { glass: [[491,162],[546,189]], interior: [[514,180],[441,155],[542,149]] },
+    post: { glass: [[753,130],[818,156]], interior: [[775,120],[812,137],[690,163]] },
+    books: { glass: [[856,132],[910,171]], interior: [[881,125],[899,154],[957,167]] },
+    radio: { glass: [[878,136],[953,175]], interior: [[913,140],[949,154],[845,190]] },
+    hall: { glass: [[541,123],[611,155]], interior: [[577,130],[600,139],[666,149]] },
+  };
+  for (const { key, art } of Object.values(townInteriors)) {
+    const path = fileURLToPath(new URL(`../src/assets/town-interiors/${key}.webp`, import.meta.url));
+    const levels: number[] = [];
+    for (const phase of ["day", "dusk", "night"] as const) {
+      const [left, top, width, height, x, y] = art.skies[phase];
+      const pixels = await sharp(path).extract({ left, top, width, height }).ensureAlpha().raw().toBuffer();
+      const pixel = ([px, py]: number[], channel: number) => {
+        const col = px - x * 2, row = py - y * 2;
+        return col < 0 || row < 0 || col >= width || row >= height ? 0 : pixels[4 * (row * width + col) + channel];
+      };
+      for (const point of samples[key].interior) assert.ok(pixel(point, 3) < 20, key + " interior " + point);
+      for (const point of samples[key].glass) assert.ok(pixel(point, 3) > 235, key + " glass " + point);
+      levels.push(samples[key].glass.reduce((sum, point) => sum + pixel(point, 1), 0));
+    }
+    assert.ok(levels[0] > levels[1] && levels[1] > levels[2], key + " daylight through the same glass");
+  }
+});
+
+test("the first flower and postcard variants survive replay, reload and out-of-order tab writes", () => {
+  for (const [key, initial, later] of [["florist", "cream", "lilac"], ["post", "lamps", "flags"]] as const) {
+    const a = readTownKeepsakes(null), b = readTownKeepsakes(null);
+    assert.ok(collectTownKeepsake(a, key, initial, 100));
+    assert.equal(collectTownKeepsake(a, key, later, 120), false);
+    collectTownKeepsake(b, key, later, 130);
+    mergeTownKeepsakes(b, a); mergeTownKeepsakes(a, b);
+    assert.deepEqual(a, b);
+    assert.equal(townKeepsakeChoice(readTownKeepsakes(JSON.parse(JSON.stringify(b))), key), initial);
+    const invalid = { [key]: { choice: "bells", at: 10 } };
+    assert.deepEqual(readTownKeepsakes({ items: [key], designs: invalid }), { items: [key] });
+    assert.equal(townKeepsakeChoice(readTownKeepsakes({ items: [key] }), key), later);
+    assert.deepEqual(readTownKeepsakes({ items: [], designs: b.designs }), { items: [] });
   }
 });
 

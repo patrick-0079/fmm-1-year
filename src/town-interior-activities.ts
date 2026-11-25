@@ -2,11 +2,10 @@ import type { Activities } from "./activities";
 import type { Hotspot } from "./maps";
 import { playTownRadio, sfx, townRadioDuration } from "./sound";
 import { isTownInterior, townInteriorId, townInteriorKeys, type TownInteriorId, type TownInteriorKey } from "./town-interior-id";
-import { drawTownKeepsake } from "./town-keepsake-art";
-import { radioTrackName, townKeepsakeInfo, type RadioTrack, type TownKeepsakes } from "./town-keepsakes";
+import { drawTownKeepsake, prepareTownKeepsakeArt } from "./town-keepsake-art";
+import { radioTrackName, townKeepsakeChoice, townKeepsakeInfo, type RadioTrack, type TownKeepsakes } from "./town-keepsakes";
 import { townInteriors } from "./town-interiors";
 import { TownWorkbench } from "./town-workbench";
-import { drawWorkbenchReceipt } from "./town-workbench-art";
 import { anniversary } from "./launch/anniversary";
 import { copperTolerance } from "./town-workbench-steps";
 import type { World } from "./world";
@@ -45,12 +44,19 @@ export class TownInteriorActivities {
     private world: World,
     private activities: Activities,
     private keepsakes: () => TownKeepsakes,
-    private collect: (key: TownInteriorKey, track?: RadioTrack) => boolean,
+    private collect: (key: TownInteriorKey, choice?: string) => boolean,
     private openBag: (key: TownInteriorKey) => void,
   ) {}
 
   get roomEffect() { return this.effect; }
   refreshCollection() { this.refreshDisplay?.(); }
+
+  private portrait(key: TownInteriorKey) {
+    return {
+      ready: prepareTownKeepsakeArt(),
+      draw: (c: CanvasRenderingContext2D) => drawTownKeepsake(c, key, townKeepsakeChoice(this.keepsakes(), key)),
+    };
+  }
 
   interact(spot: Hotspot) {
     const scene = this.world.scene;
@@ -68,7 +74,7 @@ export class TownInteriorActivities {
       show: (text, options = [], effect, timed, portrait) => {
         let timer: ReturnType<typeof setTimeout> | undefined;
         this.activities.dialogue(spot.title, text, options,
-          portrait ? c => drawTownKeepsake(c, key, 0, 2) : null, spot.approach, () => {
+          portrait ? this.portrait(key) : null, spot.approach, () => {
             clearTimeout(timer);
             this.effect = undefined;
             this.stopAudio?.();
@@ -101,12 +107,12 @@ export class TownInteriorActivities {
             this.effect = { kind: "reel", frame: step === "ticket" ? 3 : Math.floor(rotation / 120) };
           } else this.effect = undefined;
         },
-        collect: (track, choice) => {
-          const first = this.collect(key, track);
+        collect: choice => {
+          const first = this.collect(key, choice);
           this.activities.dialogue(spot.title, first ? "收下了" + name + "。" + note : note, [
             { title: "查看纪念物", run: () => { this.activities.close(); this.openBag(key); } },
             { title: "再做一次", run: () => this.workbench(spot, key) },
-          ], c => drawWorkbenchReceipt(c, key, choice), spot.approach);
+          ], this.portrait(key), spot.approach);
         },
       });
       return {

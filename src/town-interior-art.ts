@@ -7,7 +7,9 @@ import radio from "./assets/town-interiors/radio.webp";
 import hall from "./assets/town-interiors/hall.webp";
 import type { Phase } from "./day";
 import type { DaylightMix } from "./daylight-mix";
-import type { TownInteriorId, TownInteriorKey } from "./town-interior-id";
+import type { TownInteriorId } from "./town-interior-id";
+import { drawShelfKeepsake } from "./town-keepsake-art";
+import { townKeepsakeChoice, type TownKeepsakes } from "./town-keepsakes";
 import type { RoomEffect } from "./town-interior-activities";
 import { hallCollectionSlots, townInteriors } from "./town-interiors";
 import type { DepthLayer } from "./world";
@@ -39,13 +41,10 @@ function blended(c: CanvasRenderingContext2D, image: HTMLImageElement, frames: R
 export function paintTownInterior(c: CanvasRenderingContext2D, image: HTMLImageElement, scene: TownInteriorId, phase: Phase, mix?: DaylightMix, effect?: RoomEffect) {
   const art = townInteriors[scene].art;
   paint(c, image, art.backgrounds.day, art.scale);
-  blended(c, image, art.skies, phase, art.scale, mix);
-  if (art.blind) {
-    const frames = effect?.kind === "blind" ? art.blind.raised : art.blind.lowered;
-    paint(c, image, frames[mix?.from ?? phase], art.scale);
-    if (mix && mix.mix > 0) {
-      c.save(); c.globalAlpha *= mix.mix; paint(c, image, frames[mix.to], art.scale); c.restore();
-    }
+  const frames = art.blind ? (effect?.kind === "blind" ? art.blind.raised : art.blind.lowered) : art.skies;
+  paint(c, image, frames[mix?.from ?? phase], art.scale);
+  if (mix && mix.mix > 0) {
+    c.save(); c.globalAlpha *= mix.mix; paint(c, image, frames[mix.to], art.scale); c.restore();
   }
   if (scene === "town-florist" && effect?.kind === "window") {
     c.save();
@@ -64,7 +63,7 @@ export function paintTownInteriorLight(c: CanvasRenderingContext2D, image: HTMLI
 }
 
 export function interiorFurniture(
-  image: HTMLImageElement, scene: TownInteriorId, phase: Phase, keepsakes: readonly TownInteriorKey[], effect: RoomEffect | undefined, time: number,
+  image: HTMLImageElement, scene: TownInteriorId, phase: Phase, keepsakes: TownKeepsakes, effect: RoomEffect | undefined, time: number,
 ): DepthLayer[] {
   const art = townInteriors[scene].art;
   return art.props.map(prop => ({
@@ -79,12 +78,12 @@ export function interiorFurniture(
         c.fill(new Path2D("M44 131V111Q45 90 75 90Q104 90 108 110V131Z")); c.restore();
       }
       if (prop.name === "七屋纪念展柜" && art.collection) {
-        for (const key of keepsakes) paint(c, image, art.collection[key], art.scale);
+        for (const key of keepsakes.items) drawShelfKeepsake(c, key, townKeepsakeChoice(keepsakes, key), art.collection[key]);
         c.save();
         c.fillStyle = "#795337"; c.fillRect(287, 167.7, 24, 5.7);
         c.fillStyle = "#ffe8ae"; c.textAlign = "center"; c.textBaseline = "middle";
         c.font = 'bold 5.4px Georgia, serif';
-        c.fillText(keepsakes.length + " / " + hallCollectionSlots.length, 299, 170.8);
+        c.fillText(keepsakes.items.length + " / " + hallCollectionSlots.length, 299, 170.8);
         c.restore();
       }
       if (effect) paintWork(c, image, art.backgrounds.day, prop.name, effect, time);

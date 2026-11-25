@@ -25,8 +25,8 @@ import type { AstrolabeState } from "./astrolabe";
 import { bindJournalScrollHint, journalCoverMarkup, journalPageCount, renderRuinJournal } from "./ruin-journal";
 import { townInteriorId, townInteriorKeys, type TownInteriorKey } from "./town-interior-id";
 import { townInteriors } from "./town-interiors";
-import { radioTrackName, townKeepsakeInfo, type TownKeepsakes } from "./town-keepsakes";
-import { drawTownKeepsake } from "./town-keepsake-art";
+import { radioTrackName, townKeepsakeChoice, townKeepsakeInfo, type TownKeepsakes } from "./town-keepsakes";
+import { drawTownKeepsake, prepareTownKeepsakeArt, townKeepsakeArtReady } from "./town-keepsake-art";
 type BagTab = "wardrobe" | "equipped" | "keepsakes";
 type Category = "all" | EquipSlot;
 const categories: readonly Category[] = ["all", ...EQUIP_SLOTS];
@@ -686,11 +686,16 @@ export class Inventory {
       c.imageSmoothingQuality = "high";
       drawItem(c, canvas.dataset.item as ItemId, 4, 4, 72, 72, this.wreath, this.rewards);
     }
-    for (const canvas of this.root.querySelectorAll<HTMLCanvasElement>("canvas[data-town-icon]")) {
+    const townIcons = this.root.querySelectorAll<HTMLCanvasElement>("canvas[data-town-icon]");
+    if (townIcons.length && !townKeepsakeArtReady()) {
+      void prepareTownKeepsakeArt().then(ok => { if (ok) this.drawIcons(); });
+    }
+    for (const canvas of townIcons) {
       const c = canvas.getContext("2d");
       if (!c) continue;
       c.clearRect(0, 0, canvas.width, canvas.height);
-      drawTownKeepsake(c, canvas.dataset.townIcon as TownInteriorKey);
+      const key = canvas.dataset.townIcon as TownInteriorKey;
+      drawTownKeepsake(c, key, townKeepsakeChoice(this.townKeepsakes(), key));
     }
     this.drawPreview();
   }
