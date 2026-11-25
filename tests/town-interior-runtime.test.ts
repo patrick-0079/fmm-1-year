@@ -329,6 +329,8 @@ test("furniture cutouts cover painted objects and leave the adjoining floor visi
     ]],
     ["baker", [
       ["回折陈列柜", [[1070,445]], [[1075,437]]],
+      ["左侧品尝柜", [[152,402],[160,411],[161,421],[166,429],[186,488]],
+        [[159,399],[164,405],[168,412],[166,419],[168,424],[171,427]]],
     ]],
     ["maker", [
       ["材料抽屉柜", [[288,138]], [[302,121]]],
@@ -400,15 +402,20 @@ test("all phases follow individual windowpanes and preserve indoor frames, curta
   }
 });
 
-test("the first flower and postcard variants survive replay, reload and out-of-order tab writes", () => {
+test("claiming a remake changes the saved design and older tabs cannot restore the previous one", () => {
   for (const [key, initial, later] of [["florist", "cream", "lilac"], ["post", "lamps", "flags"]] as const) {
-    const a = readTownKeepsakes(null), b = readTownKeepsakes(null);
+    const a = readTownKeepsakes(null);
     assert.ok(collectTownKeepsake(a, key, initial, 100));
-    assert.equal(collectTownKeepsake(a, key, later, 120), false);
-    collectTownKeepsake(b, key, later, 130);
+    const b = readTownKeepsakes(a);
+    assert.equal(collectTownKeepsake(b, key, later, 120), false);
+    assert.equal(collectTownKeepsake(b, key, "invalid", 130), false);
     mergeTownKeepsakes(b, a); mergeTownKeepsakes(a, b);
     assert.deepEqual(a, b);
-    assert.equal(townKeepsakeChoice(readTownKeepsakes(JSON.parse(JSON.stringify(b))), key), initial);
+    assert.equal(townKeepsakeChoice(readTownKeepsakes(JSON.parse(JSON.stringify(b))), key), later);
+    assert.deepEqual(b.items, [key]);
+    const legacy = readTownKeepsakes({ items: [key] });
+    assert.equal(collectTownKeepsake(legacy, key, initial, 140), false);
+    assert.equal(townKeepsakeChoice(legacy, key), initial);
     const invalid = { [key]: { choice: "bells", at: 10 } };
     assert.deepEqual(readTownKeepsakes({ items: [key], designs: invalid }), { items: [key] });
     assert.equal(townKeepsakeChoice(readTownKeepsakes({ items: [key] }), key), later);
@@ -416,7 +423,7 @@ test("the first flower and postcard variants survive replay, reload and out-of-o
   }
 });
 
-test("the first recorded souvenir survives loading older, malformed, and concurrent saves", () => {
+test("recorded souvenirs survive loading older, malformed, and concurrent saves", () => {
   const load = (data: unknown) => readProgress(JSON.stringify({ townKeepsakes: data }));
   assert.deepEqual(load(null).townKeepsakes, { items: [] });
   const first = load({ items: ["hall", "hall", "room", "baker", 3], radioTrack: "bells" });
@@ -428,16 +435,35 @@ test("the first recorded souvenir survives loading older, malformed, and concurr
   assert.deepEqual(load({ items: false, radioTrack: "other" }).townKeepsakes, { items: [] });
 });
 
-test("parallel recordings converge on the earliest take and keep legacy recordings", () => {
+test("parallel recordings keep the newest claimed take, including remakes of an undated tape", () => {
   const first = readTownKeepsakes(null), second = readTownKeepsakes(null);
   collectTownKeepsake(first, "radio", "bells", 100);
   collectTownKeepsake(second, "radio", "creek", 120);
   mergeTownKeepsakes(first, second);
   mergeTownKeepsakes(second, first);
   assert.deepEqual(first, second);
-  assert.deepEqual(readTownKeepsakes(first), { items: ["radio"], radioTrack: "bells", radioRecordedAt: 100 });
+  assert.deepEqual(readTownKeepsakes(first), { items: ["radio"], radioTrack: "creek", radioRecordedAt: 120 });
   mergeTownKeepsakes(first, readTownKeepsakes({ items: ["radio"], radioTrack: "creek", radioRecordedAt: -10 }));
-  assert.deepEqual(first, { items: ["radio"], radioTrack: "creek" });
+  assert.deepEqual(first, { items: ["radio"], radioTrack: "creek", radioRecordedAt: 120 });
+  const legacy = readTownKeepsakes({ items: ["radio"], radioTrack: "creek" });
+  assert.equal(collectTownKeepsake(legacy, "radio", "bells", 150), false);
+  mergeTownKeepsakes(legacy, first);
+  assert.deepEqual(legacy, { items: ["radio"], radioTrack: "bells", radioRecordedAt: 150 });
+});
+
+test("simultaneous claims converge even if the two tabs receive the writes in opposite orders", () => {
+  for (const [key, left, right] of [["florist","cream","lilac"],["post","flags","lamps"],["radio","creek","bells"]] as const) {
+    const a = readTownKeepsakes(null), b = readTownKeepsakes(null);
+    collectTownKeepsake(a, key, left, 100);
+    collectTownKeepsake(b, key, right, 100);
+    const previous = readTownKeepsakes(a);
+    mergeTownKeepsakes(a, b); mergeTownKeepsakes(b, previous);
+    assert.deepEqual(a, b);
+    const next = townKeepsakeChoice(a, key) === left ? right : left;
+    collectTownKeepsake(a, key, next, 100);
+    mergeTownKeepsakes(a, b);
+    assert.equal(townKeepsakeChoice(a, key), next);
+  }
 });
 
 test("indoors the daily chat order and the meeting record survive being reloaded separately", () => {

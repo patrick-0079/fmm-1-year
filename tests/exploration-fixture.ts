@@ -28,9 +28,10 @@ import { interactionHitY } from "../src/interaction";
 import { rabbitPlatforms } from "../src/town-attraction-layout";
 import { checkTapSurface } from "./hotspot-pointer-cases";
 
-// Same application as the homepage; all its saves are private to this QA tab.
+// Manual fixture visits keep a private save. The cross-tab runner supplies its
+// own isolated browser context so it can exercise real storage events.
 const space="fufu-only-exploration-fixture/";
-Object.defineProperty(window,"localStorage",{value:{
+if (!("qaUseBrowserStorage" in window)) Object.defineProperty(window,"localStorage",{value:{
   getItem:(key:string)=>sessionStorage.getItem(space+key),
   setItem:(key:string,value:string)=>sessionStorage.setItem(space+key,value),
   removeItem:(key:string)=>sessionStorage.removeItem(space+key),

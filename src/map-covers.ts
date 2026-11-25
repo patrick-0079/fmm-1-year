@@ -12,5 +12,5 @@ export function visibleMapCovers(world: World, covers: Cover[]): DepthLayer[] {
   const view = world.visibleArea;
   return covers
     .filter(({ x, y, w, h }) => x < view.x + view.w && x + w > view.x && y < view.y + view.h && y + h > view.y)
-    .map(cover => ({ y: cover.depth, draw: c => world.drawMapCover(c, cover, cover.mask) }));
+    .map(cover => ({ y: cover.depth, outline: cover.mask, draw: c => world.drawMapCover(c, cover, cover.mask) }));
 }

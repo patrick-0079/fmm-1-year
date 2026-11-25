@@ -39,29 +39,31 @@ export function townKeepsakeChoice(book: TownKeepsakes, key: TownInteriorKey) {
 }
 
 export function collectTownKeepsake(book: TownKeepsakes, key: TownInteriorKey, choice?: string, at = Date.now()) {
-  if (book.items.includes(key)) return false;
-  book.items.push(key);
-  if ((key === "florist" || key === "post") && validDesign(key, choice)) (book.designs ??= {})[key] = { choice, at };
+  const first = !book.items.includes(key);
+  if (first) book.items.push(key);
+  if ((key === "florist" || key === "post") && validDesign(key, choice)) {
+    const previous = book.designs?.[key]?.at ?? 0;
+    (book.designs ??= {})[key] = { choice, at: Math.max(previous + 1, at) };
+  }
   if (key === "radio" && (choice === "creek" || choice === "bells")) {
     book.radioTrack = choice;
-    book.radioRecordedAt = at;
+    book.radioRecordedAt = Math.max((book.radioRecordedAt ?? 0) + 1, at);
   }
-  return true;
+  return first;
 }
 
 export function mergeTownKeepsakes(into: TownKeepsakes, from: TownKeepsakes) {
   for (const key of from.items) if (!into.items.includes(key)) into.items.push(key);
   for (const key of paperShops) {
     const incoming = from.designs?.[key], current = into.designs?.[key];
-    if (incoming && (!current || incoming.at < current.at || (incoming.at === current.at && incoming.choice < current.choice))) {
+    if (incoming && (!current || incoming.at > current.at || (incoming.at === current.at && incoming.choice < current.choice))) {
       (into.designs ??= {})[key] = { ...incoming };
     }
   }
   if (!from.radioTrack) return;
-  // An undated recording was made by an earlier version. For new recordings
-  // both tabs converge on the first take even if their writes arrived out of order.
+  // Legacy tapes have no date. An explicitly claimed remake supersedes them.
   const a = into.radioRecordedAt ?? 0, b = from.radioRecordedAt ?? 0;
-  if (into.radioTrack && (a < b || (a === b && from.radioTrack !== "creek"))) return;
+  if (into.radioTrack && (a > b || (a === b && from.radioTrack !== "creek"))) return;
   into.radioTrack = from.radioTrack;
   if (from.radioRecordedAt === undefined) delete into.radioRecordedAt;
   else into.radioRecordedAt = from.radioRecordedAt;

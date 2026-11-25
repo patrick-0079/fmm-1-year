@@ -48,7 +48,7 @@ export function mountDebugPanel(
       <header><div><small>FUFU / PLAYTEST</small><h3>游戏调试台</h3></div><button type="button" class="debug-close" aria-label="关闭调试面板">关闭 ×</button></header>
       <p class="debug-note">试穿、花门和时段只在本次页面生效；亲手收集与通关仍会正常保存。</p>
       <div class="debug-launch-time"></div>
-      <section><h4>查看与试穿</h4><div>${button("wardrobe", "全饰品试穿")}${button("collision", "碰撞轮廓")}</div></section>
+      <section><h4>查看与试穿</h4><div>${button("wardrobe", "全饰品试穿")}${button("collision", "碰撞轮廓")}${button("layers", "图层显示")}</div></section>
       <details class="debug-mail"><summary>快捷收信</summary>
         <p>领取的信会保存到本机，拆封后才会标为已读。</p>
         <label for="debug-mail-choice">待领取的来信</label>
@@ -131,6 +131,7 @@ export function mountDebugPanel(
     const flags: Record<string, boolean> = {
       wardrobe: bag.fitting,
       collision: world.collisionOverlay,
+      layers: world.layerOverlay,
       "flower-door": flowers.previewOpen,
     };
     holder.querySelectorAll<HTMLButtonElement>("[data-debug]").forEach((b) => {
@@ -235,6 +236,8 @@ export function mountDebugPanel(
     } else if (type === "wardrobe") bag.setFitting(!bag.fitting);
     else if (type === "collision")
       world.showCollisionOverlay(!world.collisionOverlay);
+    else if (type === "layers")
+      world.showLayerOverlay(!world.layerOverlay);
     else if (type === "time")
       nature.setPreviewPhase(key === "auto" ? null : (key as Phase));
     else if (type === "flower-door") {

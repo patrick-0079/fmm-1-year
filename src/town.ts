@@ -326,7 +326,7 @@ export class Town {
     if (area !== "town") {
       const image = this.world.sceneryArtwork;
       return image ? [...interiorFurniture(image, area, this.world.currentPhase, this.hooks.keepsakes(),
-        this.world.townInteriorEffect(), this.reducedMotion.matches ? 0 : this.time), ...residents] : residents;
+        this.world.townInteriorEffect(), this.reducedMotion.matches ? 0 : this.time, this.world.layerOverlay), ...residents] : residents;
     }
     const props = festivalProps.filter(p => visible(p.x,p.y));
     const propTime = this.reducedMotion.matches ? 0 : this.time;

@@ -134,7 +134,7 @@ function ticket(c: Ink, x: number, y: number, w: number, h: number) {
   rect(c, x + 2, y + 2, w - 4, h - 4, "#e6b570");
   rect(c, x + 3, y + 3, w - 6, h - 6, "#fff0c4");
 }
-const art: Record<string, (c: Ink) => void> = {
+const art: Record<string, (c: Ink, choice?: string) => void> = {
   cake(c) {
     oval(c, 16, 24, 13, 3, "#9baab1");
     oval(c, 16, 23, 12, 2, cream);
@@ -536,7 +536,7 @@ const art: Record<string, (c: Ink) => void> = {
   },
 };
 
-for (const key of townInteriorKeys) art[townKeepsakeBadge(key)] = c => drawTownKeepsake(c, key, undefined, 1, 0, 30);
+for (const key of townInteriorKeys) art[townKeepsakeBadge(key)] = (c, choice) => drawTownKeepsake(c, key, choice, 1, 0, 30);
 
 export const hasDrawnStamp = (id: string) => Object.hasOwn(art, id);
 
@@ -549,7 +549,7 @@ export function paintAchievementArt(root: HTMLElement) {
     if (!c) continue;
     c.clearRect(0, 0, 32, 32);
     c.imageSmoothingEnabled = false;
-    art[canvas.dataset.stampArt!]?.(c);
+    art[canvas.dataset.stampArt!]?.(c, canvas.dataset.stampChoice);
     if (canvas.hasAttribute("data-stamp-veiled")) {
       c.globalCompositeOperation = "source-in";
       rect(c, 0, 0, 32, 32, "#a6999e");

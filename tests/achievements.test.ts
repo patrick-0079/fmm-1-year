@@ -216,7 +216,8 @@ test("each claimed town keepsake earns exactly its own stamp, including existing
     assert.equal(collectTownKeepsake(progress.townKeepsakes, key, "creek", 200), false);
     assert.deepEqual(reconcileAchievements(progress, empty).fresh, []);
   }
-  assert.equal(progress.townKeepsakes.radioTrack, "bells");
+  assert.equal(progress.townKeepsakes.radioTrack, "creek");
+  assert.equal(reconcileAchievements(progress, empty).entries.find(entry => entry.id === townKeepsakeBadge("radio"))?.keepsakeChoice, "creek");
   const older = readProgress(JSON.stringify({ townKeepsakes: { items: ["post", "books", "post"] } }));
   const backfilled = reconcileAchievements(older, empty).fresh.filter(id => id.startsWith("town-keepsake-"));
   assert.deepEqual(backfilled, [townKeepsakeBadge("post"), townKeepsakeBadge("books")]);

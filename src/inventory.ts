@@ -613,17 +613,20 @@ export class Inventory {
     return `${art}<div class="bag-detail" aria-live="polite"><strong>${title}</strong><small>${text}</small></div>${action}`;
   }
   private renderTownKeepsakes(page: NonNullable<Inventory["townPage"]>) {
-    const { items, radioTrack } = this.townKeepsakes();
+    const book = this.townKeepsakes(), { items, radioTrack } = book;
     const art = (key: TownInteriorKey) => `<canvas data-town-icon="${key}" width="48" height="52" aria-hidden="true"></canvas>`;
     if (page === "list") return `<section class="bag-town-paper" tabindex="0" aria-label="小镇小物">
       <header><h4>小镇小物 <small>${items.length} / ${townInteriorKeys.length}</small></h4><button type="button" data-keepsakes data-focus="keepsakes-back">返回纪念物</button></header>
       <div class="bag-town-grid">${townInteriorKeys.map(key => `<button type="button" data-town-item="${key}" data-focus="town-${key}" ${items.includes(key) ? "" : "disabled"}>
         ${art(key)}<span>${townKeepsakeInfo[key].name}</span><small>${items.includes(key) ? "已收下" : townInteriors[townInteriorId(key)].scene.title}</small></button>`).join("")}</div></section>`;
     const item = townKeepsakeInfo[page];
-    const track = page === "radio" && radioTrack ? `片头底声为${radioTrackName[radioTrack]}。` : "";
+    let design = "";
+    if (page === "florist") design = townKeepsakeChoice(book, page) === "cream" ? "夹着一片奶白花瓣。" : "夹着一片浅紫花瓣。";
+    if (page === "post") design = townKeepsakeChoice(book, page) === "lamps" ? "片面画着池边街灯。" : "片面画着广场彩旗。";
+    if (page === "radio" && radioTrack) design = `片头底声为${radioTrackName[radioTrack]}。`;
     return `<article class="bag-town-paper" tabindex="0" aria-label="${item.name}">
       <header><h4>${item.name}</h4><button type="button" data-town-keepsakes data-focus="town-back">返回小镇小物</button></header>
-      <div class="bag-town-detail">${art(page)}<p>${item.note}${track}</p></div></article>`;
+      <div class="bag-town-detail">${art(page)}<p>${item.note}${design}</p></div></article>`;
   }
   private render() {
     if (this.root.hidden || this.mailCleanups) return;

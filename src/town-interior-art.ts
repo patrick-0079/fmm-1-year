@@ -38,23 +38,70 @@ function blended(c: CanvasRenderingContext2D, image: HTMLImageElement, frames: R
   }
 }
 
+// Paint the top-hung sash inside the third greenhouse pane. Both hinges stay
+// on its existing header while the bottom rail swings out towards the street.
+function paintOpenVent(c: CanvasRenderingContext2D, image: HTMLImageElement, [sx, sy]: Frame) {
+  c.save();
+  c.scale(.5, .5); // coordinates in the original 1200 × 800 painting
+  c.imageSmoothingEnabled = true;
+  c.imageSmoothingQuality = "high";
+  c.beginPath();
+  c.rect(170.5, 78, 83, 64);
+  c.clip();
+
+  const glass = new Path2D("M172.4 79.6H251.8L245.3 122.7H178.9Z");
+  const sheen = c.createLinearGradient(173, 80, 248, 123);
+  sheen.addColorStop(0, "#ecfff222");
+  sheen.addColorStop(.49, "#fffae009");
+  sheen.addColorStop(1, "#94b9a51a");
+  c.fillStyle = sheen;
+  c.fill(glass);
+  c.fillStyle = "#fff8df20";
+  c.fill(new Path2D("M234 82L237.6 82 229 95.8 227 96.7Z"));
+
+  // Each stay joins the jamb to the moving rail, below the glass.
+  const stays = new Path2D("M172.4 134.4L179.3 122.1M251.7 134.4L244.6 122.1");
+  c.lineCap = "round";
+  c.strokeStyle = "#726044";
+  c.lineWidth = 1.65;
+  c.stroke(stays);
+  c.strokeStyle = "#d8bb80";
+  c.lineWidth = .65;
+  c.stroke(stays);
+
+  // Reuse the green glazing bars and their painted bevels from this window.
+  for (const [hingeX, offset, woodX] of [[171.1, 6.5, 167], [249.8, -6.5, 251.3]]) {
+    c.save();
+    c.transform(1, 0, offset / 43, 1, hingeX, 79.3);
+    c.drawImage(image, sx + woodX, sy + 84, 5.9, 50, 0, 0, 3.2, 43);
+    c.restore();
+  }
+  c.drawImage(image, sx + 174, sy + 139.3, 74, 6.2, 177.5, 120.4, 69.1, 3.6);
+  c.restore();
+}
+
+function windowFrames(art: typeof townInteriors[TownInteriorId]["art"], effect?: RoomEffect) {
+  return art.blind ? (effect?.kind === "blind" ? art.blind.raised : art.blind.lowered) : art.skies;
+}
+
+export function interiorWindowLayers(image: HTMLImageElement, scene: TownInteriorId, phase: Phase, effect?: RoomEffect): DepthLayer[] {
+  const art = townInteriors[scene].art, frame = windowFrames(art, effect)[phase];
+  const layers: DepthLayer[] = [{ y: 0, outline: { image, frame, scale: art.scale }, draw: c => paint(c, image, frame, art.scale) }];
+  if (scene === "town-florist" && effect?.kind === "window")
+    layers.push({ y: 0, draw: c => paintOpenVent(c, image, art.backgrounds.day) });
+  return layers;
+}
+
 export function paintTownInterior(c: CanvasRenderingContext2D, image: HTMLImageElement, scene: TownInteriorId, phase: Phase, mix?: DaylightMix, effect?: RoomEffect) {
   const art = townInteriors[scene].art;
   paint(c, image, art.backgrounds.day, art.scale);
-  const frames = art.blind ? (effect?.kind === "blind" ? art.blind.raised : art.blind.lowered) : art.skies;
+  const frames = windowFrames(art, effect);
   paint(c, image, frames[mix?.from ?? phase], art.scale);
   if (mix && mix.mix > 0) {
     c.save(); c.globalAlpha *= mix.mix; paint(c, image, frames[mix.to], art.scale); c.restore();
   }
   if (scene === "town-florist" && effect?.kind === "window") {
-    c.save();
-    c.fillStyle = "#80684555";
-    c.fill(new Path2D("M87 42H125V54L87 59Z"));
-    c.fillStyle = "#f7efc243";
-    c.fill(new Path2D("M86 41L123 41 127 33 88 35Z"));
-    c.strokeStyle = "#6b7351"; c.lineWidth = 1.4;
-    c.stroke(new Path2D("M86 41L123 41 127 33 88 35ZM123 41L125 54M106 47v6l-3 3"));
-    c.restore();
+    paintOpenVent(c, image, art.backgrounds.day);
   }
 }
 
@@ -64,9 +111,11 @@ export function paintTownInteriorLight(c: CanvasRenderingContext2D, image: HTMLI
 
 export function interiorFurniture(
   image: HTMLImageElement, scene: TownInteriorId, phase: Phase, keepsakes: TownKeepsakes, effect: RoomEffect | undefined, time: number,
+  showOutlines = false,
 ): DepthLayer[] {
   const art = townInteriors[scene].art;
   return art.props.map(prop => ({
+    outline: showOutlines ? { image, frame: prop.variants.day, scale: art.scale } : undefined,
     y: prop.depth, draw: c => {
       paint(c, image, prop.variants[phase], art.scale);
       if (prop.name === "手绘白板脚") {

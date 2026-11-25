@@ -341,16 +341,15 @@ export function mountGame() {
         mergeAchievementProgress(progress, other);
       }
     } catch { /* The souvenir can still be collected for this session. */ }
-    if (!collectTownKeepsake(book, key, choice)) {
-      inventory.refreshTownKeepsakes();
-      refreshAchievements?.(false);
-      return false;
-    }
-    save();
+    const first = collectTownKeepsake(book, key, choice);
+    if (first || choice) save();
+    else refreshAchievements?.(false);
     inventory.refreshTownKeepsakes();
-    sfx("match");
-    toast(`收到${townKeepsakeInfo[key].name}`);
-    return true;
+    if (first) {
+      sfx("match");
+      toast(`收到${townKeepsakeInfo[key].name}`);
+    }
+    return first;
   }, key => inventory.openTownKeepsakes(key));
   world.townInteriorEffect = () => interiorActivities.roomEffect;
   const mail: LetterHandoff = {

@@ -25,6 +25,7 @@ import { drawWildSprite } from "./wild-art";
 import { drawFirefly, fireflyDrift } from "./firefly-art";
 import gardenDetails from "./garden-street-details.json";
 import { prepareMapCovers, visibleMapCovers } from "./map-covers";
+import { mapFragment } from "./map-fragment";
 import { gardenForeground } from "./garden-foreground";
 import { gardenGateLamp } from "./garden-gate-lamp";
 import { gardenSign } from "./garden-sign";
@@ -434,7 +435,7 @@ export class Nature {
   private depthLayers() {
     if (this.world.scene === "room") return [
       ...roomFurniture.filter(p => p.id !== "bed" || this.world.restState?.kind !== "lying")
-        .map(p => ({y:p.y, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,p.points)})),
+        .map(p => ({y:p.y, outline:mapFragment(p.points).mask, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,p.points)})),
       {y:249, draw:(c:CanvasRenderingContext2D) => this.activities.drawCake(c, performance.now() / 1000)},
       {y:377, draw:(c:CanvasRenderingContext2D) => {
         c.save();
@@ -454,7 +455,7 @@ export class Nature {
       return [
         ...creek,
         ...visibleMapCovers(this.world, gardenCovers),
-        ...gardenForeground.map(part => ({y:part.y, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,part.points)})),
+        ...gardenForeground.map(part => ({y:part.y, outline:mapFragment(part.points).mask, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,part.points)})),
         { y: apple.y + 4, draw: (c: CanvasRenderingContext2D) => {
           const basket = this.world.appleBasket;
           c.fillStyle = "#294a3c48";
@@ -475,7 +476,7 @@ export class Nature {
     }
     return [
       ...creek,
-      ...courageBorder.map(({y,points}) => ({y, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,points)})),
+      ...courageBorder.map(({y,points}) => ({y, outline:mapFragment(points).mask, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,points)})),
       ...challengeTrees.map((tree) => ({
         y: tree.y + 23 * tree.scale,
         draw: (c: CanvasRenderingContext2D) =>

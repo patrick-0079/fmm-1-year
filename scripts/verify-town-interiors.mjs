@@ -20,6 +20,7 @@ try {
     viewport: { width, height: touch ? 844 : 940 }, hasTouch: touch,
     deviceScaleFactor: touch ? 2 : 1, reducedMotion: "reduce"
   });
+  await context.addInitScript(() => { window.qaUseBrowserStorage = true; });
   const page = await context.newPage();
   const cdp = touch ? await context.newCDPSession(page) : undefined;
   const errors = [];
@@ -29,10 +30,10 @@ try {
   });
   await page.route(/^https:\/\/cdn\./, route => route.abort());
   await page.goto(server.resolvedUrls.local[0] + "tests/exploration-fixture.html");
-  async function enter() {
-    await page.waitForFunction(() => window.contentQA?.ready());
-    await page.locator(".enter-button").click();
-    await page.locator("#world").scrollIntoViewIfNeeded();
+  async function enter(tab = page) {
+    await tab.waitForFunction(() => window.contentQA?.ready());
+    await tab.locator(".enter-button").click();
+    await tab.locator("#world").scrollIntoViewIfNeeded();
   }
   await enter();
   const steps = await page.evaluate(async () => (await import("/src/town-workbench-steps.ts")).workbenchSteps);
@@ -81,6 +82,7 @@ try {
     ["baker", "day", 3, [
       [178,281,[176,278],[175,269]], [61,279,[58,252],[59,244]],
       [50,235,[55,208],[44,207]], [300,124,[306,96],[295,98]],
+      [85,238,[77,209],[81,204]],
     ]],
     ["radio", "dusk", 2, [[193,145,[198,115],[195,109]]]],
     ["hall", "night", 2, [[111,124,[108,108],[109,100]]]],
@@ -99,7 +101,50 @@ try {
       await picture(room + "-" + x + "-" + y);
     }
   }
+  for (const time of ["dawn", "day", "dusk", "night"]) {
+    await phase(time);
+    await visit("town-florist", "town-florist-extra");
+    await page.locator("#world").scrollIntoViewIfNeeded();
+    const beam = [90,32,37,6], rail = [93,60,28,2];
+    const [closedBeam, closedRail] = await Promise.all([pixels(...beam), pixels(...rail)]);
+    await hit(await page.evaluate(() => window.contentQA.pointAt(107,55)));
+    await page.getByRole("button", { name: "放回窗把" }).waitFor();
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+    assert.ok(difference(closedBeam, await pixels(...beam)) < 3, time + " open sash clears the lintel");
+    assert.ok(difference(closedRail, await pixels(...rail)) > 9, time + " raised rail is visible inside the jamb");
+    await picture("florist-vent-" + time);
+    await page.getByRole("button", { name: "放回窗把" }).click();
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+    assert.ok(difference(closedRail, await pixels(...rail)) < 3, time + " sash returned to its closed position");
+  }
   await phase("day");
+  async function overlay(command, layersOn, collisionOn) {
+    await page.locator(".debug-trigger").click();
+    const layers = page.locator('[data-debug="layers"]'), collision = page.locator('[data-debug="collision"]');
+    const [a, b] = await Promise.all([collision.boundingBox(), layers.boundingBox()]);
+    assert.ok(b.x >= a.x + a.width - 1 && Math.abs(b.y - a.y) < 3, "layer toggle is to the right of collision");
+    await page.locator('[data-debug="' + command + '"]').click();
+    assert.equal(await layers.getAttribute("aria-pressed"), String(layersOn));
+    assert.equal(await collision.getAttribute("aria-pressed"), String(collisionOn));
+    await page.locator(".debug-close").click();
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+  }
+  await stand("town-baker", 300, 340);
+  const edge = [76,198,11,22], icing = [69,214,4,3];
+  const [bareEdge, bareIcing] = await Promise.all([pixels(...edge), pixels(...icing)]);
+  await overlay("layers", true, false);
+  const traced = await pixels(...edge);
+  assert.ok(difference(bareEdge, traced) > 2, "actual cake edge is outlined");
+  assert.ok(difference(bareIcing, await pixels(...icing)) < 3, "solid cake interior stays clear of debug ink");
+  await stand("town-baker", 85, 238);
+  await picture("baker-85-238-layers");
+  await stand("town-baker", 300, 340);
+  await overlay("collision", true, true);
+  assert.ok(difference(bareEdge, await pixels(...edge)) > 2);
+  await overlay("layers", false, true);
+  assert.ok(difference(bareEdge, await pixels(...edge)) < 3, "collision alone draws no cake silhouette");
+  await overlay("collision", false, false);
+  assert.ok(difference(bareEdge, await pixels(...edge)) < 3);
   async function walkTo(x, y) {
     await hit(await page.evaluate(([x, y]) => window.contentQA.pointAt(x, y), [x, y]));
     await page.waitForFunction(([x, y]) => {
@@ -208,12 +253,12 @@ type: { down: "touchStart", move: "touchMove", up: "touchEnd" }[type],
 florist: [422, 150], baker: [191, 131], maker: [331, 189], post: [523, 177],
     books: [105, 132], radio: [120, 145], hall: [536, 123]
 };
-  async function iconPixels(selector) {
-    await page.waitForFunction(selector => {
+  async function iconPixels(selector, tab = page) {
+    await tab.waitForFunction(selector => {
       const c = document.querySelector(selector)?.getContext("2d");
       return c && c.getImageData(0, 0, 48, 52).data.some((v, i) => i % 4 === 3 && v > 200);
     }, selector);
-    return page.locator(selector).evaluate(canvas =>
+    return tab.locator(selector).evaluate(canvas =>
       Array.from(canvas.getContext("2d").getImageData(0, 0, 48, 52).data));
   }
   function sameIcon(actual, expected, message) {
@@ -222,8 +267,9 @@ florist: [422, 150], baker: [191, 131], maker: [331, 189], post: [523, 177],
   }
   const received = {};
   const choiceFor = (key, alternate) => ({ florist: alternate ? "cream" : "lilac", post: alternate ? "lamps" : "flags", radio: alternate ? "bells" : "creek" })[key];
-  async function verifyFinishedPiece(room) {
-    const choice = choiceFor(room, touch);
+  async function verifyFinishedPiece(room, alternate = touch) {
+    await page.locator('.town-workbench[data-step="ready"]').waitFor();
+    const choice = choiceFor(room, alternate);
     const matches = await page.evaluate(async ([room, choice]) => {
       const { default: tools } = await import("/src/town-workbench-frames.json");
       const { default: prizes } = await import("/src/town-keepsake-frames.json");
@@ -240,6 +286,21 @@ florist: [422, 150], baker: [191, 131], maker: [331, 189], post: [523, 177],
       return a.every((value, index) => value === b[index]);
     }, [room, choice]);
     assert.ok(matches, room + " finished workbench shows the collected sprite and selected design");
+  }
+  async function expectedVariant(room, choice) {
+    return page.evaluate(async ([room, choice]) => {
+      const { default: frames } = await import("/src/town-keepsake-frames.json");
+      const sprite = new Image();
+      sprite.src = "/src/assets/town-interiors/keepsakes.webp";
+      await sprite.decode();
+      const [sx, sy, w, h, x, y] = frames[room + "-" + choice] ?? frames[room];
+      const canvas = document.createElement("canvas");
+      canvas.width = 48; canvas.height = 52;
+      const c = canvas.getContext("2d", { willReadFrequently: true }), scale = 44 / { florist: 112, post: 145, radio: 139 }[room];
+      c.imageSmoothingQuality = "high";
+      c.drawImage(sprite, sx, sy, w, h, 24 + x * scale, 26 + y * scale, w * scale / 3, h * scale / 3);
+      return Array.from(c.getImageData(0, 0, 48, 52).data);
+    }, [room, choice]);
   }
   const secondary = {
 florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
@@ -279,7 +340,6 @@ florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
       await activity(key, "main", main[key]);
     }
     for (const stage of steps[key]) await perform(stage, key);
-    await page.locator('.town-workbench[data-step="ready"]').waitFor();
     await verifyFinishedPiece(key);
     const badge = "town-keepsake-" + key;
     assert.ok(!(await state()).achievements.earned.includes(badge), key + " unclaimed");
@@ -291,8 +351,10 @@ florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
     if (key === "radio") assert.equal(earned.townKeepsakes.radioTrack, touch ? "bells" : "creek");
     if (key === "florist" || key === "post") assert.equal(earned.townKeepsakes.designs[key].choice, choiceFor(key, touch));
     received[key] = await iconPixels(".dialogue-portrait");
+    if (choiceFor(key, touch)) sameIcon(received[key], await expectedVariant(key, choiceFor(key, touch)), key + " first selected variant");
     await page.getByRole("button", { name: "查看纪念物" }).click();
     sameIcon(await iconPixels(".bag-town-detail canvas"), received[key], key + " receipt and bag use identical pixels");
+    if (choiceFor(key, touch)) await picture(key + "-" + choiceFor(key, touch), ".bag-town-detail");
     await page.locator(".bag-close").click();
     if (key === "books") {
       await activity(key, "extra", secondary.books);
@@ -330,19 +392,58 @@ florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
   const saved = await state();
   assert.equal(new Set(saved.townKeepsakes.items).size, 7);
   assert.equal(saved.achievements.earned.filter(id => id.startsWith("town-keepsake-")).length, 7);
+  const shelf = await page.evaluate(async () => (await import("/src/town-interiors.ts")).townInteriors["town-hall"].art.collection);
+  const firstShelf = {};
+  for (const key of ["florist","post","radio","baker"]) firstShelf[key] = await pixels(...shelf[key]);
+  const sibling = await context.newPage();
+  await sibling.route(/^https:\/\/cdn\./, route => route.abort());
+  await sibling.goto(server.resolvedUrls.local[0] + "tests/exploration-fixture.html"); await enter(sibling);
+  await sibling.locator(".bag-toggle").click();
+  await sibling.locator('[data-tab="keepsakes"]').click();
+  await sibling.locator("[data-town-keepsakes]").click();
+  await page.bringToFront();
   for (const key of ["florist", "post", "radio"]) {
+    const choice = choiceFor(key, !touch), current = await state();
     await activity(key, "main", main[key]);
     for (const stage of steps[key]) await perform(stage, key, !touch);
+    await verifyFinishedPiece(key, !touch);
+    assert.deepEqual((await state()).townKeepsakes, current.townKeepsakes, key + " finished remake waits for claim");
     await page.getByRole("button", { name: "收下", exact: true }).click();
-    assert.deepEqual((await state()).townKeepsakes, saved.townKeepsakes, key + " replay preserves the original collection");
-    sameIcon(await iconPixels(".dialogue-portrait"), received[key], key + " replay receipt");
-    if (key !== "radio") await close();
+    const remade = await state(), book = remade.townKeepsakes;
+    assert.equal(key === "radio" ? book.radioTrack : book.designs[key].choice, choice);
+    assert.deepEqual(book.items, saved.townKeepsakes.items);
+    assert.deepEqual(remade.achievements.earned, saved.achievements.earned);
+    const expected = await expectedVariant(key, choice);
+    assert.ok(difference(expected, received[key]) > 1, key + " variants are visually distinct");
+    received[key] = expected;
+    sameIcon(await iconPixels(".dialogue-portrait"), expected, key + " replay receipt");
+    await page.getByRole("button", { name: "查看纪念物" }).click();
+    sameIcon(await iconPixels(".bag-town-detail canvas"), expected, key + " remade bag detail");
+    await picture(key + "-" + choice, ".bag-town-detail");
+    await sibling.waitForFunction(([key, expected]) => {
+      const c = document.querySelector('canvas[data-town-icon="' + key + '"]').getContext("2d");
+      return c.getImageData(0, 0, 48, 52).data.every((v, i) => v === expected[i]);
+    }, [key, expected], { polling: 100 });
+    if (key === "radio") assert.match(await page.locator(".bag-town-detail").innerText(), touch ? /溪水/ : /檐铃/);
+    await page.locator(".bag-close").click();
   }
-  await page.getByRole("button", { name: "查看纪念物" }).click();
-  assert.match(await page.locator(".bag-town-detail").innerText(), touch ? /檐铃/ : /溪水/);
-  await page.getByRole("button", { name: "返回小镇小物" }).click();
+  await sibling.close();
+  await stand("town-hall", 300, 327);
+  for (const key of ["florist","post","radio"]) assert.ok(difference(firstShelf[key], await pixels(...shelf[key])) > .15, key + " remade shelf illustration");
+  assert.ok(difference(firstShelf.baker, await pixels(...shelf.baker)) < 1, "other shelf items keep their artwork");
+  await page.reload(); await enter();
+  await page.locator(".bag-toggle").click();
+  await page.locator('[data-tab="keepsakes"]').click();
+  await page.locator("[data-town-keepsakes]").click();
   assert.equal(await page.locator(".bag-town-grid button:enabled").count(), 7);
   for (const key of Object.keys(steps)) sameIcon(await iconPixels('canvas[data-town-icon="' + key + '"]'), received[key], key + " persisted icon");
+  await page.locator(".bag-close").click();
+  await page.locator("[data-book-toggle]").click();
+  await page.locator('[data-book-chapter="explore"]').click();
+  for (const key of ["florist","post","radio"]) {
+    const stamp = page.locator('.achievement-grid canvas[data-stamp-art="town-keepsake-' + key + '"]');
+    assert.equal(await stamp.getAttribute("data-stamp-choice"), choiceFor(key, !touch), key + " persisted stamp artwork");
+  }
   assert.deepEqual(errors, []);
   console.log(width, "seven paintings and workbenches, gallery 0/3/7, reload, replay and inventory passed");
 } finally {

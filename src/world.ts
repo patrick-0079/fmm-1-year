@@ -12,6 +12,7 @@ import wreathUrl from "./assets/flower-wreath.webp";
 import townUrl from "./assets/anniversary-town-v13.webp";
 import townDetailUrl from "./assets/anniversary-town-hd-v13.webp";
 import { mapFragment } from "./map-fragment";
+import { LayerOutlines, type LayerOutline } from "./layer-outlines";
 import { dockOpening } from "./town-terraces";
 import meadowUrl from "./assets/night-meadow-v16.webp";
 import ruinsUrl from "./assets/echo-ruins.webp";
@@ -52,7 +53,7 @@ import {
 import { bloomingGarden, scenes, type BaseSceneId, type Hotspot, type Scene, type SceneId } from "./maps";
 import { isTownInterior, type TownInteriorId } from "./town-interior-id";
 import { crossedInteriorDoor } from "./town-interiors";
-import { paintTownInterior, paintTownInteriorLight, townInteriorArt } from "./town-interior-art";
+import { interiorWindowLayers, paintTownInterior, paintTownInteriorLight, townInteriorArt } from "./town-interior-art";
 import type { RoomEffect } from "./town-interior-activities";
 import type { DaylightMix } from "./daylight-mix";
 export { scenes, type SceneId } from "./maps";
@@ -78,6 +79,7 @@ const sceneTextures: Record<BaseSceneId, string[]> = {
 export interface DepthLayer {
   y: number;
   draw: (context: CanvasRenderingContext2D) => void;
+  outline?: LayerOutline;
 }
 
 /** Temporary visual pose only; feet, movement and equipped layers stay intact. */
@@ -144,6 +146,11 @@ export class World {
     import.meta.env.DEV && new URLSearchParams(location.search).has("debug");
   private debugOutput: HTMLOutputElement | null = null;
   get collisionOverlay() { return this.debug; }
+  private layerOutlines?: LayerOutlines;
+  get layerOverlay() { return !!this.layerOutlines; }
+  showLayerOverlay(on: boolean) {
+    this.layerOutlines = on ? this.layerOutlines ?? new LayerOutlines() : undefined;
+  }
   showCollisionOverlay(on:boolean) {
     this.debug=on;
     if(on && !this.debugOutput) {
@@ -866,7 +873,7 @@ export class World {
     this.onEnvironment(c, this.time);
     if (this.scene === "room") drawDoorRug(c);
     this.drawHazards();
-    const drawPlayer = () => {
+    const drawPlayer = (c: CanvasRenderingContext2D) => {
       if (this.actorHidden) return;
       const x = Math.round(this.player.x),
         y = Math.round(this.player.y);
@@ -901,19 +908,27 @@ export class World {
       );
       c.restore();
     };
-    const layers = [
+    const layers: DepthLayer[] = [
       ...this.getDepthLayers(),
       ...(this.scene === "challenge" ? courageFlowerLayers(this.images.get(courageFlowerUrl)) : []),
       ...connectionLayers(this.scene),
-      { y: this.player.y, draw: drawPlayer },
     ];
-    layers.sort((a, b) => a.y - b.y).forEach((layer) => layer.draw(c));
+    const actor = { y: this.player.y, draw: drawPlayer };
+    const outlines = this.layerOutlines ? layers.slice() : undefined;
+    layers.push(actor);
+    layers.sort((a, b) => a.y - b.y).forEach(layer => layer.draw(c));
     this.onDraw(c, this.time);
     this.onLighting(c);
     if (isTownInterior(this.scene) && this.sceneryArtwork)
       paintTownInteriorLight(c, this.sceneryArtwork, this.scene, this.currentPhase, this.reducedMotion.matches ? undefined : this.lightMix);
     if (this.cuesVisible) drawInteractionGlints(c, this.config.spots.filter(s => this.available(s)), this.scene, this.time, this.reducedMotion.matches, this.activeCueId);
     this.onEffects(c);
+    if (this.layerOutlines && outlines) {
+      if (isTownInterior(this.scene) && this.sceneryArtwork)
+        outlines.push(...interiorWindowLayers(this.sceneryArtwork, this.scene, this.currentPhase, this.townInteriorEffect()));
+      this.layerOutlines.draw(c, this.scene, view, outlines, actor,
+        { x: this.player.x - 62, y: this.player.y - 75, w: 124, h: 104 });
+    }
     if (this.debug) this.drawDebug();
     c.restore();
     this.drawHazardHint();

@@ -7,7 +7,7 @@ import { producers } from "./star-catalog.ts";
 import { deliveryIds } from "./letters.generated.ts";
 import { achievementEvents, type AchievementEvent } from "./achievement-events.ts";
 import { townInteriorKeys } from "./town-interior-id.ts";
-import { townKeepsakeBadge, townKeepsakeInfo } from "./town-keepsakes.ts";
+import { townKeepsakeBadge, townKeepsakeChoice, townKeepsakeInfo } from "./town-keepsakes.ts";
 
 export const achievementChapters = [
   { id: "daily", title: "日常与相遇" },
@@ -28,6 +28,7 @@ interface Definition {
   letterId?: string;
 }
 export interface AchievementEntry extends Definition {
+  keepsakeChoice?: string;
   current: number;
   goal: number;
   earned: boolean;
@@ -194,6 +195,7 @@ export function migrateAchievementFacts(progress: Progress, context: Achievement
 }
 
 interface Meter {
+  keepsakeChoice?: string;
   current: number;
   goal: number;
   progressLabel: string;
@@ -293,7 +295,10 @@ export function reconcileAchievements(progress: Progress, context: AchievementCo
   meters.set("camp", yesNo(story.patrickArrived));
   const earnedInRuins = earnedSeals(progress.astrolabe, progress.echoes.listened);
   for (const seal of seals) meters.set("ruin-" + seal.id, yesNo(earnedInRuins.includes(seal.id)));
-  for (const key of townInteriorKeys) meters.set(townKeepsakeBadge(key), yesNo(progress.townKeepsakes.items.includes(key)));
+  for (const key of townInteriorKeys) {
+    const owned = progress.townKeepsakes.items.includes(key);
+    meters.set(townKeepsakeBadge(key), { ...yesNo(owned), keepsakeChoice: owned ? townKeepsakeChoice(progress.townKeepsakes, key) : undefined });
+  }
   meters.set("ruin-set", meter(progress.astrolabe.found.length, rings.length, "枚星盘环"));
   for (const { days: n } of days) {
     const minutes = Math.floor(Math.max(0, Number.isFinite(context.playSeconds) ? context.playSeconds : 0) / 60);
