@@ -1,4 +1,4 @@
-import type { Point } from "./core.ts";
+import type { Point, Rect } from "./core.ts";
 import type { BaseSceneId, Hotspot, SceneId } from "./maps.ts";
 import { isTownInterior } from "./town-interior-id.ts";
 import { townInteriors } from "./town-interiors.ts";
@@ -13,7 +13,9 @@ export interface InteractionCue {
   /** The illustration already communicates this target without extra sparkles. */
   natural: boolean;
   /** Painted subject bounds relative to the hotspot, for the adjacent label. */
-  objectBox: { x: number; y: number; w: number; h: number };
+  objectBox: Rect;
+  /** Walkable ground to leave tappable, relative to the same hotspot. */
+  walkway?: Rect;
 }
 
 const verbs: Record<InteractionCueKind, string> = {

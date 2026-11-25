@@ -458,7 +458,8 @@ export function mountGame() {
           (world.scene === "town" && (cue.kind === "game" || other.id.startsWith("arcade-") ||
             isTownInterior(spot.portal ?? "") || isTownInterior(other.portal ?? ""))));
       }).map(other => cueBox(other, resolveCue(other, world.scene).objectBox))
-      : undefined;
+      : [];
+    if (cue.walkway) nearbyTargets.push(cueBox(spot, cue.walkway));
     const inRange = world.inInteractionRange(spot);
     prompt.update({
       id: spot.id, action: cue.action, verb: cue.verb, kind: cue.kind,

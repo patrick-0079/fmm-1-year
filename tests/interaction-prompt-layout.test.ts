@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { placeInteractionPrompt, promptHoverContains, type PromptBox } from "../src/interaction-prompt-layout.ts";
+import { townAttractionSpots } from "../src/town-attraction-layout.ts";
 
 const overlap = (a: PromptBox, b: PromptBox) =>
   Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) *
@@ -88,6 +89,27 @@ test("the same workshop steps accept a mouse click while either desktop hint is 
     const label = { ...placeInteractionPrompt(viewport, size, anchor, player, npc, occupied), ...size };
     for (const item of [player, npc, ...occupied]) assert.equal(overlap(label, item), 0);
     assert.equal(overlap(label, { x: 474, y: 359, w: 5, h: 6 }), 0);
+  }
+});
+
+test("the wish-tile prompt leaves the paved crossing east of (596,340) open to taps and clicks", () => {
+  const spot = townAttractionSpots.find(spot => spot.id === "arcade-link")!;
+  const cue = spot.cue!;
+  assert.ok(cue.walkway);
+  for (const width of [298, 360, 934]) {
+    const viewport = { w: width, h: width * 2 / 3 };
+    const scale = .9 * width / 600;
+    // The town camera is centered on the player at the west end of the crossing.
+    const project = (x: number, y: number) => ({ x: (x - 263) * scale, y: (y - 118) * scale });
+    const box = (x: number, y: number, w: number, h: number) => ({ ...project(x, y), w: w * scale, h: h * scale });
+    const fromSpot = (r: PromptBox) => box(spot.x + r.x, spot.y + r.y, r.w, r.h);
+    const anchor = project(spot.x + cue.anchor.x, spot.y + cue.anchor.y);
+    const size = { w: 136, h: 46 };
+    const label = { ...placeInteractionPrompt(viewport, size, anchor, box(580, 296, 32, 46),
+      fromSpot(cue.objectBox), [fromSpot(cue.walkway)], width < 600), ...size };
+    for (const y of [326, 340, 351])
+      for (const x of [596, 615, 650, 690, 718])
+        assert.equal(overlap(label, box(x, y, 2, 2)), 0, `covered road at ${x},${y} on a ${width}px canvas`);
   }
 });
 
