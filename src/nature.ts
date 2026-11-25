@@ -18,6 +18,7 @@ import benchUrl from "./assets/garden-bench.webp";
 import treeUrl from "./assets/apple-tree.webp";
 import dewUrl from "./assets/morning-dew-flower.webp";
 import roomArtUrl from "./assets/room-interactive.webp";
+import { sceneImage } from "./texture-cache";
 import { drawRoomWindow } from "./window-sky";
 import { drawCurtainBreeze, drawFabricGround, fruitShift, windLevel } from "./scenery-wind";
 import { drawKeepsake } from "./scene-art";
@@ -56,10 +57,10 @@ const initial = (): NatureSave => ({
   wreath: false,
 });
 export class Nature {
-  private treeImage = new Image();
-  private benchImage = new Image();
-  private dewImage = new Image();
-  private windowImage = new Image();
+  private treeImage = sceneImage(treeUrl);
+  private benchImage = sceneImage(benchUrl);
+  private dewImage = sceneImage(dewUrl);
+  private windowImage = sceneImage(roomArtUrl);
   private origin = Date.now();
   private shift = 0;
   private state = initial();
@@ -73,10 +74,6 @@ export class Nature {
     private toast: (text: string) => void,
     private inventory: Inventory,
   ) {
-    this.treeImage.src = treeUrl;
-    this.dewImage.src = dewUrl;
-    this.windowImage.src = roomArtUrl;
-    this.benchImage.src = benchUrl;
     try {
       const clock = JSON.parse(localStorage.getItem(CLOCK_KEY) || "null");
       if (

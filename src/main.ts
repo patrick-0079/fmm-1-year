@@ -17,32 +17,22 @@ import "./scene-transition.css";
 import { achievementBookMarkup } from "./achievement-book";
 import { helpMarkup } from "./help";
 import { albumCoverPhoto, albumStampPhoto } from "./album-catalog";
-import { scheduleAlbumPreviews } from "./album-preload";
 import cinemaCover from "./assets/arcade-postcard-v14.webp";
-import meadowCover from "./assets/night-meadow-v16.webp";
+import meadowCover from "./assets/meadow-postcard.webp";
 import { anniversary, collections } from "./content";
-import { EVENT_IDS } from "./core";
+import { EVENT_IDS, SAVE_KEY, readProgress } from "./core";
+import { JOURNEY_KEY, readJourney } from "./journey";
+import { scenes } from "./maps";
 import { escapeHtml, icon } from "./icons";
-import { scheduleResourcePreload } from "./texture-cache";
-import roomUrl from "./assets/room-interactive.webp";
-import spriteUrl from "./assets/nemu-sprites.webp";
-
-// This module first runs when the invitation opens. Keep the waiting page
-// independent of the two large images needed for the first playable frame.
-for (const href of [roomUrl, spriteUrl]) {
-  const preload = document.createElement("link");
-  preload.rel = "preload";
-  preload.as = "image";
-  preload.href = href;
-  preload.fetchPriority = "high";
-  document.head.append(preload);
-}
+import { prepareMapArt } from "./texture-cache";
+import { showResourceCount } from "./loading-meter";
+import { mountLoadingMonitor } from "./network-debug";
 
 const coverImage = albumCoverPhoto?.thumbnail && albumCoverPhoto.src
-  ? `<img src="${escapeHtml(albumCoverPhoto.thumbnail)}" srcset="${escapeHtml(albumCoverPhoto.thumbnail)} 240w, ${escapeHtml(albumCoverPhoto.src)} 640w" sizes="(max-width: 699px) 104px, (max-width: 1099px) 30vw, 410px" alt="" loading="lazy"/><span class="photo-tape" aria-hidden="true"></span><span class="photo-caption" aria-hidden="true">${escapeHtml(albumCoverPhoto.title)} ♡</span>`
+  ? `<img data-src="${escapeHtml(albumCoverPhoto.thumbnail)}" data-srcset="${escapeHtml(albumCoverPhoto.thumbnail)} 240w, ${escapeHtml(albumCoverPhoto.src)} 640w" sizes="(max-width: 699px) 104px, (max-width: 1099px) 30vw, 410px" alt="" decoding="async" fetchpriority="low"/><span class="photo-tape" aria-hidden="true"></span><span class="photo-caption" aria-hidden="true">${escapeHtml(albumCoverPhoto.title)} ♡</span>`
   : "";
 const stampImage = albumStampPhoto?.thumbnail
-  ? `<image href="${escapeHtml(albumStampPhoto.thumbnail)}" x="233" y="45" width="30" height="34" preserveAspectRatio="xMidYMid slice"/>`
+  ? `<image data-href="${escapeHtml(albumStampPhoto.thumbnail)}" x="233" y="45" width="30" height="34" preserveAspectRatio="xMidYMid slice"/>`
   : "";
 
 document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
@@ -79,15 +69,15 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
             <section class="cinema-hud" aria-label="花园小电视放映控制" hidden></section><div class="activity-hud" hidden><div class="activity-heading"><span class="activity-status" role="status" aria-live="polite"></span><button class="activity-close" aria-label="结束当前互动，回到地图">收起 ×</button></div><div class="activity-actions"></div></div><div class="rest-tools" hidden><span></span><button class="camp-letter map-action" type="button" aria-label="读派大星的来信" hidden>读来信</button><button class="stand-up map-action">起身 <kbd>E</kbd></button></div><button class="bed-note-pin map-tool" hidden>♡ 床边便签</button><article class="bed-note" aria-label="小叶子的床边便签" hidden></article>
             <div class="ruin-stamp-flash" role="status" aria-live="polite" aria-atomic="true" hidden></div>
             <div class="intro-screen"><div class="intro-stars">✧ <span>✦</span> ✧</div><span class="intro-pill">芙眠眠 · 直播一周年纪念</span><h2>今晚的快乐，<br>等你来发现。</h2><p>一间温暖小屋，两座缤纷花园，<br>还有东北山洞深处的回声遗迹。<br>和藏在街角的，一点点喜欢。</p>
-              <button class="button primary enter-button" disabled>正在点亮小世界…<span class="scene-loading-track" aria-hidden="true"><span class="scene-loading-fill"></span></span></button><small>点击开始会播放轻柔音乐 · 可随时关闭 ♡</small>
+              <button class="button primary enter-button" disabled>正在准备地图…</button><div class="resource-meter"><progress class="entry-progress" aria-label="公共资源与初始地图"></progress><span class="resource-count" aria-hidden="true"></span></div><small>正在准备背包、信笺和地图画面…</small>
             </div>
             <section class="game-letter-reader" aria-label="在游戏中阅读晚安信箱" hidden></section>
             <div class="scene-transition">
-              <div class="scene-transition-card" aria-hidden="true">
+              <div class="scene-transition-card">
                 <div class="scene-transition-art"><span class="scene-transition-star"><span class="scene-transition-face"></span></span></div>
                 <span class="scene-transition-label">正在前往</span>
                 <strong class="scene-transition-destination"></strong>
-                <span class="scene-loading-track"><span class="scene-loading-fill"></span></span>
+                <div class="resource-meter"><progress class="map-progress" aria-label="公共资源与目标地图"></progress><span class="resource-count" aria-hidden="true"></span></div>
               </div>
               <span class="scene-transition-status" role="status"></span>
             </div>
@@ -116,12 +106,12 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
             <span class="memory-card-copy"><span class="memory-card-title">回忆相册</span><span class="memory-description">从草莓吐司的早晨，到轻轻说晚安。</span><small>${collections.album.items.length} 张日常回忆</small><span class="memory-card-action">去小屋看相册 ${icon("arrow")}</span></span>
           </button>
           <button class="page-memory-card cinema-shortcut memory-cinema">
-            <span class="memory-cover"><img src="${cinemaCover}" alt="" loading="lazy"/><span class="cinema-play" aria-hidden="true">▶</span><span class="memory-film-label" aria-hidden="true">第一年的晚安</span></span>
-            <span class="memory-card-copy"><span class="memory-card-title">周年放映</span><span class="memory-description">坐下来，一起重温这一年的小瞬间。</span><small>视频异步准备，可以先逛逛</small><span class="memory-card-action">去花园看放映 ${icon("arrow")}</span></span>
+            <span class="memory-cover"><img data-src="${cinemaCover}" alt="" decoding="async" fetchpriority="low"/><span class="cinema-play" aria-hidden="true">▶</span><span class="memory-film-label" aria-hidden="true">第一年的晚安</span></span>
+            <span class="memory-card-copy"><span class="memory-card-title">周年放映</span><span class="memory-description">坐下来，一起重温这一年的小瞬间。</span><small>游戏资源备齐后再下载影片</small><span class="memory-card-action">去花园看放映 ${icon("arrow")}</span></span>
           </button>
         </div>
       </section>
-      <section class="credits page-meadow-note" aria-labelledby="credits-title"><img src="${meadowCover}" alt="" loading="lazy"/><div class="credits-heading"><span class="eyebrow">还有一些喜欢，藏在星星里</span><h2 id="credits-title">草地上的署名</h2><p>集齐七色花，去夜里的花海走走。<br>拾起一颗落星，就能遇见一位制作人。</p><span class="meadow-note-sign" aria-hidden="true">✧ 愿每一份晚安，都被温柔珍藏</span></div></section>
+      <section class="credits page-meadow-note" aria-labelledby="credits-title"><img data-src="${meadowCover}" alt="" decoding="async" fetchpriority="low"/><div class="credits-heading"><span class="eyebrow">还有一些喜欢，藏在星星里</span><h2 id="credits-title">草地上的署名</h2><p>集齐七色花，去夜里的花海走走。<br>拾起一颗落星，就能遇见一位制作人。</p><span class="meadow-note-sign" aria-hidden="true">✧ 愿每一份晚安，都被温柔珍藏</span></div></section>
     </main>
     <footer data-page-ui><span>${icon("heart")} 献给芙眠眠的第一年</span><p>粉丝制作的一周年纪念礼物 · 愿下一个晚安，依然有你。</p><button class="text-button reset-button">重新探索</button><span class="reset-confirmation" hidden>清除本机进度？<button class="reset-confirm map-action">重新开始</button><button class="reset-cancel map-action">保留进度</button></span></footer>
   </div><div class="toast" role="status" aria-live="polite"></div><div class="confetti-layer" aria-hidden="true"></div>`;
@@ -130,18 +120,48 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 // buttons without handlers while that module is loading.
 const startupButtons = [...document.querySelectorAll<HTMLButtonElement>("#app button:not([disabled])")];
 for (const button of startupButtons) button.disabled = true;
-document.querySelector("#app")!.setAttribute("aria-busy", "true");
-void import("./application").then(({mountGame}) => {
-  for (const button of startupButtons) button.disabled = false;
-  mountGame();
-  scheduleResourcePreload(() => scheduleAlbumPreviews(collections.album.items));
-  document.querySelector("#app")!.removeAttribute("aria-busy");
-})
-  .catch(() => {
-    for (const button of startupButtons) button.disabled = true;
+const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
+const meter = document.querySelector<HTMLProgressElement>(".entry-progress")!;
+function stored(key: string) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+async function start() {
+  enter.disabled = true;
+  const progress = readProgress(stored(SAVE_KEY));
+  const journey = readJourney(stored(JOURNEY_KEY), progress.rainbowFlowers);
+  const scene = journey?.scene ?? "room", title = scenes[scene].title;
+  document.querySelector("#location-name")!.textContent = title;
+  enter.textContent = "正在准备" + title + "…";
+  document.querySelector("#app")!.setAttribute("aria-busy", "true");
+  try {
+    await prepareMapArt(scene, (loaded, total) => showResourceCount(meter, loaded, total));
+  } catch {
+    enter.disabled = false;
+    enter.textContent = title + "未载齐，点击重试";
+    enter.onclick = start;
     document.querySelector("#app")!.removeAttribute("aria-busy");
-    const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
+    return;
+  }
+  enter.onclick = null;
+  enter.textContent = "正在布置" + title + "…";
+  try {
+    const { mountGame } = await import("./application");
+    for (const button of startupButtons) button.disabled = false;
+    mountGame(progress, journey, () => {
+      for (const image of document.querySelectorAll<HTMLImageElement>("img[data-src]")) {
+        if (image.dataset.srcset) image.srcset = image.dataset.srcset;
+        image.src = image.dataset.src!;
+      }
+      for (const image of document.querySelectorAll<SVGElement>("image[data-href]"))
+        image.setAttribute("href", image.dataset.href!);
+    });
+  } catch {
+    for (const button of startupButtons) button.disabled = true;
     enter.disabled = false;
     enter.textContent = "游戏未能载入，点击重试";
     enter.onclick = () => location.reload();
-  });
+  }
+  document.querySelector("#app")!.removeAttribute("aria-busy");
+}
+if (import.meta.env.VITE_WARDROBE_DEBUG === "true") mountLoadingMonitor();
+void start();

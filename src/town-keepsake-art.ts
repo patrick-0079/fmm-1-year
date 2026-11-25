@@ -1,4 +1,5 @@
 import url from "./assets/town-interiors/keepsakes.webp";
+import { loadSceneImage } from "./texture-cache";
 import frames from "./town-keepsake-frames.json";
 import type { TownInteriorKey } from "./town-interior-id";
 
@@ -9,9 +10,7 @@ export const townKeepsakeArtReady = () => !!sheet;
 
 export function prepareTownKeepsakeArt() {
   if (!loading) {
-    const image = new Image();
-    image.src = url;
-    loading = image.decode().then(() => { sheet = image; return true; }).catch(() => { loading = undefined; return false; });
+    loading = loadSceneImage(url).then(image => { sheet = image; return true; }).catch(() => { loading = undefined; return false; });
   }
   return loading;
 }

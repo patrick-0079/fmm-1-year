@@ -3,13 +3,9 @@ import { workCell,workFoot,workRows,workBeat,workFrames,workJoints } from "./tow
 import { paintedBounds } from "./town-work-bounds.ts";
 import type { TownNpc } from "./town-data.ts";
 import type { Point } from "./core.ts";
+import { sceneImage } from "./texture-cache";
 
-let sheet: HTMLImageElement | undefined;
-export function prepareTownWork() {
-  if (sheet && (sheet.naturalWidth || !sheet.complete)) return;
-  sheet=new Image();
-  sheet.decoding="async"; sheet.fetchPriority="low"; sheet.src=poseUrl;
-}
+const sheet = sceneImage(poseUrl);
 type Ctx=CanvasRenderingContext2D;
 function line(c:Ctx,points:number[],ink:string,width=1) {
   c.beginPath();c.moveTo(points[0],points[1]);
@@ -139,7 +135,7 @@ function prop(c:Ctx,n:TownNpc,h:Point,k:Point,work:number,stroke:number,received
   }
 }
 export function drawTownWork(c:Ctx,npc:TownNpc,time:number,still:boolean,received:boolean) {
-  if (!sheet?.naturalWidth) return false;
+  if (!sheet.naturalWidth) return false;
   const row=workRows.indexOf(npc.id), period=10.2+(row*1.43)%4.7;
   const local=time%period, gesture=still?5:local<2.65?Math.min(workFrames-1,Math.floor(local/2.65*workFrames)):0;
   c.drawImage(sheet,gesture*workCell,row*workCell,workCell,workCell,

@@ -10,10 +10,9 @@ import {
 } from "./equipment";
 import type { Equipped } from "./items";
 import footwearUrl from "./assets/fufu-footwear-v38.webp";
-const footwear = new Image();
-footwear.src = footwearUrl;
-const garments = new Image();
-garments.src = garmentUrl;
+import { sceneImage } from "./texture-cache";
+const footwear = sceneImage(footwearUrl);
+const garments = sceneImage(garmentUrl);
 export function whenAvatarLayersReady(refresh: () => void) {
   for (const sheet of [footwear, garments]) {
     if (!sheet.complete) sheet.addEventListener("load", refresh, { once: true });

@@ -166,7 +166,7 @@ export function openCollection(modal: CollectionSurface, id: string, onPhotoOpen
     button.setAttribute("aria-label", item.title);
     if (kind === "image" && item.thumbnail) {
       const thumbnail = new Image();
-      thumbnail.loading = "lazy";
+      thumbnail.fetchPriority = "low";
       thumbnail.src = item.thumbnail;
       thumbnail.alt = "";
       thumbnail.decoding = "async";

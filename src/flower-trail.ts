@@ -1,10 +1,11 @@
 import flowerAtlas from "./assets/rainbow-flowers-v15.webp";
+import { sceneImage } from "./texture-cache";
 import { rainbowFlowers, rainbowIds, pickRainbow, meadowOpen, meadowGate, rainbowReminderStrength } from "./rainbow-flowers";
 import type { World, DepthLayer } from "./world";
 import { sfx } from "./sound";
 
 export class FlowerTrail {
-  private art = new Image();
+  private art = sceneImage(flowerAtlas);
   private time = 0;
   private firstExplorationTime?: number;
   private reduce = matchMedia("(prefers-reduced-motion: reduce)");
@@ -12,7 +13,6 @@ export class FlowerTrail {
   get previewOpen() { return this.preview; }
   setPreviewOpen(on:boolean) { this.preview=on; this.refresh(); }
   constructor(private world: World, private found: () => string[], private save: () => void, private toast: (text: string) => void) {
-    this.art.src = flowerAtlas;
     world.canEnter = scene => scene !== "meadow" || this.preview || meadowOpen(found());
     const available = world.available, layers = world.getDepthLayers, tick = world.onTick;
     world.available = spot => {

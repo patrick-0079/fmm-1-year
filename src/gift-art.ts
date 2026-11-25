@@ -1,10 +1,10 @@
 import giftUrl from "./assets/gift-v37.webp";
+import { sceneImage } from "./texture-cache";
 import type { Point } from "./core";
 import type { GiftUnwrapping } from "./gift-unwrapping";
 import { drawItem } from "./item-art";
 
-const art = new Image();
-art.src = giftUrl;
+const art = sceneImage(giftUrl);
 
 type Frame = { crop: readonly [number, number, number, number]; anchor: readonly [number, number] };
 // Each anchor is an actual corner in the source atlas, never the crop's centre.

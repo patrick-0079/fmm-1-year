@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { dirname } from "node:path";
+import { readFileSync, readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, loadEnv, normalizePath, type Plugin, type Rollup } from "vite";
 import { validateStationery } from "./scripts/validate-stationery.mjs";
 import { readLetterCatalogue } from "./scripts/scan-letters.mjs";
+import { assetScenes } from "./scripts/scene-assets.mjs";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const referenceRoot = normalizePath(fileURLToPath(new URL("./ref/", import.meta.url)));
@@ -32,32 +33,43 @@ function buildMode(value: string | undefined): "full" | "lite" {
 }
 
 const firstFrame = new Set(["src/assets/room-interactive.webp", "src/assets/nemu-sprites.webp"]);
+const roomArt = new Set(["fufu-rest-poses", "flower-wreath", "reward-icons", "window-skies-v12",
+  "white-bass-v18", "fufu-room-fox"].map(name => `src/assets/${name}.webp`));
 const mapPreviews = new Set([
   "src/assets/anniversary-garden-tree-free.webp", "src/assets/courage-garden.webp",
   "src/assets/anniversary-town-v13.webp", "src/assets/echo-ruins.webp", "src/assets/night-meadow-v16.webp",
 ]);
 
-function preloadOrder(file: Rollup.OutputAsset | Rollup.OutputChunk) {
-  if (file.type === "chunk") return 4;
-  const sources = file.originalFileNames.map(normalizePath);
+function preloadOrder(sources: string[]) {
   if (sources.some(path => firstFrame.has(path))) return 0;
-  if (sources.some(path => mapPreviews.has(path))) return 1;
-  if (sources.some(path => path.startsWith("ref/相册/previews/") || path.startsWith("ref/来信/信笺/") ||
-      path.startsWith("src/assets/stationery-"))) return 2;
+  if (sources.some(path => roomArt.has(path) || path.startsWith("ref/来信/信笺/") ||
+      path.startsWith("src/assets/stationery-"))) return 1;
+  if (sources.some(path => mapPreviews.has(path) || path.startsWith("ref/相册/previews/"))) return 2;
   if (sources.some(path => path.startsWith("src/assets/town-interiors/"))) return 3;
   if (sources.includes("src/assets/anniversary-town-hd-v13.webp")) return 5;
   return 4;
 }
 
 function resourceManifest(bundle: Rollup.OutputBundle) {
-  return Object.keys(bundle).filter(name => name.startsWith("assets/")).sort()
-    .map(name => ({ name, file: bundle[name], order: preloadOrder(bundle[name]) }))
-    .sort((a, b) => a.order - b.order)
-    .map(({ name, file }) => [name, createHash("sha256")
-      .update(file.type === "chunk" ? file.code : file.source).digest("base64")]);
+  return Object.values(bundle).filter(file => file.fileName.startsWith("assets/") && !/\.(?:mp4|m4v|webm|mov|ogv)$/i.test(file.fileName))
+    .map(file => ({ file, order: file.type === "asset" ? preloadOrder(file.originalFileNames.map(normalizePath)) : 4 }))
+    .sort((a, b) => a.order - b.order || (a.file.fileName < b.file.fileName ? -1 : 1))
+    .map(({ file }) => [file.fileName, createHash("sha256")
+      .update(file.type === "chunk" ? file.code : file.source).digest("base64"),
+      file.type === "chunk" ? (["view", "debug"].includes(file.name) ? [] : ["*"]) :
+        [...new Set(file.originalFileNames.flatMap(source => assetScenes(normalizePath(source)) ?? ["*"]))]]);
 }
 
-function releaseEntry(mode: "full" | "lite"): Plugin {
+function developmentResources() {
+  const paths = ["src/assets", "src/launch", "ref/来信/信笺", "ref/相册/previews", "ref/花海星星"].flatMap(dir =>
+    readdirSync(join(root, dir), { recursive: true, encoding: "utf8" }).map(name => dir + "/" + normalizePath(name))
+      .filter(path => /\.(?:webp|wav)$/i.test(path) || /\/fufu-cursor-[^/]+\.(?:png|svg)$/.test(path) ||
+        (dir === "ref/来信/信笺" && /\.(?:png|jpg|jpeg|avif)$/i.test(path))));
+  return paths.filter(path => assetScenes(path)).sort((left, right) => preloadOrder([left]) - preloadOrder([right]))
+    .map(path => [path + (/^ref\/(相册|花海星星)\/|fufu-cursor-/.test(path) ? "?no-inline" : ""), "", assetScenes(path)]);
+}
+
+function releaseEntry(mode: "full" | "lite", debug: boolean): Plugin {
   const marker = (version: string) => JSON.stringify({ mode, version });
   return {
     name: "fufu-release-entry",
@@ -73,6 +85,11 @@ function releaseEntry(mode: "full" | "lite"): Plugin {
       },
     },
     configureServer(server) {
+      if (mode === "full") server.middlewares.use("/game-assets-dev-full.json", (_request, response) => {
+        response.setHeader("Content-Type", "application/json");
+        response.setHeader("Cache-Control", "no-store");
+        response.end(JSON.stringify(developmentResources()));
+      });
       server.middlewares.use("/release.json", (_request, response) => {
         response.setHeader("Content-Type", "application/json");
         response.setHeader("Cache-Control", "no-store");
@@ -106,13 +123,15 @@ function releaseEntry(mode: "full" | "lite"): Plugin {
         hash.update(html.source);
         for (const name of Object.keys(bundle).sort()) hash.update(name);
         const manifest = mode === "full" ? JSON.stringify(resourceManifest(bundle)) : undefined;
-        const worker = manifest && readFileSync(new URL("./scripts/texture-worker.js", import.meta.url), "utf8");
+        const worker = manifest && (readFileSync(new URL("./scripts/texture-worker.js", import.meta.url), "utf8") +
+          (debug ? "\n" + readFileSync(new URL("./scripts/texture-debug.js", import.meta.url), "utf8") : ""));
         if (manifest && worker) hash.update(manifest).update(worker);
         const version = hash.digest("hex").slice(0, 16);
         html.source = html.source.replace(`data-version="dev-${mode}"`, `data-version="${version}"`);
         this.emitFile({ type: "asset", fileName: "release.json",
           source: marker(version) });
         if (manifest && worker) {
+          this.emitFile({ type: "asset", fileName: `game-assets-${version}.json`, source: manifest });
           this.emitFile({ type: "asset", fileName: "texture-cache.js",
             source: `const assetVersion = ${JSON.stringify(version)};\nconst assetFiles = ${manifest};\n${worker}` });
         }
@@ -129,6 +148,6 @@ export default defineConfig(({ mode }) => {
     preview: { cors: false },
     // The default dist/ is inside the Vite root and is emptied on every build.
     build: { copyPublicDir: releaseMode === "full" },
-    plugins: [releaseEntry(releaseMode), releaseMode === "full" && stationeryConfig],
+    plugins: [releaseEntry(releaseMode, loadEnv(mode, root, "VITE_").VITE_WARDROBE_DEBUG === "true"), releaseMode === "full" && stationeryConfig],
   };
 });

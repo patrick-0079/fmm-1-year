@@ -38,10 +38,10 @@ if (!("qaUseBrowserStorage" in window)) Object.defineProperty(window,"localStora
 }});
 let world!: World;
 const originalLoad=World.prototype.load;
-World.prototype.load=function() {
+World.prototype.load=function(...args) {
   world=this;
   World.prototype.load=originalLoad;
-  return originalLoad.call(this);
+  return originalLoad.apply(this,args);
 };
 await import("../src/main");
 const q=<T extends HTMLElement=HTMLElement>(selector:string) => document.querySelector<T>(selector)!;

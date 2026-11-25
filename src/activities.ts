@@ -3,6 +3,7 @@ import type { World } from "./world";
 import { sfx } from "./sound";
 import { reservedShortcut, readingTarget } from "./input";
 import cakeUrl from "./assets/anniversary-cake.webp";
+import { sceneImage } from "./texture-cache";
 import cakeSliceUrl from "./assets/cake-slice-v11.webp";
 import { wishAtBurst, wishOpacity } from "./celebration";
 import {
@@ -37,8 +38,8 @@ interface WorkbenchHandle {
 const colors = ["#f49fbc", "#9ddbe9", "#c1a4ea", "#ffdb80", "#b4e9bc"];
 const narrowDialogue = matchMedia("(max-width: 540px)");
 export class Activities {
-  private cakeImage = new Image();
-  private cakeSliceImage = new Image();
+  private cakeImage = sceneImage(cakeUrl);
+  private cakeSliceImage = sceneImage(cakeSliceUrl);
   private mode = "";
   private dialogueEnd?: () => void;
   private dialogueAt?: { scene: World["scene"]; point: Point };
@@ -83,8 +84,6 @@ export class Activities {
     private world: World,
     private hooks: Hooks,
   ) {
-    this.cakeImage.src = cakeUrl;
-    this.cakeSliceImage.src = cakeSliceUrl;
     this.hud = document.querySelector(".activity-hud")!;
     this.status = this.hud.querySelector(".activity-status")!;
     new ResizeObserver(() => this.updateReadingFocus()).observe(this.status);

@@ -143,6 +143,7 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
   assert(status() === "花海也落着一颗这样的小鱼星。哪天去散步，看看能不能认出它呀。", "故里的小鱼线索有误");
   await talk("qianxiao"); choose("翻开星星牌");
   assert(status() === "这张叫『晚安星』。愿下次见面时，我们还有好多好事可以讲给彼此听。", "浅笑的晚安星对白有误");
+  await world.prepareScene("garden");
   world.switchScene("garden");
   await wait(() => hud.hidden, "切图后仍显示浅笑的对白");
   assert(townProgress() === "小镇 18/18 · 已见齐", "三位来宾没有记入居民计数");

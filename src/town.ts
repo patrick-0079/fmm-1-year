@@ -8,7 +8,6 @@ import { handedLetters, letterChoice, postUnread, type LetterHandoff, type Resid
 import { townResidentLayers, residentPlacement, drawResidentPortrait, type TownAct } from "./town-acting";
 import { TownResidentMap } from "./town-resident-map";
 import { TownRoutines, residentTownScene } from "./town-routines";
-import { prepareTownWork } from "./town-work-art";
 import { prepareResidentWalk } from "./resident-walk";
 import type { Hotspot, SceneId } from "./maps";
 import type { Phase } from "./day";
@@ -138,7 +137,6 @@ export class Town {
     this.area = area;
     if (area) this.residents.update(this.world.player, undefined, undefined, this.lives.people);
     if (scene === "town") {
-      prepareTownWork();
       for (const npc of TOWN_NPCS) {
         if (residentTownScene(npc.id, this.world.currentPhase) === "town") prepareResidentWalk(npc.id);
       }

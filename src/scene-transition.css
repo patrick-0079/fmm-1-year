@@ -134,38 +134,43 @@
   overflow-wrap: anywhere;
 }
 
-.scene-loading-track {
+.resource-meter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: min(100%, 192px);
+  margin: 8px auto 0;
+}
+.resource-meter:has(progress[hidden]) { display: none; }
+.resource-count {
+  flex: none;
+  font: 650 12px/1.2 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.scene-transition-card .resource-count { color: #633b54; }
+.intro-screen .resource-count { color: #fff5ee; }
+.entry-progress, .map-progress {
   display: block;
-  width: min(100%, 158px);
+  flex: 1;
+  min-width: 0;
+  width: 1px;
   height: 9px;
-  margin-top: 12px;
   overflow: hidden;
   border: 1px solid #e2b7be;
   border-radius: 10px;
+  appearance: none;
   background: #f6dce1;
+  accent-color: #ad627d;
 }
-
-.scene-loading-fill {
-  display: block;
-  width: 42%;
-  height: 100%;
-  border-radius: inherit;
-  background: repeating-linear-gradient(120deg, #e393a9 0 6px, #f3b4bd 6px 12px);
-  transform: translateX(69%);
-}
+.entry-progress[hidden] { display: none; }
+:is(.entry-progress,.map-progress)::-webkit-progress-bar { background: #f6dce1; }
+:is(.entry-progress,.map-progress)::-webkit-progress-value { background: #ad627d; }
+:is(.entry-progress,.map-progress)::-moz-progress-bar { background: #ad627d; }
 
 .intro-screen .enter-button:disabled {
   position: relative;
   opacity: .88;
-}
-
-.enter-button .scene-loading-track {
-  position: absolute;
-  inset: auto 12px 4px;
-  width: auto;
-  height: 3px;
-  margin: 0;
-  border: 0;
 }
 
 .scene-transition.active .scene-transition-star {
@@ -180,11 +185,6 @@
   animation: scene-sparkle 1.5s .45s ease-in-out infinite;
 }
 
-.scene-transition.active .scene-loading-fill,
-.enter-button:disabled .scene-loading-fill {
-  animation: scene-loading-sweep 1.55s ease-in-out infinite;
-}
-
 @keyframes scene-star-bob {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-5px); }
@@ -193,11 +193,6 @@
 @keyframes scene-sparkle {
   0%, 100% { transform: scale(.7); opacity: .65; }
   50% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes scene-loading-sweep {
-  0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(138%); }
 }
 
 .scene-transition-status {
@@ -212,9 +207,7 @@
 @media (prefers-reduced-motion: reduce) {
   .scene-transition.active .scene-transition-star,
   .scene-transition.active .scene-transition-art::before,
-  .scene-transition.active .scene-transition-art::after,
-  .scene-transition.active .scene-loading-fill,
-  .enter-button:disabled .scene-loading-fill {
+  .scene-transition.active .scene-transition-art::after {
     animation: none;
   }
 }

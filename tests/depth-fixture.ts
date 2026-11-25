@@ -33,7 +33,7 @@ Object.defineProperty(window,"localStorage",{value:{
 localStorage.setItem("nemu-anniversary-v1", JSON.stringify({rainbowFlowers:rainbowFlowers.map(f => f.id)}));
 let world!:World;
 const originalLoad=World.prototype.load;
-World.prototype.load=function(){world=this;World.prototype.load=originalLoad;return originalLoad.call(this);};
+World.prototype.load=function(...args){world=this;World.prototype.load=originalLoad;return originalLoad.apply(this,args);};
 await import("../src/main");
 
 interface DepthCase {
@@ -121,7 +121,8 @@ const cases:DepthCase[]=[
     clear:[{x:282,y:266},{x:290,y:276}],actor:{x:283,positions:[268,276,282]}},
   {id:"balloon-lawn-daisy",scene:"garden",depth:276,solid:[{x:296.5,y:273}],clear:[{x:293,y:274},{x:300,y:274}]},
   {id:"square-northwest-tall-lantern",scene:"garden",depth:295,solid:[{x:385,y:279},{x:385,y:269}],
-    clear:[{x:392,y:278},{x:379,y:273}],actor:{x:385,positions:[279,287,301]}},
+    // The 1× raster sample at x=379 touches the sloping lamp edge. The next pixel west is fully clear.
+    clear:[{x:392,y:278},{x:379,y:273},{x:378,y:273}],subpixelClear:[1],actor:{x:385,positions:[279,287,301]}},
   {id:"square-northwest-bed",scene:"garden",depth:320,solid:[{x:360,y:311},{x:345,y:317}],clear:[{x:338,y:322}]},
   {id:"balloon-stall",scene:"garden",depth:281,
     solid:[{x:175,y:184},{x:219,y:199},{x:238,y:216},{x:256,y:225},{x:249,y:235}],

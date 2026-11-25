@@ -43,7 +43,9 @@ import { bassStand, foxNook } from "./room-props";
 import { RoomFox } from "./room-fox";
 import { mountDebugPanel } from "./debug-panel";
 import { meadowOpen } from "./rainbow-flowers";
-import { JOURNEY_KEY, readJourney, type Journey } from "./journey";
+import { JOURNEY_KEY, type Journey } from "./journey";
+import { prepareGameResources } from "./texture-cache";
+import { showResourceCount } from "./loading-meter";
 import { openCollection } from "./media";
 import { renderGameMailDesk, type LetterList } from "./game-mail-desk";
 import {
@@ -56,18 +58,8 @@ import {
   sfx,
 } from "./sound";
 
-export function mountGame() {
-  let saved: string | null = null;
-  try {
-    saved = localStorage.getItem(SAVE_KEY);
-  } catch {
-    /* optional local progress */
-  }
-  let progress = readProgress(saved),
-    started = false,
-    transitioning = false;
-  let journey: Journey | null = null;
-  try { journey = readJourney(localStorage.getItem(JOURNEY_KEY), progress.rainbowFlowers); } catch { /* optional storage */ }
+export function mountGame(progress: ReturnType<typeof readProgress>, journey: Journey | null, onReady: () => void) {
+  let started = false, transitioning = false;
   let worldReady = false, resetInProgress = false, lastPositionCheck = 0;
   let sharedResetPending = false;
   let refreshAchievements: ((announce?: boolean) => boolean) | undefined;
@@ -419,7 +411,7 @@ export function mountGame() {
     else progress.bassSound=!progress.bassSound;
     update(); save();
   });
-  const cinema = new GardenCinema(world, toast);
+  const cinema = new GardenCinema(world, toast, () => prepareGameResources());
   const bedNote = new BedNote(world);
   const fox = new RoomFox(world, () => progress.roomFox, save);
   const sceneWrap = world.canvas.parentElement!;
@@ -491,6 +483,10 @@ export function mountGame() {
   const sceneTransition = document.querySelector<HTMLElement>(".scene-transition")!;
   const sceneDestination = sceneTransition.querySelector(".scene-transition-destination")!;
   const sceneStatus = sceneTransition.querySelector(".scene-transition-status")!;
+  const mapMeter = sceneTransition.querySelector("progress")!;
+  function mapProgress(loaded: number, total: number) {
+    showResourceCount(mapMeter, loaded, total);
+  }
   function showSceneTransition(scene: SceneId) {
     const title = scenes[scene].title;
     sceneDestination.textContent = title;
@@ -500,7 +496,26 @@ export function mountGame() {
   function hideSceneTransition() {
     sceneTransition.classList.remove("active");
     sceneStatus.textContent = "";
+    mapMeter.removeAttribute("value");
+    mapMeter.removeAttribute("aria-valuetext");
+    mapMeter.nextElementSibling!.textContent = "";
   }
+  world.onReturnHome = arrive => {
+    transitioning = true;
+    world.paused = true;
+    world.clearInput();
+    showSceneTransition("room");
+    void world.prepareScene("room", mapProgress).then(arrive).catch(() => {
+      toast("小屋未能载入，留在原地，可以通过地图导航再试。");
+    }).finally(() => {
+      hideSceneTransition();
+      transitioning = false;
+      world.paused = false;
+      const next = afterCrossing;
+      afterCrossing = undefined;
+      next?.();
+    });
+  };
   function transition(scene: SceneId, entrance?: string) {
     if (world.busy || !started) return;
     if (!world.canEnter(scene)) { toast("还需要集齐七种彩虹花。"); return; }
@@ -530,7 +545,7 @@ export function mountGame() {
       sfx("portal");
       await new Promise<void>(done => setTimeout(done,180));
     };
-    void Promise.allSettled([fade(),world.prepareScene(scene)]).then((results) => {
+    void Promise.allSettled([fade(),world.prepareScene(scene, mapProgress)]).then((results) => {
       if (results.some(result => result.status === "rejected")) throw Error("Map crossing failed");
       const opposite = scenes[scene].spots.find(s => s.id === entrance);
       const arrival = opposite?.approach;
@@ -601,6 +616,7 @@ export function mountGame() {
     revealMapIfOffscreen();
   };
   world.onScene = (scene) => {
+    if (worldReady) cinema.prepare();
     nature.refreshClock();
     if (scene !== "garden") gardenLife.residents.leave();
     town.enterScene(scene);
@@ -739,37 +755,28 @@ export function mountGame() {
     world.canvas.focus({ preventScroll: true });
   }
   enter.addEventListener("click", begin);
-  world
-    .load()
-    .then(async () => {
-      const resume = journey;
-      if (resume) {
-        try {
-          await world.prepareScene(resume.scene);
-          if (journey === resume) world.switchScene(resume.scene, resume);
-        } catch {
-          if (journey === resume) {
-              world.switchScene("room");
-              toast("上次的地图暂未载入，先回小屋歇一会儿。");
-          }
-        }
-      }
-      // Switching a scene dismisses activities and normally resumes walking.
-      // A restored adventure must still wait for the player's Continue gesture.
+  const loadStart = () => {
+    enter.disabled = true;
+    void world.load(journey?.scene ?? "room", journey ?? undefined).then(() => {
       world.paused = !started;
       worldReady = true;
+      document.querySelector<HTMLProgressElement>(".entry-progress")!.hidden = true;
       enter.disabled = false;
       mailCard.disabled = false;
       albumCard.disabled = false;
       enter.innerHTML = `${journey ? "继续上次的冒险" : "开始小冒险"} ${icon("arrow")}`;
-      if (journey) document.querySelector(".intro-screen small")!.textContent =
-        `本机存档 · ${scenes[world.scene].title} · 点击继续`;
+      document.querySelector(".intro-screen small")!.textContent = journey ?
+        `本机存档 · ${scenes[world.scene].title} · 点击继续` : "点击开始会播放轻柔音乐 · 可随时关闭 ♡";
+      onReady();
+      cinema.prepare();
     })
     .catch(() => {
       enter.disabled = false;
-      enter.textContent = "图片加载失败，点击刷新";
-      enter.addEventListener("click", () => location.reload(), { once: true });
+      enter.textContent = "地图画面未能载入，点击重试";
+      enter.addEventListener("click", loadStart, { once: true });
     });
+  };
+  loadStart();
   for (const [selector, key] of [
     [".sound-toggle", "muted"],
     [".effects-toggle", "sound"],
@@ -931,10 +938,19 @@ export function mountGame() {
   document.querySelector(".reset-cancel")!.addEventListener("click", () => {
     document.querySelector<HTMLElement>(".reset-confirmation")!.hidden = true;
   });
-  function resetAdventure(freshStart = false) {
+  async function resetAdventure(freshStart = false) {
     if (!worldReady || world.busy || transitioning) {
       toast("正在回到安全的位置，请稍等一下再重新开始。");
       return false;
+    }
+    if (world.scene !== "room") {
+      transitioning = true;
+      world.paused = true;
+      world.clearInput();
+      showSceneTransition("room");
+      try { await world.prepareScene("room", mapProgress); }
+      catch { toast("小屋未能载入，原存档没有更改。"); return false; }
+      finally { hideSceneTransition(); transitioning = false; world.paused = !started; afterCrossing = undefined; }
     }
     closePanels();
     resetInProgress = true;
@@ -992,7 +1008,6 @@ export function mountGame() {
   document.querySelector(".reset-confirm")!.addEventListener("click", () => resetAdventure());
   update();
   updateMailCount();
-  world.onScene("room");
   mountDebugPanel(world,inventory,nature,flowerTrail,async(scene,id,mode)=>{
     if(!worldReady || world.busy || transitioning || !world.canEnter(scene)) return false;
     begin();
@@ -1006,7 +1021,7 @@ export function mountGame() {
     const spot = scenes[scene].spots.find(s => s.id === id);
     let arrived = false;
     try {
-      await world.prepareScene(scene);
+      await world.prepareScene(scene, mapProgress);
       if(world.busy || !world.canEnter(scene)) return false;
       const arrival = mode === "trap" ? scenes.challenge.hazards[0] : spot?.approach;
       if (world.scene === "room" && scene !== "room") fox.departed(false);

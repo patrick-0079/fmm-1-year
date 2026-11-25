@@ -12,6 +12,7 @@ import bouquetUrl from "./assets/qingya-bouquet.webp";
 import cakeUrl from "./assets/cake-slice-v11.webp";
 import gesturesUrl from "./assets/town-gestures.webp";
 import { sceneArt } from "./scene-art";
+import { sceneImage } from "./texture-cache";
 import { drawYeshenhua, yeshenhuaPose } from "./yeshenhua-art";
 import { drawTownGuest, townGuestPose } from "./town-guest-art";
 import { pageTurn } from "./town-idle-motion.ts";
@@ -21,16 +22,9 @@ export interface TownAct {
   pageId: string;
   elapsed: number;
 }
-const pictures = new Map<string, HTMLImageElement>();
-function picture(url: string) {
-  let image = pictures.get(url);
-  if (!image) {
-    image = new Image();
-    image.src = url;
-    pictures.set(url, image);
-  }
-  return image;
-}
+const flowers = sceneImage(bouquetUrl);
+const cakeSlice = sceneImage(cakeUrl);
+const gestures = sceneImage(gesturesUrl);
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
 const clamp = (n: number) => Math.min(1, Math.max(0, n));
 function ease(n: number) {
@@ -367,7 +361,6 @@ function nameplate(c: Brush, n: TownNpc, at: Point, visited: boolean) {
 }
 
 function drawBouquet(c: Brush, x: number, y: number) {
-  const flowers = picture(bouquetUrl);
   if (flowers.naturalWidth)
     c.drawImage(flowers, x - 8, y - 12, 16, (16 * flowers.naturalHeight) / flowers.naturalWidth);
 }
@@ -459,7 +452,7 @@ function presentLayer(
         if (bites === 2) {
           disk(c, "#c19fa7", x, y + 0.8, 5.4, 1.8);
           disk(c, cream, x, y + 0.4, 4.9, 1.2);
-        } else drawCakeSlice(c, x, y + 1 - lift, bites === 1 ? 0.72 : 0.94, picture(cakeUrl));
+        } else drawCakeSlice(c, x, y + 1 - lift, bites === 1 ? 0.72 : 0.94, cakeSlice);
       }
     },
   };
@@ -467,12 +460,11 @@ function presentLayer(
 
 const sheetCell = 128;
 function gestureCell(c: Brush, frame: number, height: number, reverse = false) {
-  const sheet = picture(gesturesUrl);
-  if (!sheet.naturalWidth) return false;
+  if (!gestures.naturalWidth) return false;
   c.save();
   if (reverse) c.scale(-1, 1);
   c.drawImage(
-    sheet,
+    gestures,
     (frame % 4) * sheetCell,
     Math.floor(frame / 4) * sheetCell,
     sheetCell,

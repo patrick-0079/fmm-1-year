@@ -19,6 +19,7 @@ import { prepareProp } from "./scene-art";
 import type { Facing } from "./equipment";
 import { whenAvatarLayersReady } from "./avatar";
 import bouquetUrl from "./assets/qingya-bouquet.webp";
+import { sceneImage } from "./texture-cache";
 import envelopeUrl from "./assets/stationery-sealed.webp";
 import { renderGameMailDesk, type LetterList } from "./game-mail-desk";
 import type { AstrolabeState } from "./astrolabe";
@@ -55,8 +56,8 @@ export class Inventory {
   private onBagReturn?: () => void;
   private trigger = document.querySelector<HTMLButtonElement>(".bag-toggle")!;
   private root: HTMLElement = document.querySelector(".inventory-panel")!;
-  private wreath = new Image();
-  private rewards = new Image();
+  private wreath = sceneImage(wreathUrl);
+  private rewards = sceneImage(rewardsUrl);
   private tab: BagTab = "wardrobe";
   private category: Category = "all";
   private choosingCategory = false;
@@ -88,8 +89,6 @@ export class Inventory {
     if (this.debugAvailable) this.startFitting();
     this.wreath.onload = () => this.drawIcons();
     this.rewards.onload = () => this.drawIcons();
-    this.wreath.src = wreathUrl;
-    this.rewards.src = rewardsUrl;
     whenWardrobeReady(() => this.drawIcons());
     whenAvatarLayersReady(() => this.drawPreview());
     this.trigger.setAttribute("aria-expanded", "false");
@@ -281,7 +280,7 @@ export class Inventory {
     this.trigger.setAttribute("aria-expanded", "true");
     this.updateSuspension();
     this.render();
-    void Promise.allSettled([this.world.prepareScene("room"), prepareProp("relics")]).then(() => this.drawIcons());
+    void prepareProp("relics").then(() => this.drawIcons()).catch(() => {});
     this.root.querySelector<HTMLButtonElement>(".bag-close")!.focus({ preventScroll: true });
   }
   grant(id: ItemId, announce = true) {

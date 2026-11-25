@@ -46,6 +46,9 @@ body:has(.debug-dock) .page-journal > footer {
   align-items: center;
   justify-content: space-between;
 }
+.debug-network dl { display: grid; gap: 5px; margin: 6px 0; }
+.debug-network dl > div { display: flex; justify-content: space-between; gap: 8px; }
+.debug-network dd { margin: 0; font-weight: 650; font-variant-numeric: tabular-nums; }
 .debug-panel header small {
   color: #8c6475;
   letter-spacing: 0.1em;

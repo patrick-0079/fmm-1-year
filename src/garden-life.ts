@@ -4,6 +4,7 @@ import type { Inventory } from "./inventory";
 import { gardenGuests, peachSpot, type GardenGuest } from "./garden-guests";
 import { TOWN_FRAMES } from "./town-data";
 import npcUrl from "./assets/town-npcs.webp";
+import { sceneImage } from "./texture-cache";
 import cakeUrl from "./assets/cake-slice-v11.webp";
 import { drawCakeSlice } from "./cake-party";
 import { drawItem } from "./item-art";
@@ -26,8 +27,8 @@ const reduced = () => motionPreference.matches;
 
 export class GardenLife {
   readonly residents = new GardenResidents();
-  private npcs = new Image();
-  private cake = new Image();
+  private npcs = sceneImage(npcUrl);
+  private cake = sceneImage(cakeUrl);
   private age = 0;
   private time = 0;
   private pose: Pose = "idle";
@@ -35,8 +36,6 @@ export class GardenLife {
   private companion: Companion;
   constructor(private world: World, private activities: Activities, private inventory: Inventory,
     private memory: () => Pick<Progress,"decoratorMet"|"rabbitIntroduced">, private save: () => void) {
-    this.npcs.src = npcUrl;
-    this.cake.src = cakeUrl;
     this.companion = new Companion(world);
     world.gardenMapFor=base=>this.residents.mapFor(base,world.currentPhase);
     const tick = world.onTick, layers = world.getDepthLayers;

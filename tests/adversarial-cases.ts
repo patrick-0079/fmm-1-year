@@ -101,6 +101,7 @@ export async function verifyNavigationRaces(world: World, log: (text: string) =>
   expect(["post", "welcome", "cat"].every(id => visitors.includes(id)), "同时写入的居民记录没有合并");
   q(".reset-button").click();
   q(".reset-confirm").click();
+  await wait(() => world.scene === "room" && q(".reset-confirmation").hidden);
   expect(!readInventory(localStorage.getItem(INVENTORY_KEY)).owned.length && JSON.parse(localStorage.getItem(TOWN_TALKED_KEY)!).length === 0 &&
     q('[data-scene="meadow"]').hidden, "清档后恢复了上次冒险的收藏");
   log("两份背包和居民会面记录合并后不丢收藏，重新探索不会复活旧记录");

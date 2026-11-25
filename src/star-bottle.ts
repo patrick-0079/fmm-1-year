@@ -8,6 +8,7 @@ import { BOTTLE_COMPACT_WIDTH,bottleEntries,bottleGeometry,bottleScrollTop,neare
 import type { World } from "./world";
 import { clearQuietStarEffect, showQuietStarEffect } from "./quiet-star-effect";
 import { creditStarTexture } from "./credit-star-art";
+import { sceneImage } from "./texture-cache";
 
 export class StarBottleView {
   readonly element=document.createElement("section");
@@ -42,9 +43,9 @@ export class StarBottleView {
     this.closeButton.setAttribute("aria-label","收起星光瓶，返回花海");this.closeButton.setAttribute("aria-keyshortcuts","Escape");this.closeButton.addEventListener("click",()=>this.close());
     this.returnButton.type="button";this.returnButton.className="star-bottle-back";this.returnButton.textContent="‹ 返回瓶中";this.returnButton.addEventListener("click",()=>this.showBottle());
     heading.append(title,this.returnButton,this.closeButton);
-    const main=document.createElement("div"),display=document.createElement("section"),glass=new Image();
+    const main=document.createElement("div"),display=document.createElement("section"),glass=sceneImage(bottleUrl);
     main.className="star-bottle-layout";display.className="star-bottle-display";this.art.className="star-bottle-art";this.vessel.className="star-bottle-vessel";
-    glass.className="star-bottle-glass";glass.src=bottleUrl;glass.alt="";glass.decoding="async";glass.draggable=false;
+    glass.className="star-bottle-glass";glass.alt="";glass.draggable=false;
     this.stars.className="star-bottle-stars";this.vessel.append(glass,this.stars);this.art.append(this.vessel);
     this.previous.type=this.next.type="button";this.previous.className="star-bottle-pick-previous";this.next.className="star-bottle-pick-next";
     this.previous.innerHTML="‹<span>上一颗</span>";this.next.innerHTML="›<span>下一颗</span>";

@@ -4,6 +4,7 @@ import { drawGardenScreen } from "./cinema-screen";
 import { CinemaSession, mediaTime, containVideo } from "./cinema-state";
 import { duckMusic } from "./sound";
 import { FilmPreloader, downloadLabel } from "./film-preloader";
+import { traffic } from "./network-debug";
 import { reservedShortcut, readingTarget } from "./input";
 
 export class GardenCinema {
@@ -18,9 +19,13 @@ export class GardenCinema {
   private download = new FilmPreloader(gardenFilm.src, () => this.render());
   private player = document.createElement("section");
   private expanded = false;
+  private preparing = false;
+  private resourcesReady = false;
+  private resourcesFailed = false;
   constructor(
     private world: World,
     private toast: (text: string) => void,
+    private prepareResources: () => Promise<void>,
   ) {
     const layers = world.getDepthLayers,
       tick = world.onTick,
@@ -150,8 +155,23 @@ export class GardenCinema {
     document.addEventListener("fullscreenchange", () => {
       if (this.expanded && !document.fullscreenElement) this.shrink();
     });
-    this.ensureVideo();
-    this.preload(); // Start at page mount, before entering the game or TV.
+    const filmRate = traffic?.film;
+    if (filmRate) this.download.onBytes = bytes => filmRate.add(bytes, performance.now());
+    window.addEventListener("online", () => this.prepare());
+  }
+  prepare() {
+    if (this.preparing || this.resourcesReady) return;
+    this.preparing = true;
+    this.resourcesFailed = false;
+    this.session.retry();
+    void this.prepareResources().then(() => {
+      this.resourcesReady = true;
+      this.ensureVideo();
+      this.preload();
+    }, () => {
+      this.resourcesFailed = true;
+      this.session.fail();
+    }).finally(() => { this.preparing = false; this.render(); });
   }
   get active() {
     return this.session.active;
@@ -160,6 +180,7 @@ export class GardenCinema {
     if (this.world.scene !== "garden") return;
     this.session.open();
     this.ensureVideo();
+    this.prepare();
     if (this.video!.readyState >= 3) this.session.ready();
     this.hud.hidden = false;
     this.world.onAchievementEvent("cinema-opened");
@@ -269,7 +290,6 @@ export class GardenCinema {
     this.player.prepend(v);
   }
   private preload(replaceUnplayable = false) {
-    this.session.retry();
     void this.download
       .start(replaceUnplayable)
       .then((url) => {
@@ -348,6 +368,7 @@ export class GardenCinema {
   private retry() {
     if (!this.video) return;
     this.session.retry();
+    if (!this.resourcesReady) { this.prepare(); return; }
     this.slow = false;
     this.notified = false;
     if (this.video.error) this.preload(true);
@@ -356,7 +377,9 @@ export class GardenCinema {
     this.render();
   }
   private render() {
-    const progress = downloadLabel(this.download.progress);
+    const progress = this.resourcesFailed ? "游戏资源未载齐，进入放映可重试" : downloadLabel(this.download.progress);
+    if (traffic) traffic.filmStatus = this.download.progress.source ? "使用本机缓存" : this.resourcesFailed ? "等待资源重试" :
+      ({ queued: "等待游戏资源", checking: "核对本机版本", loading: "下载中", ready: "已完成", error: "下载失败" })[this.download.progress.state];
     const shortcut = document.querySelector(".cinema-shortcut small");
     if (shortcut) shortcut.textContent = progress;
     if (!this.active) return;

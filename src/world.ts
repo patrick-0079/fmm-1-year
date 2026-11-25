@@ -20,6 +20,8 @@ import wellUrl from "./assets/echo-well.webp";
 import { crossedEchoGate, townQuarry } from "./ruins-map";
 import { meadowAtlasUrl, orchardAtlasUrl } from "./wild-art";
 import { prepareSceneArt, sceneArt } from "./scene-art";
+import { prepareMapArt, loadSceneImage } from "./texture-cache";
+import type { LoadProgress } from "./resource-queue";
 import trapsUrl from "./assets/courage-path-props-v35.webp";
 import { drawItem, rewardsUrl } from "./item-art";
 import { emptyInventory, type Equipped } from "./items";
@@ -71,10 +73,10 @@ const art = {
   ruins: ruinsUrl,
 };
 const sceneTextures: Record<BaseSceneId, string[]> = {
-  room: [roomUrl, spriteUrl, restUrl, wreathUrl, rewardsUrl],
+  room: [roomUrl],
   garden: [gardenUrl, appleBasketUrl, orchardAtlasUrl, creekPropsUrl],
   challenge: [challengeUrl, orchardAtlasUrl, trapsUrl, courageFlowerUrl, creekPropsUrl],
-  town: [townUrl], meadow: [meadowUrl, meadowAtlasUrl], ruins: [ruinsUrl, wellUrl],
+  town: [townUrl, townDetailUrl], meadow: [meadowUrl, meadowAtlasUrl], ruins: [ruinsUrl, wellUrl],
 };
 export interface DepthLayer {
   y: number;
@@ -110,8 +112,6 @@ export class World {
   private zoom = 1;
   private focus: { point: Point; zoom: number } | null = null;
   private images = new Map<string, HTMLImageElement>();
-  private townDetail: HTMLImageElement | null = null;
-  private townDetailPending = false;
   private mapRequests = new Map<SceneId, Promise<void>>();
   private keys = new Set<string>();
   private touch: Point = { x: 0, y: 0 };
@@ -199,6 +199,7 @@ export class World {
   onToast: (text: string) => void = () => {};
   onRestChange: (state: RestState | null) => void = () => {};
   onRespawn: (event: RespawnEvent) => void = () => {};
+  onReturnHome: (arrive: () => void) => void = arrive => { void this.prepareScene("room").then(arrive); };
   onDraw: (context: CanvasRenderingContext2D, time: number) => void = () => {};
   onTick: (dt: number, time: number) => void = () => {};
   onPointer: (type: string, point: Point, pointerType: string) => boolean = () => false;
@@ -477,33 +478,15 @@ export class World {
       y: (point.y - this.camera.y) * this.zoom,
     };
   }
-  private loadTownDetail() {
-    if (this.townDetail || this.townDetailPending) return;
-    this.townDetailPending = true;
-    const image = new Image();
-    image.decoding = "async";
-    image.src = townDetailUrl;
-    // The lightweight map is already playable. Do not pause the frame loop or
-    // replace it with a partially decoded image; a later visit can retry.
-    void image.decode().then(() => { this.townDetail = image; })
-      .catch(() => {}).finally(() => { this.townDetailPending = false; });
-  }
-  prepareScene(scene: SceneId): Promise<void> {
+  prepareScene(scene: SceneId, report?: LoadProgress): Promise<void> {
     if (!this.canEnter(scene)) return Promise.reject(new Error("尚未集齐七色花"));
-    if (this.images.has(art[scene])) return prepareSceneArt(scene).then(() => {});
     const pending = this.mapRequests.get(scene);
     if (pending) return pending;
-    const urls = isTownInterior(scene) ? [art[scene]] : sceneTextures[scene];
-    const textures = urls.filter(url=>!this.images.has(url)).map(async url => {
-        const image = new Image();
-        image.fetchPriority = "high";
-        image.decoding = "async"; image.src = url;
-        await image.decode();
-        return [url, image] as const;
-      });
-    const request = Promise.all([Promise.all(textures), prepareSceneArt(scene)])
-        .then(([images]) => { for (const [url, image] of images) this.images.set(url,image); })
-        .finally(() => { this.mapRequests.delete(scene); });
+    const urls = [spriteUrl, restUrl, wreathUrl, rewardsUrl, ...(isTownInterior(scene) ? [art[scene]] : sceneTextures[scene])];
+    const request = prepareMapArt(scene, report).then(async () => {
+      const [images] = await Promise.all([Promise.all(urls.map(url => loadSceneImage(url))), prepareSceneArt(scene)]);
+      urls.forEach((url, index) => this.images.set(url, images[index]));
+    }).finally(() => { this.mapRequests.delete(scene); });
     this.mapRequests.set(scene, request);
     return request;
   }
@@ -560,7 +543,7 @@ export class World {
     c.restore();
   }
   get sceneryArtwork() {
-    return (this.scene === "town" && this.townDetail) || this.images.get(art[this.scene]);
+    return this.images.get(this.scene === "town" ? townDetailUrl : art[this.scene]);
   }
   get config() {
     if (this.scene === "town") return this.townMap;
@@ -587,7 +570,7 @@ export class World {
     this.onRestChange(this.restState);
   }
   lieDown() {
-    if (this.scene !== "room") this.switchScene("room");
+    if (this.scene !== "room") return;
     this.clearInput();
     this.restState = bedRest();
     this.player = { ...this.restState.anchor };
@@ -602,8 +585,9 @@ export class World {
     this.clearInput();
     this.onRestChange(null);
   }
-  async load() {
-    await this.prepareScene("room");
+  async load(scene: SceneId = "room", arrival?: Point) {
+    await this.prepareScene(scene);
+    this.switchScene(scene, arrival);
     this.frameId = requestAnimationFrame(this.frame);
   }
   clearInput() {
@@ -624,13 +608,12 @@ export class World {
   }
   switchScene(scene: SceneId, arrival?: Point, facing: Facing = 0) {
     if (this.busy || !this.canEnter(scene)) return;
-    if (!this.images.has(art[scene])) void this.prepareScene(scene).catch(()=>this.onToast("地图图片未能载入，请再试一次。"));
+    if (!this.images.has(art[scene])) return;
     this.clearInput();
     this.restState = null;
     this.onRestChange(null);
     this.setFocus(null);
     this.scene = scene;
-    if (scene === "town") this.loadTownDetail();
     const s = this.config;
     const landing = arrival && canArriveAt(arrival, s) ? arrival : s.spawn;
     this.player = { x: landing.x, y: landing.y };
@@ -736,10 +719,12 @@ export class World {
       ) {
         const { trap, scene } = this.stumble;
         this.stumble = null;
-        this.switchScene("room");
         this.immunity = 2;
-        this.lieDown();
-        this.onRespawn({ trap, scene });
+        this.onReturnHome(() => {
+          this.switchScene("room");
+          this.lieDown();
+          this.onRespawn({ trap, scene });
+        });
       }
       return;
     }

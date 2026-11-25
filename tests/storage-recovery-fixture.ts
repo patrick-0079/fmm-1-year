@@ -15,10 +15,10 @@ Object.defineProperty(window, "localStorage", {value: {
 }});
 let world: World;
 const load = World.prototype.load;
-World.prototype.load = function () {
+World.prototype.load = function (...args) {
   world = this;
   World.prototype.load = load;
-  return load.call(this);
+  return load.apply(this, args);
 };
 await import("../src/main");
 const report = document.querySelector<HTMLOutputElement>("#storage-report")!;

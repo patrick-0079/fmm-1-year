@@ -37,7 +37,8 @@ const arcade = new Arcade(world, activities, inventory, (id, score) => {
 });
 const gardenMemory = {decoratorMet:false,rabbitIntroduced:false};
 const guests = new GardenLife(world, activities, inventory, () => gardenMemory, () => {});
-world.scene = "town";
+await world.prepareScene("town");
+world.switchScene("town");
 const engine = () => (arcade as unknown as { engine: Engine }).engine;
 const status = () => document.querySelector(".arcade-status")?.textContent ?? "";
 const assert = (condition: unknown, message: string) => { if (!condition) throw new Error(message); };
@@ -157,12 +158,13 @@ await check("从放大的星盘互动开包换装，结束互动后衣橱仍开�
   assert(!document.querySelector<HTMLElement>(".touch-controls")?.inert, "手机方向键仍被锁定");
 });
 
-await check("试穿的猫仍需正式领取，邀请会保存真实伙伴位，拒绝不会覆盖原有兔子", () => {
+await check("试穿的猫仍需正式领取，邀请会保存真实伙伴位，拒绝不会覆盖原有兔子", async () => {
   inventory.reset(); inventory.setFitting(true);
   actions.length = 0;
   inventory.setCompanion("petBunny",true);
   inventory.toggle("petCat");
   assert(world.equipment.pet==="petCat" && !inventory.has("petCat"),"试穿不应颁发桃桃");
+  await world.prepareScene("garden");
   world.switchScene("garden",{x:304,y:318});
   const select=(title:string)=>Array.from(document.querySelectorAll<HTMLButtonElement>(".activity-actions button")).find(b=>b.textContent===title)!.click();
   const talk=()=>guests.interact("garden-guest-balloon-friend");
@@ -598,7 +600,8 @@ await check("背包保持打开，可连续穿脱全部配饰并用 WASD 移动�
   } finally { world.stop(); }
 });
 
-await check("气球客邀请／送别桃桃后可读完回应并收起，衣橱换装也会结束旧对话", () => {
+await check("气球客邀请／送别桃桃后可读完回应并收起，衣橱换装也会结束旧对话", async () => {
+  await world.prepareScene("garden");
   world.switchScene("garden",{x:304,y:318}); world.paused = false;
   const id = "garden-guest-balloon-friend";
   for (const worn of [true, false]) {

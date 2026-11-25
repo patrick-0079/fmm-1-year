@@ -3,45 +3,65 @@ const assets = new Map(assetFiles.map(([file, digest]) => [new URL(file, scope).
 // Keep existing entries available across upgrades and check them against this build.
 const cacheName = "fufu-game-textures-v1:" + new URL(scope).pathname;
 const inFlight = new Map();
-let warmRun;
+const backgroundConsumers = new Map();
+const refreshFromNetwork = new Set();
+let measureDownload;
 
 async function matchesDigest(response, digest) {
   const hash = await crypto.subtle.digest("SHA-256", await response.clone().arrayBuffer());
   return btoa(String.fromCharCode(...new Uint8Array(hash))) === digest;
 }
 
-async function readAsset(url, priority) {
+async function readAsset(url, priority, signal) {
   const digest = assets.get(url);
   let cache;
   try {
     cache = await caches.open(cacheName);
     const hit = await cache.match(url, { ignoreVary: true });
     if (hit?.status === 200 && await matchesDigest(hit, digest)) return { response: hit };
-    if (hit) await cache.delete(url, { ignoreVary: true });
+    if (hit) {
+      refreshFromNetwork.add(url);
+      await cache.delete(url, { ignoreVary: true });
+    }
   } catch { /* The browser can still use its HTTP cache or the network. */ }
 
-  const options = { mode: "same-origin", integrity: "sha256-" + digest, priority };
   let response;
+  const timingStart = measureDownload ? performance.now() : undefined;
   try {
-    // First reuse bytes fetched by the page before the worker took control.
-    const hit = await fetch(url, { ...options, cache: "only-if-cached" });
-    if (hit.status === 200) response = hit;
-  } catch { /* A missing or invalid HTTP cache entry needs a fresh download. */ }
-  response ??= await fetch(url, { ...options, cache: "reload" });
+    const timeout = AbortSignal.timeout?.(180_000);
+    response = await fetch(url, { mode: "same-origin", integrity: "sha256-" + digest, priority,
+      signal: timeout && AbortSignal.any ? AbortSignal.any([signal, timeout]) : signal,
+      cache: refreshFromNetwork.has(url) ? "reload" : "default" });
+    if (response.status === 200) refreshFromNetwork.delete(url);
+    else refreshFromNetwork.add(url);
+  } catch (error) { if (!signal.aborted) refreshFromNetwork.add(url); throw error; }
   const storable = response.status === 200 && !/\bno-store\b/i.test(response.headers.get("Cache-Control") ?? "");
   const stored = cache && storable ? cache.put(url, response.clone()).catch(() => {}) : undefined;
-  return { response, stored };
+  return { response, stored, timingStart };
 }
 
-function requestAsset(url, priority) {
-  const current = inFlight.get(url);
-  if (current) return current;
-  const loaded = readAsset(url, priority);
-  // Foreground responses can be used while the cache write is finishing.
-  const finished = loaded.then(({ stored }) => stored, () => {}).finally(() => inFlight.delete(url));
-  const task = { loaded, finished };
-  inFlight.set(url, task);
-  return task;
+function requestAsset(url, priority, signal) {
+  let task = inFlight.get(url);
+  if (!task || task.controller.signal.aborted) {
+    const controller = new AbortController();
+    const loaded = readAsset(url, priority, controller.signal);
+    const finished = loaded.then(({ stored }) => stored, () => {}).finally(() => {
+      if (inFlight.get(url) === task) inFlight.delete(url);
+    });
+    task = { loaded, finished, controller, consumers: new Set() };
+    inFlight.set(url, task);
+  }
+  const release = () => {
+    task.consumers.delete(release);
+    if (!task.consumers.size) task.controller.abort();
+  };
+  task.consumers.add(release);
+  if (signal.aborted) release();
+  else {
+    signal.addEventListener("abort", release, { once: true });
+    task.finished.then(() => { signal.removeEventListener("abort", release); task.consumers.delete(release); });
+  }
+  return { loaded: task.loaded, finished: task.finished, release };
 }
 
 async function pruneCache() {
@@ -50,16 +70,6 @@ async function pruneCache() {
     const previous = await cache.keys();
     await Promise.all(previous.filter(key => !assets.has(key.url)).map(key => cache.delete(key, { ignoreVary: true })));
   } catch { /* Cleanup is opportunistic. */ }
-}
-
-function warmAssets() {
-  if (warmRun) return warmRun;
-  const remaining = assets.keys();
-  const consume = async () => {
-    for (const url of remaining) await requestAsset(url, "low").finished;
-  };
-  warmRun = Promise.all([consume(), consume(), pruneCache()]).finally(() => { warmRun = undefined; });
-  return warmRun;
 }
 
 async function audioRange(response, range) {
@@ -80,12 +90,10 @@ async function audioRange(response, range) {
 }
 
 self.addEventListener("install", event => event.waitUntil(self.skipWaiting()));
-self.addEventListener("activate", event => event.waitUntil(self.clients.claim()));
-
+self.addEventListener("activate", event => event.waitUntil(Promise.all([self.clients.claim(), pruneCache()])));
 self.addEventListener("message", event => {
-  const { type, version, retry } = event.data ?? {};
-  if (type !== "warm-assets" || version !== assetVersion) return;
-  event.waitUntil(retry && warmRun ? warmRun.then(warmAssets) : warmAssets());
+  if (event.data?.type === "yield-preload" && event.source?.id)
+    backgroundConsumers.get(event.source.id + ":" + event.data.token)?.();
 });
 
 self.addEventListener("fetch", event => {
@@ -96,10 +104,19 @@ self.addEventListener("fetch", event => {
   if (header !== null && (!request.url.endsWith(".wav") || request.headers.has("If-Range") ||
       !(range?.[1] || range?.[2]))) return;
 
-  const { loaded, finished } = requestAsset(request.url, "high");
+  const token = request.headers.get("X-Fufu-Preload");
+  const { loaded, finished, release } = requestAsset(request.url, token ? "low" : "high", request.signal);
+  if (token && event.clientId) {
+    const id = event.clientId + ":" + token;
+    backgroundConsumers.set(id, release);
+    event.waitUntil(finished.finally(() => backgroundConsumers.delete(id)));
+  }
   event.waitUntil(finished);
-  event.respondWith(loaded.then(({ response }) => {
+  event.respondWith(loaded.then(asset => {
+    const { response } = asset;
     if (range) return response.status === 200 ? audioRange(response.clone(), range) : fetch(request);
+    if (measureDownload && request.headers.has("X-Fufu-Net-Debug") && response.status === 200)
+      return measureDownload(request.url, asset);
     return response.clone();
   }, error => {
     if (range) return fetch(request);

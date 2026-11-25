@@ -5,11 +5,10 @@ import wreathUrl from "./assets/flower-wreath.webp";
 import rewardsUrl from "./assets/reward-icons.webp";
 import wardrobeUrl from "./assets/wardrobe-v11.webp";
 import strawberryShoesUrl from "./assets/strawberry-flats-v38.webp";
+import { sceneImage } from "./texture-cache";
 export { wreathUrl, rewardsUrl };
-const wardrobe = new Image();
-wardrobe.src = wardrobeUrl;
-const strawberryShoes = new Image();
-strawberryShoes.src = strawberryShoesUrl;
+const wardrobe = sceneImage(wardrobeUrl);
+const strawberryShoes = sceneImage(strawberryShoesUrl);
 export function whenWardrobeReady(callback: () => void) {
   const pending = [wardrobe, strawberryShoes].filter(sheet => !sheet.complete);
   let remaining = pending.length;

@@ -1,7 +1,7 @@
 import partyUrl from "./assets/party-props-v11.webp";
+import { sceneImage } from "./texture-cache";
 import { fitItem } from "./equipment";
-const party = new Image();
-party.src = partyUrl;
+const party = sceneImage(partyUrl);
 export const partyFrames = [
   [39, 46, 302, 531],
   [421, 28, 313, 551],

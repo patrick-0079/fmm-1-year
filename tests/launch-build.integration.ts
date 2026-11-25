@@ -64,7 +64,20 @@ test("switching full → invitation → full cleans the deployed directory", asy
   assert.ok(textureWorker.startsWith("const assetVersion = " + JSON.stringify(explicit.marker.version) + ";"));
   const manifest = /^const assetFiles = (.+);$/m.exec(textureWorker);
   assert.ok(manifest, "full build writes an ordered resource manifest");
-  const entries: [string, string][] = JSON.parse(manifest[1]);
+  const entries: [string, string, string[]][] = JSON.parse(manifest[1]);
+  assert.deepEqual(JSON.parse(await readFile(join(outDir, `game-assets-${explicit.marker.version}.json`), "utf8")), entries);
+  assert.ok(!entries.some(([file]) => /\.(?:mp4|webm|mov|ogv)$/i.test(file)));
+  for (const [prefix, scene] of [["stationery-desk", "*"], ["room-interactive", "room"], ["town-quarry", "town"],
+    ["anniversary-town-hd", "town"], ["radio", "town-radio"], ["meadow-jelly-bells", "meadow"],
+    ["echo-mines", "ruins"], ["garden-guest-routines", "garden"], ["gardener-tending", "challenge"],
+    ["town-work-poses", "town-radio"], ["town-gestures", "town-baker"], ["cake-slice", "town-baker"]]) {
+    assert.ok(entries.some(([path, , scenes]) => path.startsWith("assets/" + prefix + "-") && scenes.includes(scene)), prefix);
+  }
+  for (const prefix of ["wardrobe-v11", "reward-icons", "flower-wreath", "fufu-garments", "fufu-footwear",
+    "strawberry-flats", "qingya-bouquet", "stationery-sealed", "stationery-album", "astrolabe-relics",
+    "keepsakes", "meadow-postcard", "arcade-postcard", "fufu-cursor-arrow", "fufu-cursor-play"]) {
+    assert.ok(entries.some(([path, , scenes]) => path.startsWith("assets/" + prefix + "-") && scenes.includes("*")), prefix);
+  }
   assert.deepEqual(entries.map(([file]) => file).sort(), explicit.files.filter(name => name.startsWith("assets/")));
   assert.match(entries[0][0], /^assets\/nemu-sprites-/);
   assert.match(entries[1][0], /^assets\/room-interactive-/);

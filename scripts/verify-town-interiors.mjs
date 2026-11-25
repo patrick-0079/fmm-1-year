@@ -370,21 +370,30 @@ florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
     console.log(width, key, "entrance, controls, claim, exit passed");
   }
   await collection(7);
-  // Reopen the bag on a fresh document while the shared illustration is still downloading.
+  // A saved shop must wait for the shared inventory illustration before opening.
   await visit("town-baker");
   await page.locator(".save-now").click();
-  let release;
-  const delayed = new Promise(resolve => { release = resolve; });
+  const artworkSeen = Promise.withResolvers(), artworkReady = Promise.withResolvers();
   const prizeRequest = /\/src\/assets\/town-interiors\/keepsakes\.webp(?:\?.*)?$/;
   await page.route(prizeRequest, async route => {
-    if (route.request().resourceType() === "image") await delayed;
+    if (route.request().resourceType() === "image") {
+      artworkSeen.resolve();
+      await artworkReady.promise;
+    }
     await route.continue();
   });
-  await page.reload(); await enter();
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await artworkSeen.promise;
+  await page.waitForFunction(() => {
+    const meter = document.querySelector(".entry-progress");
+    return meter?.value === meter?.max - 1;
+  });
+  assert.ok(await page.locator(".enter-button").isDisabled());
+  artworkReady.resolve();
+  await enter();
   await page.locator(".bag-toggle").click();
   await page.locator('[data-tab="keepsakes"]').click();
   await page.locator("[data-town-keepsakes]").click();
-  release();
   for (const key of Object.keys(steps)) sameIcon(await iconPixels('canvas[data-town-icon="' + key + '"]'), received[key], key + " cold inventory");
   await page.unroute(prizeRequest);
   await page.locator(".bag-close").click();

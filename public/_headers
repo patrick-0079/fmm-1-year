@@ -12,3 +12,6 @@
 
 /texture-cache.js
   Cache-Control: no-cache
+
+/game-assets-*.json
+  Cache-Control: public, max-age=31536000, immutable

@@ -1,5 +1,5 @@
 export interface FilmDownload {
-  state: "checking" | "loading" | "ready" | "error";
+  state: "queued" | "checking" | "loading" | "ready" | "error";
   received: number;
   total: number;
   source?: "local" | "unverified";
@@ -22,7 +22,8 @@ function sameFilm(stored: Headers, remote: Headers) {
 
 /** Download the complete file independently of the browser's media buffer policy. */
 export class FilmPreloader {
-  progress: FilmDownload = { state: "loading", received: 0, total: 0 };
+  onBytes?: (bytes: number) => void;
+  progress: FilmDownload = { state: "queued", received: 0, total: 0 };
   private task: Promise<string> | null = null;
   private src: string;
   private update: () => void;
@@ -85,7 +86,7 @@ export class FilmPreloader {
       let source: FilmDownload["source"];
       try {
         const head = await this.request(this.src, {
-          method: "HEAD", mode: "cors", credentials: "omit", cache: "no-store", signal: abort.signal,
+          method: "HEAD", mode: "cors", credentials: "omit", cache: "no-store", priority: "low", signal: abort.signal,
         });
         if (head.status === 200 && noStore(head.headers)) {
           try { await cache?.delete(this.src); } catch { /* Storage may have become unavailable. */ }
@@ -133,6 +134,7 @@ export class FilmPreloader {
         this.request(this.src, {
           mode: "cors",
           credentials: "omit",
+          priority: "low",
           cache: "no-store",
           signal: abort.signal,
         }),
@@ -156,6 +158,7 @@ export class FilmPreloader {
         keepAlive();
         chunks.push(new Uint8Array(value));
         this.progress.received += value.byteLength;
+        this.onBytes?.(value.byteLength);
         if (Date.now() - this.lastUpdate > 100) {
           this.lastUpdate = Date.now();
           this.update();
@@ -197,6 +200,7 @@ export class FilmPreloader {
 
 export function downloadLabel(download: FilmDownload) {
   const mb = (bytes: number) => (bytes / 1048576).toFixed(1) + " MB";
+  if (download.state === "queued") return "先准备游戏资源，影片稍后下载";
   if (download.state === "checking") return "正在核对本机影片版本…";
   if (download.state === "ready" && download.source)
     return (download.source === "local" ? "影片未变，已从本机载入" : "暂时无法检查更新，使用上次缓存") + " · " + mb(download.received);

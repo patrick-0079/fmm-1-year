@@ -10,6 +10,8 @@ import { reservedShortcut } from "./input";
 import { getDeadline, setDebugDeadline } from "./launch/time";
 import { allLetters } from "./letters";
 
+import { attachDownloadMonitor } from "./network-debug";
+
 const maps = {
   room: "晚安小屋",
   garden: "周年花园",
@@ -33,7 +35,7 @@ export function mountDebugPanel(
   flowers: FlowerTrail,
   go: Travel,
   toast: (s: string) => void,
-  eraseProgress: () => boolean,
+  eraseProgress: () => Promise<boolean>,
   mailbox: { received: () => Set<string>; receive: (id?: string) => void; restoreReadingFocus: () => boolean },
 ) {
   const book = document.querySelector<HTMLElement>(".flower-book")!;
@@ -172,6 +174,7 @@ export function mountDebugPanel(
       .querySelector<HTMLButtonElement>(".debug-close")!
       .focus({ preventScroll: true });
   };
+  if (attachDownloadMonitor(panel)) trigger.click();
   holder.querySelector<HTMLButtonElement>(".debug-close")!.onclick = () =>
     close(true);
   document.addEventListener(
@@ -209,7 +212,7 @@ export function mountDebugPanel(
       travelling = false;
     }
   };
-  panel.addEventListener("click", (e) => {
+  panel.addEventListener("click", async (e) => {
     const cmd = (e.target as Element).closest<HTMLButtonElement>("[data-debug]")
       ?.dataset.debug;
     if (!cmd) return;
@@ -227,7 +230,7 @@ export function mountDebugPanel(
         .focus({ preventScroll: true });
     } else if (type === "keep") cancelErase(true);
     else if (type === "confirm-erase") {
-      if (!eraseCheck.hidden && !travelling && eraseProgress()) {
+      if (!eraseCheck.hidden && !travelling && await eraseProgress()) {
         close();
         document
           .querySelector<HTMLButtonElement>(".enter-button")!
