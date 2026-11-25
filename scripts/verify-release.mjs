@@ -81,8 +81,20 @@ try {
 
   await enter.click();
   assert.equal(await game.locator(".debug-trigger,.launch-debug-trigger,[data-debug]").count(), 0);
-  await game.locator(".help-button").click();
-  await game.locator(".help-close").click();
+  const helpButton = game.locator('.window-tools button[aria-controls="game-help"]');
+  const help = game.getByRole("dialog", { name: "小冒险怎么玩" });
+  await helpButton.click();
+  assert.ok(await help.evaluate(dialog => dialog.matches(":modal")));
+  assert.equal(await help.getByRole("button").count(), 1);
+  assert.equal(await helpButton.getAttribute("aria-expanded"), "true");
+  const done = help.getByRole("button", { name: "知道了" });
+  assert.ok(await done.evaluate(button => button === document.activeElement));
+  await game.keyboard.press("Escape");
+  await help.waitFor({ state: "hidden" });
+  assert.ok(await helpButton.evaluate(button => button === document.activeElement));
+  await helpButton.press("Enter");
+  await done.click();
+  assert.equal(await helpButton.getAttribute("aria-expanded"), "false");
   await game.locator(".bag-toggle").click();
   await game.locator(".bag-item.is-locked").first().click();
   assert.ok(await game.locator(".bag-apply").isDisabled());

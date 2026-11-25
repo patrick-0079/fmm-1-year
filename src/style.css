@@ -293,6 +293,7 @@ a .icon {
 }
 .window-tools > .icon-button,
 .volume-tools,
+.help-close,
 .scene-nav > button {
   background: #f7f3fa;
   border: 1px solid #d9cde3;
@@ -305,8 +306,13 @@ a .icon {
 .volume-tools .icon-button:disabled {
   opacity: 0.4;
 }
+.window-tools .effects-toggle {
+  padding: 0;
+  font-size: 12px;
+}
 @media (hover: hover) {
   .window-tools .icon-button:where(:enabled:hover),
+  .help-close:hover,
   .scene-nav > button:where(:enabled:hover) {
     background: #eee6f5;
   }
@@ -320,10 +326,12 @@ a .icon {
 .scene-nav > button[aria-pressed="true"] {
   font-weight: 600;
 }
-.window-tools .music-toggle.muted {
+.window-tools .music-toggle.muted,
+.window-tools .effects-toggle[aria-pressed="false"] {
   text-decoration: line-through;
 }
 .window-tools .sound-toggle[aria-pressed="false"],
+.window-tools .effects-toggle[aria-pressed="false"],
 .window-tools .music-toggle.muted {
   color: #8a6078;
 }
@@ -1556,40 +1564,6 @@ footer .reset-button {
   color: #b795aa;
   margin: 0;
 }
-.help-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-}
-.help-grid > div {
-  border: 1px solid #ecdce6;
-  padding: 19px;
-  border-radius: 7px;
-  background: #fffdf8;
-}
-.help-grid > div > span {
-  color: #c190ae;
-}
-.help-grid h3 {
-  font-size: 13px;
-  color: #a17c94;
-  font-weight: 600;
-  margin: 12px 0 8px;
-}
-.help-grid p {
-  font-size: 11px;
-  color: #b69aac;
-  line-height: 2;
-  margin: 0;
-}
-.help-footnote {
-  font-size: 10px;
-  line-height: 2;
-  color: #b49aac;
-  text-align: center;
-  padding: 8px;
-  margin: 18px 0 0;
-}
 .toast {
   position: fixed;
   bottom: 28px;
@@ -2439,24 +2413,6 @@ footer .reset-button {
   .letter-text {
     font-size: 12px;
   }
-  .help-grid {
-    gap: 10px;
-  }
-  .help-grid > div {
-    padding: 14px 12px;
-  }
-  .help-grid h3 {
-    font-size: 11px;
-    margin: 9px 0 7px;
-  }
-  .help-grid p {
-    font-size: 10px;
-    line-height: 1.9;
-  }
-  .help-footnote {
-    font-size: 9px;
-    line-height: 1.9;
-  }
   .bili-postcard h3 {
     font-size: 17px;
   }
@@ -2948,13 +2904,13 @@ footer .reset-button {
   font-size: 11px;
   margin: 10px 0;
 }
-.inline-help {
-  font-size: 11px;
-  line-height: 1.9;
-  padding: 15px 20px;
-  margin: 0;
-  background: #f1f3e9;
-  color: #879574;
+@media (max-width: 380px) {
+  .window-dots {
+    display: none;
+  }
+  .window-tools {
+    --tool-size: 30px;
+  }
 }
 .task-color-4 {
   background: #e4eddb;

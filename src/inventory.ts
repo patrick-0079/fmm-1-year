@@ -378,7 +378,7 @@ export class Inventory {
     this.world.suspend("inventory", false);
     if (!restoreFocus || !wasOpen) return;
     if (this.world.suspended) {
-      document.querySelector<HTMLButtonElement>(".inline-help:not([hidden]) .help-close")?.focus({ preventScroll: true });
+      document.querySelector<HTMLButtonElement>("#game-help[open] .help-close")?.focus({ preventScroll: true });
     } else {
       this.world.canvas.focus({ preventScroll: true });
     }

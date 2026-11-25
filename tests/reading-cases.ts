@@ -209,7 +209,7 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
     key("PageDown", detail);
     const pageBeforeHelp = q(".mail-sheet .mail-page-count").textContent;
     q(".help-button").click();
-    expect(world.suspended && !q(".inline-help").hidden, "说明没有暂停底层阅读");
+    expect(world.suspended && q<HTMLDialogElement>("#game-help").matches(":modal"), "说明应作为弹窗暂停底层阅读");
     key("Escape", q(".help-close"));
     expect(!reader.hidden && world.paused && !world.suspended, "关闭说明错误地关闭或恢复了底层阅读");
     expect(document.activeElement === detail && q(".mail-sheet .mail-page-count").textContent === pageBeforeHelp,

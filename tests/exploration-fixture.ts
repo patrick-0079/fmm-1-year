@@ -748,11 +748,12 @@ q("#check-sound").addEventListener("click",()=>void run(async()=>{
     !q(".scene-nav").querySelector(".volume-tools"),"总音量控件应与画面上方的小喇叭放在一起");
   if(state().muted) speaker.click();
   if(state().bgm) q(".music-toggle").click();
-  if(!state().sound) {
-    q(".help-button").click();
-    q(".effects-toggle").click();
-    q(".help-close").click();
-  }
+  const effects=q<HTMLButtonElement>(".window-tools .effects-toggle");
+  expect(!!effects && !q("#game-help").contains(effects),"独立音效开关应在画面上方，不应藏在说明里");
+  if(state().sound) effects.click();
+  expect(!state().sound && effects.getAttribute("aria-pressed")==="false","音效按钮未关闭互动音效");
+  effects.click();
+  expect(state().sound && effects.getAttribute("aria-pressed")==="true","音效按钮未恢复互动音效");
   const beforeMute=state();
   speaker.click();
   world.switchScene("room",bassStand.spot.approach); world.interact();

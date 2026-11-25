@@ -24,8 +24,8 @@
 }
 .mine-rules { margin: 4px 0 10px; font-size: 13px; line-height: 1.6; }
 .mine-rules summary { cursor: pointer; color: #365b52; }
-.mine-rules ul, .help-grid dd ul { padding-inline-start: 1.3em; margin: 6px 0; }
-.mine-rules li + li, .help-grid dd li + li { margin-top: 4px; }
+.mine-rules ul { padding-inline-start: 1.3em; margin: 6px 0; }
+.mine-rules li + li { margin-top: 4px; }
 .ruin-stamp-flash i {
   display:grid; place-items:center; flex:none; width:31px; height:31px;
   border:3px double currentColor; border-radius:6px 9px 5px 8px; font-style:normal; font-weight:700;

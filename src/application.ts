@@ -253,7 +253,7 @@ export function mountGame() {
     sound.title = progress.muted ? "恢复游戏声音" : "静音游戏声音";
     sound.setAttribute("aria-pressed", String(!progress.muted));
     const effects = document.querySelector<HTMLButtonElement>(".effects-toggle")!;
-    effects.textContent = progress.sound ? "互动音效：开" : "互动音效：关";
+    effects.title = progress.sound ? "关闭互动音效" : "开启互动音效";
     effects.setAttribute("aria-pressed", String(progress.sound));
     const music = document.querySelector<HTMLButtonElement>(".music-toggle")!;
     music.setAttribute(
@@ -287,39 +287,42 @@ export function mountGame() {
   inventory.notebookState = () => progress.residents.guardianInvited
     ? { astrolabe: progress.astrolabe, listened: progress.echoes.listened }
     : null;
-  const help = document.querySelector<HTMLElement>(".inline-help")!;
-  const setHelp = (open: boolean) => {
-    if (open) {
-      meadow.closeBottle();
-      inventory.close(false);
-    }
-    help.hidden = !open;
-    world.suspend("help", open);
-    document.querySelector(".help-button")!.setAttribute("aria-expanded", String(open));
-    if (open) {
-      help.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      help.querySelector<HTMLButtonElement>(".help-close")!.focus({ preventScroll: true });
-    }
+  const help = document.querySelector<HTMLDialogElement>("#game-help")!;
+  const helpButton = document.querySelector<HTMLButtonElement>(".help-button")!;
+  const closeHelp = (restoreFocus = true) => {
+    if (!help.open) return;
+    help.close();
+    world.suspend("help", false);
+    helpButton.setAttribute("aria-expanded", "false");
+    if (restoreFocus && !world.suspended && !reader.restoreFocus()) helpButton.focus({ preventScroll: true });
   };
   const closePanels = () => {
     meadow.closeBottle();
     meadow.closeReader();
     bass.close(false);
     inventory.close(false);
-    if (!help.hidden) setHelp(false);
+    closeHelp(false);
   };
-  const returnFromHelp = () => {
-    setHelp(false);
-    if (world.suspended) return;
-    if (!reader.restoreFocus()) world.canvas.focus({ preventScroll: true });
-    world.canvas.parentElement!.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-  help.querySelector(".help-close")!.addEventListener("click", returnFromHelp);
+  helpButton.addEventListener("click", () => {
+    if (help.open) return;
+    meadow.closeBottle();
+    inventory.close(false);
+    world.suspend("help", true);
+    helpButton.setAttribute("aria-expanded", "true");
+    help.showModal();
+  });
+  help.querySelector(".help-close")!.addEventListener("click", () => closeHelp());
+  help.addEventListener("cancel", event => { event.preventDefault(); closeHelp(); });
+  help.addEventListener("click", event => {
+    if (event.target !== help) return;
+    const bounds = help.getBoundingClientRect();
+    if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeHelp();
+  });
   window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !help.hidden && !e.defaultPrevented && !reservedShortcut(e)) {
+    if (e.key === "Escape" && help.open && !e.defaultPrevented && !reservedShortcut(e)) {
       e.preventDefault();
       e.stopImmediatePropagation();
-      returnFromHelp();
+      closeHelp();
     }
   }, { capture: true });
   const activities = new Activities(world, {
@@ -796,10 +799,6 @@ export function mountGame() {
       update();
       save();
     });
-  document.querySelector(".help-button")!.addEventListener("click", () => {
-    if (help.hidden) setHelp(true);
-    else returnFromHelp();
-  });
   document
     .querySelectorAll<HTMLButtonElement>(".scene-nav button[data-scene]")
     .forEach((button) =>

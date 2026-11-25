@@ -12,7 +12,7 @@
       .reader-body,
       .game-letter-reader article,
       .bed-note p,
-      .inline-help dd
+      .game-help dd
     ) {
     cursor: text;
   }
