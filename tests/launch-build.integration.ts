@@ -39,6 +39,8 @@ test("switching full → invitation → full cleans the deployed directory", asy
   const explicit = await run("true");
   assert.equal(explicit.marker.mode, "full");
   assert.ok(explicit.files.includes("texture-cache.js"));
+  assert.ok(!explicit.files.some(name => /steam-achievement|deck_ui_achievement_toast/i.test(name)),
+    "the badge chime is synthesized and must not ship the Steam client sample");
   assert.ok(explicit.files.includes("future-game-asset.txt"));
   assert.ok(explicit.files.some(name => name.includes("room-interactive")));
   assert.ok(explicit.files.some(name => name.startsWith("assets/town-guests-")));
@@ -75,7 +77,7 @@ test("switching full → invitation → full cleans the deployed directory", asy
   }
   for (const prefix of ["wardrobe-v11", "reward-icons", "flower-wreath", "fufu-garments", "fufu-footwear",
     "strawberry-flats", "qingya-bouquet", "stationery-sealed", "stationery-album", "astrolabe-relics",
-    "keepsakes", "steam-achievement", "arcade-postcard", "fufu-cursor-arrow", "fufu-cursor-play"]) {
+    "keepsakes", "arcade-postcard", "fufu-cursor-arrow", "fufu-cursor-play"]) {
     assert.ok(entries.some(([path, , scenes]) => path.startsWith("assets/" + prefix + "-") && scenes.includes("*")), prefix);
   }
   for (const prefix of ["journal-letter", "journal-album", "journal-cinema", "meadow-postcard"]) {

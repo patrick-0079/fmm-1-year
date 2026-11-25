@@ -30,7 +30,7 @@ export function mountAchievementNotices() {
     paintAchievementArt(flash);
     flash.hidden = false;
     if (flash.popover) flash.showPopover();
-    void playAchievementSound();
+    playAchievementSound();
     timer = window.setTimeout(() => { hide(); next(); }, 3000);
   }
   document.addEventListener("visibilitychange", next);
