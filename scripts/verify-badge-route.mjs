@@ -76,16 +76,43 @@ try {
   assert.deepEqual((await earned()).sort(), catalogue);
   await page.reload();
   const total = catalogue.length;
-  await page.getByRole("tab", { name: "徽章与存档" }).click();
-  await page.locator("[data-book-toggle]").click();
+  await page.getByRole("tab", { name: "徽章", exact: true }).click();
   await page.locator(".achievement-count strong").filter({ hasText: `${total} / ${total}` }).waitFor();
-  await page.locator(".book-close").click();
   await page.getByRole("tab", { name: "地图", exact: true }).click();
   await page.locator('.scene-nav [data-scene="meadow"] .map-stamp').waitFor();
   assert.equal(await page.locator(".scene-nav button:visible").count(), 6);
   assert.deepEqual((await earned()).sort(), catalogue);
   assert.deepEqual(errors, []);
   console.log(`${width}px · 同档从 0 到 ${total}，刷新后仍为 ${total} 枚`);
+
+  // Use the meadow unlocked by the seven real pickups above, including on a cold return.
+  await page.getByRole("button", { name: /继续上次的冒险/ }).click();
+  await page.setViewportSize({ width: 1413, height: 763 });
+  const meadow = page.getByRole("navigation", { name: "地图导航" }).getByRole("button", { name: "花海", exact: true });
+  await meadow.locator(".map-note").waitFor({ state: "visible" });
+  assert.equal(await meadow.locator(".map-note").innerText(), "拾落星 · 看星空");
+  const fitsRail = await page.locator(".scene-nav").evaluate(nav => {
+    const bounds = nav.getBoundingClientRect();
+    const cards = [...nav.querySelectorAll("button:not([hidden])")].map(button => button.getBoundingClientRect());
+    return cards.length === 6 && cards.every((box, i) => box.height >= 44 && box.bottom <= bounds.bottom &&
+      Math.abs(box.left - cards[0].left) < 1 && (!i || cards[i - 1].bottom <= box.top));
+  });
+  assert.ok(fitsRail, "全部六张地图卡应在同一侧栏内可见");
+  await meadow.click();
+  await page.locator('.scene-wrap[data-current-map="meadow"]').waitFor();
+  assert.equal(await meadow.getAttribute("aria-pressed"), "true");
+  await page.reload();
+  await page.getByRole("button", { name: /继续上次的冒险/ }).click();
+  await page.locator('.scene-wrap[data-current-map="meadow"]').waitFor();
+  assert.equal(await meadow.getAttribute("aria-pressed"), "true");
+  assert.equal(await page.locator('.scene-nav [aria-pressed="true"]').count(), 1);
+  if (process.argv[3]) await page.locator(".game-viewport").screenshot({ path: process.argv[3] });
+  const garden = page.getByRole("button", { name: "周年花园", exact: true });
+  await garden.click();
+  await page.locator('.scene-wrap[data-current-map="garden"]').waitFor();
+  assert.equal(await garden.getAttribute("aria-pressed"), "true");
+  assert.equal(await meadow.getAttribute("aria-pressed"), "false");
+  console.log("六张卡片同栏，花海往返、当前位置与花海续档通过");
   await page.close();
 
   // Repeat the reported sequence through native mouse/touch input on a fresh
@@ -100,10 +127,16 @@ try {
     else await node.click();
   };
   const chooseProp = async id => {
-    await walk.locator("#world").scrollIntoViewIfNeeded();
-    const { x, y } = await walk.evaluate(id => window.contentQA.point(id), id);
-    if (device.hasTouch) await walk.touchscreen.tap(x, y);
-    else await walk.mouse.click(x, y);
+    const canvas = walk.locator("#world");
+    await canvas.scrollIntoViewIfNeeded();
+    // Rotation can realign the toolbar. Use coordinates on the canvas, so a page
+    // scroll between measuring the prop and dispatching the tap keeps the same target.
+    const position = await canvas.evaluate((el, id) => {
+      const point = window.contentQA.point(id), bounds = el.getBoundingClientRect();
+      return { x: point.x - bounds.left, y: point.y - bounds.top };
+    }, id);
+    if (device.hasTouch) await canvas.tap({ position });
+    else await canvas.click({ position });
   };
   await press(".enter-button");
   await walk.setViewportSize(device.hasTouch ? { width: 844, height: 390 } : { width: 827, height: 763 });

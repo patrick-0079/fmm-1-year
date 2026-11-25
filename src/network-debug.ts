@@ -51,14 +51,13 @@ function monitor(panel: HTMLElement) {
 let removeEarly: (() => boolean) | undefined;
 
 export function pinDebugDock(dock: HTMLElement, panel: HTMLElement, root: Element) {
-  const dialogs = [...document.querySelectorAll<HTMLDialogElement>("#game-help, #anniversary-badges")];
+  const help = document.querySelector<HTMLDialogElement>("#game-help")!;
   const place = () => {
-    const modal = !panel.hidden && dialogs.find(dialog => dialog.open);
-    const target = modal || document.fullscreenElement || root;
+    const target = !panel.hidden && help.open ? help : document.fullscreenElement || root;
     if (target !== dock.parentElement && !(target instanceof HTMLVideoElement)) target.append(dock);
   };
   const observer = new MutationObserver(place);
-  for (const dialog of dialogs) observer.observe(dialog, { attributes: true, attributeFilter: ["open"] });
+  observer.observe(help, { attributes: true, attributeFilter: ["open"] });
   observer.observe(panel, { attributes: true, attributeFilter: ["hidden"] });
   document.addEventListener("fullscreenchange", place);
   place();

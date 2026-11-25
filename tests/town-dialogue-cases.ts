@@ -119,11 +119,8 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
     arcade.querySelector<HTMLButtonElement>(".arcade-close")!.click();
   }
   const book = document.querySelector<HTMLElement>(".achievement-book")!;
-  const openBook = () => {
-    document.querySelector<HTMLButtonElement>("#records-tab")!.click();
-    document.querySelector<HTMLButtonElement>("[data-book-toggle]")!.click();
-  };
-  const closeBook = () => book.querySelector<HTMLButtonElement>(".book-close")!.click();
+  const openBook = () => document.querySelector<HTMLButtonElement>("#badges-tab")!.click();
+  const closeBook = () => document.querySelector<HTMLButtonElement>("#maps-tab")!.click();
   openBook();
   book.querySelector<HTMLButtonElement>('[data-book-chapter="daily"]')!.click();
   book.querySelector<HTMLButtonElement>('[data-book-pick="friends"]')!.click();

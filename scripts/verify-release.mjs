@@ -25,7 +25,7 @@ const release = async full => {
 async function checkPlayViewport(page) {
   await page.waitForFunction(() => {
     const frame = document.querySelector("#world").getBoundingClientRect();
-    const controls = document.querySelectorAll(".window-bar, .window-bar button, .control-tabs button, .control-pages > :not([inert]) button, .dpad button, .touch-interact");
+    const controls = document.querySelectorAll(".window-bar, .window-bar button, .control-tabs button, #maps-panel:not([inert]) button, .dpad button, .touch-interact");
     const fits = box => box.left >= -1 && box.right <= innerWidth + 1 && box.top >= -1 && box.bottom <= innerHeight + 1;
     const hittable = button => {
       const rect = button.getBoundingClientRect();
@@ -110,19 +110,22 @@ try {
   await waiting.context().close();
   console.log("全量包：到点自动开门，旧邀请函自动更新，无需调试或手动刷新");
 
-  const records = game.getByRole("tab", { name: "徽章与存档" });
+  const badges = game.getByRole("tab", { name: "徽章", exact: true });
   const maps = game.getByRole("tab", { name: "地图", exact: true });
-  const book = game.getByRole("button", { name: "周年徽章册", exact: true });
+  const book = game.getByRole("tabpanel", { name: "徽章", exact: true });
   assert.equal(await maps.getAttribute("aria-selected"), "true");
-  await maps.press("End");
-  assert.ok(await records.evaluate(tab => tab === document.activeElement));
-  assert.ok(await game.locator(".save-now").isDisabled());
+  assert.ok(await book.isHidden());
+  assert.equal(await game.getByRole("button", { name: /保存进度|周年徽章册/, includeHidden: true }).count(), 0);
   assert.match(await game.locator(".save-status").innerText(), /开始冒险后自动保存/);
-  await book.click();
-  await game.keyboard.press("Escape");
-  assert.ok(await book.evaluate(button => button === document.activeElement));
-  await records.press("ArrowLeft");
+  await maps.press("End");
+  assert.ok(await badges.evaluate(tab => tab === document.activeElement));
+  assert.equal(await badges.getAttribute("aria-selected"), "true");
+  assert.ok(await book.isVisible());
+  assert.match(await book.innerText(), /0\s*\/\s*54/);
+  assert.equal(await game.locator(":modal").count(), 0);
+  await badges.press("ArrowLeft");
   assert.equal(await maps.getAttribute("aria-selected"), "true");
+  assert.ok(await book.isHidden());
   await enter.click();
   assert.equal(await game.locator(".scene-nav button:visible").count(), 5);
   const stamps = await game.locator(".scene-nav .map-stamp").evaluateAll(icons => icons.map(icon => icon.innerHTML));
@@ -132,6 +135,21 @@ try {
   for (const [width, height] of [[1413, 763], [1366, 768], [1920, 1080], [1280, 600], [540, 480], [827, 763], [1280, 820]]) {
     await game.setViewportSize({ width, height });
     await checkPlayViewport(game);
+    if (width === 1413) {
+      const cards = game.locator(".scene-nav button:visible");
+      assert.equal(await cards.locator(".map-note:visible").count(), 5);
+      const first = await cards.first().boundingBox(), last = await cards.last().boundingBox();
+      const panel = await game.locator("#maps-panel").boundingBox();
+      assert.ok(first.height >= 50 && Math.abs(first.x - last.x) < 1 && panel.y + panel.height - last.y - last.height < 12);
+      assert.equal(await game.getByRole("button", { name: "晚安小屋", exact: true }).getAttribute("aria-pressed"), "true");
+    } else if (width === 827) {
+      assert.equal(await game.locator(".scene-nav .map-note:visible").count(), 0);
+    } else if (width === 1920) {
+      await badges.click();
+      assert.ok(await book.evaluate(el => el.getBoundingClientRect().bottom <= innerHeight + 1));
+      await maps.click();
+      await checkPlayViewport(game);
+    }
   }
   await game.locator("footer").evaluate(footer => footer.scrollIntoView({ block: "end", behavior: "instant" }));
   await game.setViewportSize({ width: 1270, height: 790 });
@@ -152,10 +170,22 @@ try {
     await checkPlayViewport(rotated);
     await rotated.locator(".bag-toggle").tap();
     await rotated.locator(".bag-close").tap();
-    await rotated.getByRole("tab", { name: "徽章与存档" }).tap();
-    await checkPlayViewport(rotated);
-    assert.ok(await rotated.locator(".save-now").isEnabled());
+    const frame = await rotated.locator("#world").boundingBox();
+    await rotated.getByRole("tab", { name: "徽章", exact: true }).tap();
+    const phoneBook = rotated.getByRole("tabpanel", { name: "徽章", exact: true });
+    assert.ok(await phoneBook.isVisible());
+    assert.ok(await phoneBook.evaluate(panel => panel.clientHeight >= 100 && panel.scrollWidth <= panel.clientWidth + 1 &&
+      panel.getBoundingClientRect().bottom <= innerHeight + 1));
+    const after = await rotated.locator("#world").boundingBox();
+    assert.ok(Math.abs(frame.width - after.width) < 1 && Math.abs(frame.height - after.height) < 1);
+    await phoneBook.locator('[data-book-chapter="advanced"]').tap();
+    await phoneBook.locator("[data-book-pick]").last().tap();
+    assert.ok(await phoneBook.locator("#achievement-detail").evaluate(detail => {
+      const bounds = detail.getBoundingClientRect(), panel = detail.closest('[role="tabpanel"]').getBoundingClientRect();
+      return bounds.top >= panel.top - 1 && bounds.top < panel.bottom && document.activeElement === detail;
+    }));
     await rotated.getByRole("tab", { name: "地图", exact: true }).tap();
+    await checkPlayViewport(rotated);
   }
   await rotated.locator('.scene-nav [data-scene="garden"]').tap();
   await rotated.locator('.scene-wrap[data-current-map="garden"]').waitFor();
@@ -164,14 +194,16 @@ try {
   await phone.close();
   console.log("桌面缩放及手机横竖屏切换后，3:2 地图、声音、地图导航与操作键均在视口内，背包和切图可触摸");
   const frameBeforeTabs = await game.locator("#world").boundingBox();
-  await records.click();
+  await badges.click();
   const frameAfterTabs = await game.locator("#world").boundingBox();
   assert.equal(frameAfterTabs.height, frameBeforeTabs.height);
   assert.equal(frameAfterTabs.width, frameBeforeTabs.width);
-  await book.click();
-  assert.ok(await game.locator("#anniversary-badges").evaluate(dialog => dialog.matches(":modal")));
-  await game.mouse.click(2, 2);
-  assert.equal(await book.getAttribute("aria-expanded"), "false");
+  assert.ok(await book.isVisible());
+  assert.equal(await game.locator(":modal").count(), 0);
+  await game.locator(".bag-toggle").click();
+  assert.ok(await game.locator(".inventory-panel").isVisible());
+  await game.locator(".bag-close").click();
+  assert.ok(await book.isVisible());
   await maps.click();
   const helpButton = game.locator('.window-tools button[aria-controls="game-help"]');
   const help = game.getByRole("dialog", { name: "小冒险怎么玩" });
@@ -219,8 +251,7 @@ try {
   await game.context().setOffline(true);
   await game.locator('.scene-nav [data-scene="town"]').click();
   await game.locator('.scene-wrap[data-current-map="town"]').waitFor();
-  await records.click();
-  await game.locator(".save-now").click();
+  await game.waitForFunction(() => JSON.parse(localStorage.getItem("fufu-journey-v1"))?.scene === "town");
   assert.match(await game.locator(".save-status").innerText(), /本机已保存 · 晚安周年小镇/);
   await game.context().setOffline(false);
   await game.reload();

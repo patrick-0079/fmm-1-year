@@ -132,14 +132,13 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     renderGameMailDesk(body, {...mailbox(), selectedId}, cleanup => reader.onCleanup(cleanup));
   }
   const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
-  const saveNow = document.querySelector<HTMLButtonElement>(".save-now")!;
   const saveStatus = document.querySelector<HTMLElement>(".save-status")!;
   const showJourney = () => showJourneyStatus(saveStatus, journey);
-  const saveLocation = (manual = false) => {
+  const saveLocation = () => {
     if (!started || !worldReady || resetInProgress || world.busy) return;
     if (world.scene==="meadow" && !meadowOpen(progress.rainbowFlowers)) return;
     const {x,y} = world.restState?.exit ?? world.player;
-    if (!manual && journey?.scene === world.scene && journey.x === x && journey.y === y) return;
+    if (journey?.scene === world.scene && journey.x === x && journey.y === y) return;
     const next = {scene: world.scene, x, y, savedAt: Date.now()};
     try {
       // pagehide can run before the other tab's reset notification is dispatched.
@@ -152,7 +151,6 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
   showJourney();
   window.addEventListener("pagehide", () => saveLocation());
   document.addEventListener("visibilitychange", () => { if (document.hidden) saveLocation(); });
-  saveNow.addEventListener("click", () => { saveLocation(true); world.canvas.focus({preventScroll:true}); });
   const toastElement = document.querySelector<HTMLElement>(".toast")!;
   document.querySelector(".scene-wrap")!.append(toastElement);
   let toastTimeout: ReturnType<typeof setTimeout>;
@@ -729,7 +727,6 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     if (!worldReady || enter.disabled || started) return;
     started = true;
     playClock.start();
-    saveNow.disabled = false;
     saveLocation();
     document.querySelector(".intro-screen")!.classList.add("dismissed");
     world.paused = false;
@@ -835,9 +832,6 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     revealMapIfOffscreen();
   };
   const notices = mountAchievementNotices();
-  achievementBook.onOpen = () => {};
-  achievementBook.onChange = open => world.suspend("achievements", open);
-  achievementBook.onChange(achievementBook.isOpen);
   const achievementContext = () => ({
     townTalked: town.talkedIds,
     owned: (["wreath", "petCat", "petBunny"] as const).filter(id => inventory.has(id)),
@@ -939,7 +933,6 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     resetInProgress = true;
     if (freshStart) {
       started = false;
-      saveNow.disabled = true;
       document.querySelector(".intro-screen")!.classList.remove("dismissed");
     }
     journey = null;
@@ -975,7 +968,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     world.switchScene("room");
     resetInProgress = false;
     refreshAchievements?.(false);
-    if (started) saveLocation(true);
+    if (started) saveLocation();
     else {
       showJourney();
       enter.innerHTML = `开始小冒险 ${icon("arrow")}`;

@@ -59,19 +59,17 @@ html:has(.game-window :focus) { overflow-anchor: none; }
 .control-tabs button[aria-selected="true"] { color: #74495e; border-color: #ab7189; font-weight: 650; }
 .control-tabs .icon { width: 15px; height: 15px; }
 .page-journal .control-tabs button:focus-visible { outline-offset: -3px; }
-/* Keep the map at the same scale while switching tabs, including with all six destinations. */
-.control-pages { display: grid; }
-.control-pages > [role="tabpanel"] { grid-area: 1 / 1; min-width: 0; align-self: center; }
-.control-pages > [inert] { visibility: hidden; }
+#maps-panel { min-width: 0; }
+/* The nav retains its measurable width and height inside the collapsed panel. */
+#maps-panel[inert] { height: 0; visibility: hidden; overflow: hidden; }
 .game-controls .scene-nav { display: flex; flex-wrap: wrap; gap: 5px; padding: 7px 9px; border: 0; background: transparent; }
-.game-controls [data-scene="room"] { --ink: #895548; --wash: #fae9dc; }
-.game-controls [data-scene="garden"] { --ink: #914d66; --wash: #f8e4e9; }
-.game-controls [data-scene="challenge"] { --ink: #4b6d50; --wash: #e8efde; }
-.game-controls [data-scene="town"] { --ink: #406b71; --wash: #e2efea; }
-.game-controls [data-scene="meadow"] { --ink: #765780; --wash: #eee5f2; }
-.game-controls [data-scene="ruins"] { --ink: #555e83; --wash: #e7e9f4; }
-.control-records { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; padding: 7px 9px; }
-.game-controls :is(.scene-nav, .control-records) > button {
+.game-controls [data-scene="room"] { --ink: #895548; --wash: #fae9dc; --print-y: 0%; }
+.game-controls [data-scene="garden"] { --ink: #914d66; --wash: #f8e4e9; --print-y: 20%; }
+.game-controls [data-scene="challenge"] { --ink: #4b6d50; --wash: #e8efde; --print-y: 40%; }
+.game-controls [data-scene="town"] { --ink: #406b71; --wash: #e2efea; --print-y: 60%; }
+.game-controls [data-scene="meadow"] { --ink: #765780; --wash: #eee5f2; --print-y: 80%; }
+.game-controls [data-scene="ruins"] { --ink: #555e83; --wash: #e7e9f4; --print-y: 100%; }
+.game-controls .scene-nav > button {
   display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; padding: 4px 10px;
   color: var(--ink, #744e64); border: 1px solid color-mix(in srgb, var(--ink, #744e64) 33%, #fffcf8); border-radius: 7px;
   background: linear-gradient(#fffcf8, var(--wash, #f6e6ed)); font: inherit; font-size: 13px; line-height: 1.25; white-space: nowrap;
@@ -79,12 +77,12 @@ html:has(.game-window :focus) { overflow-anchor: none; }
 .game-controls .scene-nav > button[aria-pressed="true"] {
   border-color: var(--ink); background: var(--wash); box-shadow: inset 0 -3px var(--ink); font-weight: 650;
 }
-.game-controls :is(.control-tabs, .scene-nav, .control-records) button:enabled:hover { filter: brightness(.96); }
+.game-controls :is(.control-tabs, .scene-nav) button:enabled:hover { filter: brightness(.96); }
 .scene-nav .map-stamp { flex: none; width: 26px; height: 26px; }
-.control-records .save-now { --ink: #536c56; --wash: #e6eddf; }
-.control-records .icon { width: 17px; height: 17px; flex: none; }
-.control-records button:disabled { opacity: .52; }
-.control-records .save-status { color: #736570; font-size: 12px; line-height: 1.5; }
+.map-stamp-frame { display: inline-grid; place-items: center; flex: none; }
+.map-note { display: none; }
+.game-meta .save-status { color: #736570; font-size: 12px; line-height: 1.5; }
+.achievement-book:not([hidden]) ~ .touch-controls { display: none; }
 .game-meta .garden-pocket {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 5px 14px; padding: 9px 12px;
   color: #566554; background: #f0f2e9;
@@ -119,12 +117,12 @@ html:has(.game-window :focus) { overflow-anchor: none; }
   .game-viewport { display: grid; grid-template-columns: minmax(0, 1fr) var(--controls-width); align-items: start; background: #fbf8f1; }
   .game-viewport > .window-bar { grid-column: 1 / -1; }
   .game-viewport > .game-stage-frame { width: 100%; }
-  .game-controls { display: flex; flex-direction: column; align-self: stretch; max-height: var(--map-height); border-left: 1px solid #e3d7cb; }
+  .game-controls { display: flex; flex-direction: column; align-self: stretch; container-type: size; max-height: var(--map-height); border-left: 1px solid #e3d7cb; }
   .game-controls .scene-nav { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 4px; padding: 6px; }
   .game-controls .scene-nav > button { min-width: 0; gap: 3px; padding-inline: 2px; font-size: 12px; }
-  .control-records { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 7px 4px; padding: 6px; }
-  .game-controls .control-records > button { flex-direction: column; gap: 4px; padding: 5px 2px; }
-  .control-records .save-status { grid-column: 1 / -1; text-align: center; }
+  /* Let the map alone set the rail height. The collection scrolls within it. */
+  .game-controls > .achievement-book { flex: 1; contain: size; max-height: none; }
+  .achievement-book:not([hidden]) ~ .game-meta { display: none; }
   .game-controls .touch-controls { flex: none; gap: 4px; justify-content: center; padding: 4px; }
   .game-controls .touch-interact { flex: none; width: 46px; min-width: 44px; padding-inline: 2px; }
   .game-meta { margin-top: auto; min-height: 0; overflow-y: auto; }
@@ -145,19 +143,66 @@ html:has(.game-window :focus) { overflow-anchor: none; }
     .game-viewport { grid-template-rows: auto auto 1fr auto; }
     .game-stage-frame { grid-area: 2 / 1 / 4 / 2; }
     .game-control-menu { grid-area: 2 / 2; }
+    .game-controls > .achievement-book { grid-area: 3 / 2; align-self: stretch; }
+    .game-controls .achievement-cover { display: none; }
+    .game-controls .achievement-page { padding: 4px 9px 10px; }
+    .achievement-page .achievement-track { margin-bottom: 3px; }
+    .achievement-page .achievement-chapters nav { margin-top: 0; }
     .game-controls .touch-controls { grid-area: 3 / 2; align-self: start; }
     .game-controls .touch-interact { align-self: flex-start; }
     .game-meta { grid-area: 4 / 1 / 5 / -1; overflow: visible; }
     .game-meta .garden-pocket { flex-direction: row; align-items: center; gap: 4px 12px; }
   }
 }
+/* Let the destination list use the actual space between the tabs and the controls.
+   Only the side rail has block-size containment. The bottom toolbar stays compact. */
+@container controls (min-height: 465px) {
+  .game-control-menu:has(#maps-panel:not([inert])) { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+  .game-control-menu .control-tabs { flex: none; }
+  #maps-panel:not([inert]) { flex: 1; min-height: 152px; container: destinations / size; }
+}
+@container destinations (min-height: 180px) and (max-height: 309.99px) {
+  .game-controls .scene-nav { height: 100%; grid-auto-rows: 1fr; align-items: stretch; }
+  .game-controls .scene-nav > button { flex-direction: column; gap: 2px; }
+}
+@container destinations (min-height: 310px) {
+  .game-controls .scene-nav {
+    height: 100%; display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: 1fr; align-items: stretch;
+    gap: clamp(4px, 1.3cqh, 9px); padding: 8px;
+    background: repeating-linear-gradient(0deg, #f1e7db 0 1px, transparent 1px 22px), #fbf4e9;
+  }
+  .game-controls .scene-nav > button {
+    position: relative; isolation: isolate; overflow: hidden; flex-direction: row; justify-content: flex-start; gap: 9px; padding: 3px 7px;
+    text-align: left; white-space: normal; color: var(--ink); border-radius: 4px 9px 9px 4px;
+    background: linear-gradient(115deg, var(--wash), #fffcf6 78%); box-shadow: 0 2px 0 #dacdbb66;
+  }
+  /* The six miniature prints travel with the UI; no destination texture is requested here. */
+  .game-controls .scene-nav > button::before {
+    content: ""; position: absolute; z-index: -1; inset: 0 0 0 auto; height: 100%; aspect-ratio: 1; max-width: 40%; pointer-events: none;
+    background: url("./assets/map-postcards.webp?inline") right var(--print-y) / auto 600% no-repeat;
+    mask-image: linear-gradient(90deg, transparent, #0006 32%, #000 85%); opacity: .78;
+  }
+  .game-controls .scene-nav > button[aria-pressed="true"] {
+    background: linear-gradient(105deg, var(--wash) 40%, #fff9ed); box-shadow: inset 3px 0 var(--ink), 0 2px 0 #dacdbb77;
+  }
+  .game-controls .scene-nav > button[aria-pressed="true"]::after {
+    content: ""; position: absolute; inset: -1px 8px auto auto; width: 9px; height: 14px;
+    background: var(--ink); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 74%, 0 100%);
+  }
+  .scene-nav .map-stamp-frame {
+    width: clamp(36px, 9cqh, 52px); aspect-ratio: 1; border: 1px dashed color-mix(in srgb, var(--ink) 55%, #fff8e9);
+    border-radius: 3px; background: #fffaf0; box-shadow: inset 0 0 0 3px #fffcf5, inset 0 0 0 4px var(--wash);
+  }
+  .scene-nav .map-stamp { width: 70%; height: 70%; }
+  .scene-nav .map-copy { min-width: 0; }
+  .scene-nav .map-name { display: block; font-weight: 650; font-size: 15px; line-height: 1.4; }
+  .scene-nav .map-note { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; line-height: 1.35; color: #655b60; }
+}
 @container controls (min-width: 245px) and (max-width: 560px) {
   .control-tabs button { flex: 1; }
   .game-controls .scene-nav { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); }
   .game-controls .scene-nav > button { padding-inline: 2px; gap: 3px; font-size: 12px; }
   .scene-nav .map-stamp { width: 23px; height: 23px; }
-  .control-records { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px 8px; }
-  .control-records .save-status { grid-column: 1 / -1; text-align: center; }
 }
 @media (max-height: 600px) and (max-aspect-ratio: 6/5) {
   .game-controls .touch-controls { padding: 6px 10px; gap: 8px; }

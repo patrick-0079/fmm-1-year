@@ -5,16 +5,15 @@ import "./achievement-book.css";
 
 const chapterTabs = { daily: "日常", letters: "来信", games: "游园", explore: "探索", advanced: "进阶" } as const;
 
-export const achievementBookMarkup = `<dialog id="anniversary-badges" class="achievement-book" data-page-ui aria-labelledby="achievement-title">
+export const achievementBookMarkup = `<section id="anniversary-badges" role="tabpanel" class="achievement-book" data-page-ui aria-labelledby="badges-tab" hidden>
   <header class="achievement-cover">
-    <div class="achievement-cover-title"><span>芙芙的</span><h2 id="achievement-title">周年徽章册</h2></div>
+    <h2>周年徽章册</h2>
     <span class="achievement-cover-emblem" aria-hidden="true"><canvas data-stamp-art="fox" width="32" height="32"></canvas></span>
-    <button type="button" class="book-close" aria-label="收起周年徽章册" autofocus>收起 <span aria-hidden="true">×</span></button>
   </header>
   <div class="achievement-page">
     <div class="achievement-live"></div>
   </div>
-</dialog>`;
+</section>`;
 
 const concealed = (entry: AchievementEntry) => !!entry.hint && !entry.earned;
 const visibleName = (entry: AchievementEntry) => (concealed(entry) ? "未揭晓的徽章" : entry.name);
@@ -52,8 +51,7 @@ function details(entry: AchievementEntry) {
 }
 
 export function mountAchievementBook() {
-  const root = document.querySelector<HTMLDialogElement>(".achievement-book")!;
-  const trigger = document.querySelector<HTMLButtonElement>("[data-book-toggle]")!;
+  const root = document.querySelector<HTMLElement>(".achievement-book")!;
   const live = root.querySelector<HTMLElement>(".achievement-live")!;
   paintAchievementArt(root);
   let rows: readonly AchievementEntry[] = [];
@@ -73,7 +71,7 @@ export function mountAchievementBook() {
     const last = earned.find((row) => row.id === latest) ?? earned.at(-1);
     const count = rows.length;
     const content = [
-      `<div class="achievement-count"><span>已收集徽章</span><strong>${earned.length}<span> / ${count}</span></strong></div>
+      `<div class="achievement-summary"><div class="achievement-count"><span>已收集徽章</span><strong>${earned.length}<span> / ${count}</span></strong></div>
        <progress class="achievement-track" value="${earned.length}" max="${count || 1}" aria-label="徽章收集进度"></progress>`,
     ];
     if (last) content.push(
@@ -85,7 +83,7 @@ export function mountAchievementBook() {
     // Open the selected page directly beneath its row of stamps.
     const selectedIndex = entries.findIndex((row) => row.id === selected);
     const detailAfter = Math.min(entries.length - 1, Math.floor(selectedIndex / 3) * 3 + 2);
-    content.push(`<div id="achievement-chapters" class="achievement-chapters"><nav aria-label="徽章章节">
+    content.push(`</div><div id="achievement-chapters" class="achievement-chapters"><nav aria-label="徽章章节">
       ${achievementChapters.map((group) => `<button type="button" data-book-chapter="${group.id}" data-focus="tab-${group.id}" aria-pressed="${group.id === chapter}" aria-label="${escapeHtml(group.title)}">${chapterTabs[group.id]}</button>`).join("")}
       </nav><div class="achievement-chapter-heading"><h3>${escapeHtml(page.title)}</h3><small>${entries.filter((row) => row.earned).length} / ${entries.length}</small></div>
       <div class="achievement-grid">${entries
@@ -107,29 +105,7 @@ export function mountAchievementBook() {
     } else if (focus) focusAt(focus);
   }
 
-  function close() {
-    if (!root.open) return;
-    root.close();
-    trigger.setAttribute("aria-expanded", "false");
-    api.onChange(false);
-    trigger.focus({ preventScroll: true });
-  }
-  trigger.addEventListener("click", () => {
-    if (root.open) return;
-    api.onOpen();
-    root.showModal();
-    render();
-    trigger.setAttribute("aria-expanded", "true");
-    api.onChange(true);
-  });
-  root.querySelector(".book-close")!.addEventListener("click", close);
-  root.addEventListener("cancel", event => { event.preventDefault(); close(); });
   root.addEventListener("click", (event) => {
-    if (event.target === root) {
-      const box = root.getBoundingClientRect();
-      if (event.clientX < box.left || event.clientX >= box.right || event.clientY < box.top || event.clientY >= box.bottom) close();
-      return;
-    }
     const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("button") : null;
     if (!button || !live.contains(button)) return;
     if (button.dataset.bookChapter) {
@@ -146,22 +122,19 @@ export function mountAchievementBook() {
       render(selected ? "detail" : "pick-" + row.id);
       const detail = selected && live.querySelector<HTMLElement>("#achievement-detail");
       if (detail) {
-        const page = root.querySelector<HTMLElement>(".achievement-page")!;
-        const rect = detail.getBoundingClientRect(), view = page.getBoundingClientRect();
-        if (rect.top < view.top || rect.bottom > view.bottom) page.scrollTop += rect.top - view.top;
+        const rect = detail.getBoundingClientRect(), view = root.getBoundingClientRect();
+        if (rect.top < view.top || rect.bottom > view.bottom) root.scrollTop += rect.top - view.top;
       }
     }
   });
-  const api = {
-    get isOpen() { return root.open; },
-    onOpen: () => {},
-    onChange: (_open: boolean) => {},
+  return {
+    show: render,
     update(entries: readonly AchievementEntry[], latestId?: string | null) {
       const newlyStamped = rows.length > 0 && latestId && latest !== latestId
         && rows.some(entry => entry.id === latestId && !entry.earned);
       rows = entries;
       latest = latestId ?? null;
-      if (!root.open) return;
+      if (root.hidden) return;
       render();
       if (newlyStamped && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
         const imprint = live.querySelector<HTMLElement>(`[data-book-pick="${latestId}"] .achievement-stamp, .achievement-last-imprint`)
@@ -174,11 +147,10 @@ export function mountAchievementBook() {
       }
     },
     reset() {
-      close();
+      root.scrollTop = 0;
       selected = null;
       latest = null;
       chapter = achievementChapters[0].id;
     },
   };
-  return api;
 }

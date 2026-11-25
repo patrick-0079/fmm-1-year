@@ -17,12 +17,16 @@ export function revealGame(canvas: HTMLCanvasElement) {
 export function fitGameViewport(game: HTMLElement) {
   const canvas = game.querySelector<HTMLCanvasElement>("#world")!;
   const bar = game.querySelector<HTMLElement>(".window-bar")!;
-  const nav = game.querySelector<HTMLElement>(".game-control-menu")!;
+  const menu = game.querySelector<HTMLElement>(".game-control-menu")!;
+  const nav = menu.querySelector<HTMLElement>(".scene-nav")!;
   const touch = game.querySelector<HTMLElement>(".touch-controls")!;
   function measure() {
     game.style.setProperty("--bar-height", bar.offsetHeight + "px");
     if (getComputedStyle(game).getPropertyValue("--side-controls").trim() === "1") return;
-    game.style.setProperty("--nav-height", nav.offsetHeight + "px");
+    // The badge tab can grow independently of the map. Reserve the normal map controls
+    // even when the destination list is collapsed or wraps differently after rotation.
+    const mapMenuHeight = nav.getBoundingClientRect().bottom - menu.getBoundingClientRect().top + menu.offsetHeight - menu.clientHeight;
+    game.style.setProperty("--nav-height", Math.ceil(mapMenuHeight) + "px");
     // The arcade and cinema temporarily hide the D-pad. Keep the map scale stable.
     if (touch.offsetHeight) game.style.setProperty("--dpad-height", touch.offsetHeight + "px");
   }
@@ -31,7 +35,7 @@ export function fitGameViewport(game: HTMLElement) {
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(measure);
   });
-  for (const row of [bar, nav, touch]) observer.observe(row);
+  for (const row of [bar, menu, nav, touch]) observer.observe(row);
   measure();
 
   let scrollFrame = 0, settleTimer = 0;
@@ -42,6 +46,7 @@ export function fitGameViewport(game: HTMLElement) {
   function alignToolbar() {
     const visible = window.visualViewport;
     if ((visible && visible.scale !== 1) || document.fullscreenElement || document.querySelector("dialog[open]")) return;
+    if (document.activeElement?.closest("#badges-tab, .achievement-book")) return;
     const map = canvas.getBoundingClientRect();
     const overlap = Math.min(map.bottom, innerHeight) - Math.max(map.top, 0);
     if (overlap < Math.min(map.height, innerHeight) / 3) return;

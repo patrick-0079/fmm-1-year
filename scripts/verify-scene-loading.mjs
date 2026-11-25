@@ -142,15 +142,13 @@ try {
     await page.waitForFunction(() => document.querySelector(".entry-progress")?.getAttribute("aria-valuetext") === "3/4");
     assert.equal(await meter.getAttribute("aria-valuetext"), "3/4");
     if (restored) assert.equal(albumRequests, 2, "the journal recovered its failed cover before the game started");
-    const toggleBook = page.getByRole("button", { name: "周年徽章册", exact: true });
-    await page.getByRole("tab", { name: "徽章与存档" }).click();
-    await toggleBook.click();
-    assert.ok(await page.locator("#anniversary-badges").evaluate(dialog => dialog.matches(":modal")));
+    const badges = page.getByRole("tab", { name: "徽章", exact: true });
+    await badges.click();
+    assert.ok(await page.getByRole("tabpanel", { name: "徽章", exact: true }).isVisible());
+    assert.equal(await page.locator(":modal").count(), 0);
     // Legacy saves also retain the original public letter from Kerry as already read.
     const historical = ["day-secrets", "gifts", "letter-kerry", "wreath"];
     assert.equal(await page.locator(".achievement-count strong").textContent(), restored ? `${historical.length} / 54` : "0 / 54");
-    await page.keyboard.press("Escape");
-    assert.ok(await toggleBook.evaluate(button => button === document.activeElement));
     await page.getByRole("tab", { name: "地图", exact: true }).click();
     cover.release();
     await Promise.all([starting.seen, page.waitForFunction(() => {
@@ -209,11 +207,9 @@ try {
     const current = page.locator(".scene-wrap");
     assert.equal(await current.getAttribute("data-current-map"), restored ? "town-radio" : "room");
     if (restored) {
-      await page.getByRole("tab", { name: "徽章与存档" }).click();
-      await toggleBook.click();
+      await badges.click();
       assert.equal(await page.locator(".achievement-count strong").textContent(), `${historical.length} / 54`);
       assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("nemu-anniversary-v1")).achievements.earned.sort()), historical);
-      await page.locator(".book-close").click();
       await page.getByRole("tab", { name: "地图", exact: true }).click();
       assert.ok(await page.locator(".achievement-flash").isHidden(), "loading legacy achievements must stay silent");
     }
@@ -345,13 +341,14 @@ try {
     await held.seen;
     await page.waitForFunction(() => parseFloat(document.querySelector('[data-speed="assets"]')?.textContent) > 0);
     assert.equal(await readout.locator('[data-speed="film"]').innerText(), "0 B/s");
-    await page.getByRole("tab", { name: "徽章与存档" }).click();
-    assert.ok(await page.locator(".save-now").isDisabled());
-    await page.locator("[data-book-toggle]").click();
-    await page.locator("#anniversary-badges[open] #loading-debug:visible").waitFor();
+    await page.getByRole("tab", { name: "徽章", exact: true }).click();
+    const book = page.getByRole("tabpanel", { name: "徽章", exact: true });
+    assert.ok(await book.isVisible());
+    assert.ok(await page.locator("#loading-debug").isVisible());
     held.release();
-    await page.locator("#anniversary-badges[open] #game-debug-panel .debug-network:visible").waitFor();
-    await page.locator(".book-close").click();
+    await page.locator("#game-debug-panel .debug-network:visible").waitFor();
+    assert.ok(await book.isVisible());
+    await page.getByRole("tab", { name: "地图", exact: true }).click();
     assert.ok(await page.locator("#game-debug-panel").isVisible());
     const panel = page.locator("#game-debug-panel");
     const wardrobe = panel.locator('[data-debug="wardrobe"]');

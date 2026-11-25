@@ -372,8 +372,7 @@ florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
   await collection(7);
   // A saved shop must wait for the shared inventory illustration before opening.
   await visit("town-baker");
-  await page.getByRole("tab", { name: "徽章与存档" }).click();
-  await page.locator(".save-now").click();
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("fufu-journey-v1"))?.scene === "town-baker");
   const artworkSeen = Promise.withResolvers(), artworkReady = Promise.withResolvers();
   const prizeRequest = /\/src\/assets\/town-interiors\/keepsakes\.webp(?:\?.*)?$/;
   await page.route(prizeRequest, async route => {
@@ -383,6 +382,15 @@ florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
     }
     await route.continue();
   });
+  const startX = await page.evaluate(() => window.contentQA.snapshot().player.x);
+  await page.locator("#world").focus();
+  await page.keyboard.down("ArrowLeft");
+  try {
+    await page.waitForFunction(x => window.contentQA.snapshot().player.x < x - 5, startX);
+  } finally {
+    await page.keyboard.up("ArrowLeft");
+  }
+  const lastPosition = await page.evaluate(() => window.contentQA.snapshot().player);
   await page.reload({ waitUntil: "domcontentloaded" });
   await artworkSeen.promise;
   await page.waitForFunction(() => {
@@ -392,6 +400,7 @@ florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
   assert.ok(await page.locator(".enter-button").isDisabled());
   artworkReady.resolve();
   await enter();
+  assert.deepEqual(await page.evaluate(() => window.contentQA.snapshot().player), lastPosition, "moving and reloading restores the exact position");
   await page.locator(".bag-toggle").click();
   await page.locator('[data-tab="keepsakes"]').click();
   await page.locator("[data-town-keepsakes]").click();
@@ -449,8 +458,7 @@ florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
   assert.equal(await page.locator(".bag-town-grid button:enabled").count(), 7);
   for (const key of Object.keys(steps)) sameIcon(await iconPixels('canvas[data-town-icon="' + key + '"]'), received[key], key + " persisted icon");
   await page.locator(".bag-close").click();
-  await page.getByRole("tab", { name: "徽章与存档" }).click();
-  await page.locator("[data-book-toggle]").click();
+  await page.getByRole("tab", { name: "徽章", exact: true }).click();
   await page.locator('[data-book-chapter="explore"]').click();
   for (const key of ["florist","post","radio"]) {
     const stamp = page.locator('.achievement-grid canvas[data-stamp-art="town-keepsake-' + key + '"]');

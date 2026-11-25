@@ -5,7 +5,7 @@ import { achievementDefinitions } from "../src/achievements";
 /** Use only in the isolated exploration fixture; exercises the original controls and receipt boundaries. */
 export async function verifyAchievementBook(world: World, log: (message: string) => void) {
   const button = (selector: string) => document.querySelector<HTMLButtonElement>(selector)!;
-  const root = document.querySelector<HTMLDialogElement>(".achievement-book")!;
+  const root = document.querySelector<HTMLElement>(".achievement-book")!;
   const earned = () => readProgress(localStorage.getItem(SAVE_KEY)).achievements.earned;
   const check = (ok: unknown, message: string) => { if (!ok) throw Error(message); };
   const wait = async (value: () => boolean, message: string) => {
@@ -17,11 +17,10 @@ export async function verifyAchievementBook(world: World, log: (message: string)
   };
   button(".reset-button").click();
   button(".reset-confirm").click();
-  check(!root.open, "徽章册默认展开");
+  check(root.hidden, "徽章册默认展开");
   const frame = world.canvas.getBoundingClientRect();
-  button("#records-tab").click();
-  button("[data-book-toggle]").click();
-  check(root.matches(":modal") && world.suspended, "徽章册没有以独立弹窗暂停游戏");
+  button("#badges-tab").click();
+  check(root.checkVisibility() && root.matches('[role="tabpanel"]') && !document.querySelector(":modal") && !world.suspended, "徽章页签未在游戏内直接展开");
   check(root.querySelector(".achievement-count strong")?.textContent === "0 / 54", "新档已有徽章");
   const position = { ...world.player };
   for (const [chapter, count] of [["daily", 13], ["letters", 12], ["games", 7], ["explore", 16], ["advanced", 6]] as const) {
@@ -48,8 +47,8 @@ export async function verifyAchievementBook(world: World, log: (message: string)
   button('[data-book-chapter="daily"]').click();
   button('[data-book-pick="gifts"]').click();
   check(root.scrollWidth <= root.clientWidth + 1, "徽章册内出现横向溢出");
-  button(".book-close").click();
-  check(!root.open && !world.suspended && document.activeElement === button("[data-book-toggle]"), "合上徽章册没有恢复游戏或焦点");
+  button("#maps-tab").click();
+  check(root.hidden && !world.suspended && button("#maps-tab").getAttribute("aria-selected") === "true", "切回地图后徽章册仍在显示");
   button(".enter-button").click();
   world.visit("gifts");
   check(!earned().includes("gifts"), "查看徽章已发放礼物");

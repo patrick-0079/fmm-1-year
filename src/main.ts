@@ -97,12 +97,14 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
           <section class="arcade-hud" hidden aria-label="小镇与遗迹小游戏"></section></div></div>
           <div class="game-controls">
             ${gameControlMenuMarkup}
+            ${achievementBookMarkup}
             <div class="touch-controls"><div class="dpad" aria-label="移动方向键"><button data-direction="0,-1" class="dpad-up" aria-label="向上移动">↑</button><button data-direction="-1,0" class="dpad-left" aria-label="向左移动">←</button><span>${icon("heart")}</span><button data-direction="1,0" class="dpad-right" aria-label="向右移动">→</button><button data-direction="0,1" class="dpad-down" aria-label="向下移动">↓</button></div><button class="touch-interact">${icon("interact")}<span>互动</span></button></div>
             <div class="game-meta">
               <div class="garden-pocket">
                 <span class="pocket-items">${icon("gift")}<span class="bag-count">苹果 0 · 花朵 0 · 星屑 0</span></span>
                 <span class="exploration-count">${icon("star")} <span id="explored">0</span>/${EVENT_IDS.length} 个角落</span>
                 <span class="day-hint">十分钟一昼夜 · 找长椅休息，等一场黄昏和星夜</span>
+                <small class="save-status"></small>
               </div>
             </div>
           </div>
@@ -111,7 +113,6 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
           ${helpMarkup}
         </section>
       </div>
-      ${achievementBookMarkup}
       <section class="page-memory-section" aria-labelledby="page-memory-title" data-page-ui>
         <div class="page-section-heading"><div><span class="eyebrow">把喜欢，妥帖收藏</span><h2 id="page-memory-title">留一格，给回忆</h2></div><p>一些写下的话，一些平常的日子。</p></div>
         <div class="page-memory-cards">
@@ -136,11 +137,10 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
 
 mountJournalStarlight();
 
-// The records tab and book are available while the first map is downloading.
-mountGameControlMenu(document.querySelector<HTMLElement>(".game-control-menu")!);
 showJourneyStatus(document.querySelector(".save-status")!, readJourney(stored(JOURNEY_KEY), initialProgress.rainbowFlowers));
 const book = mountAchievementBook();
-book.onOpen = () => {
+// While the map downloads, read the current save when the player chooses the tab.
+let showBadges = () => {
   const saved = readProgress(stored(SAVE_KEY));
   const legacy = stored(NATURE_KEY);
   const bag = readInventory(stored(INVENTORY_KEY), legacy);
@@ -152,6 +152,7 @@ book.onOpen = () => {
   migrateAchievementFacts(saved, context);
   book.update(reconcileAchievements(saved, context).entries, saved.achievements.earned.at(-1));
 };
+mountGameControlMenu(document.querySelector<HTMLElement>(".game-control-menu")!, () => showBadges());
 const pageArt = [...document.querySelectorAll<HTMLImageElement>(".memory-cover img, .page-meadow-note > img")];
 async function decodePageImage(image: HTMLImageElement) {
   try { await image.decode(); }
@@ -174,7 +175,7 @@ const gameWindow = document.querySelector<HTMLElement>(".game-window")!;
 const stage = gameWindow.querySelector<HTMLElement>(".game-stage")!;
 fitGameViewport(gameWindow);
 const startupButtons = [...document.querySelectorAll<HTMLButtonElement>(".game-window button:enabled, .page-memory-cards button, footer button")]
-  .filter(button => !button.closest(".control-tabs, .control-records"));
+  .filter(button => !button.closest(".control-tabs, .achievement-book"));
 for (const button of startupButtons) button.disabled = true;
 const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
 const meter = document.querySelector<HTMLProgressElement>(".entry-progress")!;
@@ -220,6 +221,7 @@ async function start(): Promise<void> {
     if ((latestJourney?.scene ?? "room") !== scene) return start();
     for (const button of startupButtons) button.disabled = false;
     mountGame(latest, latestJourney, book);
+    showBadges = book.show;
   } catch {
     for (const button of startupButtons) button.disabled = true;
     enter.disabled = false;
