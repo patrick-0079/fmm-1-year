@@ -17,6 +17,7 @@ import { drawJelly, drawKettleSteam, prepareJellyBells } from "./meadow-jelly-ar
 import { sceneArt } from "./scene-art";
 import sceneryOutlines from "./meadow-scenery-outlines.json";
 import { prepareMapCovers, visibleMapCovers } from "./map-covers";
+import { mapFragment } from "./map-fragment";
 import { drawFlexibleCover } from "./scenery-wind";
 import type { ResidentStory } from "./resident-story";
 
@@ -200,7 +201,8 @@ export class NightMeadow {
     const atlas = this.world.meadowSprites, t = this.reduced.matches ? 0 : this.time;
     const sceneryTime = this.world.ambientTime, still = this.reduced.matches;
     const layers: DepthLayer[] = [
-      {y: 168, draw: c => drawFlexibleCover(c,this.world,tentRoof,still)},
+      {y: 168, outline: still ? mapFragment(tentRoof).mask : undefined,
+        draw: c => drawFlexibleCover(c,this.world,tentRoof,still)},
       {y: 145, draw: c => drawKettleSteam(c, sceneryTime, still)},
       {y: starJar.y, draw: c => drawWildSprite(c, atlas, 3, starJar.x, starJar.y, 17)},
       ...this.campGuest.layers(sceneArt.patrickCamp, this.reduced.matches),

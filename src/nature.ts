@@ -24,6 +24,8 @@ import { drawKeepsake } from "./scene-art";
 import { drawWildSprite } from "./wild-art";
 import { drawFirefly, fireflyDrift } from "./firefly-art";
 import gardenDetails from "./garden-street-details.json";
+import cinemaSurroundings from "./garden-cinema-covers.json";
+import roomFlowers from "./room-floral-covers.json";
 import { prepareMapCovers, visibleMapCovers } from "./map-covers";
 import { mapFragment } from "./map-fragment";
 import { gardenForeground } from "./garden-foreground";
@@ -31,7 +33,9 @@ import { gardenGateLamp } from "./garden-gate-lamp";
 import { gardenSign } from "./garden-sign";
 import { roomFurniture } from "./room-furniture";
 import { roomBalloons } from "./room-foreground";
-const gardenCovers = prepareMapCovers(gardenDetails);
+// The cinema contours stop where the creek and its bridge cover the original painting.
+const gardenCovers = prepareMapCovers([...gardenDetails, ...cinemaSurroundings]);
+const roomFloralCovers = prepareMapCovers(roomFlowers);
 
 interface NatureSave {
   picked: Record<string, number>;
@@ -434,6 +438,7 @@ export class Nature {
   }
   private depthLayers() {
     if (this.world.scene === "room") return [
+      ...visibleMapCovers(this.world, roomFloralCovers),
       ...roomFurniture.filter(p => p.id !== "bed" || this.world.restState?.kind !== "lying")
         .map(p => ({y:p.y, outline:mapFragment(p.points).mask, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,p.points)})),
       {y:249, draw:(c:CanvasRenderingContext2D) => this.activities.drawCake(c, performance.now() / 1000)},

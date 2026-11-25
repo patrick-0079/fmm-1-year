@@ -13,7 +13,10 @@ import waterfrontMasks from "../src/town-waterfront-masks.json";
 import streetFurnitureMasks from "../src/town-street-furniture-masks.json";
 import plazaTreeOutlines from "../src/town-plaza-trees.json";
 import gardenDetails from "../src/garden-street-details.json";
+import cinemaSurroundings from "../src/garden-cinema-covers.json";
+import roomFlowers from "../src/room-floral-covers.json";
 import meadowScenery from "../src/meadow-scenery-outlines.json";
+import { tentRoof } from "../src/meadow-ground";
 import { workshopCanopies } from "../src/town-workshop-vegetation";
 import { southEdgeCanopies, townCanopies } from "../src/town-scenery";
 import { gardenSign } from "../src/garden-sign";
@@ -63,10 +66,25 @@ const foregroundByScene = { room:roomFurniture, garden:gardenForeground, town:to
   challenge:courageBorder, ruins:ruinsForeground, meadow:[] };
 const masksByScene = {
   town: [...playgroundMasks, ...streetlightMasks, ...waterfrontMasks, ...streetFurnitureMasks, ...plazaTreeOutlines],
-  garden: gardenDetails,
+  garden: [...gardenDetails, ...cinemaSurroundings],
+  room: roomFlowers,
   meadow: meadowScenery,
 };
 const cases:DepthCase[]=[
+  {id:"wall-vase",scene:"room",depth:103,solid:[{x:175,y:66},{x:174,y:95}],clear:[{x:190,y:55}]},
+  {id:"sill-west-flowers",scene:"room",depth:83,solid:[{x:245,y:66},{x:242,y:74}],clear:[{x:235,y:60}]},
+  {id:"wicker-basket",scene:"room",depth:324,solid:[{x:37,y:267},{x:26,y:263}],clear:[{x:51,y:257}]},
+  {id:"bedside-bouquet",scene:"room",depth:218,solid:[{x:572,y:181},{x:574,y:212}],clear:[{x:555,y:187}]},
+  {id:"table",scene:"room",depth:249,solid:[{x:322,y:181},{x:327,y:190}],clear:[{x:304,y:186}]},
+  {id:"cinema-east-bridge-back-rail",scene:"garden",depth:197,solid:[{x:878,y:186},{x:864,y:193}],clear:[{x:880,y:190}]},
+  {id:"cinema-west-lower-rail",scene:"garden",depth:226,solid:[{x:607,y:222}],clear:[{x:585,y:222},{x:607,y:216}]},
+  {id:"cinema-seat-front-post",scene:"garden",depth:341,solid:[{x:803,y:317},{x:803,y:334}],clear:[{x:808,y:315}]},
+  {id:"cinema-seat-bench",scene:"garden",depth:338,solid:[{x:785,y:322},{x:791,y:324}],clear:[{x:785,y:326}]},
+  {id:"cinema-cushion-front-cream",scene:"garden",depth:314,solid:[{x:681,y:308}],clear:[{x:670,y:297}]},
+  {id:"bakery-stair-rose-planter",scene:"town",depth:354,solid:[{x:683,y:348},{x:687,y:330}],clear:[{x:693,y:330}]},
+  {id:"camp-tent-east-guy",scene:"meadow",depth:151,solid:[gp(346,252)],clear:[gp(341,252)]},
+  {id:"camp-tent-front-guy",scene:"meadow",depth:176,solid:[gp(209,293)],clear:[gp(217,295)]},
+  {id:"camp-tent-canvas",scene:"meadow",depth:168,solid:[gp(223,176),gp(190,268)],clear:[gp(269,241),gp(240,287)],existingOutline:tentRoof,fragments:[tentRoof]},
   {id:"plaza-south-fir",scene:"town",depth:662.5,solid:[{x:748,y:565},{x:749,y:600},{x:748,y:643}],
     clear:[{x:737,y:572},{x:762,y:577},{x:768,y:626}],actor:{x:747,positions:[575,587,665]}},
   {id:"plaza-bookshop-lime",scene:"town",depth:605,solid:[{x:820,y:565},{x:806,y:577}],clear:[{x:820,y:550},{x:820,y:591},{x:850,y:578}],actor:{x:820,positions:[563,578,609]}},
@@ -239,7 +257,7 @@ function sampleEdges(outlines:Point[][],landmarks:NonNullable<DepthCase["edges"]
 }
 async function verify(test:DepthCase){
   const foreground=foregroundByScene[test.scene];
-  const masks = test.scene === "town" || test.scene === "garden" || test.scene === "meadow" ? masksByScene[test.scene] : [];
+  const masks = test.scene === "town" || test.scene === "garden" || test.scene === "room" || test.scene === "meadow" ? masksByScene[test.scene] : [];
   const baked = masks.find(mask => mask.id === test.id);
   const target=baked ? {
     id:baked.id,y:baked.depth,points:[{x:baked.x,y:baked.y},{x:baked.x+baked.w,y:baked.y+baked.h}],
