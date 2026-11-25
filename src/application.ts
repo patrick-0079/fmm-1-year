@@ -263,8 +263,9 @@ export function mountGame() {
     music.setAttribute("aria-pressed", String(progress.bgm));
     music.title = progress.muted ? "背景音乐偏好（游戏已静音）" : "背景音乐";
     music.classList.toggle("muted", progress.muted || !progress.bgm);
-    document.querySelector(".volume-value")!.textContent =
-      `${Math.round(progress.volume * 100)}%`;
+    const volumeValue = document.querySelector<HTMLOutputElement>(".volume-value")!;
+    const percent = `${Math.round(progress.volume * 100)}%`;
+    if (volumeValue.value !== percent) volumeValue.value = percent;
     document.querySelector<HTMLButtonElement>(".volume-down")!.disabled =
       progress.volume <= 0;
     document.querySelector<HTMLButtonElement>(".volume-up")!.disabled =

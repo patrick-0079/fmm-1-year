@@ -740,6 +740,12 @@ q("#check-sound").addEventListener("click",()=>void run(async()=>{
   await meterContext.resume();
   if(!q(".intro-screen").classList.contains("dismissed")) await start();
   const speaker=q<HTMLButtonElement>(".sound-toggle");
+  const lower=q<HTMLButtonElement>(".volume-down");
+  const raise=q<HTMLButtonElement>(".volume-up");
+  const level=q<HTMLOutputElement>(".volume-value");
+  const volumeTools=q(".window-bar .volume-tools");
+  expect(volumeTools && [speaker,lower,level,raise].every(control=>volumeTools.contains(control)) &&
+    !q(".scene-nav").querySelector(".volume-tools"),"总音量控件应与画面上方的小喇叭放在一起");
   if(state().muted) speaker.click();
   if(state().bgm) q(".music-toggle").click();
   if(!state().sound) {
@@ -767,11 +773,15 @@ q("#check-sound").addEventListener("click",()=>void run(async()=>{
   expect(!restored.muted && restored.bgm===beforeMute.bgm && restored.sound===beforeMute.sound &&
     restored.bassSound===beforeMute.bassSound && restored.volume===beforeMute.volume,"恢复喇叭后没有保留原混音");
   if(!restored.bassSound || restored.volume===0) voice.click();
-  const lower=q<HTMLButtonElement>(".volume-down");
   for(let step=0;step<11 && !lower.disabled;step++) lower.click();
+  expect(lower.disabled && level.value==="0%","调至最低音量后按钮或百分比没有更新");
   expect(!q(".bass-muted-tip").hidden && q(".bass-muted-tip").textContent?.includes("总音量为零"),"琴谱没有解释总音量为零");
   q(".bass-voice").click();
   expect(q(".bass-muted-tip").hidden && state().volume===.45,"一键恢复总音量失败");
+  raise.click();
+  expect(state().volume===.55 && level.value==="55%","提高总音量后存档与显示不一致");
+  lower.click();
+  expect(state().volume===.45 && level.value==="45%","降低总音量后存档与显示不一致");
   const measure=async(audio:HTMLAudioElement,trigger:()=>void,label:string)=>{
     let meter=meters.get(audio);
     if(!meter) {

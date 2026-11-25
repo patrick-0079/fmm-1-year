@@ -266,22 +266,66 @@ a .icon {
   background: #dacde0;
 }
 .window-tools {
+  --tool-size: 29px;
   display: flex;
+  flex: none;
+  align-items: center;
   gap: 6px;
+}
+.volume-tools {
+  display: flex;
+  align-items: center;
+}
+.volume-value {
+  min-width: 2.75em;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 .icon-button {
   display: grid;
   place-items: center;
   border: 0;
   background: transparent;
-  width: 29px;
-  height: 29px;
+  width: var(--tool-size);
+  height: var(--tool-size);
   border-radius: 5px;
   font-weight: 600;
-  color: #a17b90;
 }
-.icon-button:hover {
-  background: #efd5e1;
+.window-tools > .icon-button,
+.volume-tools,
+.scene-nav > button {
+  background: #f7f3fa;
+  border: 1px solid #d9cde3;
+  border-radius: 6px;
+  color: #725e7c;
+}
+.volume-tools .icon-button {
+  height: calc(var(--tool-size) - 2px);
+}
+.volume-tools .icon-button:disabled {
+  opacity: 0.4;
+}
+@media (hover: hover) {
+  .window-tools .icon-button:where(:enabled:hover),
+  .scene-nav > button:where(:enabled:hover) {
+    background: #eee6f5;
+  }
+}
+.scene-nav > button[aria-pressed="true"],
+.window-tools > .help-button[aria-expanded="true"] {
+  background: #e7dbef;
+  border-color: #ae94c0;
+  color: #584568;
+}
+.scene-nav > button[aria-pressed="true"] {
+  font-weight: 600;
+}
+.window-tools .music-toggle.muted {
+  text-decoration: line-through;
+}
+.window-tools .sound-toggle[aria-pressed="false"],
+.window-tools .music-toggle.muted {
+  color: #8a6078;
 }
 .icon-button .icon {
   width: 15px;
@@ -1934,9 +1978,8 @@ footer .reset-button {
     transform: scale(1.1);
     margin: 5px;
   }
-  .window-tools .icon-button {
-    width: 34px;
-    height: 34px;
+  .window-tools {
+    --tool-size: 34px;
   }
 }
 @media (max-width: 540px) {
@@ -2003,11 +2046,14 @@ footer .reset-button {
   }
   .window-bar {
     height: 38px;
-    padding: 0 10px;
+    padding: 0 8px;
   }
   .window-bar > span {
     font-size: 8px;
     letter-spacing: 0.1px;
+  }
+  .window-title-prefix {
+    display: none;
   }
   .window-dots {
     gap: 3px;
@@ -2017,11 +2063,8 @@ footer .reset-button {
     height: 5px;
   }
   .window-tools {
+    --tool-size: 32px;
     gap: 1px;
-  }
-  .window-tools .icon-button {
-    width: 26px;
-    height: 29px;
   }
   .window-tools .icon {
     width: 13px;
@@ -2768,36 +2811,6 @@ footer .reset-button {
 .scene-nav > button {
   font-size: 10px;
   padding: 8px 10px;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  color: #96869f;
-}
-.scene-nav > button[aria-pressed="true"] {
-  color: #786187;
-  background: #eee6f6;
-  border-color: #d9c8e7;
-}
-.volume-tools {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: auto;
-  color: #a08eaa;
-  font-size: 10px;
-}
-.volume-tools button {
-  min-width: 30px;
-  min-height: 30px;
-  border: 1px solid #e2d4e8;
-  border-radius: 4px;
-}
-.volume-value {
-  min-width: 28px;
-  text-align: center;
-}
-.music-toggle.muted {
-  opacity: 0.45;
-  text-decoration: line-through;
 }
 .scene-wrap.inspecting .time-pill {
   visibility: hidden;
@@ -3004,17 +3017,6 @@ footer .reset-button {
   .scene-nav > button {
     padding: 8px 6px;
     font-size: 8px;
-  }
-  .volume-tools {
-    gap: 2px;
-    font-size: 8px;
-  }
-  .volume-tools button {
-    min-width: 25px;
-    min-height: 28px;
-  }
-  .volume-value {
-    min-width: 25px;
   }
   .time-pill {
     padding: 4px 6px;
