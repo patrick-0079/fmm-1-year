@@ -23,8 +23,70 @@
 .page-journal .date-stamp strong { font-size: 15px; letter-spacing: .5px; font-weight: 600; margin-top: 4px; color: #a46883; }
 .page-journal .date-stamp small { color: #907f82; line-height: 1.5; margin-top: 5px; font-size: 12px !important; }
 .page-journal .date-stamp i { background: #faf7f0; right: 8px; }
-.page-journal .adventure-layout { grid-template-columns: minmax(0,1fr); }
-.game-stage-frame { position: relative; min-width: 0; }
+.page-journal .adventure-layout {
+  grid-template-columns: minmax(0,1fr);
+  container: adventure / inline-size;
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+}
+html:has(.game-window :focus) { overflow-anchor: none; }
+.page-journal .game-window {
+  --bar-height: 44px;
+  --nav-height: 54px;
+  --touch-height: 0px;
+  --play-height: calc(100dvh - 18px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  --map-height: calc(var(--play-height) - var(--bar-height) - var(--nav-height) - var(--touch-height));
+  width: 100%;
+  justify-self: center;
+}
+.game-viewport, .game-controls { min-width: 0; }
+.game-viewport {
+  background: #f0eae7;
+  scroll-margin-block: calc(6px + env(safe-area-inset-top)) calc(6px + env(safe-area-inset-bottom));
+}
+.game-controls { container: controls / inline-size; }
+.game-stage-frame { position: relative; width: min(100%, calc(var(--map-height) * 1.5)); min-width: 0; margin-inline: auto; }
+@container controls (min-width: 700px) {
+  .game-meta { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr); }
+  .game-meta .garden-pocket, .game-meta .game-bottom { padding: 6px 12px; }
+  .game-meta .game-bottom { flex-wrap: wrap; gap: 4px 8px; }
+  .game-meta .desktop-instructions { flex-wrap: wrap; gap: 4px 8px; }
+  .game-meta .journey-legend { grid-column: 1 / -1; padding-block: 5px; }
+}
+@media (pointer: coarse), (max-width: 600px) {
+  .page-journal .game-window { --touch-height: var(--dpad-height, 169px); }
+}
+/* Use spare horizontal room for the controls when the screen limits the map's height. */
+@container adventure (min-width: max(420px, calc(150dvh - 130px))) {
+  .page-journal .game-window {
+    --side-controls: 1;
+    --controls-width: clamp(200px, 21cqw, 242px);
+    --map-height: calc(var(--play-height) - var(--bar-height));
+    width: min(100%, calc(var(--map-height) * 1.5 + var(--controls-width) + 2px));
+  }
+  .game-viewport { display: grid; grid-template-columns: minmax(0, 1fr) var(--controls-width); align-items: start; background: #fbf8f1; }
+  .game-viewport > .window-bar { grid-column: 1 / -1; }
+  .game-viewport > .game-stage-frame { width: 100%; }
+  .game-controls { display: flex; flex-direction: column; align-self: stretch; max-height: var(--map-height); border-left: 1px solid #e3d7cb; }
+  .game-controls .scene-nav { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); flex: none; gap: 4px; padding: 6px; }
+  .game-controls .scene-nav button { min-width: 0; padding-inline: 2px; font-size: 12px; }
+  .game-controls .touch-controls { flex: none; gap: 4px; justify-content: center; padding: 4px; }
+  .game-controls .touch-hint { display: none; }
+  .game-controls .touch-interact { flex: none; width: 46px; min-width: 44px; padding-inline: 2px; }
+  .game-meta { min-height: 0; overflow-y: auto; }
+  .game-meta .garden-pocket, .game-meta .game-bottom { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; }
+  .game-meta .desktop-instructions { flex-wrap: wrap; gap: 6px; }
+  .game-meta .desktop-instructions i { display: none; }
+  .game-meta .journey-legend { display: block; text-align: left; }
+}
+@media (max-height: 600px) and (max-aspect-ratio: 6/5) {
+  .game-controls .touch-controls { padding: 6px 10px; gap: 8px; }
+  .game-controls .dpad { display: flex; gap: 2px; }
+  .game-controls .dpad button { width: 44px; height: 44px; }
+  .game-controls .dpad-left { order: -1; }
+  .game-controls .dpad-right { order: 1; }
+  .game-controls .dpad > span, .game-controls .touch-hint { display: none; }
+  .game-controls .touch-interact { width: 46px; height: 46px; gap: 0; }
+}
 
 .adventure-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 9px; }
 .page-journal .local-save { display: flex; align-items: center; justify-content: end; flex-wrap: nowrap; gap: 8px; padding: 0; min-width: 0; }
@@ -128,7 +190,7 @@
 }
 /* Keep the existing welcome overlay inside the smallest 3:2 stage. The
    anniversary date now has its own compact stamp above the game. */
-@media (max-width: 540px) {
+@container (max-width: 540px) {
   .page-journal .intro-screen { padding: 6px 8px; }
   .page-journal .intro-screen > * { flex-shrink: 0; }
   .page-journal .intro-stars,.page-journal .intro-pill { display: none; }

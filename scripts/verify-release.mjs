@@ -22,6 +22,35 @@ const release = async full => {
   return marker;
 };
 
+async function checkPlayViewport(page) {
+  await page.waitForFunction(() => {
+    const frame = document.querySelector("#world").getBoundingClientRect();
+    const controls = document.querySelectorAll(".window-bar, .window-bar button, .scene-nav button, .dpad button, .touch-interact");
+    const fits = box => box.left >= -1 && box.right <= innerWidth + 1 && box.top >= -1 && box.bottom <= innerHeight + 1;
+    const hittable = button => {
+      const rect = button.getBoundingClientRect();
+      return button.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+    };
+    const directions = [...document.querySelectorAll(".dpad button")].filter(button => button.getClientRects().length);
+    return frame.width > 160 && fits(frame) && Math.abs(frame.width - frame.height * 1.5) < 1 &&
+      [...controls].every(button => !button.getClientRects().length || fits(button.getBoundingClientRect())) &&
+      hittable(document.querySelector(".bag-toggle")) && directions.every(button => {
+        const rect = button.getBoundingClientRect();
+        return rect.width >= 44 && rect.height >= 44 && hittable(button);
+      });
+  }, undefined, { timeout: 5000 }).catch(async error => {
+    const layout = await page.evaluate(() => ({
+      viewport: [innerWidth, innerHeight], scrollY, focus: document.activeElement?.outerHTML.slice(0, 60),
+      boxes: Object.fromEntries(["#world", ".window-bar", ".scene-nav", ".touch-controls", ".bag-toggle", ".dpad-left"].map(selector => {
+        const { x, y, width, height } = document.querySelector(selector).getBoundingClientRect();
+        const atCenter = document.elementFromPoint(x + width / 2, y + height / 2);
+        return [selector, { rect: [x, y, width, height].map(Math.round), hit: atCenter?.getAttribute("class") }];
+      })),
+    }));
+    throw new Error("游戏或操作键超出视口 " + JSON.stringify(layout), { cause: error });
+  });
+}
+
 let server, browser;
 try {
   const lite = await release(false);
@@ -82,9 +111,36 @@ try {
 
   await enter.click();
   assert.equal(await game.locator(".debug-trigger,.launch-debug-trigger,[data-debug]").count(), 0);
-  const frame = await game.locator(".adventure-layout").boundingBox();
-  const canvas = await game.locator("#world").boundingBox();
-  assert.ok(Math.abs(frame.width - canvas.width) <= 4 && Math.abs(canvas.width / canvas.height - 1.5) < .01);
+  await checkPlayViewport(game);
+  for (const [width, height] of [[1366, 768], [1920, 1080], [1280, 600], [540, 480], [827, 763], [1280, 820]]) {
+    await game.setViewportSize({ width, height });
+    await checkPlayViewport(game);
+  }
+  await game.locator("footer").evaluate(footer => footer.scrollIntoView({ block: "end", behavior: "instant" }));
+  await game.setViewportSize({ width: 1270, height: 790 });
+  await delay(300);
+  assert.ok(await game.locator("footer").evaluate(footer => footer.getBoundingClientRect().top < innerHeight), "reading the journal must retain its scroll position");
+  await game.locator('.scene-nav [data-scene="room"]').click();
+  await checkPlayViewport(game);
+  const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, reducedMotion: "reduce" });
+  await phone.route(/^https:\/\//, route => route.abort());
+  const rotated = await phone.newPage();
+  rotated.on("pageerror", error => errors.push(error.message));
+  await rotated.clock.setFixedTime(new Date(OPEN_AT));
+  await rotated.goto(base);
+  await rotated.getByRole("button", { name: /开始小冒险/ }).tap();
+  await checkPlayViewport(rotated);
+  for (const [width, height] of [[844, 390], [568, 320], [320, 568], [320, 480], [390, 844]]) {
+    await rotated.setViewportSize({ width, height });
+    await checkPlayViewport(rotated);
+    await rotated.locator(".bag-toggle").tap();
+    await rotated.locator(".bag-close").tap();
+  }
+  await rotated.locator('.scene-nav [data-scene="garden"]').tap();
+  await rotated.locator('.scene-wrap[data-current-map="garden"]').waitFor();
+  await checkPlayViewport(rotated);
+  await phone.close();
+  console.log("桌面缩放及手机横竖屏切换后，3:2 地图、声音、地图导航与操作键均在视口内，背包和切图可触摸");
   const book = game.getByRole("button", { name: "周年徽章册", exact: true });
   await book.click();
   assert.ok(await game.locator("#anniversary-badges").evaluate(dialog => dialog.matches(":modal")));

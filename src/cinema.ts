@@ -6,6 +6,7 @@ import { duckMusic } from "./sound";
 import { FilmPreloader, downloadLabel, filmDownloadAmount } from "./film-preloader";
 import { traffic } from "./network-debug";
 import { reservedShortcut, readingTarget } from "./input";
+import { revealGame } from "./game-viewport";
 
 export class GardenCinema {
   private session = new CinemaSession();
@@ -200,7 +201,7 @@ export class GardenCinema {
     this.world.canvas.parentElement!.classList.add("cinema-active");
     this.render();
     this.world.canvas.focus({ preventScroll: true });
-    this.world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
+    revealGame(this.world.canvas);
   }
   close() {
     if (!this.active) return;

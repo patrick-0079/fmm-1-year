@@ -34,6 +34,7 @@ import { icon } from "./icons";
 import { prepareMapArt, registerResourceCache } from "./texture-cache";
 import { resourceMeter, showResourceCount } from "./loading-meter";
 import { mountLoadingMonitor } from "./network-debug";
+import { fitGameViewport } from "./game-viewport";
 
 function journalCover(src: string, fallback: string) {
   return `<span class="memory-cover"><img src="${src}" width="720" height="480" alt="" loading="eager" decoding="async" fetchpriority="high"/>${icon(fallback, "cover-fallback")}</span>`;
@@ -58,6 +59,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
       </div>
       <div class="adventure-layout">
         <section class="game-window" aria-label="芙芙的像素小世界">
+          <div class="game-viewport">
           <div class="window-bar">
             <div class="window-dots"><i></i><i></i><i></i></div>
             <span><span class="window-title-prefix" lang="en">fufu’s little world / </span>周年特别篇</span>
@@ -95,12 +97,18 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
             <section id="inventory-panel" class="inventory-panel" aria-label="芙芙的背包" hidden></section>
           </div>
           <section class="arcade-hud" hidden aria-label="小镇与遗迹小游戏"></section></div></div>
-          <nav class="scene-nav" aria-label="地图导航"><button data-scene="room">晚安小屋</button><button data-scene="garden">周年花园</button><button data-scene="challenge">勇气花园</button><button data-scene="town">周年小镇</button><button data-scene="meadow" hidden>✿ 花海</button><button data-scene="ruins">回声遗迹</button></nav>
-          <div class="garden-pocket"><span>${icon("gift")}<span class="bag-count">苹果 0 · 花朵 0 · 星屑 0</span></span><span class="day-hint">十分钟一昼夜 · 找长椅休息，等一场黄昏和星夜</span></div><details class="flower-book" hidden><summary>✿ 七色花谱 <span class="prism-count">0 / 7</span></summary><p class="prism-hint"></p><ol class="prism-list"></ol></details><section class="map-reader" aria-label="地图物件阅读区" hidden></section>
+          <div class="game-controls">
+            <nav class="scene-nav" aria-label="地图导航"><button data-scene="room">晚安小屋</button><button data-scene="garden">周年花园</button><button data-scene="challenge">勇气花园</button><button data-scene="town">周年小镇</button><button data-scene="meadow" hidden>✿ 花海</button><button data-scene="ruins">回声遗迹</button></nav>
+            <div class="touch-controls"><div class="dpad" aria-label="移动方向键"><button data-direction="0,-1" class="dpad-up" aria-label="向上移动">↑</button><button data-direction="-1,0" class="dpad-left" aria-label="向左移动">←</button><span>${icon("heart")}</span><button data-direction="1,0" class="dpad-right" aria-label="向右移动">→</button><button data-direction="0,1" class="dpad-down" aria-label="向下移动">↓</button></div><div class="touch-hint">走近发光的小物件<br><span>也可轻触物件或提示签</span></div><button class="touch-interact">${icon("star")}<span>互动</span></button></div>
+            <div class="game-meta">
+              <div class="garden-pocket"><span>${icon("gift")}<span class="bag-count">苹果 0 · 花朵 0 · 星屑 0</span></span><span class="day-hint">十分钟一昼夜 · 找长椅休息，等一场黄昏和星夜</span></div>
+              <div class="game-bottom"><div class="desktop-instructions"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span><span><kbd>E</kbd> / 右键 互动</span><i></i><span>左键走动 / 点物件 · <kbd>B</kbd> 背包 · <kbd>H</kbd> 花环</span></div><span class="exploration-count">${icon("star")} <span id="explored">0</span>/${EVENT_IDS.length} 个角落</span></div>
+              <p class="journey-legend">${icon("star")} 遇到小挫折，回小屋的床休息一下 <span>·</span> 勇气花园里藏着小挫折，小屋与周年花园安心玩</p>
+            </div>
+          </div>
+          </div>
+          <details class="flower-book" hidden><summary>✿ 七色花谱 <span class="prism-count">0 / 7</span></summary><p class="prism-hint"></p><ol class="prism-list"></ol></details><section class="map-reader" aria-label="地图物件阅读区" hidden></section>
           ${helpMarkup}
-          <div class="game-bottom"><div class="desktop-instructions"><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 移动</span><span><kbd>E</kbd> / 右键 互动</span><i></i><span>左键走动 / 点物件 · <kbd>B</kbd> 背包 · <kbd>H</kbd> 花环</span></div><span class="exploration-count">${icon("star")} <span id="explored">0</span>/${EVENT_IDS.length} 个角落</span></div>
-          <p class="journey-legend">${icon("star")} 遇到小挫折，回小屋的床休息一下 <span>·</span> 勇气花园里藏着小挫折，小屋与周年花园安心玩</p>
-          <div class="touch-controls"><div class="dpad" aria-label="移动方向键"><button data-direction="0,-1" class="dpad-up" aria-label="向上移动">↑</button><button data-direction="-1,0" class="dpad-left" aria-label="向左移动">←</button><span>${icon("heart")}</span><button data-direction="1,0" class="dpad-right" aria-label="向右移动">→</button><button data-direction="0,1" class="dpad-down" aria-label="向下移动">↓</button></div><div class="touch-hint">走近发光的小物件<br><span>也可轻触物件或提示签</span></div><button class="touch-interact">${icon("star")}<span>互动</span></button></div>
         </section>
       </div>
       ${achievementBookMarkup}
@@ -160,6 +168,7 @@ async function decodePageImage(image: HTMLImageElement) {
   }
 }
 const gameWindow = document.querySelector<HTMLElement>(".game-window")!;
+fitGameViewport(gameWindow);
 const startupButtons = [...document.querySelectorAll<HTMLButtonElement>(".game-window button:not([disabled]), .page-memory-cards button, footer button")];
 for (const button of startupButtons) button.disabled = true;
 const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;

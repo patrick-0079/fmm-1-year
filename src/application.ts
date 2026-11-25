@@ -3,6 +3,7 @@ import { EVENT_IDS, GAME_IDS, SAVE_KEY, readProgress } from "./core";
 import { mergeCollections } from "./shared-collections";
 import { mergeAchievementProgress, migrateAchievementFacts, reconcileAchievements, recordAchievementFact } from "./achievements";
 import type { mountAchievementBook } from "./achievement-book";
+import { revealGame } from "./game-viewport";
 import { mountAchievementNotices } from "./achievement-notice";
 import { ForegroundPlayClock } from "./playtime";
 import { icon } from "./icons";
@@ -90,7 +91,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
   const world = new World(document.querySelector("#world")!, chats);
   const revealMapIfOffscreen = () => {
     const board=world.canvas.parentElement!, rect=board.getBoundingClientRect();
-    if (rect.bottom<=0 || rect.top>=window.innerHeight) board.scrollIntoView({block:"nearest",behavior:"instant"});
+    if (rect.bottom<=0 || rect.top>=window.innerHeight) revealGame(world.canvas);
   };
   const reader = new MapReader(world);
   const mailboxListeners = new Set<(items: readonly Memory[], unreadIds: readonly string[]) => void>();
@@ -746,6 +747,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
       }
     }
     world.canvas.focus({ preventScroll: true });
+    revealGame(world.canvas);
   }
   enter.addEventListener("click", begin);
   const loadStart = () => {
@@ -803,6 +805,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     .forEach((button) =>
       button.addEventListener("click", () => {
         begin();
+        revealGame(world.canvas);
         const destination = button.dataset.scene as SceneId;
         const door = destination === "town" && isTownInterior(world.scene) ? townInteriors[world.scene].exterior.id : undefined;
         transition(destination, door);
@@ -878,11 +881,14 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
   });
   document
     .querySelector(".cinema-shortcut")!
-    .addEventListener("click", () => visit("garden", "danmaku"));
+    .addEventListener("click", () => {
+      visit("garden", "danmaku");
+      revealGame(world.canvas);
+    });
   for (const card of [mailCard, albumCard]) {
     card.addEventListener("click", () => {
       visit("room", card.dataset.memory!);
-      sceneWrap.scrollIntoView({ block: "nearest", behavior: "instant" });
+      revealGame(world.canvas);
     });
   }
   for (const region of document.querySelectorAll<HTMLElement>("[data-page-ui]")) {

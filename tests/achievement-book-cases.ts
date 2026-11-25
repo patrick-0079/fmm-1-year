@@ -69,11 +69,11 @@ export async function verifyAchievementBook(world: World, log: (message: string)
   log("新档 0/54，五章齐全，彩蛋保密。翻阅 54 条详情后仍在原地，亲手拆礼物后获得第一枚徽章。");
 
   await wait(() => notice.hidden, "第一枚徽章的提示未收起");
-  const originalStart = AudioBufferSourceNode.prototype.start;
+  const originalStart = OscillatorNode.prototype.start;
   let sounds = 0;
-  AudioBufferSourceNode.prototype.start = function (...args) {
-    // Identify the bundled stereo WAV after the device has resampled it.
-    if (this.buffer?.numberOfChannels === 2 && Math.abs(this.buffer.duration - 72085 / 44100) < .01) sounds++;
+  OscillatorNode.prototype.start = function (...args) {
+    // Count the opening D5 of each synthesized badge chime.
+    if (this.type === "triangle" && Math.abs(this.frequency.value - 587.33) < .1) sounds++;
     return originalStart.apply(this, args);
   };
   const audioButtons = [button(".effects-toggle"), button(".sound-toggle"), button(".music-toggle")];
@@ -102,9 +102,9 @@ export async function verifyAchievementBook(world: World, log: (message: string)
     check(sounds === 1, "总静音时仍播放成就音");
     world.onAchievementEvent("fox-content");
     check(notice.hidden && sounds === 1, "重复完成已解锁成就时再次弹出或发声");
-    log("连续成就逐枚提示，实际解码的 Steam 音频随互动音效、总静音开关工作，背景音乐可独立关闭。");
+    log("连续成就逐枚提示，合成提示音受互动音效和总静音控制，背景音乐可独立关闭。");
   } finally {
-    AudioBufferSourceNode.prototype.start = originalStart;
+    OscillatorNode.prototype.start = originalStart;
     audioButtons.forEach((control, index) => set(control, originalSettings[index]));
   }
 }

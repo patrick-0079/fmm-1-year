@@ -102,6 +102,7 @@ try {
     else await walk.mouse.click(x, y);
   };
   await press(".enter-button");
+  await walk.setViewportSize(device.hasTouch ? { width: 844, height: 390 } : { width: 827, height: 763 });
   await chooseProp("album");
   await press(".photo-book-photo");
   await press(".photo-original-back");
@@ -111,6 +112,7 @@ try {
     const { scene, paused } = window.contentQA.snapshot();
     return scene === "garden" && !paused;
   });
+  await walk.setViewportSize(device.viewport);
   await chooseProp("danmaku");
   await walk.locator(".cinema-hud").waitFor({ state: "visible" });
   assert.ok(await walk.evaluate(() => window.contentQA.snapshot().progress.achievements.earned.includes("memories")));
