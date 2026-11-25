@@ -9,24 +9,15 @@ export function revealGame(canvas: HTMLCanvasElement) {
   const top = (visible?.offsetTop ?? 0) + insetTop;
   const height = (visible?.height ?? document.documentElement.clientHeight) - insetTop - parseFloat(style.scrollMarginBottom);
   const panel = viewport.getBoundingClientRect();
-  let bottom = panel.bottom;
-  if (panel.height > height) {
-    // On short displays the status notes may extend below the play controls.
-    const map = canvas.getBoundingClientRect();
-    bottom = Math.max(map.bottom, ...Array.from(
-      viewport.querySelectorAll<HTMLElement>(".scene-nav, .touch-controls"),
-      element => element.getBoundingClientRect().bottom,
-    ));
-    if (bottom - panel.top > height) bottom = map.bottom;
-  }
-  const shift = panel.top < top ? panel.top - top : Math.max(0, bottom - (top + height));
+  // On short displays leave the status notes below the map and its controls.
+  const shift = panel.height > height || panel.top < top ? panel.top - top : Math.max(0, panel.bottom - (top + height));
   if (Math.abs(shift) >= 1) window.scrollBy({ top: shift, behavior: "instant" });
 }
 
 export function fitGameViewport(game: HTMLElement) {
   const canvas = game.querySelector<HTMLCanvasElement>("#world")!;
   const bar = game.querySelector<HTMLElement>(".window-bar")!;
-  const nav = game.querySelector<HTMLElement>(".scene-nav")!;
+  const nav = game.querySelector<HTMLElement>(".game-control-menu")!;
   const touch = game.querySelector<HTMLElement>(".touch-controls")!;
   function measure() {
     game.style.setProperty("--bar-height", bar.offsetHeight + "px");
@@ -52,7 +43,8 @@ export function fitGameViewport(game: HTMLElement) {
     const visible = window.visualViewport;
     if ((visible && visible.scale !== 1) || document.fullscreenElement || document.querySelector("dialog[open]")) return;
     const map = canvas.getBoundingClientRect();
-    if (map.bottom <= 0 || map.top >= innerHeight) return;
+    const overlap = Math.min(map.bottom, innerHeight) - Math.max(map.top, 0);
+    if (overlap < Math.min(map.height, innerHeight) / 3) return;
     const margin = parseFloat(getComputedStyle(bar.parentElement!).scrollMarginTop);
     const top = bar.getBoundingClientRect().top - (visible?.offsetTop ?? 0) - margin;
     if (Math.abs(top) >= 1) window.scrollBy({ top, behavior: "instant" });

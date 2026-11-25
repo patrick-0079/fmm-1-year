@@ -76,9 +76,13 @@ try {
   assert.deepEqual((await earned()).sort(), catalogue);
   await page.reload();
   const total = catalogue.length;
+  await page.getByRole("tab", { name: "徽章与存档" }).click();
   await page.locator("[data-book-toggle]").click();
   await page.locator(".achievement-count strong").filter({ hasText: `${total} / ${total}` }).waitFor();
   await page.locator(".book-close").click();
+  await page.getByRole("tab", { name: "地图", exact: true }).click();
+  await page.locator('.scene-nav [data-scene="meadow"] .map-stamp').waitFor();
+  assert.equal(await page.locator(".scene-nav button:visible").count(), 6);
   assert.deepEqual((await earned()).sort(), catalogue);
   assert.deepEqual(errors, []);
   console.log(`${width}px · 同档从 0 到 ${total}，刷新后仍为 ${total} 枚`);

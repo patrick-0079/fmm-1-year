@@ -4,7 +4,7 @@ import "./journal-starlight.css";
 // text and dialogs receive their usual input, including native touch gestures.
 const paperSurfaces = [
   "html", "body", "#app", ".page-journal", ".page-journal > main", ".site-header",
-  ".page-intro", ".page-intro > div:not(.date-stamp)", ".adventure-tools", ".adventure-layout",
+  ".page-intro", ".page-intro > div:not(.date-stamp)", ".adventure-layout",
   ".page-memory-section", ".page-memory-cards", ".page-section-heading",
   ".page-section-heading > div", ".page-journal > footer",
 ].join(", ");

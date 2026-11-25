@@ -47,14 +47,63 @@ html:has(.game-window :focus) { overflow-anchor: none; }
   background: #f0eae7;
   scroll-margin-block: calc(6px + env(safe-area-inset-top)) calc(6px + env(safe-area-inset-bottom));
 }
-.game-controls { container: controls / inline-size; }
+.game-controls { container: controls / inline-size; background: #fcf8f2; }
 .game-stage-frame { position: relative; width: min(100%, calc(var(--map-height) * 1.5)); min-width: 0; margin-inline: auto; }
-@container controls (min-width: 700px) {
-  .game-meta { display: grid; grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr); }
-  .game-meta .garden-pocket, .game-meta .game-bottom { padding: 6px 12px; }
-  .game-meta .game-bottom { flex-wrap: wrap; gap: 4px 8px; }
-  .game-meta .desktop-instructions { flex-wrap: wrap; gap: 4px 8px; }
-  .game-meta .journey-legend { grid-column: 1 / -1; padding-block: 5px; }
+.game-control-menu { flex: none; background: #fffaf2; border-bottom: 1px solid #e3d7cb; }
+.control-tabs { display: flex; align-items: stretch; gap: 3px; padding: 0 8px; border-bottom: 1px solid #e6d9cb; background: #f5ede8; }
+.control-tabs button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;
+  min-height: 44px; padding: 3px 7px; border: 0; border-bottom: 2px solid transparent;
+  font: inherit; font-size: 13px; color: #746572; background: transparent;
+}
+.control-tabs button[aria-selected="true"] { color: #74495e; border-color: #ab7189; font-weight: 650; }
+.control-tabs .icon { width: 15px; height: 15px; }
+.page-journal .control-tabs button:focus-visible { outline-offset: -3px; }
+/* Keep the map at the same scale while switching tabs, including with all six destinations. */
+.control-pages { display: grid; }
+.control-pages > [role="tabpanel"] { grid-area: 1 / 1; min-width: 0; align-self: center; }
+.control-pages > [inert] { visibility: hidden; }
+.game-controls .scene-nav { display: flex; flex-wrap: wrap; gap: 5px; padding: 7px 9px; border: 0; background: transparent; }
+.game-controls [data-scene="room"] { --ink: #895548; --wash: #fae9dc; }
+.game-controls [data-scene="garden"] { --ink: #914d66; --wash: #f8e4e9; }
+.game-controls [data-scene="challenge"] { --ink: #4b6d50; --wash: #e8efde; }
+.game-controls [data-scene="town"] { --ink: #406b71; --wash: #e2efea; }
+.game-controls [data-scene="meadow"] { --ink: #765780; --wash: #eee5f2; }
+.game-controls [data-scene="ruins"] { --ink: #555e83; --wash: #e7e9f4; }
+.control-records { display: flex; align-items: center; flex-wrap: wrap; gap: 5px 8px; padding: 7px 9px; }
+.game-controls :is(.scene-nav, .control-records) > button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; padding: 4px 10px;
+  color: var(--ink, #744e64); border: 1px solid color-mix(in srgb, var(--ink, #744e64) 33%, #fffcf8); border-radius: 7px;
+  background: linear-gradient(#fffcf8, var(--wash, #f6e6ed)); font: inherit; font-size: 13px; line-height: 1.25; white-space: nowrap;
+}
+.game-controls .scene-nav > button[aria-pressed="true"] {
+  border-color: var(--ink); background: var(--wash); box-shadow: inset 0 -3px var(--ink); font-weight: 650;
+}
+.game-controls :is(.control-tabs, .scene-nav, .control-records) button:enabled:hover { filter: brightness(.96); }
+.scene-nav .map-stamp { flex: none; width: 26px; height: 26px; }
+.control-records .save-now { --ink: #536c56; --wash: #e6eddf; }
+.control-records .icon { width: 17px; height: 17px; flex: none; }
+.control-records button:disabled { opacity: .52; }
+.control-records .save-status { color: #736570; font-size: 12px; line-height: 1.5; }
+.game-meta .garden-pocket {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 5px 14px; padding: 9px 12px;
+  color: #566554; background: #f0f2e9;
+}
+.game-meta .exploration-count { color: #805c72; white-space: nowrap; }
+.game-meta .day-hint { min-width: 0; color: #63715f; font-size: 12px; line-height: 1.5; }
+.page-journal .window-tools > .icon-button, .page-journal .volume-tools { border-radius: 7px; background: linear-gradient(#fffbff, #f2eaf5); }
+.page-journal .window-tools > button[aria-pressed="false"] { color: #8c7c8d; border-style: dashed; }
+.window-tools .music-toggle.muted { position: relative; }
+.window-tools .music-toggle.muted::after { content: ""; position: absolute; width: 17px; height: 1.5px; background: currentColor; transform: rotate(-48deg); }
+.game-controls .dpad button { color: #795a70; background: linear-gradient(#fffcf7, #f4e7eb); border-color: #d3bdc5; border-radius: 7px; }
+.game-controls .dpad button.pressed { background: #ebd6df; }
+.game-controls .touch-interact { color: #845671; border-color: #c9a8b5; border-radius: 14px; background: linear-gradient(#fff6f0, #efd6df); }
+.page-journal .help-close { color: #745067; border-radius: 7px; background: linear-gradient(#fffaf5, #f1e1e7); }
+.page-journal .game-help kbd { padding: 1px 4px; border: 1px solid #dac7ce; border-radius: 4px; background: #fff5ef; font: inherit; font-size: .9em; }
+@container controls (min-width: 760px) {
+  .game-control-menu { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: stretch; }
+  .control-tabs { border-bottom: 0; border-right: 1px solid #e6d9cb; }
+  .game-meta .day-hint { width: auto; margin-inline-start: auto; }
 }
 @media (pointer: coarse), (max-width: 600px) {
   .page-journal .game-window { --touch-height: var(--dpad-height, 169px); }
@@ -71,16 +120,44 @@ html:has(.game-window :focus) { overflow-anchor: none; }
   .game-viewport > .window-bar { grid-column: 1 / -1; }
   .game-viewport > .game-stage-frame { width: 100%; }
   .game-controls { display: flex; flex-direction: column; align-self: stretch; max-height: var(--map-height); border-left: 1px solid #e3d7cb; }
-  .game-controls .scene-nav { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); flex: none; gap: 4px; padding: 6px; }
-  .game-controls .scene-nav button { min-width: 0; padding-inline: 2px; font-size: 12px; }
+  .game-controls .scene-nav { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 4px; padding: 6px; }
+  .game-controls .scene-nav > button { min-width: 0; gap: 3px; padding-inline: 2px; font-size: 12px; }
+  .control-records { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 7px 4px; padding: 6px; }
+  .game-controls .control-records > button { flex-direction: column; gap: 4px; padding: 5px 2px; }
+  .control-records .save-status { grid-column: 1 / -1; text-align: center; }
   .game-controls .touch-controls { flex: none; gap: 4px; justify-content: center; padding: 4px; }
-  .game-controls .touch-hint { display: none; }
   .game-controls .touch-interact { flex: none; width: 46px; min-width: 44px; padding-inline: 2px; }
-  .game-meta { min-height: 0; overflow-y: auto; }
-  .game-meta .garden-pocket, .game-meta .game-bottom { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px; }
-  .game-meta .desktop-instructions { flex-wrap: wrap; gap: 6px; }
-  .game-meta .desktop-instructions i { display: none; }
-  .game-meta .journey-legend { display: block; text-align: left; }
+  .game-meta { margin-top: auto; min-height: 0; overflow-y: auto; }
+  .game-meta .garden-pocket { flex-direction: column; align-items: flex-start; gap: 6px; }
+  @media (max-height: 480px) {
+    .game-controls .scene-nav { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .game-controls .scene-nav > button { flex-direction: column; padding: 2px; gap: 1px; }
+    .scene-nav .map-stamp { width: 21px; height: 21px; }
+    .game-controls .dpad { grid-template-rows: repeat(2, 44px); }
+    .game-controls .dpad :is(.dpad-left, .dpad-right) { grid-row: 1 / 3; align-self: center; height: 44px; }
+    .game-controls .dpad-down { grid-row: 2; }
+    .game-controls .dpad > span { display: none; }
+    .game-controls .touch-interact { height: 48px; gap: 1px; line-height: 1.15; }
+  }
+  @media (max-height: 360px) {
+    /* Let the status line follow the map instead of leaving a few scrollable pixels in the rail. */
+    .game-controls { display: contents; }
+    .game-viewport { grid-template-rows: auto auto 1fr auto; }
+    .game-stage-frame { grid-area: 2 / 1 / 4 / 2; }
+    .game-control-menu { grid-area: 2 / 2; }
+    .game-controls .touch-controls { grid-area: 3 / 2; align-self: start; }
+    .game-controls .touch-interact { align-self: flex-start; }
+    .game-meta { grid-area: 4 / 1 / 5 / -1; overflow: visible; }
+    .game-meta .garden-pocket { flex-direction: row; align-items: center; gap: 4px 12px; }
+  }
+}
+@container controls (min-width: 245px) and (max-width: 560px) {
+  .control-tabs button { flex: 1; }
+  .game-controls .scene-nav { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .game-controls .scene-nav > button { padding-inline: 2px; gap: 3px; font-size: 12px; }
+  .scene-nav .map-stamp { width: 23px; height: 23px; }
+  .control-records { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px 8px; }
+  .control-records .save-status { grid-column: 1 / -1; text-align: center; }
 }
 @media (max-height: 600px) and (max-aspect-ratio: 6/5) {
   .game-controls .touch-controls { padding: 6px 10px; gap: 8px; }
@@ -88,20 +165,9 @@ html:has(.game-window :focus) { overflow-anchor: none; }
   .game-controls .dpad button { width: 44px; height: 44px; }
   .game-controls .dpad-left { order: -1; }
   .game-controls .dpad-right { order: 1; }
-  .game-controls .dpad > span, .game-controls .touch-hint { display: none; }
+  .game-controls .dpad > span { display: none; }
   .game-controls .touch-interact { width: 46px; height: 46px; gap: 0; }
 }
-
-.adventure-tools { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 9px; }
-.page-journal .local-save { display: flex; align-items: center; justify-content: end; flex-wrap: nowrap; gap: 8px; padding: 0; min-width: 0; }
-.local-save .save-status { color: var(--page-muted); font-size: 12px; text-align: right; }
-.page-journal .local-save .save-now, .book-trigger {
-  display: inline-flex; align-items: center; justify-content: center; flex: none; gap: 7px; min-height: 44px; padding: 5px 12px;
-  border: 1px solid #d9bfc5; border-radius: 7px; background: #fff8f0; color: #805569; font: inherit; font-size: 13px;
-}
-.book-trigger { font-size: 14px; font-weight: 600; }
-.book-trigger .icon { width: 17px; height: 17px; }
-.book-trigger:hover { background: #f7e7e5; }
 
 .page-memory-section { margin-top: 42px; }
 .page-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 21px; }

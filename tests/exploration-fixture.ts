@@ -309,7 +309,9 @@ async function checkAll() {
   await wait(()=>landing()?.x===world.player.x && landing()?.y===world.player.y);
   const initialY=world.player.y;
   key("ArrowDown"); await wait(()=>world.player.y>initialY+10); key("ArrowDown",false);
+  q("#records-tab").click();
   q(".save-now").click();
+  q("#maps-tab").click();
   expect(landing()?.x===world.player.x && landing()?.y===world.player.y && q(".save-status").textContent?.includes("本机已保存 · 花海"),"手动保存没有记住地图上的实际落脚点");
   sessionStorage.setItem(space+"expected",JSON.stringify({x:world.player.x,y:world.player.y}));
   log("移动时自动存下草地上的实际位置；手账的保存按钮立即记录新位置并显示地图名");

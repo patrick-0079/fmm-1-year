@@ -143,6 +143,7 @@ try {
     assert.equal(await meter.getAttribute("aria-valuetext"), "3/4");
     if (restored) assert.equal(albumRequests, 2, "the journal recovered its failed cover before the game started");
     const toggleBook = page.getByRole("button", { name: "周年徽章册", exact: true });
+    await page.getByRole("tab", { name: "徽章与存档" }).click();
     await toggleBook.click();
     assert.ok(await page.locator("#anniversary-badges").evaluate(dialog => dialog.matches(":modal")));
     // Legacy saves also retain the original public letter from Kerry as already read.
@@ -150,6 +151,7 @@ try {
     assert.equal(await page.locator(".achievement-count strong").textContent(), restored ? `${historical.length} / 54` : "0 / 54");
     await page.keyboard.press("Escape");
     assert.ok(await toggleBook.evaluate(button => button === document.activeElement));
+    await page.getByRole("tab", { name: "地图", exact: true }).click();
     cover.release();
     await Promise.all([starting.seen, page.waitForFunction(() => {
       const bar = document.querySelector(".entry-progress");
@@ -207,10 +209,12 @@ try {
     const current = page.locator(".scene-wrap");
     assert.equal(await current.getAttribute("data-current-map"), restored ? "town-radio" : "room");
     if (restored) {
+      await page.getByRole("tab", { name: "徽章与存档" }).click();
       await toggleBook.click();
       assert.equal(await page.locator(".achievement-count strong").textContent(), `${historical.length} / 54`);
       assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("nemu-anniversary-v1")).achievements.earned.sort()), historical);
       await page.locator(".book-close").click();
+      await page.getByRole("tab", { name: "地图", exact: true }).click();
       assert.ok(await page.locator(".achievement-flash").isHidden(), "loading legacy achievements must stay silent");
     }
     await page.locator(".bag-toggle").click();
@@ -341,6 +345,8 @@ try {
     await held.seen;
     await page.waitForFunction(() => parseFloat(document.querySelector('[data-speed="assets"]')?.textContent) > 0);
     assert.equal(await readout.locator('[data-speed="film"]').innerText(), "0 B/s");
+    await page.getByRole("tab", { name: "徽章与存档" }).click();
+    assert.ok(await page.locator(".save-now").isDisabled());
     await page.locator("[data-book-toggle]").click();
     await page.locator("#anniversary-badges[open] #loading-debug:visible").waitFor();
     held.release();

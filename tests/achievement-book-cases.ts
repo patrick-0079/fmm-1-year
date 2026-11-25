@@ -19,6 +19,7 @@ export async function verifyAchievementBook(world: World, log: (message: string)
   button(".reset-confirm").click();
   check(!root.open, "徽章册默认展开");
   const frame = world.canvas.getBoundingClientRect();
+  button("#records-tab").click();
   button("[data-book-toggle]").click();
   check(root.matches(":modal") && world.suspended, "徽章册没有以独立弹窗暂停游戏");
   check(root.querySelector(".achievement-count strong")?.textContent === "0 / 54", "新档已有徽章");

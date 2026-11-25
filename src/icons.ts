@@ -15,6 +15,11 @@ const paths: Record<string, string> = {
   arrow: '<path d="M2 8h10V6h-2V4h2v2h2v2h2v2h-2v2h-2v2h-2v-2h2v-2H2Z"/>',
   moon: '<path d="M8 1h3v2H9v2H7v5h2v2h6v-2h2v4h-2v2H5v-2H3V4h2V2h3Z"/>',
   book: '<path d="M2 2h6v2h2V2h6v14h-6v1H8v-1H2zm2 2v10h4V6H6V4zm6 2v8h4V4h-2v2Z"/>',
+  save: '<g stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3 2.5h10l2.5 3V15H3z" fill="#b6c6b2"/><path d="M6 2.5h6v4H6zm-.5 7h7v5.5h-7z" fill="#fff7df"/><path d="M8 12h3" fill="none"/></g>',
+  journal: '<g stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path fill="#ecd1d9" d="M3 3.5q3-1.5 6 .5 3-2 6-.5v11q-3-1-6 .8-3-1.8-6-.8z"/><path d="M9 4v11" fill="none"/><path d="M11 3.5h2v5l-1-.8-1 .8z" fill="#d5a765"/></g>',
+  foldedMap: '<g stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"><path d="m2 4 4.5-1.5 5 1.8L16 3v11l-4.5 1.4-5-1.8L2 15z" fill="#eee4cb"/><path d="M6.5 2.5v11M11.5 4.3v11" fill="none"/></g>',
+  music: '<path d="M7 3.5 15 2v9.5c0 3.3-5.5 4.3-5.5 1.2 0-1.8 2-2.8 3.8-2.4V5L8.7 6v7c0 3.4-5.7 4.1-5.7 1.1 0-1.8 2.2-2.8 4-2.4z"/>',
+  interact: '<g stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M2 3h14v9H8l-4 3v-3H2z" fill="#f6e0d5"/><path d="M5 7.5h1m2.5 0h1m2.5 0h1" fill="none" stroke-linecap="round"/></g>',
   close: '<path d="m4 2 5 5 5-5 2 2-5 5 5 5-2 2-5-5-5 5-2-2 5-5-5-5Z"/>',
 };
 export function icon(name: string, className = "") {
