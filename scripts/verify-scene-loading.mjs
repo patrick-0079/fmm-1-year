@@ -134,7 +134,10 @@ try {
     assert.ok(!requests.some(path => path.startsWith("/game-assets-") || path === roomMap || path === firstPath),
       "game downloads started before the page covers finished");
     const journalImages = ["journal-letter", "journal-album", "journal-cinema", "meadow-postcard"].map(asset);
-    assert.deepEqual(requests.filter(path => /\.(webp|wav)$/i.test(path) && !journalImages.includes(path)), []);
+    const paper = await page.locator("#journal-paper-preload").evaluate(link => new URL(link.href).pathname);
+    const artwork = requests.filter(path => /\.(webp|wav)$/i.test(path));
+    assert.equal(artwork[0], paper, "journal paper starts before the other page artwork");
+    assert.deepEqual(artwork.filter(path => !journalImages.includes(path)), [paper], "journal paper transfers once");
     assert.ok(await entrance.isDisabled());
     await page.waitForFunction(() => document.querySelector(".entry-progress")?.getAttribute("aria-valuetext") === "3/4");
     assert.equal(await meter.getAttribute("aria-valuetext"), "3/4");

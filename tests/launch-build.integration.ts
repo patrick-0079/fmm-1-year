@@ -33,11 +33,16 @@ test("switching full → invitation → full cleans the deployed directory", asy
     const marker = JSON.parse(await readFile(join(outDir, "release.json"), "utf8"));
     assert.ok(html.includes(`name="fufu-release" content="${marker.mode}" data-version="${marker.version}"`),
       "the entry HTML and its separately revalidated release marker must identify the same build");
-    return { files, marker };
+    return { files, marker, html };
   };
 
   const explicit = await run("true");
   assert.equal(explicit.marker.mode, "full");
+  const paper = explicit.files.find(name => /^assets\/journal-celestial-paper-[\w-]+\.webp$/.test(name));
+  assert.ok(paper, "full release emits a content-hashed journal background");
+  const hint = explicit.html.match(/<link\b[^>]*id="journal-paper-preload"[^>]*>/)?.[0] ?? "";
+  for (const attr of ['rel="preload"', 'as="image"', 'fetchpriority="high"', 'media="not all"', `href="/${paper}"`])
+    assert.ok(hint.includes(attr), attr);
   assert.ok(explicit.files.includes("texture-cache.js"));
   assert.ok(!explicit.files.some(name => /steam-achievement|deck_ui_achievement_toast/i.test(name)),
     "the badge chime is synthesized and must not ship the Steam client sample");
@@ -83,7 +88,7 @@ test("switching full → invitation → full cleans the deployed directory", asy
   for (const prefix of ["journal-letter", "journal-album", "journal-cinema", "meadow-postcard"]) {
     assert.deepEqual(entries.find(([path]) => path.startsWith("assets/" + prefix + "-"))?.[2], ["page"], prefix);
   }
-  assert.deepEqual(entries.map(([file]) => file).sort(), explicit.files.filter(name => name.startsWith("assets/")));
+  assert.deepEqual(entries.map(([file]) => file).sort(), explicit.files.filter(name => name.startsWith("assets/") && name !== paper));
   assert.match(entries[0][0], /^assets\/nemu-sprites-/);
   assert.match(entries[1][0], /^assets\/room-interactive-/);
   assert.match(entries.at(-1)![0], /^assets\/anniversary-town-hd-v13-/);
@@ -96,6 +101,7 @@ test("switching full → invitation → full cleans the deployed directory", asy
 
   const lite = await run("false");
   assert.equal(lite.marker.mode, "lite");
+  assert.doesNotMatch(lite.html, /journal-celestial-paper|journal-paper-preload|journal-open/);
   assert.ok(!lite.files.some(name => name.startsWith("assets/stationery-")));
   assert.ok(lite.marker.version && lite.marker.version !== explicit.marker.version);
   for (const file of lite.files) {

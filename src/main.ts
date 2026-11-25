@@ -35,6 +35,7 @@ import { prepareMapArt, registerResourceCache } from "./texture-cache";
 import { resourceMeter, showResourceCount } from "./loading-meter";
 import { mountLoadingMonitor } from "./network-debug";
 import { fitGameViewport } from "./game-viewport";
+import { mountJournalStarlight } from "./journal-starlight";
 
 function journalCover(src: string, fallback: string) {
   return `<span class="memory-cover"><img src="${src}" width="720" height="480" alt="" loading="eager" decoding="async" fetchpriority="high"/>${icon(fallback, "cover-fallback")}</span>`;
@@ -133,6 +134,8 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
     </main>
     <footer data-page-ui><span>${icon("heart")} 献给芙眠眠的第一年</span><p>粉丝制作的一周年纪念礼物 · 愿下一个晚安，依然有你。</p><button class="text-button reset-button">重新探索</button><span class="reset-confirmation" hidden>清除本机进度？<button class="reset-confirm map-action">重新开始</button><button class="reset-cancel map-action">保留进度</button></span></footer>
   </div><div class="toast" role="status" aria-live="polite"></div><div class="confetti-layer" aria-hidden="true"></div>`;
+
+mountJournalStarlight();
 
 // The book is usable from the journal, including while the first map is downloading.
 showJourneyStatus(document.querySelector(".save-status")!, readJourney(stored(JOURNEY_KEY), initialProgress.rainbowFlowers));

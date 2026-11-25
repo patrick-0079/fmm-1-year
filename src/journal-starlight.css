@@ -1,0 +1,87 @@
+#app:has(> .journal-starlight) { isolation: isolate; }
+
+.journal-starlight {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+.journal-constellation {
+  position: absolute;
+  width: clamp(75px, 9.5vw, 150px);
+  height: auto;
+  color: #ad7837;
+  fill: currentColor;
+  opacity: .46;
+  transition: opacity .45s;
+}
+.journal-constellation-west {
+  left: 1.7%;
+  top: 77%;
+  width: clamp(55px, 6.3vw, 94px);
+}
+.journal-constellation-east { right: 2.7%; top: 29%; }
+.journal-constellation-high {
+  top: 10%;
+  right: 29%;
+  width: 62px;
+  opacity: .29;
+}
+.journal-constellation polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: .6;
+  opacity: .52;
+}
+.journal-star {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: journal-star-glimmer 5.4s ease-in-out var(--phase) infinite alternate;
+}
+.journal-constellation.is-lit {
+  opacity: .95;
+  color: #bd7d32;
+}
+.journal-constellation.is-lit .journal-star {
+  filter: drop-shadow(0 0 2px #f9c878);
+}
+@keyframes journal-star-glimmer {
+  from { opacity: .55; transform: scale(.8); }
+  to { opacity: 1; transform: scale(1.15); }
+}
+
+.journal-postmark {
+  position: absolute;
+  width: 97px;
+  color: #bd7180;
+  transform: translate(-31.43%, -50%);
+}
+.journal-postmark svg {
+  display: block;
+  width: 100%;
+  transform-origin: 31.43% 50%;
+  animation: journal-press-postmark 1.6s both;
+}
+@keyframes journal-press-postmark {
+  0% { opacity: 0; transform: rotate(-15deg) scale(1.15); }
+  11% { opacity: .87; transform: rotate(-11deg) scale(.98); }
+  22%, 56% { opacity: .77; transform: rotate(-11deg); }
+  100% { opacity: 0; transform: rotate(-11deg); }
+}
+
+@media (max-width: 699px) {
+  .journal-constellation-west { width: 43px; left: -11px; }
+  .journal-constellation-east { width: 52px; right: -12px; top: 20%; }
+  .journal-constellation-high { display: none; }
+  .journal-postmark { width: 73px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .journal-star, .journal-postmark svg { animation: none; }
+  .journal-constellation { transition: none; }
+  .journal-postmark svg { opacity: .7; transform: rotate(-11deg); }
+}
+@media (forced-colors: active) {
+  .journal-starlight { display: none; }
+}

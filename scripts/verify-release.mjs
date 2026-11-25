@@ -84,7 +84,7 @@ try {
     assert.equal(await page.locator('[data-unit="seconds"]').innerText(), "02");
     assert.equal(await page.locator(".launch-debug-trigger, #world").count(), 0);
     assert.ok(!await page.evaluate(() => performance.getEntriesByType("resource").some(entry =>
-      /\/(?:main-|application-|room-interactive-|nemu-sprites-|texture-cache\.js)/.test(new URL(entry.name).pathname))));
+      /\/(?:main-|application-|room-interactive-|nemu-sprites-|journal-celestial-paper-|texture-cache\.js)/.test(new URL(entry.name).pathname))));
     await page.locator(".launch-invitation img").evaluateAll(images => Promise.all(images.map(image => image.decode())));
     return page;
   };
@@ -175,7 +175,7 @@ try {
   await game.locator(".photo-original-retry").waitFor();
   await game.locator(".photo-original-back").click();
   await game.locator(".game-album-reader .reader-close").click();
-  const assets = await readdir(join(outDir, "assets"));
+  const assets = (await readdir(join(outDir, "assets"))).filter(name => !name.startsWith("journal-celestial-paper-"));
   await game.waitForFunction(() => !!navigator.serviceWorker.controller);
   const deadline = Date.now() + 90000;
   let cached;

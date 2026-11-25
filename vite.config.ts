@@ -7,6 +7,7 @@ import { validateStationery } from "./scripts/validate-stationery.mjs";
 import { readLetterCatalogue } from "./scripts/scan-letters.mjs";
 import { assetScenes } from "./scripts/scene-assets.mjs";
 import { textureWorkerSource } from "./scripts/texture-worker-source.mjs";
+import { OPEN_AT } from "./src/launch/time";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const referenceRoot = normalizePath(fileURLToPath(new URL("./ref/", import.meta.url)));
@@ -52,7 +53,9 @@ function preloadOrder(sources: string[]) {
 }
 
 function resourceManifest(bundle: Rollup.OutputBundle) {
-  return Object.values(bundle).filter(file => file.fileName.startsWith("assets/") && !/\.(?:mp4|m4v|webm|mov|ogv)$/i.test(file.fileName))
+  // The document already loads its decorative paper. It must never gate a map or film.
+  return Object.values(bundle).filter(file => file.fileName.startsWith("assets/") && !/\.(?:mp4|m4v|webm|mov|ogv)$/i.test(file.fileName)
+      && !(file.type === "asset" && file.originalFileNames.some(path => normalizePath(path) === "src/assets/journal-celestial-paper.webp")))
     .map(file => ({ file, order: file.type === "asset" ? preloadOrder(file.originalFileNames.map(normalizePath)) : 4 }))
     .sort((a, b) => a.order - b.order || (a.file.fileName < b.file.fileName ? -1 : 1))
     .map(({ file }) => [file.fileName, createHash("sha256")
@@ -79,8 +82,11 @@ function releaseEntry(mode: "full" | "lite", debug: boolean): Plugin {
       order: "pre",
       handler(html) {
         if (!html.includes("/src/launch/lite.ts")) return html;
+        const entryHtml = mode === "full"
+          ? html.replace("__JOURNAL_EARLY_OPEN_AT__", debug ? "Infinity" : String(OPEN_AT))
+          : html.replace(/\s*<!-- journal-full:start -->[\s\S]*?<!-- journal-full:end -->/, "");
         return {
-          html: html.replace("/src/launch/lite.ts", `/src/launch/${mode}.ts`),
+          html: entryHtml.replace("/src/launch/lite.ts", `/src/launch/${mode}.ts`),
           tags: [{tag: "meta", attrs: { name: "fufu-release", content: mode, "data-version": `dev-${mode}` }}],
         };
       },

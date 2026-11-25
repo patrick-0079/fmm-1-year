@@ -37,6 +37,7 @@ export async function startLaunch(loadGame?: () => Promise<unknown>) {
   async function enterGame() {
     stop();
     document.title = gameTitle;
+    document.dispatchEvent(new Event("fufu:journal-open"));
     try {
       await loadGame!();
     } catch {

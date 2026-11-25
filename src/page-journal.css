@@ -8,6 +8,10 @@
   --page-line: #e5dace;
   width: min(1320px, calc(100% - 48px));
 }
+/* Frame the welcome screen with paper margins. Playing uses the full map layout. */
+@media (min-width: 1008px) {
+  .page-journal:has(.intro-screen:not(.dismissed)) { width: clamp(960px, 72%, 1320px); }
+}
 .page-journal .site-header { height: 80px; border-color: var(--page-line); }
 .page-journal .brand { font-size: 17px; letter-spacing: .3px; color: var(--page-ink); min-height: 44px; }
 .page-journal .brand small { color: var(--page-muted); letter-spacing: .5px; font-size: 12px !important; font-weight: 400; }
