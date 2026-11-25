@@ -28,7 +28,7 @@ export class FilmPreloader {
   private src: string;
   private update: () => void;
   private request: typeof fetch;
-  private lastUpdate = 0;
+  private lastUpdate = -Infinity;
   private idleTimeoutMs: number;
   private openCache: () => Promise<FilmCache | null>;
   constructor(
@@ -159,8 +159,8 @@ export class FilmPreloader {
         chunks.push(new Uint8Array(value));
         this.progress.received += value.byteLength;
         this.onBytes?.(value.byteLength);
-        if (Date.now() - this.lastUpdate > 100) {
-          this.lastUpdate = Date.now();
+        if (performance.now() - this.lastUpdate > 100) {
+          this.lastUpdate = performance.now();
           this.update();
         }
       }
@@ -198,16 +198,23 @@ export class FilmPreloader {
   }
 }
 
+function filmSize(bytes: number) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KiB";
+  return (bytes / 1048576).toFixed(1) + " MiB";
+}
+export function filmDownloadAmount(download: FilmDownload) {
+  return download.total
+    ? `${Math.min(100, Math.floor(download.received / download.total * 100))}% · ${filmSize(download.received)} / ${filmSize(download.total)}`
+    : `已接收 ${filmSize(download.received)}`;
+}
 export function downloadLabel(download: FilmDownload) {
-  const mb = (bytes: number) => (bytes / 1048576).toFixed(1) + " MB";
   if (download.state === "queued") return "先准备游戏资源，影片稍后下载";
   if (download.state === "checking") return "正在核对本机影片版本…";
   if (download.state === "ready" && download.source)
-    return (download.source === "local" ? "影片未变，已从本机载入" : "暂时无法检查更新，使用上次缓存") + " · " + mb(download.received);
+    return (download.source === "local" ? "影片未变，已从本机载入" : "暂时无法检查更新，使用上次缓存") + " · " + filmSize(download.received);
   if (download.state === "ready")
-    return `完整视频已预载 · ${mb(download.received)}`;
+    return `完整视频已预载 · ${filmSize(download.received)}`;
   if (download.state === "error") return "视频预载失败，可以重新加载";
-  return download.total
-    ? `正在完整预载 ${Math.min(100, Math.floor((download.received / download.total) * 100))}% · ${mb(download.received)} / ${mb(download.total)}`
-    : `正在完整预载 · 已接收 ${mb(download.received)}`;
+  return `正在完整预载${download.total ? " " : " · "}${filmDownloadAmount(download)}`;
 }

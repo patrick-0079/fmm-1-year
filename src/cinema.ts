@@ -3,7 +3,7 @@ import { gardenFilm, gardenScreen, televisionSilhouette } from "./cinema-config"
 import { drawGardenScreen } from "./cinema-screen";
 import { CinemaSession, mediaTime, containVideo } from "./cinema-state";
 import { duckMusic } from "./sound";
-import { FilmPreloader, downloadLabel } from "./film-preloader";
+import { FilmPreloader, downloadLabel, filmDownloadAmount } from "./film-preloader";
 import { traffic } from "./network-debug";
 import { reservedShortcut, readingTarget } from "./input";
 
@@ -143,8 +143,15 @@ export class GardenCinema {
     this.player.className = "cinema-player";
     this.player.hidden = true;
     this.player.setAttribute("aria-label", "周年视频全屏播放器");
-    this.player.innerHTML = `<div class="cinema-player-tools"><span></span><button class="cinema-shrink">返回地图内观看</button><button class="cinema-exit">离开放映</button></div><p class="cinema-player-loading" role="status"></p>`;
+    this.player.innerHTML = `<div class="cinema-player-tools"><span></span><button class="cinema-shrink">返回地图内观看</button><button class="cinema-exit">离开放映</button></div><div class="cinema-player-feedback"><p class="cinema-player-loading" role="status"></p></div>`;
     this.player.querySelector("span")!.textContent = gardenFilm.title;
+    for (const label of [this.hud.querySelector(".cinema-progress")!, this.player.querySelector(".cinema-player-loading")!]) {
+      const meter = document.createElement("progress");
+      meter.className = "cinema-download-meter";
+      meter.setAttribute("aria-label", "周年视频下载进度");
+      meter.hidden = true;
+      label.after(meter);
+    }
     this.player
       .querySelector(".cinema-shrink")!
       .addEventListener("click", () => this.shrink());
@@ -406,14 +413,22 @@ export class GardenCinema {
     }
     const time = v ? mediaTime(v.currentTime) : "00:00",
       duration = v ? mediaTime(v.duration) : "--:--";
-    this.hud.querySelector(".cinema-progress")!.textContent =
-      `观看 ${time} / ${duration} · ${progress}`;
+    const download = this.download.progress, downloading = download.state === "loading";
+    this.hud.querySelector(".cinema-progress")!.textContent = downloading
+      ? "下载 " + filmDownloadAmount(download) : `观看 ${time} / ${duration} · ${progress}`;
     const loading = this.player.querySelector<HTMLElement>(
       ".cinema-player-loading",
     )!;
-    loading.hidden =
-      this.download.progress.state === "ready" && !!v?.readyState;
-    loading.textContent = progress + " · 可以先返回花园，稍后回来观看";
+    loading.hidden = download.state === "ready" && !!v?.readyState && s !== "error";
+    loading.textContent = s === "error" ? "视频加载失败，可返回地图重试" :
+      downloading ? "正在下载 · " + filmDownloadAmount(download) :
+      download.state === "ready" ? "下载完成，正在准备画面…" : progress;
+    for (const surface of [this.hud, this.player]) {
+      const meter = surface.querySelector<HTMLProgressElement>(".cinema-download-meter")!;
+      meter.hidden = !downloading;
+      if (downloading && download.total) { meter.max = download.total; meter.value = download.received; }
+      else meter.removeAttribute("value");
+    }
     const button = this.hud.querySelector<HTMLButtonElement>(".cinema-play")!;
     button.textContent = this.session.wanted
       ? "暂停 / 取消等待"
@@ -455,7 +470,9 @@ export class GardenCinema {
         }
       }
       const loading = s === "loading" || s === "buffering";
-      if (!v || loading || s === "error") {
+      const download = this.download.progress;
+      const downloading = download.state === "loading";
+      if (!v || loading || downloading || s === "error") {
         if (v && this.session.hasFrame) c.fillStyle = "#25263ddd";
         else c.fillStyle = "#25263d";
         c.fillRect(box.x, box.y, box.w, box.h);
@@ -463,7 +480,8 @@ export class GardenCinema {
         c.fillStyle = "#f8dfb0";
         c.font = '7px "Microsoft YaHei","PingFang SC",sans-serif';
         c.fillText(
-          s === "error" ? "画面还在路上" : v ? "LOADING…" : "芙芙 · 一周年放映",
+          s === "error" ? "画面还在路上" : downloading ? "正在下载周年影片" :
+            download.state === "queued" ? "等待游戏资源" : v ? "准备画面中…" : "芙芙 · 一周年放映",
           box.x + box.w / 2,
           box.y + 21,
         );
@@ -472,13 +490,17 @@ export class GardenCinema {
         c.fillText(
           s === "error"
             ? "按互动重试 · 或稍后回来"
-            : v
+            : downloading ? filmDownloadAmount(download) : download.state === "queued" ? "资源就绪后开始下载" : v
               ? "可以先去逛逛，回来再看"
               : "走近小电视，按 E / 右键",
           box.x + box.w / 2,
           box.y + 34,
         );
-        if (loading)
+        if (downloading && download.total) {
+          const left = box.x + 13, width = box.w - 26;
+          c.fillStyle = "#756482"; c.fillRect(left, box.y + 39, width, 3);
+          c.fillStyle = "#efbed2"; c.fillRect(left, box.y + 39, Math.min(1, download.received / download.total) * width, 3);
+        } else if (loading)
           for (let i = 0; i < 5; i++) {
             c.fillStyle =
               i === Math.floor(this.time * 4) % 5 ? "#ffd489" : "#8e7eae";

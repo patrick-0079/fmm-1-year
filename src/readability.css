@@ -119,17 +119,17 @@ html:has(.game-help[open]) {
   font-size: 20px;
   color: #584568;
 }
-.game-help dl {
+.game-help > dl {
   margin: 0;
   display: grid;
   grid-template-columns: max-content 1fr;
   gap: 10px 14px;
 }
-.game-help dt {
+.game-help > dl > dt {
   color: #8c5c77;
   font-weight: 700;
 }
-.game-help dd {
+.game-help > dl > dd {
   margin: 0;
 }
 .help-close {
@@ -276,11 +276,15 @@ html:has(.game-help[open]) {
   color: #fff;
   font-size: 14px;
 }
-.cinema-player-loading {
+.cinema-player-feedback {
   position: absolute;
   top: 45%;
-  left: 10%;
-  width: 80%;
+  align-self: center;
+  width: min(80%, 440px);
+  pointer-events: none;
+}
+.cinema-player-loading {
+  margin: 0 0 8px;
   font-size: 18px;
   text-align: center;
   line-height: 1.8;

@@ -1,6 +1,6 @@
 .debug-dock {
   position: fixed;
-  z-index: 42;
+  z-index: 1001;
   bottom: max(12px, env(safe-area-inset-bottom));
   right: max(12px, env(safe-area-inset-right));
 }
@@ -42,6 +42,13 @@ body:has(.debug-dock) .page-journal > footer {
   line-height: 1.5;
 }
 .debug-panel header {
+  position: sticky;
+  top: -13px;
+  z-index: 2;
+  margin: -13px -13px 6px;
+  padding: 10px 13px;
+  background: #fff7e9;
+  border-bottom: 1px solid #e2cfba;
   display: flex;
   align-items: center;
   justify-content: space-between;

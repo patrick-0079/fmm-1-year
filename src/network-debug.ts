@@ -1,12 +1,14 @@
 import { DownloadRate, rateLabel } from "./download-rate";
+import { debugIsOpen, rememberDebugOpen } from "./launch/debug-open";
 
 export const traffic = import.meta.env.VITE_WARDROBE_DEBUG === "true" ? {
   assets: new DownloadRate(), film: new DownloadRate(), filmStatus: "等待游戏资源",
   active: 0, cached: 0, completed: 0, total: 0, unknown: 0,
 } : undefined;
 
-export function recordTransfer(bytes: number, duration: number) {
+export function recordTransfer(bytes: number, duration: number, source?: string) {
   if (!traffic) return;
+  if (source && bytes >= 0) traffic.assets.forget(source);
   if (bytes === 0) traffic.cached++;
   else if (bytes > 0) traffic.assets.add(bytes, performance.now(), duration);
   else traffic.unknown++;
@@ -18,7 +20,7 @@ function monitor(panel: HTMLElement) {
   info.innerHTML = `<h4>网络下载</h4><dl aria-live="off">
     <div><dt>游戏资源</dt><dd data-speed="assets"></dd></div>
     <div><dt>周年视频</dt><dd data-speed="film"></dd></div></dl>
-    <p class="network-state"></p><p>近 5 秒平均。资源按完成的网络请求估算，视频按接收的数据块统计；不计本机缓存。</p>`;
+    <p class="network-state"></p><p>近 5 秒平均，按收到的数据块更新。网络请求结束后核对实际传输量，本机缓存单独计数。</p>`;
   panel.querySelector("header")!.after(info);
   const assets = info.querySelector<HTMLElement>('[data-speed="assets"]')!;
   const film = info.querySelector<HTMLElement>('[data-speed="film"]')!;
@@ -58,12 +60,14 @@ export function mountLoadingMonitor() {
   const panel = dock.querySelector("aside")!, trigger = dock.querySelector("button")!, close = panel.querySelector("button")!;
   const toggle = () => {
     panel.hidden = !panel.hidden;
+    rememberDebugOpen(!panel.hidden);
     trigger.setAttribute("aria-expanded", String(!panel.hidden));
     (panel.hidden ? trigger : close).focus({ preventScroll: true });
   };
   trigger.onclick = close.onclick = toggle;
   dock.onkeydown = event => { if (!panel.hidden && event.key === "Escape") { event.preventDefault(); toggle(); } };
   document.body.append(dock);
+  if (debugIsOpen()) toggle();
   const stop = monitor(panel);
   removeEarly = () => { stop(); dock.remove(); return !panel.hidden; };
 }

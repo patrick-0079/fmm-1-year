@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { createContext, runInContext } from "node:vm";
 import test from "node:test";
 import { setImmediate } from "node:timers/promises";
 
-const script = readFileSync(new URL("../scripts/texture-worker.js", import.meta.url), "utf8");
+import { textureWorkerSource } from "../scripts/texture-worker-source.mjs";
+const script = textureWorkerSource();
 type Files = readonly (readonly [path: string, contents: string | Buffer])[];
 type Lifetime = { waitUntil(task: Promise<unknown>): void };
 type WorkerFetch = Lifetime & { request: Request; clientId: string; respondWith(task: Promise<Response>): void };
@@ -30,7 +30,7 @@ function mountWorker(scope: string, files: Files, entries: Map<string, Response>
     assetVersion: version,
     assetFiles: files.map(([name, body]) => [name, createHash("sha256").update(body).digest("base64")]),
     caches: { open: async () => cache },
-    fetch: network, Response, crypto, URL, btoa, AbortSignal, AbortController,
+    fetch: network, Response, Headers, Blob, crypto, URL, btoa, AbortSignal, AbortController, performance, setInterval, clearInterval,
   });
   runInContext(script, context);
   return {

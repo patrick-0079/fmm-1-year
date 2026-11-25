@@ -27,7 +27,7 @@ import { Xiaoye } from "./xiaoye";
 import { Suyan } from "./suyan";
 import { AnniversaryVisitors } from "./anniversary-visitors";
 import { ARCADES } from "./town-data";
-import { reservedShortcut } from "./input";
+import { debugTarget, reservedShortcut } from "./input";
 import type { GameId } from "./arcade-engines";
 import { Nature, NATURE_KEY } from "./nature";
 import { INVENTORY_KEY } from "./items";
@@ -245,6 +245,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     sound.title = progress.muted ? "恢复游戏声音" : "静音游戏声音";
     sound.setAttribute("aria-pressed", String(!progress.muted));
     const effects = document.querySelector<HTMLButtonElement>(".effects-toggle")!;
+    effects.innerHTML = icon(progress.sound ? "effects" : "effectsOff");
     effects.title = progress.sound ? "关闭互动音效" : "开启互动音效";
     effects.setAttribute("aria-pressed", String(progress.sound));
     const music = document.querySelector<HTMLButtonElement>(".music-toggle")!;
@@ -311,7 +312,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeHelp();
   });
   window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && help.open && !e.defaultPrevented && !reservedShortcut(e)) {
+    if (e.key === "Escape" && help.open && !e.defaultPrevented && !reservedShortcut(e) && !debugTarget(e.target)) {
       e.preventDefault();
       e.stopImmediatePropagation();
       closeHelp();

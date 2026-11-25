@@ -130,3 +130,10 @@
     gap: 5px;
   }
 }
+.cinema-download-meter {
+  display: block;
+  width: 100%;
+  height: 7px;
+  accent-color: #c77e9c;
+}
+.cinema-download-meter[hidden] { display: none; }

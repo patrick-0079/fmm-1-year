@@ -12,7 +12,7 @@ async function matchesDigest(response, digest) {
   return btoa(String.fromCharCode(...new Uint8Array(hash))) === digest;
 }
 
-async function readAsset(url, priority, signal) {
+async function readAsset(url, priority, signal, onBytes) {
   const digest = assets.get(url);
   let cache;
   try {
@@ -28,10 +28,8 @@ async function readAsset(url, priority, signal) {
   let response;
   const timingStart = measureDownload ? performance.now() : undefined;
   try {
-    const timeout = AbortSignal.timeout?.(180_000);
-    response = await fetch(url, { mode: "same-origin", integrity: "sha256-" + digest, priority,
-      signal: timeout && AbortSignal.any ? AbortSignal.any([signal, timeout]) : signal,
-      cache: refreshFromNetwork.has(url) ? "reload" : "default" });
+    response = await fetchVerifiedAsset(url, digest, { mode: "same-origin", priority, signal,
+      cache: refreshFromNetwork.has(url) ? "reload" : "default" }, onBytes);
     if (response.status === 200) refreshFromNetwork.delete(url);
     else refreshFromNetwork.add(url);
   } catch (error) { if (!signal.aborted) refreshFromNetwork.add(url); throw error; }
@@ -40,22 +38,27 @@ async function readAsset(url, priority, signal) {
   return { response, stored, timingStart };
 }
 
-function requestAsset(url, priority, signal) {
+function requestAsset(url, priority, signal, report) {
   let task = inFlight.get(url);
   if (!task || task.controller.signal.aborted) {
     const controller = new AbortController();
-    const loaded = readAsset(url, priority, controller.signal);
+    const listeners = new Set();
+    const loaded = readAsset(url, priority, controller.signal, measureDownload && (bytes => {
+      for (const listener of listeners) listener(bytes);
+    }));
     const finished = loaded.then(({ stored }) => stored, () => {}).finally(() => {
       if (inFlight.get(url) === task) inFlight.delete(url);
     });
-    task = { loaded, finished, controller, consumers: new Set() };
+    task = { loaded, finished, controller, listeners, consumers: new Set() };
     inFlight.set(url, task);
   }
   const release = () => {
+    if (report) task.listeners.delete(report);
     task.consumers.delete(release);
     if (!task.consumers.size) task.controller.abort();
   };
   task.consumers.add(release);
+  if (report) task.listeners.add(report);
   if (signal.aborted) release();
   else {
     signal.addEventListener("abort", release, { once: true });
@@ -105,7 +108,10 @@ self.addEventListener("fetch", event => {
       !(range?.[1] || range?.[2]))) return;
 
   const token = request.headers.get("X-Fufu-Preload");
-  const { loaded, finished, release } = requestAsset(request.url, token ? "low" : "high", request.signal);
+  const id = request.headers.get("X-Fufu-Net-Debug");
+  const client = measureDownload && id && event.clientId && self.clients.get(event.clientId);
+  const report = client ? bytes => { void client.then(page => page?.postMessage({ type: "asset-bytes", id, bytes })); } : undefined;
+  const { loaded, finished, release } = requestAsset(request.url, token ? "low" : "high", request.signal, report);
   if (token && event.clientId) {
     const id = event.clientId + ":" + token;
     backgroundConsumers.set(id, release);

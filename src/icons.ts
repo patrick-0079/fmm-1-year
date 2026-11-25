@@ -8,6 +8,8 @@ const paths: Record<string, string> = {
   tv: '<path d="M4 1h2v2h2v2h2V3h2V1h2v2h-2v2h4v12H2V5h4V3H4zm0 6v8h10V7Zm2 3h2v2H6zm4 0h2v2h-2Z"/>',
   mail: '<path d="M1 4h16v12H1zm2 2v2h2v2h2v2h4v-2h2V8h2V6h-2v2h-2v2H7V8H5V6Z"/>',
   sound: '<path d="M7 3h2v12H7v-2H5v-2H1V7h4V5h2zm4 3h2v6h-2zm3-3h2v12h-2Z"/>',
+  effects: '<path d="M1 8h2v3H1zm4-4h2v10H5zm4-3h2v16H9zm4 5h2v7h-2zm3 2h2v3h-2z"/>',
+  effectsOff: '<path d="M1 8h2v3H1zm4-4h2v10H5zm4-3h2v16H9z"/><path d="m12 6 5 6m0-6-5 6" fill="none" stroke="currentColor" stroke-width="1.7"/>',
   mute: '<path d="M7 3h2v12H7v-2H5v-2H1V7h4V5h2zm4 3h2v2h2V6h2v2h-2v2h2v2h-2v-2h-2v2h-2v-2h2V8h-2Z"/>',
   arrow: '<path d="M2 8h10V6h-2V4h2v2h2v2h2v2h-2v2h-2v2h-2v-2h2v-2H2Z"/>',
   moon: '<path d="M8 1h3v2H9v2H7v5h2v2h6v-2h2v4h-2v2H5v-2H3V4h2V2h3Z"/>',

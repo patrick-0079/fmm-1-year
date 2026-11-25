@@ -13,6 +13,38 @@ const files = JSON.parse(await readFile(resolve(directory, `game-assets-${marker
 const asset = prefix => "/" + files.find(([name]) => name.startsWith("assets/" + prefix + "-"))[0];
 const gates = new Map(), requests = [];
 const filmMethods = [];
+let filmPause;
+let film;
+
+async function recordLocalFilm(browser, base) {
+  const page = await browser.newPage();
+  try {
+    await page.goto(base + "release.json");
+    const bytes = await page.evaluate(async () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 160; canvas.height = 100;
+      const paint = canvas.getContext("2d"), stream = canvas.captureStream(15);
+      const mimeType = MediaRecorder.isTypeSupported("video/mp4") ? "video/mp4" : "video/webm";
+      const recorder = new MediaRecorder(stream, { mimeType }), parts = [];
+      const finished = new Promise((resolve, reject) => {
+        recorder.ondataavailable = event => parts.push(event.data);
+        recorder.onstop = resolve; recorder.onerror = reject;
+      });
+      recorder.start();
+      for (let frame = 0; frame < 16; frame++) {
+        paint.fillStyle = "#292539"; paint.fillRect(0, 0, 160, 100);
+        paint.fillStyle = "#f6accb"; paint.fillRect(frame * 8, 28, 30, 30);
+        await new Promise(done => setTimeout(done, 75));
+      }
+      recorder.stop();
+      await finished;
+      stream.getTracks().forEach(track => track.stop());
+      return { mimeType, data: [...new Uint8Array(await new Blob(parts).arrayBuffer())] };
+    });
+    assert.ok(bytes.data.length > 1024);
+    return { type: bytes.mimeType, data: Buffer.from(bytes.data) };
+  } finally { await page.close(); }
+}
 function hold(path, partial = false) {
   const seen = Promise.withResolvers(), reply = Promise.withResolvers(), closed = Promise.withResolvers();
   gates.set(path, { seen, reply, closed, partial });
@@ -25,12 +57,13 @@ const server = await preview({ configFile: false, build: { outDir: directory }, 
         const path = new URL(req.url, "http://localhost/").pathname;
         if (path === "/qa-film.mp4") {
           filmMethods.push(req.method);
-          const chunk = Buffer.alloc(64 * 1024), chunks = 16;
-          res.writeHead(200, { "Content-Length": chunk.length * chunks, "Content-Type": "video/mp4",
+          const size = film.data.length;
+          res.writeHead(200, { ...(req.url.includes("chunked") ? {} : { "Content-Length": size }), "Content-Type": film.type,
             "Access-Control-Allow-Origin": "*", "Access-Control-Expose-Headers": "ETag", ETag: '"qa-v1"' });
           if (req.method === "HEAD") { res.end(); return; }
-          for (let index = 0; index < chunks && !res.destroyed; index++) {
-            res.write(chunk);
+          for (let index = 0; index < 16 && !res.destroyed; index++) {
+            res.write(film.data.subarray(Math.ceil(size * index / 16), Math.ceil(size * (index + 1) / 16)));
+            if (filmPause && index === 3) await filmPause.promise;
             await new Promise(done => setTimeout(done, 200));
           }
           res.end(); return;
@@ -102,6 +135,16 @@ try {
       assert.ok(result.ready < total);
     };
     await checkRatio(".entry-progress", restored ? "town-radio" : "room");
+    const runner = await page.locator(".entry-progress").evaluate(el => {
+      const root = el.parentElement, runner = root.querySelector(".resource-runner"), fill = root.querySelector(".resource-fill");
+      return { sprite: getComputedStyle(runner).backgroundImage, stripes: getComputedStyle(fill).backgroundImage,
+        right: root.querySelector(".resource-count").getBoundingClientRect().left >= fill.parentElement.getBoundingClientRect().right,
+        reduced: getComputedStyle(runner).animationName };
+    });
+    assert.match(runner.sprite, /data:image\/webp/);
+    assert.match(runner.stripes, /repeating-linear-gradient/);
+    assert.ok(runner.right);
+    assert.equal(runner.reduced, "none");
     assert.equal(requests.includes(restored ? roomMap : townMap), false);
     assert.equal(films, 0);
     if (restored) {
@@ -202,34 +245,116 @@ try {
   await context.close();
   console.log("全部 13 张地图（含七间室内）按存档直接进入通过");
   if (process.argv.includes("--debug")) {
+    film = await recordLocalFilm(browser, base);
+    filmPause = Promise.withResolvers();
     const debug = await browser.newContext();
     const page = await debug.newPage();
     const held = hold(asset("stationery-desk"));
-    await debug.route(/\.mp4$/, route => route.request().url().startsWith(base) ? route.continue() :
-      route.fulfill({ status: 307, headers: { Location: base + "qa-film.mp4", "Access-Control-Allow-Origin": "*" } }));
-    await page.clock.setFixedTime(new Date("2026-12-03T09:00:00+08:00"));
+    const routeFilm = (ctx, path) => ctx.route(/^https?:\/\/(?!127\.0\.0\.1:)/, route =>
+      /\.mp4$/.test(route.request().url()) ? route.fulfill({ status: 307,
+        headers: { Location: base + path, "Access-Control-Allow-Origin": "*" } }) : route.abort());
+    await routeFilm(debug, "qa-film.mp4");
+    await page.addInitScript(() => {
+      const draw = CanvasRenderingContext2D.prototype.fillText;
+      CanvasRenderingContext2D.prototype.fillText = function (text, ...args) {
+        if (/^25% · /.test(text)) window.projectorProgress = text;
+        return draw.call(this, text, ...args);
+      };
+    });
+    await page.clock.setFixedTime(new Date("2026-11-20T09:00:00+08:00"));
     await page.goto(base);
-    await page.locator(".debug-trigger").click();
+    await page.locator(".launch-debug-trigger").click();
+    await page.locator("#launch-title").click();
+    assert.ok(await page.locator(".launch-debug-panel").isVisible());
+    await page.reload();
+    await page.locator(".launch-debug-panel:visible").waitFor();
+    await page.clock.setFixedTime(new Date("2026-12-03T09:00:00+08:00"));
+    await page.locator("#loading-debug:visible").waitFor();
     const readout = page.locator(".debug-network:visible");
     await held.seen;
     await page.waitForFunction(() => parseFloat(document.querySelector('[data-speed="assets"]')?.textContent) > 0);
     assert.equal(await readout.locator('[data-speed="film"]').innerText(), "0 B/s");
     held.release();
     await page.locator("#game-debug-panel .debug-network:visible").waitFor();
+    const panel = page.locator("#game-debug-panel");
+    const wardrobe = panel.locator('[data-debug="wardrobe"]');
+    assert.equal(await wardrobe.getAttribute("aria-pressed"), "false");
+    await wardrobe.click();
+    assert.equal(await wardrobe.getAttribute("aria-pressed"), "true");
+    await page.locator(".music-toggle").click();
+    assert.ok(await panel.isVisible());
+    await page.locator(".help-button").click();
+    await page.waitForFunction(() => {
+      const button = document.querySelector("#game-help[open] .debug-close");
+      if (!button) return false;
+      const bounds = button.getBoundingClientRect();
+      return button.contains(document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2));
+    });
+    await page.locator(".help-close").click();
+    assert.ok(await panel.isVisible());
+    const effects = page.locator(".effects-toggle"), on = await effects.innerHTML();
+    assert.equal(await effects.innerText(), "");
+    assert.ok(await effects.locator("svg").isVisible());
+    await effects.click();
+    assert.equal(await effects.getAttribute("aria-pressed"), "false");
+    assert.notEqual(await effects.innerHTML(), on);
+    await panel.evaluate(el => el.scrollTop = el.scrollHeight);
+    const sticky = await panel.evaluate(el => el.scrollTop > 50 && Math.abs(el.querySelector("header").getBoundingClientRect().top - el.getBoundingClientRect().top) < 3);
+    assert.ok(sticky, "debug close stays at the top of the scrolling panel");
+    await panel.getByText("庆典互动与复活", { exact: true }).click();
+    await panel.locator('[data-debug="event:garden:danmaku"]').click();
+    await page.locator(".cinema-hud:visible").waitFor();
+    assert.ok(await panel.isVisible());
     await page.waitForFunction(() => parseFloat(document.querySelector('[data-speed="film"]')?.textContent) > 0);
+    await page.waitForFunction(size => document.querySelector(".cinema-hud .cinema-download-meter").value === size, Math.ceil(film.data.length / 4));
+    assert.match(await page.locator(".cinema-hud .cinema-progress").innerText(), /25%/);
+    await page.waitForFunction(() => window.projectorProgress?.startsWith("25%"));
+    await page.locator(".cinema-fullscreen").click();
+    await page.locator(".cinema-player:visible .cinema-download-meter").waitFor();
+    assert.match(await page.locator(".cinema-player-loading").innerText(), /25%/);
+    assert.ok(await panel.isVisible());
+    await page.locator(".cinema-shrink").click();
+    filmPause.resolve();
     await page.waitForFunction(() => document.querySelector(".network-state")?.textContent?.includes("影片：已完成"));
+    await page.waitForFunction(() => document.querySelector("video[data-garden-video]").readyState >= 3);
+    await page.locator(".cinema-hud .cinema-play").click();
+    await page.waitForFunction(() => document.querySelector("video[data-garden-video]").currentTime > 0);
     await page.waitForFunction(() => [...document.querySelectorAll("[data-speed]")].every(el => el.textContent === "0 B/s"));
     await page.reload();
-    await page.getByRole("button", { name: /开始小冒险/ }).waitFor();
-    await page.locator(".debug-trigger").click();
+    await page.getByRole("button", { name: /继续上次的冒险|开始小冒险/ }).waitFor();
+    await page.locator("#game-debug-panel .debug-network:visible").waitFor();
+    assert.equal(await wardrobe.getAttribute("aria-pressed"), "false");
     await page.waitForFunction(() => document.querySelector(".network-state")?.textContent?.includes("影片：使用本机缓存"));
     assert.equal(await readout.locator('[data-speed="film"]').innerText(), "0 B/s");
     assert.match(await readout.locator(".network-state").innerText(), /缓存 [1-9]\d* 项/);
     assert.deepEqual(filmMethods, ["GET", "HEAD"]);
-    console.log("调试网速：入口即显示、面板交接、两路独立读数、停传归零、缓存不虚报通过");
+    await panel.locator(".debug-close").click();
+    await page.reload();
+    await page.getByRole("button", { name: /继续上次的冒险|开始小冒险/ }).waitFor();
+    assert.ok(await panel.isHidden());
     await debug.close();
+
+    filmPause = Promise.withResolvers();
+    const unknown = await browser.newContext();
+    await routeFilm(unknown, "qa-film.mp4?chunked");
+    const other = await unknown.newPage();
+    await other.clock.setFixedTime(new Date("2026-12-03T09:00:00+08:00"));
+    await other.goto(base);
+    await other.getByRole("button", { name: /开始小冒险/ }).click();
+    await other.locator(".debug-trigger").click();
+    await other.getByText("庆典互动与复活", { exact: true }).click();
+    await other.locator('[data-debug="event:garden:danmaku"]').click();
+    const amount = other.locator(".cinema-hud .cinema-progress");
+    await amount.filter({ hasText: /已接收 [1-9]/ }).waitFor();
+    assert.doesNotMatch(await amount.innerText(), /%/);
+    assert.equal(await other.locator(".cinema-hud .cinema-download-meter").getAttribute("value"), null);
+    filmPause.resolve();
+    await other.waitForFunction(() => document.querySelector("video[data-garden-video]")?.readyState >= 3);
+    await unknown.close();
+    console.log("调试台固定与关闭、分路网速、停传归零、缓存复用、影片在放映屏和全屏均显示 25%、未知长度显示接收量、完整下载后可播放");
   }
 } finally {
+  filmPause?.resolve();
   for (const gate of gates.values()) gate.reply.resolve(503);
   await browser?.close();
   await server.close();

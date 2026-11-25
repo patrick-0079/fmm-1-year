@@ -1,5 +1,6 @@
 import { formatBeijingInput, parseBeijingInput } from "./beijing-input";
 import "./debug.css";
+import { debugIsOpen, rememberDebugOpen } from "./debug-open";
 
 interface CountdownDebugOptions {
   mode: "game" | "countdown";
@@ -80,6 +81,7 @@ export function mountCountdownDebug(host: HTMLElement, options: CountdownDebugOp
   dock.append(trigger, panel);
   const close = (returnFocus: boolean) => {
     panel.hidden = true;
+    rememberDebugOpen(false);
     trigger.setAttribute("aria-expanded", "false");
     if (returnFocus) trigger.focus({ preventScroll: true });
   };
@@ -90,25 +92,22 @@ export function mountCountdownDebug(host: HTMLElement, options: CountdownDebugOp
     }
     refresh();
     panel.hidden = false;
+    rememberDebugOpen(true);
     trigger.setAttribute("aria-expanded", "true");
     closeButton.focus({ preventScroll: true });
   };
   closeButton.onclick = () => close(true);
+  if (debugIsOpen()) trigger.click();
   const escape = (event: KeyboardEvent) => {
-    if (!panel.hidden && event.key === "Escape" && !event.defaultPrevented && !event.isComposing) {
+    if (!panel.hidden && dock.contains(event.target as Node) && event.key === "Escape" && !event.defaultPrevented && !event.isComposing) {
       event.preventDefault();
       event.stopPropagation();
       close(true);
     }
   };
-  const outside = (event: PointerEvent) => {
-    if (!panel.hidden && event.target instanceof Node && !dock.contains(event.target)) close(false);
-  };
   document.addEventListener("keydown", escape, true);
-  document.addEventListener("pointerdown", outside, true);
   return () => {
     document.removeEventListener("keydown", escape, true);
-    document.removeEventListener("pointerdown", outside, true);
     dock.remove();
   };
 }

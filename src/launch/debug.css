@@ -47,7 +47,7 @@
   box-shadow: 0 6px 22px #533d4b30;
 }
 .launch-debug-panel[hidden] { display: none; }
-.launch-debug-close { position: absolute; right: 14px; top: 14px; }
+.launch-debug-close { position: sticky; z-index: 1; top: 0; display: block; margin-inline-start: auto; }
 .launch-debug-form fieldset {
   margin: 0;
   padding: 0;

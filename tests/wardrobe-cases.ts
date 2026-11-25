@@ -4,6 +4,8 @@ import type { World } from "../src/world";
 
 /** Run once at desktop width and once at phone width in the isolated exploration fixture. */
 export async function verifyWardrobe(world: World, log: (message: string) => void) {
+  const fitting = document.querySelector<HTMLButtonElement>('[data-debug="wardrobe"]')!;
+  if (fitting.getAttribute("aria-pressed") !== "true") fitting.click();
   const scene = world.canvas.parentElement!;
   const panel = scene.querySelector<HTMLElement>(".inventory-panel")!;
   const trigger = scene.querySelector<HTMLButtonElement>(".bag-toggle")!;

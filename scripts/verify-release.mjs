@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
+import { setTimeout as delay } from "node:timers/promises";
 import { dirname, join, resolve } from "node:path";
 import { build, preview } from "vite";
 import { OPEN_AT } from "../src/launch/time.ts";
@@ -111,10 +112,16 @@ try {
   await game.locator(".photo-original-back").click();
   await game.locator(".game-album-reader .reader-close").click();
   const assets = await readdir(join(outDir, "assets"));
-  await game.waitForFunction(async total => {
-    const cache = await caches.open("fufu-game-textures-v1:/");
-    return !!navigator.serviceWorker.controller && (await cache.keys()).length === total;
-  }, assets.length, { timeout: 90000 });
+  await game.waitForFunction(() => !!navigator.serviceWorker.controller);
+  const deadline = Date.now() + 90000;
+  let cached;
+  do {
+    cached = await game.evaluate(async () => (await (await caches.open("fufu-game-textures-v1:/")).keys())
+      .map(request => decodeURIComponent(new URL(request.url).pathname).slice("/assets/".length)).sort());
+    if (cached.length >= assets.length) break;
+    await delay(200);
+  } while (Date.now() < deadline);
+  assert.deepEqual(cached, assets.sort());
   await game.context().setOffline(true);
   await game.locator('.scene-nav [data-scene="town"]').click();
   await game.locator('.scene-wrap[data-current-map="town"]').waitFor();

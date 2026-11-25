@@ -39,7 +39,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 游乐设施、星屑、花环和窗景 | `src/scene-art.ts` 按地图加载图集，`src/town-attraction-art.ts` 绘制小镇设施与示意动作 |
 | 装备定义、部位、获取说明 | `src/items.ts`；图标在 `src/item-art.ts`，佩戴定位在 `src/equipment.ts`，人物绘制在 `src/avatar.ts` |
 | 地图互动提示 | `src/interaction-cues.ts` 配置动作、类别、本体锚点与避让范围；`interaction-glints.ts` 绘制细微反光；`interaction-prompt.ts` 与对应样式/布局模块负责物件旁的清晰按钮 |
-| 调试台与正式构建 | `src/debug-panel.ts` 集中管理地图、七色花、游戏、时间、碰撞和衣橱。根目录 `.env` 中 `VITE_WARDROBE_DEBUG=true` 同时开启面板和试穿。正式构建改为 `false` 后重新部署，生产构建变量可以覆盖仓库默认值 |
+| 调试台与正式构建 | `src/debug-panel.ts` 集中管理地图、七色花、游戏、时间、碰撞和衣橱。`VITE_WARDROBE_DEBUG=true` 显示调试入口，全饰品试穿需手动开启。面板在当前标签页保留展开状态。正式构建改为 `false` 后重新部署，生产构建变量可以覆盖仓库默认值 |
 | 周年游园券、七幅棋盘与像素角色 | `src/arcade-art.ts`、`src/arcade-pixels.ts` 与 `src/festival-v11.css`。运行 `npm run art:festival` 重建游戏图和鞋子图层 |
 | 原创音乐《把晚安留给你》 | `src/lullaby.ts` 保存乐谱、各地图速度与配器。`src/sound.ts` 负责解锁音频、音量、放映时的音量变化和后台暂停 |
 | 小游戏规则与面板 | `src/arcade-engines.ts`、`src/arcade-bonus.ts`、`src/arcade.ts`；新增种类也要补 `town-data.ts` 与说明 |
@@ -200,7 +200,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 完整构建生成版本化的 `game-assets-<version>.json`。在 `scripts/scene-assets.mjs` 维护地图归属。人物、背包与装扮、徽章、信笺、相册预览和页面封面等公共资源标为 `*`，每份存档都要先备齐。花海手账封面使用独立小图，CDN 相册原图按需读取。入口和切图的分母是公共资源与目标地图的去重总数，图片解码完成才增加分子。前台最多四项并行，后台最多两项。需要下载目标地图时，中止其他地图的后台传输，复用目标地图已在途的文件。转场结束后后台队列重新请求已中止的文件。Worker 用 SHA-256 校验缓存，重试只补缺项。禁用 Worker 时仍使用同一清单与进入条件。
 
-调试开启时，初始加载页与游戏内调试台都显示「网络下载」。资源读数按同源 Resource Timing 的实际传输量估算（Worker 处理的请求使用其内部计时），视频读数直接来自响应流。两者都是近五秒平均，不将命中缓存的文件大小计作网速。调试产物还可运行 `node scripts/verify-scene-loading.mjs <构建目录> --debug` 验证实际分块传输、刷新命中缓存和停传归零。
+调试开启时，初始加载页与游戏内调试台都显示「网络下载」。资源和影片网速均按近五秒收到的数据块更新。同源资源完成后以 Resource Timing 校准字节数，持久缓存命中单独计数。用 `node scripts/verify-map-bandwidth.mjs <调试构建目录>` 启动本地限速服务器，比较切图后的首包、服务器实际发出的字节与面板读数。用 `node scripts/verify-scene-loading.mjs <调试构建目录> --debug` 验证切图抢占、影片分块下载进度、缓存命中和停传归零。
 
 通过生产预览或 HTTPS 站验收。打开游戏首页后，在点击开始前检查开发者工具的 Cache Storage，确认地图、信笺和相册预览陆续出现。预载完成后刷新，核对相同资源从缓存读取。手账首次应显示「完整视频已预载」，刷新后应显示「影片未变，已从本机载入」，MP4 的版本检查使用 HEAD。用独立浏览器资料或仅删除两个资源缓存可复现首次访问并保留 localStorage 中的游玩进度。
 

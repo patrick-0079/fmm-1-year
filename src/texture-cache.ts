@@ -1,5 +1,6 @@
 import { ResourceQueue, type LoadProgress, type Resource } from "./resource-queue";
 import { traffic, recordTransfer } from "./network-debug";
+import { fetchVerifiedAsset } from "./resource-stream.js";
 
 const base = new URL(import.meta.env.BASE_URL, document.baseURI);
 const version = document.querySelector<HTMLMetaElement>('meta[name="fufu-release"]')?.dataset.version ??
@@ -34,17 +35,22 @@ async function readResource([path, digest]: Resource, priority: "high" | "low", 
   const token = controlled && priority === "low" ? crypto.randomUUID() : undefined;
   const yieldTransfer = () => { if (token) worker?.postMessage({ type: "yield-preload", token }); };
   if (token) headers["X-Fufu-Preload"] = token;
-  if (controlled && traffic) headers["X-Fufu-Net-Debug"] = "1";
+  const transfer = traffic ? crypto.randomUUID?.() ?? String(Math.random()) : undefined;
+  const rate = traffic?.assets;
+  const onBytes = transfer && rate ? (bytes: number) => rate.add(bytes, performance.now(), 0, transfer) : undefined;
+  const onMessage = (event: MessageEvent) => {
+    if (event.source === worker && event.data?.type === "asset-bytes" && event.data.id === transfer) onBytes?.(event.data.bytes);
+  };
+  if (controlled && transfer) headers["X-Fufu-Net-Debug"] = transfer;
   const start = traffic ? performance.now() : 0;
-  const timeout = AbortSignal.timeout?.(180_000);
   signal.throwIfAborted();
+  if (controlled && transfer) navigator.serviceWorker.addEventListener("message", onMessage);
   if (token) signal.addEventListener("abort", yieldTransfer, { once: true });
   try {
-    const response = await fetch(url, {
-      mode: "same-origin", integrity: digest ? "sha256-" + digest : undefined,
-      priority, cache: retry ? "reload" : "default", headers,
-      signal: timeout && AbortSignal.any ? AbortSignal.any([timeout, signal]) : signal,
-    });
+    const options: RequestInit & { signal: AbortSignal } = {
+      mode: "same-origin", priority, cache: retry ? "reload" : "default", headers, signal,
+    };
+    const response = controlled ? await fetch(url, options) : await fetchVerifiedAsset(url, digest, options, onBytes);
     if (response.status !== 200) throw new Error("游戏资源未能载入：" + path);
     const store = cache && !/\bno-store\b/i.test(response.headers.get("Cache-Control") ?? "")
       ? cache.put(url, response.clone()).catch(() => {}) : undefined;
@@ -53,14 +59,15 @@ async function readResource([path, digest]: Resource, priority: "high" | "low", 
       const sample = response.headers.get("X-Fufu-Transfer");
       if (sample) {
         const [bytes, duration] = sample.split(",").map(Number);
-        recordTransfer(bytes, duration);
+        recordTransfer(bytes, duration, transfer);
       } else {
         const entry = (performance.getEntriesByName(url) as PerformanceResourceTiming[])
           .reverse().find(timing => timing.initiatorType === "fetch" && timing.startTime >= start - 1 && !timing.workerStart);
-        recordTransfer(entry ? Math.max(0, entry.transferSize - 300) : -1, entry?.duration ?? 0);
+        recordTransfer(entry ? Math.max(0, entry.transferSize - 300) : -1, entry?.duration ?? 0, transfer);
       }
     }
   } finally {
+    if (controlled && transfer) navigator.serviceWorker.removeEventListener("message", onMessage);
     if (token) signal.removeEventListener("abort", yieldTransfer);
   }
 }

@@ -13,7 +13,7 @@ import {
   type InventoryState,
 } from "./items";
 import { drawItem, wreathUrl, rewardsUrl, whenWardrobeReady } from "./item-art";
-import { reservedShortcut } from "./input";
+import { debugTarget, reservedShortcut } from "./input";
 import { sfx } from "./sound";
 import { prepareProp } from "./scene-art";
 import type { Facing } from "./equipment";
@@ -86,7 +86,6 @@ export class Inventory {
       legacy = this.storage?.getItem("fufu-garden-bag-v1") ?? null;
     } catch {}
     this.earned = readInventory(raw, legacy);
-    if (this.debugAvailable) this.startFitting();
     this.wreath.onload = () => this.drawIcons();
     this.rewards.onload = () => this.drawIcons();
     whenWardrobeReady(() => this.drawIcons());
@@ -113,7 +112,7 @@ export class Inventory {
     window.addEventListener("keydown", (e) => {
       const hotkey = e.key.toLowerCase() === "b" || (e.key === "Escape" && !this.root.hidden);
       if (!hotkey) return;
-      if (reservedShortcut(e) || document.querySelector(".debug-panel:not([hidden])")) return;
+      if (reservedShortcut(e) || debugTarget(e.target)) return;
       if (this.root.hidden && e.target instanceof Element && e.target.closest("[data-page-ui]")) return;
       if (this.root.hidden && !this.canOpen()) return;
       e.preventDefault();

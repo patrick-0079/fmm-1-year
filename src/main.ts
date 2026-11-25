@@ -25,7 +25,7 @@ import { JOURNEY_KEY, readJourney } from "./journey";
 import { scenes } from "./maps";
 import { escapeHtml, icon } from "./icons";
 import { prepareMapArt } from "./texture-cache";
-import { showResourceCount } from "./loading-meter";
+import { resourceMeter, showResourceCount } from "./loading-meter";
 import { mountLoadingMonitor } from "./network-debug";
 
 const coverImage = albumCoverPhoto?.thumbnail && albumCoverPhoto.src
@@ -53,7 +53,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
             <span><span class="window-title-prefix" lang="en">fufu’s little world / </span>周年特别篇</span>
             <div class="window-tools">
               <button class="music-toggle icon-button" aria-label="关闭背景音乐" title="背景音乐">♫</button>
-              <button type="button" class="effects-toggle icon-button" aria-label="互动音效" aria-pressed="true" title="关闭互动音效">音效</button>
+              <button type="button" class="effects-toggle icon-button" aria-label="互动音效" aria-pressed="true" title="关闭互动音效">${icon("effects")}</button>
               <div class="volume-tools" role="group" aria-label="游戏音量">
                 <button class="icon-button sound-toggle" aria-label="游戏声音" title="静音游戏声音" aria-pressed="true">${icon("sound")}</button>
                 <button class="icon-button volume-down" aria-label="降低游戏音量">−</button>
@@ -69,7 +69,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
             <section class="cinema-hud" aria-label="花园小电视放映控制" hidden></section><div class="activity-hud" hidden><div class="activity-heading"><span class="activity-status" role="status" aria-live="polite"></span><button class="activity-close" aria-label="结束当前互动，回到地图">收起 ×</button></div><div class="activity-actions"></div></div><div class="rest-tools" hidden><span></span><button class="camp-letter map-action" type="button" aria-label="读派大星的来信" hidden>读来信</button><button class="stand-up map-action">起身 <kbd>E</kbd></button></div><button class="bed-note-pin map-tool" hidden>♡ 床边便签</button><article class="bed-note" aria-label="小叶子的床边便签" hidden></article>
             <div class="ruin-stamp-flash" role="status" aria-live="polite" aria-atomic="true" hidden></div>
             <div class="intro-screen"><div class="intro-stars">✧ <span>✦</span> ✧</div><span class="intro-pill">芙眠眠 · 直播一周年纪念</span><h2>今晚的快乐，<br>等你来发现。</h2><p>一间温暖小屋，两座缤纷花园，<br>还有东北山洞深处的回声遗迹。<br>和藏在街角的，一点点喜欢。</p>
-              <button class="button primary enter-button" disabled>正在准备地图…</button><div class="resource-meter"><progress class="entry-progress" aria-label="公共资源与初始地图"></progress><span class="resource-count" aria-hidden="true"></span></div><small>正在准备背包、信笺和地图画面…</small>
+              <button class="button primary enter-button" disabled>正在准备地图…</button>${resourceMeter("entry-progress", "公共资源与初始地图")}<small>正在准备背包、信笺和地图画面…</small>
             </div>
             <section class="game-letter-reader" aria-label="在游戏中阅读晚安信箱" hidden></section>
             <div class="scene-transition">
@@ -77,7 +77,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
                 <div class="scene-transition-art"><span class="scene-transition-star"><span class="scene-transition-face"></span></span></div>
                 <span class="scene-transition-label">正在前往</span>
                 <strong class="scene-transition-destination"></strong>
-                <div class="resource-meter"><progress class="map-progress" aria-label="公共资源与目标地图"></progress><span class="resource-count" aria-hidden="true"></span></div>
+                ${resourceMeter("map-progress", "公共资源与目标地图")}
               </div>
               <span class="scene-transition-status" role="status"></span>
             </div>

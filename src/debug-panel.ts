@@ -11,6 +11,7 @@ import { getDeadline, setDebugDeadline } from "./launch/time";
 import { allLetters } from "./letters";
 
 import { attachDownloadMonitor } from "./network-debug";
+import { debugIsOpen, rememberDebugOpen } from "./launch/debug-open";
 
 const maps = {
   room: "晚安小屋",
@@ -89,9 +90,17 @@ export function mountDebugPanel(
           ${button("keep", "保留存档")} ${button("confirm-erase", "确认清空")}</div>
       </details>
     </aside>`;
-  document.querySelector("#app")!.append(holder);
+  const root = document.querySelector("#app")!;
+  root.append(holder);
   const panel = holder.querySelector<HTMLElement>(".debug-panel")!,
     trigger = holder.querySelector<HTMLButtonElement>(".debug-trigger")!;
+  const help = document.querySelector<HTMLDialogElement>("#game-help");
+  const placeDock = () => {
+    const target = help?.open && !panel.hidden ? help : document.fullscreenElement ?? root;
+    if (target !== holder.parentElement && !(target instanceof HTMLVideoElement)) target.append(holder);
+  };
+  if (help) new MutationObserver(placeDock).observe(help, { attributes: true, attributeFilter: ["open"] });
+  document.addEventListener("fullscreenchange", placeDock);
   void import("./launch/debug").then(({ mountCountdownDebug }) => {
     mountCountdownDebug(panel.querySelector<HTMLElement>(".debug-launch-time")!, {
       mode: "game",
@@ -154,9 +163,9 @@ export function mountDebugPanel(
   const close = (focus = false) => {
     if (panel.hidden) return;
     panel.hidden = true;
+    rememberDebugOpen(false);
     cancelErase();
     trigger.setAttribute("aria-expanded", "false");
-    world.suspend("debug", false);
     if (focus && !mailbox.restoreReadingFocus()) trigger.focus({ preventScroll: true });
   };
   trigger.onclick = () => {
@@ -164,9 +173,8 @@ export function mountDebugPanel(
       close(true);
       return;
     }
-    bag.close(false);
-    world.suspend("debug", true);
     panel.hidden = false;
+    rememberDebugOpen(true);
     refreshMail();
     refresh();
     trigger.setAttribute("aria-expanded", "true");
@@ -174,20 +182,13 @@ export function mountDebugPanel(
       .querySelector<HTMLButtonElement>(".debug-close")!
       .focus({ preventScroll: true });
   };
-  if (attachDownloadMonitor(panel)) trigger.click();
+  if (attachDownloadMonitor(panel) || debugIsOpen()) trigger.click();
   holder.querySelector<HTMLButtonElement>(".debug-close")!.onclick = () =>
     close(true);
-  document.addEventListener(
-    "pointerdown",
-    (e) => {
-      if (!holder.contains(e.target as Node)) close();
-    },
-    { capture: true },
-  );
   window.addEventListener(
     "keydown",
     (e) => {
-      if (!panel.hidden && e.key === "Escape" && !reservedShortcut(e)) {
+      if (!panel.hidden && holder.contains(e.target as Node) && e.key === "Escape" && !reservedShortcut(e)) {
         e.preventDefault();
         e.stopImmediatePropagation();
         if (!eraseCheck.hidden) cancelErase(true);
@@ -203,7 +204,6 @@ export function mountDebugPanel(
   ) => {
     if (travelling) return;
     travelling = true;
-    close();
     try {
       if (!(await go(scene, id, mode))) toast("请等地图准备好，再试一次。");
     } catch {
@@ -231,10 +231,7 @@ export function mountDebugPanel(
     } else if (type === "keep") cancelErase(true);
     else if (type === "confirm-erase") {
       if (!eraseCheck.hidden && !travelling && await eraseProgress()) {
-        close();
-        document
-          .querySelector<HTMLButtonElement>(".enter-button")!
-          .focus({ preventScroll: true });
+        cancelErase(true);
       }
     } else if (type === "wardrobe") bag.setFitting(!bag.fitting);
     else if (type === "collision")

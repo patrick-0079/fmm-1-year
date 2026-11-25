@@ -74,10 +74,12 @@ async function check(name: string, run: () => void | Promise<void>) {
   document.querySelector("#results")!.append(li);
 }
 
-await check("默认试穿全部饰品，关闭后恢复真实搭配，试玩时领取的奖励可以存档", () => {
+await check("默认展示真实收藏，手动试穿后可以恢复真实搭配并保存试玩时领取的奖励", () => {
   const switchMode = () => inventory.setFitting(!inventory.fitting);
   inventory.open();
-  assert(bag.querySelectorAll("[data-select]:not(.is-locked)").length === Object.keys(ITEMS).length, "默认可试穿的数量有误");
+  assert(!inventory.fitting && !!bag.querySelector(".bag-item.is-locked"), "首次打开衣橱应只显示真实收藏可用");
+  switchMode();
+  assert(bag.querySelectorAll("[data-select]:not(.is-locked)").length === Object.keys(ITEMS).length, "手动开启后可试穿的数量有误");
   const before = saves.get(INVENTORY_KEY);
   selectItem("starShoes");
   assert(!world.equipment.shoes && saves.get(INVENTORY_KEY) === before, "挑选配饰就更改了地图或存档");

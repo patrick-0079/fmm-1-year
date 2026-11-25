@@ -6,6 +6,7 @@ import { defineConfig, loadEnv, normalizePath, type Plugin, type Rollup } from "
 import { validateStationery } from "./scripts/validate-stationery.mjs";
 import { readLetterCatalogue } from "./scripts/scan-letters.mjs";
 import { assetScenes } from "./scripts/scene-assets.mjs";
+import { textureWorkerSource } from "./scripts/texture-worker-source.mjs";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const referenceRoot = normalizePath(fileURLToPath(new URL("./ref/", import.meta.url)));
@@ -123,8 +124,7 @@ function releaseEntry(mode: "full" | "lite", debug: boolean): Plugin {
         hash.update(html.source);
         for (const name of Object.keys(bundle).sort()) hash.update(name);
         const manifest = mode === "full" ? JSON.stringify(resourceManifest(bundle)) : undefined;
-        const worker = manifest && (readFileSync(new URL("./scripts/texture-worker.js", import.meta.url), "utf8") +
-          (debug ? "\n" + readFileSync(new URL("./scripts/texture-debug.js", import.meta.url), "utf8") : ""));
+        const worker = manifest && textureWorkerSource(debug);
         if (manifest && worker) hash.update(manifest).update(worker);
         const version = hash.digest("hex").slice(0, 16);
         html.source = html.source.replace(`data-version="dev-${mode}"`, `data-version="${version}"`);

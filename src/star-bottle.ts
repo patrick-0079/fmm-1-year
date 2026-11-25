@@ -1,6 +1,6 @@
 import "./star-bottle.css";
 import { producers } from "./content";
-import { reservedShortcut } from "./input";
+import { debugTarget, reservedShortcut } from "./input";
 import { meadowAtlasUrl } from "./wild-art";
 import meadowBackground from "./assets/night-meadow-v16.webp";
 import bottleUrl from "./assets/star-bottle-closeup.webp";
@@ -81,7 +81,12 @@ export class StarBottleView {
         if(top!==null){event.preventDefault();event.stopPropagation();this.message.scrollTop=top;}
       }else if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Home","End","PageUp","PageDown"].includes(event.key)||(event.key===" "&&!(event.target as Element).closest("button")))event.preventDefault();
     });
-    window.addEventListener("keydown",event=>{if(!this.opened||event.defaultPrevented||reservedShortcut(event)||event.key!=="Escape"||document.querySelector(".debug-panel:not([hidden])"))return;event.preventDefault();event.stopImmediatePropagation();this.close();},{capture:true});
+    window.addEventListener("keydown", event => {
+      if (!this.opened || event.defaultPrevented || reservedShortcut(event) || event.key !== "Escape" || debugTarget(event.target)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      this.close();
+    }, { capture: true });
   }
 
   get opened(){return !this.element.hidden;}
