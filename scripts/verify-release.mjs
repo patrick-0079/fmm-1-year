@@ -133,6 +133,31 @@ try {
   assert.ok(await book.isVisible());
   assert.match(await book.innerText(), /0\s*\/\s*55/);
   assert.equal(await game.locator(":modal").count(), 0);
+  // Keep a stamp open while the journal moves between the rail and the bottom sheet.
+  await book.locator('[data-book-pick="gifts"]').click();
+  for (const [width, height, side] of [[1920, 1080, true], [768, 1024, false], [390, 844, false], [1280, 820, true]]) {
+    await game.setViewportSize({ width, height });
+    const layout = await book.evaluate(panel => {
+      const map = document.querySelector("#world").getBoundingClientRect();
+      const book = panel.getBoundingClientRect();
+      const grid = panel.querySelector(".achievement-grid");
+      const stamps = [...grid.querySelectorAll("[data-book-pick]")].map(el => el.getBoundingClientRect());
+      const firstRow = stamps.filter(stamp => Math.abs(stamp.top - stamps[0].top) < 1);
+      const selected = grid.querySelector('[aria-expanded="true"]').getBoundingClientRect();
+      const detail = grid.querySelector(".achievement-detail");
+      return {
+        beside: book.left >= map.right - 1 && book.top < map.bottom,
+        below: book.top >= map.bottom - 1,
+        firstRow: firstRow.length,
+        filled: Math.abs(firstRow.at(-1).right - grid.getBoundingClientRect().right) < 1,
+        detailGap: detail.getBoundingClientRect().top - selected.bottom - parseFloat(getComputedStyle(grid).rowGap),
+        focused: document.activeElement === detail,
+      };
+    });
+    assert.ok(side ? layout.beside : layout.below, `${width}px 徽章册位置不正确`);
+    assert.ok(layout.filled && Math.abs(layout.detailGap) < 1 && layout.focused, `${width}px 展开的详情应紧跟完整的一行徽章`);
+    if (width === 768) assert.ok(layout.firstRow >= 4, "平板下方的徽章应充分利用整行宽度");
+  }
   await badges.press("ArrowLeft");
   assert.equal(await maps.getAttribute("aria-selected"), "true");
   assert.ok(await book.isHidden());

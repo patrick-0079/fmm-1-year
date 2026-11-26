@@ -5,15 +5,7 @@ import "./achievement-book.css";
 
 const chapterTabs = { daily: "日常", letters: "来信", games: "游园", explore: "探索", advanced: "进阶" } as const;
 
-export const achievementBookMarkup = `<section id="anniversary-badges" role="tabpanel" class="achievement-book" data-page-ui aria-labelledby="badges-tab" hidden>
-  <header class="achievement-cover">
-    <h2>周年徽章册</h2>
-    <span class="achievement-cover-emblem" aria-hidden="true"><canvas data-stamp-art="fox" width="32" height="32"></canvas></span>
-  </header>
-  <div class="achievement-page">
-    <div class="achievement-live"></div>
-  </div>
-</section>`;
+export const achievementBookMarkup = `<section id="anniversary-badges" role="tabpanel" class="achievement-book" data-page-ui aria-labelledby="badges-tab" hidden></section>`;
 
 const concealed = (entry: AchievementEntry) => !!entry.hint && !entry.earned;
 const visibleName = (entry: AchievementEntry) => (concealed(entry) ? "未揭晓的徽章" : entry.name);
@@ -26,6 +18,24 @@ export function achievementStampMarkup(entry: AchievementEntry) {
       ? `<i data-stamp-letter="${escapeHtml(entry.letterId)}"></i>`
       : `<canvas data-stamp-art="${unknown && entry.letterId ? "sealed-letter" : escapeHtml(entry.id)}"${design} ${unknown ? "data-stamp-veiled" : ""} width="32" height="32"></canvas>`;
   return `<span class="achievement-stamp stamp-${entry.chapter} ${entry.earned ? "stamp-earned" : "stamp-pending"}${unknown ? " stamp-secret" : ""}" aria-hidden="true">${image}</span>`;
+}
+
+function bookCover(collected: number, total: number, last?: AchievementEntry) {
+  const label = total > 0 && collected === total ? "全部收集齐啦" : "已收集";
+  return `<header class="achievement-cover">
+    <div class="achievement-cover-title">
+      <span class="achievement-cover-emblem" aria-hidden="true"><canvas data-stamp-art="fox" width="32" height="32"></canvas></span>
+      <h2>周年徽章册</h2>
+    </div>
+    <div class="achievement-summary">
+      <div class="achievement-count"><span>${label}</span><strong>${collected}<span> / ${total}</span></strong></div>
+      <progress class="achievement-track" value="${collected}" max="${total || 1}" aria-label="徽章收集进度"></progress>
+    </div>
+    ${last ? `<section class="achievement-last" aria-label="最近获得">
+      <span class="achievement-last-imprint">${achievementStampMarkup(last)}</span>
+      <small>最近获得</small><strong>${escapeHtml(last.name)}</strong>
+    </section>` : ""}
+  </header>`;
 }
 
 function stampButton(entry: AchievementEntry, active: boolean) {
@@ -52,8 +62,6 @@ function details(entry: AchievementEntry) {
 
 export function mountAchievementBook() {
   const root = document.querySelector<HTMLElement>(".achievement-book")!;
-  const live = root.querySelector<HTMLElement>(".achievement-live")!;
-  paintAchievementArt(root);
   let rows: readonly AchievementEntry[] = [];
   let latest: string | null = null;
   let chapter: AchievementEntry["chapter"] = achievementChapters[0].id;
@@ -61,53 +69,43 @@ export function mountAchievementBook() {
   let previousHtml = "";
 
   function focusAt(key: string) {
-    const target = [...live.querySelectorAll<HTMLElement>("[data-focus]")].find((el) => el.dataset.focus === key);
+    const target = [...root.querySelectorAll<HTMLElement>("[data-focus]")].find((el) => el.dataset.focus === key);
     target?.focus({ preventScroll: true });
   }
 
   function render(focus?: string) {
     const earned = rows.filter((row) => row.earned);
-    const current = rows.find((row) => row.id === selected);
     const last = earned.find((row) => row.id === latest) ?? earned.at(-1);
-    const count = rows.length;
-    const content = [
-      `<div class="achievement-summary"><div class="achievement-count"><span>已收集徽章</span><strong>${earned.length}<span> / ${count}</span></strong></div>
-       <progress class="achievement-track" value="${earned.length}" max="${count || 1}" aria-label="徽章收集进度"></progress>`,
-    ];
-    if (last) content.push(
-      `<section class="achievement-last" aria-label="最近获得"><div class="achievement-last-imprint">${achievementStampMarkup(last)}</div><span><small>最近获得</small><strong>${escapeHtml(last.name)}</strong></span></section>`,
-    );
-    if (count && earned.length === count) content.push(`<p class="achievement-complete">${count} 枚徽章，全部收集齐啦。</p>`);
     const page = achievementChapters.find((group) => group.id === chapter)!;
     const entries = rows.filter((row) => row.chapter === chapter);
-    // Open the selected page directly beneath its row of stamps.
-    const selectedIndex = entries.findIndex((row) => row.id === selected);
-    const detailAfter = Math.min(entries.length - 1, Math.floor(selectedIndex / 3) * 3 + 2);
-    content.push(`</div><div id="achievement-chapters" class="achievement-chapters"><nav aria-label="徽章章节">
-      ${achievementChapters.map((group) => `<button type="button" data-book-chapter="${group.id}" data-focus="tab-${group.id}" aria-pressed="${group.id === chapter}" aria-label="${escapeHtml(group.title)}">${chapterTabs[group.id]}</button>`).join("")}
-      </nav><div class="achievement-chapter-heading"><h3>${escapeHtml(page.title)}</h3><small>${entries.filter((row) => row.earned).length} / ${entries.length}</small></div>
-      <div class="achievement-grid">${entries
-        .map(
-          (row, index) =>
-            stampButton(row, row.id === selected) +
-            (current && index === detailAfter ? details(current) : ""),
-        )
-        .join("")}</div>
-      ${current ? "" : '<div id="achievement-detail" hidden></div>'}</div>`);
-    const html = content.join("");
+    const current = entries.find((row) => row.id === selected);
+    const html = `${bookCover(earned.length, rows.length, last)}
+      <div id="achievement-chapters" class="achievement-page achievement-chapters">
+        <div class="achievement-chapter-bar">
+          <nav aria-label="徽章章节">
+            ${achievementChapters.map((group) => `<button type="button" data-book-chapter="${group.id}" data-focus="tab-${group.id}"
+              aria-pressed="${group.id === chapter}" aria-label="${escapeHtml(group.title)}">${chapterTabs[group.id]}</button>`).join("")}
+          </nav>
+          <div class="achievement-chapter-heading"><h3>${escapeHtml(page.title)}</h3><small>${entries.filter((row) => row.earned).length} / ${entries.length}</small></div>
+        </div>
+        <div class="achievement-grid">${entries.map(row =>
+          stampButton(row, row === current) + (row === current ? details(row) : "")
+        ).join("")}</div>
+        ${current ? "" : '<div id="achievement-detail" hidden></div>'}
+      </div>`;
     if (html !== previousHtml) {
       const active = document.activeElement;
-      const oldKey = active instanceof HTMLElement && live.contains(active) ? active.dataset.focus : undefined;
+      const oldKey = active instanceof HTMLElement && root.contains(active) ? active.dataset.focus : undefined;
       previousHtml = html;
-      live.innerHTML = html;
-      paintAchievementArt(live);
+      root.innerHTML = html;
+      paintAchievementArt(root);
       if (focus || oldKey) focusAt(focus ?? oldKey!);
     } else if (focus) focusAt(focus);
   }
 
   root.addEventListener("click", (event) => {
     const button = event.target instanceof Element ? event.target.closest<HTMLButtonElement>("button") : null;
-    if (!button || !live.contains(button)) return;
+    if (!button || !root.contains(button)) return;
     if (button.dataset.bookChapter) {
       const next = achievementChapters.find((group) => group.id === button.dataset.bookChapter);
       if (!next) return;
@@ -120,7 +118,7 @@ export function mountAchievementBook() {
       selected = selected === row.id ? null : row.id;
       chapter = row.chapter;
       render(selected ? "detail" : "pick-" + row.id);
-      const detail = selected && live.querySelector<HTMLElement>("#achievement-detail");
+      const detail = selected && root.querySelector<HTMLElement>("#achievement-detail");
       if (detail) {
         const rect = detail.getBoundingClientRect(), view = root.getBoundingClientRect();
         if (rect.top < view.top || rect.bottom > view.bottom) root.scrollTop += rect.top - view.top;
@@ -137,8 +135,8 @@ export function mountAchievementBook() {
       if (root.hidden) return;
       render();
       if (newlyStamped && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        const imprint = live.querySelector<HTMLElement>(`[data-book-pick="${latestId}"] .achievement-stamp, .achievement-last-imprint`)
-          ?? live.querySelector<HTMLElement>(".achievement-count strong");
+        const imprint = root.querySelector<HTMLElement>(`[data-book-pick="${latestId}"] .achievement-stamp, .achievement-last-imprint`)
+          ?? root.querySelector<HTMLElement>(".achievement-count strong");
         imprint?.animate([
           { transform: "scale(1.14) rotate(-6deg)", opacity: .6 },
           { transform: "scale(.95) rotate(1deg)", opacity: 1, offset: .55 },

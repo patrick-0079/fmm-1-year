@@ -106,11 +106,18 @@ html:has(.game-window :focus) { overflow-anchor: none; }
 @media (pointer: coarse), (max-width: 600px) {
   .page-journal .game-window { --touch-height: var(--dpad-height, 169px); }
 }
-/* Use spare horizontal room for the controls when the screen limits the map's height. */
-@container adventure (min-width: max(420px, calc(150dvh - 130px))) {
+@container controls (min-width: 245px) and (max-width: 560px) {
+  .control-tabs button { flex: 1; }
+  .game-controls .scene-nav { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .game-controls .scene-nav > button { padding-inline: 2px; gap: 3px; font-size: 12px; }
+  .scene-nav .map-stamp { width: 23px; height: 23px; }
+}
+/* At 880px the journal fits both a playable map and its rail, even on tall screens.
+   Short landscape windows can use the rail earlier because height limits the map. */
+@container adventure (min-width: clamp(420px, 150dvh - 130px, 880px)) {
   .page-journal .game-window {
     --side-controls: 1;
-    --controls-width: clamp(200px, 21cqw, 242px);
+    --controls-width: clamp(200px, 22cqw, 288px);
     --map-height: calc(var(--play-height) - var(--bar-height));
     width: min(100%, calc(var(--map-height) * 1.5 + var(--controls-width) + 2px));
   }
@@ -144,10 +151,8 @@ html:has(.game-window :focus) { overflow-anchor: none; }
     .game-stage-frame { grid-area: 2 / 1 / 4 / 2; }
     .game-control-menu { grid-area: 2 / 2; }
     .game-controls > .achievement-book { grid-area: 3 / 2; align-self: stretch; }
-    .game-controls .achievement-cover { display: none; }
+    .game-controls .achievement-cover { padding-block: 6px; }
     .game-controls .achievement-page { padding: 4px 9px 10px; }
-    .achievement-page .achievement-track { margin-bottom: 3px; }
-    .achievement-page .achievement-chapters nav { margin-top: 0; }
     .game-controls .touch-controls { grid-area: 3 / 2; align-self: start; }
     .game-controls .touch-interact { align-self: flex-start; }
     .game-meta { grid-area: 4 / 1 / 5 / -1; overflow: visible; }
@@ -197,12 +202,6 @@ html:has(.game-window :focus) { overflow-anchor: none; }
   .scene-nav .map-copy { min-width: 0; }
   .scene-nav .map-name { display: block; font-weight: 650; font-size: 15px; line-height: 1.4; }
   .scene-nav .map-note { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; line-height: 1.35; color: #655b60; }
-}
-@container controls (min-width: 245px) and (max-width: 560px) {
-  .control-tabs button { flex: 1; }
-  .game-controls .scene-nav { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); }
-  .game-controls .scene-nav > button { padding-inline: 2px; gap: 3px; font-size: 12px; }
-  .scene-nav .map-stamp { width: 23px; height: 23px; }
 }
 @media (max-height: 600px) and (max-aspect-ratio: 6/5) {
   .game-controls .touch-controls { padding: 6px 10px; gap: 8px; }
