@@ -69,6 +69,17 @@ function compareResources(a: { order: number; source: string }, b: { order: numb
   return a.order - b.order || compareText(basename(a.source), basename(b.source)) || compareText(a.source, b.source);
 }
 
+const journalPaper = "src/assets/journal-celestial-paper.webp";
+const isCursor = (source: string) => source.startsWith("src/assets/fufu-cursor-");
+
+function assetOwners(sources: string[]) {
+  const owners = new Set<string>(sources.flatMap(mediaScenes));
+  // Page images load from the document. A byte-identical map image must still enter its pack.
+  if (owners.has("*")) return ["*"];
+  if (owners.size > 1) owners.delete("page");
+  return [...owners];
+}
+
 function resourceManifest(bundle: Rollup.OutputBundle) {
   const chunkScenes = (name: string) => ["view", "debug"].includes(name) ? [] : ["*"];
   const styles = new Map<string, Set<string>>();
@@ -80,18 +91,23 @@ function resourceManifest(bundle: Rollup.OutputBundle) {
       styles.set(css, owners);
     }
   }
-  // The document already loads its decorative paper. It must never gate a map or film.
-  return Object.values(bundle).filter(file => file.fileName.startsWith("assets/") && !/\.(?:mp4|m4v|webm|mov|ogv)$/i.test(file.fileName)
-      && !(file.type === "asset" && file.originalFileNames.some(path => normalizePath(path) === "src/assets/journal-celestial-paper.webp")))
-    .map(file => {
-      const sources = file.type === "asset" ? file.originalFileNames.map(normalizePath).sort() : [];
-      const source = sources[0] ?? file.fileName;
-      const scenes = file.type === "chunk" ? chunkScenes(file.name)
-        : file.fileName.endsWith(".css") ? styles.get(file.fileName) ?? ["*"]
-        : (sources.length ? sources : [source]).flatMap(mediaScenes);
-      const digest = createHash("sha256").update(file.type === "chunk" ? file.code : file.source).digest("base64");
-      return { order: preloadOrder(sources), source, entry: [file.fileName, digest, [...new Set(scenes)]] };
-    }).sort(compareResources).map(item => item.entry);
+  const resources = [], looseCursors = new Set<string>();
+  for (const file of Object.values(bundle)) {
+    if (!file.fileName.startsWith("assets/") || /\.(?:mp4|m4v|webm|mov|ogv)$/i.test(file.fileName)) continue;
+    const originals = file.type === "asset" ? file.originalFileNames.map(normalizePath) : [];
+    const sources = originals.filter(source => source !== journalPaper).sort();
+    if (originals.length && !sources.length) continue;
+    const first = (sources.length ? sources : [file.fileName])
+      .map(source => ({ order: preloadOrder([source]), source })).sort(compareResources)[0];
+    const scenes = file.type === "chunk" ? chunkScenes(file.name)
+      : file.fileName.endsWith(".css") ? [...(styles.get(file.fileName) ?? ["*"])]
+      : assetOwners(sources.length ? sources : [file.fileName]);
+    if (sources.some(isCursor) && sources.every(source => isCursor(source) || mediaScenes(source).every((scene: string) => scene === "page")))
+      looseCursors.add(file.fileName);
+    const digest = createHash("sha256").update(file.type === "chunk" ? file.code : file.source).digest("base64");
+    resources.push({ ...first, entry: [file.fileName, digest, scenes] });
+  }
+  return { files: resources.sort(compareResources).map(item => item.entry), looseCursors };
 }
 
 function releaseEntry(mode: "full" | "lite", debug: boolean): Plugin {
@@ -117,7 +133,7 @@ function releaseEntry(mode: "full" | "lite", debug: boolean): Plugin {
       if (mode === "full") server.middlewares.use("/game-assets-dev-full.json", async (_request, response, next) => {
         try {
           const paths = await developmentResourcePaths(server);
-          const entries = paths.map(path => {
+          const entries = paths.filter(path => path.split("?")[0] !== journalPaper).map(path => {
             const source = path.split("?")[0];
             return { order: preloadOrder([source]), source, entry: [path, "", mediaScenes(source)] };
           }).sort(compareResources).map(item => item.entry);
@@ -158,8 +174,10 @@ function releaseEntry(mode: "full" | "lite", debug: boolean): Plugin {
         if (html?.type !== "asset" || typeof html.source !== "string") this.error("缺少发布首页 index.html");
         hash.update(html.source);
         for (const name of Object.keys(bundle).sort()) hash.update(name);
-        const files = mode === "full" ? resourceManifest(bundle) : undefined;
-        if (files) packBuild = makeGamePacks(files, (path: string) => (bundle[path] as Rollup.OutputAsset).source, buildBranch());
+        const catalogue = mode === "full" ? resourceManifest(bundle) : undefined;
+        const files = catalogue?.files;
+        if (catalogue) packBuild = makeGamePacks(catalogue.files, (path: string) => (bundle[path] as Rollup.OutputAsset).source,
+          buildBranch(), (path: string) => catalogue.looseCursors.has(path));
         const packIndex = packBuild && JSON.stringify(packBuild.index);
         if (packIndex) hash.update(packIndex);
         const manifest = files && JSON.stringify(files);

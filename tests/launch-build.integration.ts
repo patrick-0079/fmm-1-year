@@ -3,10 +3,12 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { copyFile, mkdtemp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build, createServer, type InlineConfig } from "vite";
 import { scanLetters } from "../scripts/scan-letters.mjs";
+import { PackResources } from "../src/pack-resources.ts";
+import type { Resource } from "../src/resource-queue.ts";
 
 async function devEntries(config: InlineConfig): Promise<[string, string, string[]][]> {
   const server = await createServer({ ...config, logLevel: "silent",
@@ -130,10 +132,20 @@ test("switching full → invitation → full cleans the deployed directory", asy
     assert.ok(devNames.includes("src/assets/" + name + ".webp?no-inline"), name);
   const developmentMedia = await Promise.all(development.map(async ([url, , scenes]) => {
     const bytes = await readFile(new URL("../" + url.split("?")[0], import.meta.url));
-    return [createHash("sha256").update(bytes).digest("base64"), scenes];
+    return [createHash("sha256").update(bytes).digest("base64"), scenes] as const;
   }));
-  const releaseMedia = entries.filter(([file]) => !/\.(css|js)$/.test(file)).map(([, digest, scenes]) => [digest, scenes]);
-  assert.deepEqual(developmentMedia, releaseMedia, "development and release media have the same content, ownership and order");
+  const distinctMedia = new Map<string, Set<string>>();
+  for (const [digest, scenes] of developmentMedia) {
+    const owners = distinctMedia.get(digest) ?? new Set<string>();
+    for (const scene of scenes) owners.add(scene);
+    distinctMedia.set(digest, owners);
+  }
+  const expectedMedia = [...distinctMedia].map(([digest, owners]) => {
+    if (owners.size > 1) owners.delete("page");
+    return [digest, owners.has("*") ? ["*"] : [...owners].sort()];
+  });
+  const releaseMedia = entries.filter(([file]) => !/\.(css|js)$/.test(file)).map(([, digest, scenes]) => [digest, [...scenes].sort()]);
+  assert.deepEqual(expectedMedia, releaseMedia, "development and release media have the same content, ownership and order");
   assert.ok(!explicit.files.some(name => name.includes("stationery-cherrywood-box")));
   assert.ok(!explicit.files.some(name => /CharaStudio.*\.png$/i.test(name)));
 
@@ -227,4 +239,64 @@ test("dev discovers only used star sprites, and a build rejects an unmapped game
   await writeFile(join(root, "index.html"), '<script type="module" src="/src/launch/lite.ts"></script>');
   await writeFile(join(launch, "full.ts"), 'import art from "../assets/unregistered.png?no-inline"; document.body.dataset.art = art;');
   await assert.rejects(build({ root, configFile, logLevel: "silent", build: { write: false } }), /资源清单归属：src\/assets\/unregistered.png/);
+});
+
+test("content aliases retain their map owners even when shared with the homepage or a cursor", async t => {
+  const root = await mkdtemp(join(tmpdir(), "fufu-media-alias-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const outDir = join(root, "dist"), configFile = fileURLToPath(new URL("../vite.config.ts", import.meta.url));
+  const pairs = [
+    ["src/assets/room-interactive.webp", "src/assets/anniversary-garden-tree-free.webp", "shared-garden-room"],
+    ["src/assets/journal-letter.webp", "src/assets/xiaoye-note.webp", "room"],
+    ["src/assets/journal-celestial-paper.webp", "src/assets/garden-bench.webp", "challenge"],
+    ["src/assets/fufu-footwear.webp", "src/assets/white-bass-v18.webp", "common"],
+    ["src/assets/fufu-cursor-arrow.png", "ref/花海星星/this-is-a-custom-credited-star.png", "common"],
+    ["src/assets/fufu-cursor-play.png", "src/launch/icon.png", "loose"],
+  ];
+  const imports = [], variables = [], expected = new Map<string, string>();
+  for (const [original, alias, group] of pairs) {
+    const bytes = await readFile(new URL("../" + original, import.meta.url));
+    expected.set(createHash("sha256").update(bytes).digest("base64"), group);
+    for (const path of [original, alias]) {
+      const name = "art" + variables.length;
+      await mkdir(dirname(join(root, path)), { recursive: true });
+      await writeFile(join(root, path), bytes);
+      imports.push('import ' + name + ' from "/' + path + '?no-inline";');
+      variables.push(name);
+    }
+  }
+  await writeFile(join(root, "src/launch/full.ts"), imports.join("\n") + "\ndocument.body.textContent = [" + variables.join(",") + "].join();");
+  await writeFile(join(root, "index.html"), '<script type="module" src="/src/launch/lite.ts"></script>');
+  const old = process.env.FULL_BUILD;
+  t.after(() => { if (old === undefined) delete process.env.FULL_BUILD; else process.env.FULL_BUILD = old; });
+  process.env.FULL_BUILD = "true";
+  await build({ root, configFile, logLevel: "silent", build: { outDir } });
+  const json = async (name: string) => JSON.parse(await readFile(join(outDir, name), "utf8"));
+  const { version } = await json("release.json");
+  const files: Resource[] = await json("game-assets-" + version + ".json"), index = await json("game-packs-" + version + ".json");
+  const groups = new Map<string, string>();
+  for (const pack of index.packs) {
+    for (const [name] of pack.entries) {
+      assert.ok(!groups.has(name));
+      groups.set(name, pack.group);
+    }
+  }
+  const media = files.filter(([name]) => /\.(webp|png)$/.test(name));
+  assert.equal(media.length, expected.size);
+  for (const [name, digest, owners] of media) {
+    const group = expected.get(digest);
+    assert.ok(group, name);
+    assert.equal(groups.get(name) ?? "loose", group);
+    assert.deepEqual([...owners].sort(), group === "common" || group === "loose" ? ["*"]
+      : group === "shared-garden-room" ? ["garden", "room"] : [group]);
+  }
+  t.mock.method(globalThis, "fetch", async (url: URL) => {
+    const name = url.pathname.split("/").at(-1)!;
+    return new Response(await readFile(join(root, "artifacts", "game-packs", index.branch, name)));
+  });
+  const cache = { match: async () => undefined, put: async () => {} } as unknown as Cache;
+  const packs = new PackResources(index, files, new URL("https://game.test/"), cache);
+  for (const scene of ["room", "garden", "challenge"]) await packs.prepare(scene);
+  for (const [name] of media)
+    assert.equal(await packs.wait(name, new AbortController().signal), groups.has(name), name);
 });

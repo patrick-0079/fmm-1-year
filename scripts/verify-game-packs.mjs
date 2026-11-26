@@ -112,6 +112,23 @@ try {
       console.log(fault ? "断流后复用已收齐文件，站内补载完成" : "对象存储字节进度完成",
         {scene, worker, packRequests:requests.length, intermediate:result.readings.find(v=>parseFloat(v)>0 && parseFloat(v)<99.9),
           final:result.readings.at(-1)});
+      if (worker === "allow") {
+        const manifestFile = "game-assets-" + marker.version + ".json";
+        const manifest = live ? await (await fetch(new URL(manifestFile, live))).json() : await json(manifestFile);
+        const roomFiles = new Set(manifest.filter(([, , scenes]) => scenes.includes("*") || scenes.includes("room")).map(([path]) => path));
+        const coldPacks = new Set(index.packs.filter(p => roomFiles.has(p.entries[0][0])).map(p => p.file));
+        requests.length = 0;
+        await page.reload({waitUntil:"domcontentloaded"});
+        await enter.waitFor();
+        assert.equal(await page.locator(".entry-progress").getAttribute("aria-valuetext"), "100.0%");
+        assert.ok(await page.evaluate(() => !!navigator.serviceWorker.controller));
+        assert.ok(requests.every(url => !coldPacks.has(new URL(url).pathname.split("/").at(-1))));
+        await enter.click();
+        await page.locator('.scene-nav [data-scene="town"]').click();
+        await page.locator('.scene-wrap[data-current-map="town"]').waitFor();
+        assert.deepEqual(errors, []);
+        console.log("热启动复用小屋的全部资源包，已从小屋进入小镇");
+      }
     } finally { await ctx.close(); }
   }
 } finally { await browser?.close(); await site?.close(); publicServer?.closeAllConnections(); publicServer?.close(); }

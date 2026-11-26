@@ -19,10 +19,10 @@ export function buildBranch() {
   catch { return "local"; }
 }
 
-export function makeGamePacks(files, bytesFor, branch) {
+export function makeGamePacks(files, bytesFor, branch, isLoose = path => path.startsWith("assets/fufu-cursor-")) {
   const groups = new Map();
   for (const [path, , scenes] of files) {
-    if (!scenes.length || scenes.includes("page") || path.startsWith("assets/fufu-cursor-") ||
+    if (!scenes.length || scenes.includes("page") || isLoose(path) ||
         !/\.(?:webp|png|svg|jpe?g|avif|wav)$/i.test(path)) continue;
     const sorted = [...scenes].sort();
     const group = sorted.includes("*") ? "common" : sorted.length === 1 ? sorted[0] : "shared-" + sorted.join("-");
