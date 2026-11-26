@@ -6,3 +6,5 @@ dist/
 *.local
 artifacts/
 *.pack
+/output/
+/.idea/

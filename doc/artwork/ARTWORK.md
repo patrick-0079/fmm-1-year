@@ -22,7 +22,7 @@ Make a transparent production WALK CYCLE atlas for exactly the little cream kitt
 
 ## 小屋狐狸与晴糖的野餐动作
 
-两张透明原画均用内置 imagegen 生成。狐狸参考 `ref/1.png` 和现有 `src/assets/nemu-sprites.webp`。晴糖参考原来镇民图集第一排第四格的人物，谈话头像继续使用原图。原画为 `src/assets/fufu-room-fox.png` 与 `src/assets/qingtang-picnic.png`，同名 WebP 是游戏使用的图集。`node scripts/build-home-garden-art.mjs` 按格裁切透明边缘，保留姿势间比例，将脚底对齐到同一条基线。
+两张透明原画均用内置 imagegen 生成。狐狸参考 `ref/素材/芙眠眠形象/1.png` 和现有 `src/assets/nemu-sprites.webp`。晴糖参考原来镇民图集第一排第四格的人物，谈话头像继续使用原图。原画为 `src/assets/fufu-room-fox.png` 与 `src/assets/qingtang-picnic.png`，同名 WebP 是游戏使用的图集。`node scripts/build-home-garden-art.mjs` 按格裁切透明边缘，保留姿势间比例，将脚底对齐到同一条基线。
 
 狐狸生成提示词：
 
@@ -80,7 +80,7 @@ Edit this existing top-down pixel-art anniversary garden game map for a calmer, 
 
 ## 角色 `src/assets/nemu-sprites.png`
 
-参考：`ref/1.png` 与 `ref/3.png`。提示词：相同大小的两头身 Q 版像素眠眠，粉色长发、呆毛、爱心发夹，正面画面左绿右粉异瞳，淡紫白色睡衣与拖鞋，透明背景。3 列 × 4 行等距精灵图；各行分别正面、左侧、右侧、背面；各列分别站立、左步、右步。保持造型、比例与脚底位置一致，无文字或场景。
+参考：`ref/素材/芙眠眠形象/1.png` 与 `ref/素材/芙眠眠形象/3.png`。提示词：相同大小的两头身 Q 版像素眠眠，粉色长发、呆毛、爱心发夹，正面画面左绿右粉异瞳，淡紫白色睡衣与拖鞋，透明背景。3 列 × 4 行等距精灵图；各行分别正面、左侧、右侧、背面；各列分别站立、左步、右步。保持造型、比例与脚底位置一致，无文字或场景。
 
 ## 最终选用素材的完整提示词
 
