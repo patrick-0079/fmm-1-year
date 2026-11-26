@@ -75,9 +75,10 @@ export class PackResources {
         }
       } catch (error) {
         if (signal.aborted) throw error;
+        if (this.onBytes) console.info("[pack] 站内补载", name, error instanceof Error ? error.message : error);
         for (const item of job.members) if (item.ready === undefined) this.finish(item, false);
       }
-    });
+    }, { active: 2, background: 1 });
   }
 
   prepare(scene?: string) { return this.queue.prepare(scene); }

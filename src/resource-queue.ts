@@ -14,8 +14,13 @@ export class ResourceQueue {
 
   readonly files: readonly Resource[];
   private readonly read: Read;
+  private readonly limits: { active: number; background: number };
 
-  constructor(files: readonly Resource[], read: Read) { this.files = files; this.read = read; }
+  constructor(files: readonly Resource[], read: Read, limits = { active: 4, background: 2 }) {
+    this.files = files;
+    this.read = read;
+    this.limits = limits;
+  }
 
   async prepare(scene?: string, report?: LoadProgress, finish?: (file: Resource) => Promise<void>) {
     const files = scene ? this.files.filter(file => file[2].includes("*") || file[2].includes(scene)) : this.files;
@@ -78,9 +83,9 @@ export class ResourceQueue {
 
   private pump() {
     for (const task of this.pending) {
-      if (this.running.size >= 4) return;
+      if (this.running.size >= this.limits.active) return;
       if (this.running.has(task)) continue;
-      if (task.priority === "low" && (this.foreground || this.running.size >= 2)) continue;
+      if (task.priority === "low" && (this.foreground || this.running.size >= this.limits.background)) continue;
       this.pending.delete(task);
       this.running.add(task);
       task.run();

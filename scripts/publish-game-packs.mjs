@@ -148,8 +148,16 @@ async function verifyPublic(index, pack, site, dir) {
 async function branchHead(branch) {
   try {
     const { stdout } = await exec("git", ["ls-remote", "--exit-code", "origin", "refs/heads/" + branch], { timeout: 8000 });
-    return stdout.trim().split(/\s/)[0];
-  } catch { return undefined; }
+    const head = stdout.trim().split(/\s/)[0];
+    if (/^[a-f0-9]{40}$/.test(head)) return head;
+  } catch { /* A build checkout may have no usable origin after cloning. */ }
+  try {
+    const res = await fetch("https://api.github.com/repos/patrick-0079/fmm-1-year/commits/" + encodeURIComponent(branch), {
+      headers: { Accept: "application/vnd.github.sha", "User-Agent": "fmm-game-packs" },
+      cache: "no-store", signal: AbortSignal.timeout(8000),
+    });
+    if (res.ok) return (await res.text()).trim();
+  } catch { /* Keep the previous published sets if the branch cannot be verified. */ }
 }
 
 async function publish(phase) {
@@ -192,7 +200,8 @@ async function publish(phase) {
   if (!online) throw Error("线上版本与这次构建不符，推迟历史更新和清理");
   if (!await syncSet(index.packs, p => verifyPublic(index, p, site, dir))) throw Error("公开下载校验未完成，推迟清理");
   await withBranchState(request, async (state, checkpoint) => {
-    if (!await deployed(site, release)) throw Error("线上版本已切换，推迟清理");
+    if (await branchHead(env.WORKERS_CI_BRANCH) !== release.commit || !await deployed(site, release))
+      throw Error("无法确认是分支最新的线上版本，推迟历史更新和清理");
     const candidates = recordPublished(state, current, build);
     await checkpoint();
     let removed = 0;
