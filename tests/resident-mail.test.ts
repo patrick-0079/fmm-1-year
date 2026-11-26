@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readProgress } from "../src/core.ts";
-import { readInventory } from "../src/items.ts";
+import { starterItems, readInventory } from "../src/items.ts";
 import { readResidentStory, mailboxLetters, postLetter, postUnread, POST_LETTER_REVISION,
   collectHandedLetter, grantDebugLetters, handedLetters, letterChoice, markLetterRead, patrickLetter, unreadLetterIds } from "../src/resident-story.ts";
 import { allLetters } from "../src/letters.ts";
@@ -173,7 +173,7 @@ test("visiting residents, earning a keepsake and equipping items have separate r
   const bag = readInventory('{"owned":["wreath"],"equipped":{"head":"wreath"},"bouquet":true}');
   assert.ok(bag.bouquet);
   assert.equal(bag.equipped.head, "wreath");
-  assert.deepEqual(bag.owned, ["wreath"]);
+  assert.deepEqual(bag.owned, [...starterItems, "wreath"]);
   assert.deepEqual(readInventory(JSON.stringify(bag)), bag);
   assert.equal(readInventory('{"bouquet":"yes"}').bouquet, false);
   const old = readProgress('{"completed":["cake"],"residents":{"postReadRevision":99}}');

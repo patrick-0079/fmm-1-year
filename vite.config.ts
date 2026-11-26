@@ -34,8 +34,8 @@ function buildMode(value: string | undefined): "full" | "lite" {
   }
 }
 
-const firstFrame = new Set(["src/assets/room-interactive.webp", "src/assets/nemu-sprites.webp"]);
-const roomArt = new Set(["fufu-rest-poses", "flower-wreath", "reward-icons", "window-skies-v12",
+const firstFrame = new Set(["src/assets/room-interactive.webp", "src/assets/fufu-garments.webp"]);
+const roomArt = new Set(["fufu-footwear", "wardrobe-icons", "window-skies-v12",
   "white-bass-v18", "fufu-room-fox"].map(name => `src/assets/${name}.webp`));
 const mapPreviews = new Set([
   "src/assets/anniversary-garden-tree-free.webp", "src/assets/courage-garden.webp",

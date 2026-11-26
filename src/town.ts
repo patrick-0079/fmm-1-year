@@ -1,4 +1,5 @@
 import type { World, DepthLayer } from "./world";
+import { townWitchSet } from "./items";
 import type { Inventory } from "./inventory";
 import type { Activities } from "./activities";
 import { TOWN_NPCS, TOWN_TALKED_KEY, readTownVisits, type TownNpc } from "./town-data";
@@ -18,7 +19,7 @@ import { townScene } from "./town-map";
 import { drawWishLights, townAttractionLayers } from "./town-attraction-art";
 import type { GameId } from "./arcade-engines";
 import { townNpcSheet } from "./scene-art";
-import { isTownInterior, type TownInteriorId, type TownInteriorKey } from "./town-interior-id";
+import { isTownInterior, townInteriorKeys, type TownInteriorId, type TownInteriorKey } from "./town-interior-id";
 import type { TownKeepsakes } from "./town-keepsakes";
 import { townInteriors, type TownArea } from "./town-interiors";
 import { interiorFurniture, paintHallSideSign } from "./town-interior-art";
@@ -161,10 +162,31 @@ export class Town {
       this.save();
     }
     const at = {...npc,x:person.x,y:person.y};
-    const opening = residentOpening(npc.id, this.hooks.story(), this.inventory.hasBouquet(), this.world.chats.introduced(id));
-    if (opening === "daily") this.showDaily(at);
-    else this.showPage(at, opening);
+    if (this.canOfferWitchSet(npc)) {
+      this.present(at, "witch-offer", { text: "七扇门里的小物都到齐了！我给最后一张照片留了套戏服。芙芙，要试试做个掌灯的小女巫吗？" }, [
+        {title:"收下女巫套装", run:() => {
+          if (!this.hooks.canSave() || !this.canOfferWitchSet(npc)) return;
+          this.inventory.grantItems(townWitchSet, false);
+          this.hooks.save();
+          this.present(at, "witch-received", {text:"暖栗把月灯女巫裙叠好，又把尖帽轻轻放在上面。「帽子可以单戴。下次拍照，就穿你最喜欢的搭配吧。」"}, [
+            {title:"打开衣橱",run:() => this.answer(at,"@bag")},
+          ]);
+        }},
+        {title:"先聊聊拍照", run:() => this.greet(at)},
+      ]);
+    } else this.greet(at);
     return true;
+  }
+
+  private canOfferWitchSet(npc: TownNpc) {
+    return this.area === "town-hall" && npc.id === "photo-visitor" &&
+      townInteriorKeys.every(key=>this.hooks.keepsakes().items.includes(key)) &&
+      !townWitchSet.every(id=>this.inventory.has(id));
+  }
+  private greet(npc: TownNpc) {
+    const opening = residentOpening(npc.id, this.hooks.story(), this.inventory.hasBouquet(), this.world.chats.introduced("npc-"+npc.id));
+    if (opening === "daily") this.showDaily(npc);
+    else this.showPage(npc, opening);
   }
 
   private updateAct(dt: number) {

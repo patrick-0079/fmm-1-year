@@ -121,7 +121,7 @@ try {
     const entrance = page.locator(".enter-button"), meter = page.locator(".entry-progress");
     const roomMap = asset("room-interactive"), townMap = asset("town-quarry");
     const toHold = restored ? files.find(([name,, scenes]) => /^assets\/radio-[\w-]{8}\.webp$/.test(name) && scenes.includes("town-radio"))[0] : null;
-    const firstPath = restored ? asset("wardrobe-v11") : asset("stationery-desk");
+    const firstPath = restored ? asset("wardrobe-icons") : asset("stationery-desk");
     const starting = hold(firstPath);
     const savedMap = restored ? hold("/" + toHold) : null;
     const destination = hold(restored ? roomMap : townMap), last = hold(asset("meadow-jelly-bells"));
@@ -148,7 +148,7 @@ try {
     assert.equal(await page.locator(":modal").count(), 0);
     // Legacy saves also retain the original public letter from Kerry as already read.
     const historical = ["day-secrets", "gifts", "letter-kerry", "wreath"];
-    assert.equal(await page.locator(".achievement-count strong").textContent(), restored ? `${historical.length} / 54` : "0 / 54");
+    assert.equal(await page.locator(".achievement-count strong").textContent(), restored ? `${historical.length} / 55` : "0 / 55");
     await page.getByRole("tab", { name: "地图", exact: true }).click();
     cover.release();
     await Promise.all([starting.seen, page.waitForFunction(() => {
@@ -208,7 +208,7 @@ try {
     assert.equal(await current.getAttribute("data-current-map"), restored ? "town-radio" : "room");
     if (restored) {
       await badges.click();
-      assert.equal(await page.locator(".achievement-count strong").textContent(), `${historical.length} / 54`);
+      assert.equal(await page.locator(".achievement-count strong").textContent(), `${historical.length} / 55`);
       assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("nemu-anniversary-v1")).achievements.earned.sort()), historical);
       await page.getByRole("tab", { name: "地图", exact: true }).click();
       assert.ok(await page.locator(".achievement-flash").isHidden(), "loading legacy achievements must stay silent");

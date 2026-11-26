@@ -7,7 +7,7 @@ import { scenes } from "../src/maps.ts";
 import { moonPlate, mirrorSpots, ringSpots, lightBrick, southNotebook } from "../src/ruins-map.ts";
 import { clickedInteraction } from "../src/interaction.ts";
 import { equipmentParts } from "../src/equipment.ts";
-import { grantItem, readInventory } from "../src/items.ts";
+import { starterItems, grantItem, readInventory } from "../src/items.ts";
 
 test("any of the six pickup orders works; entering an arcade gives no ring and repeats give no credit",()=>{
   for (const first of rings) for (const second of rings.filter(r=>r.id!==first.id)) {
@@ -70,7 +70,7 @@ test("each relic responds on its artwork and can be reached without stealing an 
 test("the earned brooch is unique, starts unequipped, and follows the existing chest pin for each pose",()=>{
   const bag=readInventory(null);
   assert.ok(grantItem(bag,"echoBrooch"));assert.equal(grantItem(bag,"echoBrooch"),false);
-  assert.equal(bag.equipped.body,null);assert.deepEqual(readInventory(JSON.stringify(bag)).owned,["echoBrooch"]);
+  assert.equal(bag.equipped.body,null);assert.deepEqual(readInventory(JSON.stringify(bag)).owned,[...starterItems,"echoBrooch"]);
   for(const facing of [0,1,2,3] as const) for(const pose of ["standing","sitting","lying"] as const){
     const parts=equipmentParts({body:"echoBrooch"},pose,facing);
     assert.deepEqual(parts.map(p=>({...p,id:"anniversaryPin"})),equipmentParts({body:"anniversaryPin"},pose,facing));

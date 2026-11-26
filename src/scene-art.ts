@@ -24,6 +24,7 @@ import townNpcsUrl from "./assets/town-npcs.webp";
 import type { BaseSceneId, SceneId } from "./maps";
 import { isTownInterior } from "./town-interior-id";
 import { prepareTownKeepsakeArt } from "./town-keepsake-art";
+import { drawItem } from "./item-art";
 import { loadSceneImage, sceneImage } from "./texture-cache";
 export { keepsakesUrl, skiesUrl, relicsUrl };
 
@@ -64,8 +65,9 @@ export const keepsakeFrames = {
   wreath: { x: 1040, y: 45, w: 785, h: 765 },
 };
 export function drawKeepsake(c: CanvasRenderingContext2D, id: keyof typeof keepsakeFrames, x: number, y: number, width: number) {
+  if (id === "wreath") return drawItem(c, "wreath", x-width/2, y-width*.55+4, width, width*.55);
   const image = sceneArt.keepsakes;
   if (!image.complete || !image.naturalWidth) return;
-  const f = keepsakeFrames[id], height = width * f.h / f.w * (id === "wreath" ? 0.6 : 1);
+  const f = keepsakeFrames[id], height = width * f.h / f.w;
   c.drawImage(image, f.x, f.y, f.w, f.h, x - width / 2, y - height + 4, width, height);
 }

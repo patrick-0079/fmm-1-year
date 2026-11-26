@@ -6,9 +6,6 @@ import gardenUrl from "./assets/anniversary-garden-tree-free.webp";
 import appleBasketUrl from "./assets/apple-basket.webp";
 import challengeUrl from "./assets/courage-garden.webp";
 import creekPropsUrl from "./assets/garden-creek-props.webp";
-import spriteUrl from "./assets/nemu-sprites.webp";
-import restUrl from "./assets/fufu-rest-poses.webp";
-import wreathUrl from "./assets/flower-wreath.webp";
 import townUrl from "./assets/anniversary-town-v13.webp";
 import townDetailUrl from "./assets/anniversary-town-hd-v13.webp";
 import { mapFragment } from "./map-fragment";
@@ -23,10 +20,11 @@ import { prepareSceneArt, sceneArt } from "./scene-art";
 import { prepareMapArt, loadSceneImage } from "./texture-cache";
 import type { LoadProgress } from "./resource-queue";
 import trapsUrl from "./assets/courage-path-props-v35.webp";
-import { drawItem, rewardsUrl } from "./item-art";
+import { drawItem } from "./item-art";
 import { emptyInventory, type Equipped } from "./items";
 import { bedRest, benchRest, type RestState } from "./rest";
-import { drawAvatar } from "./avatar";
+import { avatarPose } from "./costume-frames";
+import { avatarUrls, drawAvatar } from "./avatar";
 import type { Facing } from "./equipment";
 import { clickedInteraction, nearbyInteraction } from "./interaction";
 import { drawInteractionGlints } from "./interaction-glints";
@@ -220,26 +218,17 @@ export class World {
   private secondaryPressed = false;
   onAction: (pressed: boolean) => boolean = () => false;
   actorHidden = false;
-  private get avatarImages() {
-    return {
-      sprite: this.images.get(spriteUrl)!,
-      rest: this.images.get(restUrl)!,
-      wreath: this.images.get(wreathUrl)!,
-      rewards: this.images.get(rewardsUrl)!,
-    };
-  }
   drawAvatarAt(c: CanvasRenderingContext2D, x: number, y: number, frame = 0) {
     c.save();
     c.translate(x, y);
-    drawAvatar(c, "standing", 0, frame, this.equipment, this.avatarImages);
+    drawAvatar(c, "standing", 0, frame, this.equipment);
     c.restore();
   }
   drawWardrobePreview(canvas: HTMLCanvasElement, equipped: Equipped, facing: Facing) {
     const c = canvas.getContext("2d");
-    const images = this.avatarImages;
-    if (!c || !images.sprite) return;
+    if (!c) return;
     const pet = equipped.pet;
-    const scale = Math.min(canvas.height / 50, canvas.width / (pet ? 62 : 40));
+    const scale = Math.min(canvas.height / (equipped.head === "witchHat" ? 60 : 50), canvas.width / (pet ? 62 : 40));
     c.clearRect(0, 0, canvas.width, canvas.height);
     c.save();
     c.imageSmoothingEnabled = false;
@@ -249,8 +238,8 @@ export class World {
     c.beginPath();
     c.ellipse(0, 0, 11, 2, 0, 0, Math.PI * 2);
     c.fill();
-    drawAvatar(c, "standing", facing, 0, equipped, images);
-    if (pet) drawItem(c, pet, 13, -16, 18, 17, images.wreath, images.rewards);
+    drawAvatar(c, "standing", facing, 0, equipped);
+    if (pet) drawItem(c, pet, 13, -16, 18, 17);
     c.restore();
   }
   constructor(canvas: HTMLCanvasElement, chats = new ResidentChats()) {
@@ -482,7 +471,7 @@ export class World {
     if (!this.canEnter(scene)) return Promise.reject(new Error("尚未集齐七色花"));
     const pending = this.mapRequests.get(scene);
     if (pending) return pending;
-    const urls = [spriteUrl, restUrl, wreathUrl, rewardsUrl, ...(isTownInterior(scene) ? [art[scene]] : sceneTextures[scene])];
+    const urls = [...avatarUrls, ...(isTownInterior(scene) ? [art[scene]] : sceneTextures[scene])];
     const request = prepareMapArt(scene, report).then(async () => {
       const [images] = await Promise.all([Promise.all(urls.map(url => loadSceneImage(url))), prepareSceneArt(scene)]);
       urls.forEach((url, index) => this.images.set(url, images[index]));
@@ -885,11 +874,10 @@ export class World {
       } else if (this.immunity > 0) c.globalAlpha = 0.82;
       drawAvatar(
         c,
-        this.restState?.kind ?? "standing",
+        avatarPose(this.restState),
         presentation?.facing ?? this.facing,
         this.walking ? avatarWalkCycle[Math.floor(this.stepDistance * 4 / avatarStride)] : 0,
         this.equipment,
-        this.avatarImages,
       );
       c.restore();
     };

@@ -1,87 +1,62 @@
-// Trace and recolor the shoes already painted on each animation frame. Only
-// opaque shoe pixels are exported; the transparent gap between feet stays open.
 import sharp from "sharp";
-import { spriteFrames } from "../src/sprite-frames.ts";
+import { cellWidth, cellHeight, footStripHeight } from "../src/costume-frames.ts";
+import { figures, master, raster, readSheet } from "./wardrobe-sheets.mjs";
 
-// [left, top, right, bottom, ornament x, ornament y] in the bottom 50 source
-// pixels of each standing crop, or the bottom 100 pixels of the seated crop.
-const feet = [
-  [[81,24,118,49,101,34], [117,24,154,49,134,34]],
-  [[76,14,117,49,96,24], [114,28,144,47,127,37]],
-  [[78,25,120,49,98,35], [116,13,153,40,134,24]],
-  [[52,23,83,46,65,32], [68,26,121,49,84,38]],
-  [[16,16,72,49,34,29], [89,18,142,46,109,32]],
-  [[13,2,66,26,36,15], [104,26,156,49,129,36]],
-  [[126,19,168,47,151,30], [99,24,148,49,132,36]],
-  [[72,20,125,47,105,31], [147,15,205,49,181,29]],
-  [[166,4,220,27,195,15], [82,26,134,49,109,37]],
-  [[75,25,116,49,94,36], [113,24,155,49,137,36]],
-  [[113,11,154,35,137,24], [77,24,122,49,99,36]],
-  [[75,10,115,34,94,20], [116,26,156,49,135,36]],
-  [[175,15,281,99,228,44], [279,15,388,99,332,44]],
+// The artist's single-shoe views are front, left profile and heel. Mirrors
+// are derived only for the opposite foot/profile, never for an entire actor.
+const views = await Promise.all(["flats","boots"].map(async name => {
+  const sheet=await readSheet(master(name));
+  return figures(sheet,2,2).slice(0,3);
+}));
+const soleCenters = [
+  [63,81],[61,80],[62,82],[56],[33,74],[33,82],
+  [88],[63,113],[61,115],[62,81],[62,82],[62,82],[62,82],[62,82],
 ];
-const sitting = { x: 87, y: 88, w: 593, h: 733 };
-const frames = [...spriteFrames, sitting];
-const palettes = [
-  [[96,61,77],[173,110,131],[229,160,177],[249,202,211],[255,237,224]],
-  [[76,55,79],[119,91,131],[166,145,181],[221,196,207],[255,233,195]],
-];
-const ornaments = [
-  ["..ggg..","pp.r.pp","ppprppp","..rsr..","...r..."],
-  ["..g..",".ggg.","gglgg","..g..","..g.."],
-];
-const cellW = 128, cellH = 40, layers = [];
-for (let index = 0; index < frames.length; index++) {
-  const frame = frames[index], seated = index === 12;
-  const height = seated ? 100 : 50, scale = seated ? 30 / frame.w : 43 / 330;
-  const { data } = await sharp(seated ? "src/assets/fufu-rest-poses.png" : "src/assets/nemu-sprites.png")
-    .extract({ left: frame.x, top: frame.y + frame.h - height, width: frame.w, height })
-    .ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  for (const [kind, palette] of palettes.entries()) {
-    const pixels = Buffer.alloc(data.length);
-    for (const [left, top, right, bottom, cx, cy] of feet[index]) {
-      const badgeSize = seated ? 8 : 3;
-      // Follow the traced shoe edge rather than a horizontal stripe, keeping
-      // the cream outsole on the ground through both side-view walking frames.
-      const edge = new Map();
-      if (kind === 0) for (let x = left; x <= right; x++) {
-        for (let y = bottom; y >= top; y--) {
-          const p = (y * frame.w + x) * 4;
-          const [r,g,b,a] = data.subarray(p, p + 4);
-          if (a >= 160 && !(g - b > 5 && r - b > 23)) { edge.set(x,y); break; }
-        }
-      }
-      for (let y = top; y <= bottom; y++) for (let x = left; x <= right; x++) {
-        const p = (y * frame.w + x) * 4;
-        const [r,g,b,a] = data.subarray(p, p + 4);
-        if (a < 160 || (g - b > 5 && r - b > 23)) continue;
-        const brightness = .37*r + .42*g + .21*b;
-        const shade = Math.min(3.999, Math.max(0, (brightness - 43) / 48));
-        const low = Math.floor(shade), blend = shade - low;
-        const color = palette[low].map((v, i) => Math.round(v + (palette[low+1][i] - v) * blend));
-        const mark = ornaments[kind][Math.floor((y-cy)/badgeSize+2)]?.[Math.floor((x-cx)/badgeSize+(kind === 0 ? 3 : 2))];
-        let ink;
-        if (kind === 0) {
-          // Soft cloth bows, a strawberry centre and tiny green leaves. The
-          // low cream sole is still confined to the original opaque shoe mask.
-          const outsole = y >= (edge.get(x) ?? bottom) - (seated ? 10 : 4);
-          ink = outsole && brightness > 95 ? [247,224,200]
-            : mark === "p" ? [255,231,218]
-            : mark === "g" ? [134,165,108]
-            : mark === "r" ? [219,104,126]
-            : mark === "s" ? [255,231,180] : color;
-        } else {
-          // The star-shoe row is deliberately byte-for-byte the v14 palette.
-          ink = mark === "p" ? [255,206,211] : mark === "g" ? [250,197,92] : mark === "l" ? [255,242,191] : color;
-        }
-        pixels.set([...ink, a], p);
-      }
+
+// Register each replacement to the visible slipper in that outfit and frame.
+// The heel lifts at a different point on each stride and seated legs move inward.
+function slippers(pixels, frame) {
+  const seeds=soleCenters[frame];
+  return seeds.map((seed,index)=>{
+    const split=(seeds[0]+(seeds[1]??seeds[0]))/2;
+    const from=Math.max(0,Math.round(index===1 ? split : seed-21));
+    const until=Math.min(cellWidth,Math.round(seeds.length===2 && index===0 ? split : seed+21));
+    const points=[];
+    for (let y=cellHeight-32;y<cellHeight;y++) for (let x=from;x<until;x++) {
+      const i=(y*cellWidth+x)*4, [r,g,b,a]=pixels.subarray(i,i+4);
+      if (a>180 && r>155 && b>g+7 && r>g+5 && r-b<35 && b-r<13) points.push({x,y});
     }
-    const width = Math.round(frame.w * scale * 4), h = Math.round(height * scale * 4);
-    const layer = await sharp(pixels,{raw:{width:frame.w,height,channels:4}})
-      .resize(width,h,{fit:"fill"}).png().toBuffer();
-    layers.push({input:layer,left:index*cellW+Math.round((cellW-width)/2),top:(kind+1)*cellH-h});
-  }
+    if (!points.length) throw new Error("No slipper in pose " + frame + " near " + seed);
+    const sole=Math.max(...points.map(p=>p.y));
+    const tall = frame>=12 ? 18 : 16;
+    const foot=points.filter(p=>p.y>=sole-tall);
+    const left=Math.max(from,Math.min(...foot.map(p=>p.x))-2);
+    const right=Math.min(until-1,Math.max(...foot.map(p=>p.x))+2);
+    return {left,top:Math.min(...foot.map(p=>p.y))-2,right,bottom:Math.min(cellHeight-1,sole+2)};
+  }).sort((a,b)=>a.bottom-b.bottom);
 }
-await sharp({create:{width:cellW*frames.length,height:cellH*2,channels:4,background:"#0000"}})
-  .composite(layers).webp({lossless:true}).toFile("src/assets/fufu-footwear-v38.webp");
+export async function shoeLayers(pixels,row,frame) {
+  const feet=slippers(pixels,frame);
+  const facing=frame<12 ? Math.floor(frame/3) : 0;
+  const side=facing===1 || facing===2;
+  const view=side ? 1 : facing===3 ? 2 : 0;
+  const stripTop=cellHeight-footStripHeight;
+  const layers=[];
+  for (const [kind,directions] of views.entries()) {
+    const strip=Buffer.from(pixels.subarray(stripTop*cellWidth*4));
+    const art=[];
+    for (const foot of feet) {
+      const width=foot.right-foot.left+1;
+      const height=foot.bottom-foot.top+1 + (kind ? Math.round(width*(side ? .26 : .45)) : 0);
+      // Replace the original silhouette too, so old soles never peek out from under the boots.
+      for (let y=foot.top; y<=foot.bottom;y++)
+        strip.fill(0,((y-stripTop)*cellWidth+foot.left)*4,((y-stripTop)*cellWidth+foot.right+1)*4);
+      const sprite=raster(directions[view]).resize(width,height,{fit:"fill"});
+      if (facing===2 || (!side && foot.left>cellWidth/2)) sprite.flop();
+      art.push({input:await sprite.png().toBuffer(),left:foot.left,top:foot.bottom+1-height-stripTop});
+    }
+    const input=await sharp(strip,{raw:{width:cellWidth,height:footStripHeight,channels:4}}).composite(art).png().toBuffer();
+    layers.push({input,left:frame*cellWidth,top:(row*2+kind)*footStripHeight});
+  }
+  return layers;
+}

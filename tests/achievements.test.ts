@@ -64,10 +64,10 @@ test("two open books keep the highest single run and show the score that earned 
   }
 });
 
-test("the book starts with 54 unique stamps in five chapters and seals unopened public letters", () => {
+test("the book starts with 55 unique stamps in five chapters and seals unopened public letters", () => {
   const p = newGame(), { entries, fresh } = reconcileAchievements(p, empty);
-  assert.deepEqual(achievementChapters.map(c => entries.filter(e => e.chapter === c.id).length), [13, 12, 7, 16, 6]);
-  assert.equal(new Set(entries.map(e => e.id)).size, 54);
+  assert.deepEqual(achievementChapters.map(c => entries.filter(e => e.chapter === c.id).length), [13, 12, 7, 17, 6]);
+  assert.equal(new Set(entries.map(e => e.id)).size, 55);
   assert.deepEqual(fresh, []);
   assert.ok(entries.every(e => !e.earned && e.current === 0 && e.progressLabel));
   const mail = entries.filter(e => e.chapter === "letters");
@@ -212,14 +212,25 @@ test("every documented stamp can be completed and replay never duplicates receip
   grantDebugLetters(p.residents);
   for (const l of allLetters) markLetterRead(p.residents, l.id);
   for (const id of Object.keys(ARCADES) as GameId[]) p.arcadeBests[id] = 400;
-  const ctx = { ...empty, townTalked: TOWN_NPCS.map(n => n.id), playSeconds: 7 * 24 * 60 };
-  assert.equal(reconcileAchievements(p, ctx).fresh.length, 54);
+  const ctx = { ...empty, owned:["witchDress","witchHat"], townTalked: TOWN_NPCS.map(n => n.id), playSeconds: 7 * 24 * 60 };
+  assert.equal(reconcileAchievements(p, ctx).fresh.length, 55);
   assert.deepEqual(reconcileAchievements(p, ctx).fresh, []);
-  assert.equal(reconcileAchievements(readProgress(JSON.stringify(p)), ctx).entries.filter(e => e.earned).length, 54);
+  assert.equal(reconcileAchievements(readProgress(JSON.stringify(p)), ctx).entries.filter(e => e.earned).length, 55);
   assert.deepEqual(readAchievementMemory({ earned: ["cake","bad","cake","gifts"] }).earned, ["cake","gifts"]);
   assert.equal(achievementDefinitions.filter(d => d.id.startsWith("ruin-")).length, 5);
 });
 
+test("the witch stamp requires seven distinct keepsakes and the real two-piece reward", () => {
+  const p=newGame();
+  const check=(owned:string[])=>reconcileAchievements(p,{...empty,owned}).entries.find(e=>e.id==="town-witch")!;
+  p.townKeepsakes.items=townInteriorKeys.slice(1);
+  assert.equal(check(["witchDress","witchHat"]).earned,false);
+  p.townKeepsakes.items=[...townInteriorKeys];
+  assert.equal(check([]).earned,false); assert.match(check([]).progressLabel,/待向暖栗领取/);
+  assert.equal(check(["witchDress"]).earned,false);
+  assert.equal(check(["witchDress","witchHat"]).earned,true);
+  assert.deepEqual(reconcileAchievements(readProgress(JSON.stringify(p)),empty).fresh,[]);
+});
 test("each claimed town keepsake earns exactly its own stamp, including existing saves", () => {
   const progress = newGame();
   assert.deepEqual(reconcileAchievements(progress, empty).fresh, []);

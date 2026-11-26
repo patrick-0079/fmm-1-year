@@ -834,7 +834,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
   const notices = mountAchievementNotices();
   const achievementContext = () => ({
     townTalked: town.talkedIds,
-    owned: (["wreath", "petCat", "petBunny"] as const).filter(id => inventory.has(id)),
+    owned: inventory.collectedItems,
     wearingWreath: inventory.wearingWreath,
     pickedEggs: nature.pickedEggs,
     playSeconds: playClock.seconds,

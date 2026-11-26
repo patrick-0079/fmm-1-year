@@ -1,59 +1,37 @@
-import { spriteFrames } from "./sprite-frames";
-import { drawItem, drawWornBag } from "./item-art";
-import garmentUrl from "./assets/fufu-garments-v15.webp";
-import {
-  equipmentParts,
-  fitItem,
-  type AvatarPose,
-  type Facing,
-  type EquipmentPart,
-} from "./equipment";
+import { drawItem, wardrobeUrl } from "./item-art";
+import garmentUrl from "./assets/fufu-garments.webp";
+import footwearUrl from "./assets/fufu-footwear.webp";
+import { equipmentParts, type AvatarPose, type Facing, type EquipmentPart } from "./equipment";
+import { artScale, cellWidth, cellHeight, footStripHeight, costumeFrame, outfitIndex, poseFrame } from "./costume-frames";
 import type { Equipped } from "./items";
-import footwearUrl from "./assets/fufu-footwear-v38.webp";
 import { sceneImage } from "./texture-cache";
-const footwear = sceneImage(footwearUrl);
-const garments = sceneImage(garmentUrl);
+
+export const avatarUrls = [garmentUrl, footwearUrl, wardrobeUrl];
+const footwear = sceneImage(footwearUrl), garments = sceneImage(garmentUrl);
 export function whenAvatarLayersReady(refresh: () => void) {
   for (const sheet of [footwear, garments]) {
-    if (!sheet.complete) sheet.addEventListener("load", refresh, { once: true });
+    if (!sheet.naturalWidth) sheet.addEventListener("load", refresh, {once:true});
   }
 }
-export interface AvatarImages {
-  sprite: HTMLImageElement;
-  rest: HTMLImageElement;
-  wreath: HTMLImageElement;
-  rewards: HTMLImageElement;
-}
-
-function paintPart(
-  c: CanvasRenderingContext2D,
-  p: EquipmentPart,
-  facing: Facing,
-  images: AvatarImages,
-  frame: number,
-) {
+function paintPart(c: CanvasRenderingContext2D, p: EquipmentPart, facing: Facing) {
   c.save();
-  if (p.style === "footwear") {
-    if (footwear.complete && footwear.naturalWidth)
-      c.drawImage(footwear, frame * 128, p.id === "starShoes" ? 40 : 0, 128, 40, p.x, p.y, p.w, p.h);
-  } else if (p.style === "garment" || p.style === "straps") {
-    const row = p.style === "straps" ? 2 : p.id === "roseDress" ? 0 : 1;
-    if (garments.complete && garments.naturalWidth)
-      c.drawImage(garments, frame * 128, row * 176, 128, 176, p.x, p.y, p.w, p.h);
-  } else if (p.style === "bag") {
-    drawWornBag(c, p, facing === 1 || facing === 2, images.rewards);
-  } else if (p.style === "wreathFar" || p.style === "wreathNear") {
-    // Both halves use one fitted source rectangle, so the crown keeps its
-    // proportions and there is no seam/overlap when composited around hair.
-    const b = fitItem(239, 76, p.x, p.y, p.w, p.h), split = b.y + b.h * .46;
+  if (p.style === "straps") {
+    c.lineCap = "round";
+    c.strokeStyle = p.id === "berryBag" ? "#aa656f" : p.id === "rabbitSatchel" ? "#797956" : "#997b9e";
+    c.lineWidth = 1.05;
     c.beginPath();
-    if (p.style === "wreathFar") c.rect(b.x, b.y, b.w, split - b.y);
-    else c.rect(b.x, split, b.w, b.y + b.h - split);
-    c.clip();
-    if (p.mirror) {
-      c.translate(p.x + p.w, p.y); c.scale(-1, 1);
-      drawItem(c, p.id, 0, 0, p.w, p.h, images.wreath, images.rewards);
-    } else drawItem(c, p.id, p.x, p.y, p.w, p.h, images.wreath, images.rewards);
+    if (p.id === "rabbitSatchel") {
+      c.moveTo(-4.4,p.y); c.quadraticCurveTo(-1.3,p.y+5,6,p.y+9);
+    } else for (const side of [-1,1]) {
+      c.moveTo(side*4.3,p.y); c.quadraticCurveTo(side*7.1,p.y+3,side*5.8,p.y+7.1);
+    }
+    c.stroke();
+  } else if (p.style === "wreathFar" || p.style === "wreathNear") {
+    const far = p.style === "wreathFar", split = p.h*.42;
+    c.translate(p.mirror ? p.x+p.w : p.x, p.y);
+    if (p.mirror) c.scale(-1,1);
+    c.beginPath(); c.rect(0,far ? 0 : split,p.w,far ? split : p.h-split); c.clip();
+    drawItem(c,p.id,0,0,p.w,p.h,false);
   } else if (p.style === "rearBand" || p.style === "rearEarpieces") {
     c.translate(0, p.y);
     if (p.style === "rearBand") {
@@ -90,72 +68,50 @@ function paintPart(
       const y=12.5, width=profile ? 3.15 : 2.05;
       c.fillStyle="#78586e"; c.beginPath(); c.ellipse(x,y,width,4.2,0,0,Math.PI*2); c.fill();
       c.fillStyle="#c4a8d0"; c.beginPath(); c.ellipse(x,y-.15,width-.55,3.5,0,0,Math.PI*2); c.fill();
-      c.fillStyle="#fff0cc"; c.beginPath(); c.ellipse(x+.1,y,width-.95,2.65,0,0,Math.PI*2); c.fill();
-      c.fillStyle="#d28ca7"; c.fillRect(x-.9,y-.4,1.8,1.1); c.fillRect(x-.45,y+.65,.9,.65);
+      c.fillStyle="#fff0cc";
+      c.beginPath(); c.moveTo(x,y-2); c.lineTo(x+.5,y-.5); c.lineTo(x+1.6,y);
+      c.lineTo(x+.5,y+.5); c.lineTo(x,y+2); c.lineTo(x-.5,y+.5);
+      c.lineTo(x-1.6,y); c.lineTo(x-.5,y-.5); c.closePath(); c.fill();
     }
   } else {
-    if (p.mirror) {
-      c.translate(p.x + p.w, p.y);
-      c.scale(-1, 1);
-      drawItem(c, p.id, 0, 0, p.w, p.h, images.wreath, images.rewards);
-    } else drawItem(c, p.id, p.x, p.y, p.w, p.h, images.wreath, images.rewards);
+    c.translate(p.mirror ? p.x+p.w : p.x, p.y);
+    if (p.mirror) c.scale(-1,1);
+    if (p.style === "hat") {
+      const view = facing === 3 ? "witchHatBack" : facing === 0 ? "witchHat" : "witchHatProfile";
+      drawItem(c,view,0,0,p.w,p.h,false);
+    } else {
+      const id = p.id === "rabbitSatchel" && p.style === "bag" ? "rabbitPouch" : p.id;
+      drawItem(c,id,0,0,p.w,p.h);
+    }
   }
   c.restore();
 }
 
-export function drawAvatar(
-  c: CanvasRenderingContext2D,
-  pose: AvatarPose,
-  facing: Facing,
-  walkFrame: number,
-  equipped: Equipped,
-  images: AvatarImages,
-) {
-  if (pose === "sitting") facing = 0;
-  const parts = equipmentParts(equipped, pose, facing, walkFrame);
-  const frame = pose === "standing" ? facing * 3 + walkFrame : 12;
-  for (const p of parts.filter((p) => p.layer === "behind"))
-    paintPart(c, p, facing, images, frame);
-  if (pose === "standing") {
-    const f = spriteFrames[frame],
-      scale = 43 / 330;
-    c.drawImage(
-      images.sprite,
-      f.x,
-      f.y,
-      f.w,
-      f.h,
-      (-f.w * scale) / 2,
-      -f.h * scale,
-      f.w * scale,
-      f.h * scale,
-    );
-  } else {
-    const sleeping = pose === "lying";
-    const f = sleeping
-      ? { x: 754, y: 275, w: 966, h: 520 }
-      : { x: 87, y: 88, w: 593, h: 733 };
-    const width = sleeping ? 70 : 30,
-      height = (width / f.w) * f.h;
-    c.drawImage(
-      images.rest,
-      f.x,
-      f.y,
-      f.w,
-      f.h,
-      -width / 2,
-      sleeping ? -height / 2 : -height,
-      width,
-      height,
-    );
-    if (sleeping) {
-      c.fillStyle = "#a999c9";
-      c.font = '8px "Microsoft YaHei", "PingFang SC", sans-serif';
-      c.fillText("z", 24, -23);
-      c.font = '6px "Microsoft YaHei", "PingFang SC", sans-serif';
-      c.fillText("z", 31, -30);
-    }
+export function drawAvatar(c: CanvasRenderingContext2D, pose: AvatarPose, facing: Facing,
+  step: number, equipped: Equipped) {
+  if (!garments.naturalWidth) return;
+  c.save();
+  c.imageSmoothingEnabled = true;
+  c.imageSmoothingQuality = "high";
+  if (pose !== "standing") facing = 0;
+  const frame = poseFrame(pose, facing, step), outfit = outfitIndex(equipped.clothes);
+  const f = costumeFrame(outfit,frame), w=f.w/artScale, h=f.h/artScale;
+  const x=-w/2, y=pose === "lying" ? -h/2 : -h;
+  const parts=equipmentParts(equipped,pose,facing,step);
+  for (const part of parts) if (part.layer === "behind") paintPart(c,part,facing);
+  const shoes = pose !== "lying" && footwear.naturalWidth && (equipped.shoes === "ribbonShoes" || equipped.shoes === "starShoes");
+  const bodyHeight = shoes ? cellHeight-footStripHeight : cellHeight;
+  c.drawImage(garments,f.x,f.y,f.w,bodyHeight,x,y,w,bodyHeight/artScale);
+  if (shoes) {
+    const row=outfit*2+Number(equipped.shoes === "starShoes");
+    c.drawImage(footwear,frame*cellWidth,row*footStripHeight,cellWidth,footStripHeight,
+      x,-footStripHeight/artScale,w,footStripHeight/artScale);
   }
-  for (const p of parts.filter((p) => p.layer === "front"))
-    paintPart(c, p, facing, images, frame);
+  for (const part of parts) if (part.layer === "front") paintPart(c,part,facing);
+  if (pose === "lying") {
+    c.fillStyle = "#a999c9";
+    c.font = '8px "Microsoft YaHei", sans-serif'; c.fillText("z",24,-23);
+    c.font = '6px "Microsoft YaHei", sans-serif'; c.fillText("z",31,-30);
+  }
+  c.restore();
 }

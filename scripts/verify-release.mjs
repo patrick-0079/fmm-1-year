@@ -6,6 +6,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { dirname, join, resolve } from "node:path";
 import { build, preview } from "vite";
 import { OPEN_AT } from "../src/launch/time.ts";
+import { townInteriorKeys } from "../src/town-interior-id.ts";
 import { rainbowIds } from "../src/rainbow-flowers.ts";
 
 const require = createRequire(import.meta.url);
@@ -94,7 +95,7 @@ try {
     assert.equal(await page.locator('[data-unit="seconds"]').innerText(), "02");
     assert.equal(await page.locator(".launch-debug-trigger, #world").count(), 0);
     assert.ok(!await page.evaluate(() => performance.getEntriesByType("resource").some(entry =>
-      /\/(?:main-|application-|room-interactive-|nemu-sprites-|journal-celestial-paper-|texture-cache\.js)/.test(new URL(entry.name).pathname))));
+      /\/(?:main-|application-|room-interactive-|fufu-garments-|journal-celestial-paper-|texture-cache\.js)/.test(new URL(entry.name).pathname))));
     await page.locator(".launch-invitation img").evaluateAll(images => Promise.all(images.map(image => image.decode())));
     return page;
   };
@@ -130,7 +131,7 @@ try {
   assert.ok(await badges.evaluate(tab => tab === document.activeElement));
   assert.equal(await badges.getAttribute("aria-selected"), "true");
   assert.ok(await book.isVisible());
-  assert.match(await book.innerText(), /0\s*\/\s*54/);
+  assert.match(await book.innerText(), /0\s*\/\s*55/);
   assert.equal(await game.locator(":modal").count(), 0);
   await badges.press("ArrowLeft");
   assert.equal(await maps.getAttribute("aria-selected"), "true");
@@ -307,6 +308,30 @@ try {
   await peer.locator("[data-mail]").click();
   await peer.locator('.mail-envelope[data-sealed="true"]').click();
   await game.waitForFunction(() => document.querySelector('[data-memory="letters"] small')?.textContent === "2 封来信");
+  const collector = await browser.newPage({viewport:{width:1280,height:800},reducedMotion:"reduce"});
+  collector.on("pageerror",error=>errors.push(error.message));
+  await collector.route(/^https:\/\//,route=>route.abort());
+  await collector.clock.setFixedTime(new Date(OPEN_AT + 60000));
+  const hall = JSON.parse(await readFile(new URL("../src/town-interiors.generated.json",import.meta.url),"utf8")).hall;
+  await collector.addInitScript(({items,at})=>{
+    if (localStorage.getItem("nemu-anniversary-v1")) return;
+    localStorage.setItem("nemu-anniversary-v1",JSON.stringify({townKeepsakes:{items}}));
+    localStorage.setItem("fufu-journey-v1",JSON.stringify({scene:"town-hall",x:at[0],y:at[1],savedAt:Date.now()}));
+  },{items:townInteriorKeys,at:hall.plan.shifts.day.approach});
+  await collector.goto(base);
+  await collector.getByRole("button",{name:/继续上次的冒险/}).click();
+  await collector.locator('.scene-wrap[data-current-map="town-hall"]').waitFor();
+  await collector.locator("#world").press("e");
+  await collector.getByRole("button",{name:"收下女巫套装",exact:true}).click();
+  await collector.getByRole("button",{name:"打开衣橱",exact:true}).click();
+  assert.equal(await collector.locator(".debug-trigger").count(),0);
+  assert.ok(await collector.evaluate(()=>{
+    const bag=JSON.parse(localStorage.getItem("fufu-souvenirs-v1"));
+    const book=JSON.parse(localStorage.getItem("nemu-anniversary-v1")).achievements.earned;
+    return ["witchDress","witchHat"].every(id=>bag.owned.includes(id)) && book.filter(id=>id==="town-witch").length===1;
+  }));
+  await collector.close();
+  console.log("调试关闭的全量包：集齐七件的纪念馆旧档通过暖栗对话领取裙帽、盖章和打开衣橱。");
   assert.deepEqual(errors, []);
   console.log(`正式游戏：帮助、锁定装扮、双标签读信、相册回退、${assets.length} 项站内缓存、断网切图与刷新续档通过`);
 } finally {

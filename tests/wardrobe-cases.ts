@@ -56,21 +56,23 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   const grid = getComputedStyle(panel.querySelector(".bag-grid")!);
   check(grid.gridTemplateColumns.split(" ").length === (compact ? 4 : 5) && grid.gridTemplateRows.split(" ").length === (compact ? 2 : 3), "显示的行列数不正确");
   const ids = catalogue();
-  if (compact) {
+  let pages = 1;
+  while (panel.querySelector('[data-page="1"]:not(:disabled)')) {
     button('[data-page="1"]').click();
     ids.push(...catalogue());
-    check(panel.querySelector('[data-page="1"]:disabled'), "最后一页没有禁用下一页");
-    button('[data-tab="equipped"]').click();
-    check(visibleSlots().length === 6, "身上页需要六个装备槽");
-    button('[data-tab="wardrobe"]').click();
-    button('[data-page="-1"]').click();
-  } else check(visibleSlots().length === 6, "桌面衣橱缺少装备槽");
-  check(ids.length===15 && new Set(ids).size===15 && Object.keys(ITEMS).every(id=>ids.includes(id)), "配饰格子有遗漏或者重复");
+    pages++;
+    check(pages <= 3, "翻页没有到达末页");
+  }
+  check(pages === (compact ? 3 : 2), "页数与屏幕容量不一致");
+  check(panel.querySelector('[data-page="1"]:disabled'), "最后一页没有禁用下一页");
+  if (compact) button('[data-tab="equipped"]').click();
+  check(visibleSlots().length === EQUIP_SLOTS.length, "衣橱缺少装备槽");
+  if (compact) button('[data-tab="wardrobe"]').click();
+  check(ids.length === Object.keys(ITEMS).length && new Set(ids).size === ids.length && Object.keys(ITEMS).every(id=>ids.includes(id)), "配饰格子有遗漏或者重复");
   const chooseCategory = (category: string) => {
     if (compact) button("[data-choose-category]").click();
     button(`[data-category="${category}"]`).click();
   };
-  if (compact) button('[data-page="1"]').click();
   for (const slot of EQUIP_SLOTS) {
     chooseCategory(slot);
     const expected = Object.keys(ITEMS).filter(id => ITEMS[id as keyof typeof ITEMS].slot === slot);
@@ -99,7 +101,7 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   button(".bag-close").click();
   sameFrame();
   check(panel.hidden && document.activeElement===world.canvas && !world.suspended, "收起后未恢复地图操作");
-  log((compact ? "手机 4×2 两页、身上六槽" : "桌面 5×3 和六个装备槽") + "、六部位筛选、左右转身、未确认退出、3:2 画幅和视口均通过");
+  log((compact ? "手机 4×2 三页、身上七槽" : "桌面 5×3 两页和七个装备槽") + "、七部位筛选、左右转身、未确认退出、3:2 画幅和视口均通过");
 }
 
 /** The book's controls must keep scrolling inside the book, including at its edges. */

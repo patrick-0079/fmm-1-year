@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readProgress } from "../src/core.ts";
-import { readInventory } from "../src/items.ts";
+import { emptyInventory, readInventory, starterItems } from "../src/items.ts";
 import { readJourney } from "../src/journey.ts";
 import { scenes } from "../src/maps.ts";
 import { rainbowIds } from "../src/rainbow-flowers.ts";
@@ -28,13 +28,13 @@ test("inventory rejects prototype names, duplicate IDs and wrong equipment slots
     equipped: {head: "petCat", pet: "wreath", shoes: "constructor", body: {id: "wreath"}},
     bouquet: "yes",
   }));
-  assert.deepEqual(inventory.owned, ["petCat", "wreath"]);
-  assert.ok(Object.values(inventory.equipped).every(id => id === null));
+  assert.deepEqual(inventory.owned, [...starterItems, "petCat", "wreath"]);
+  assert.deepEqual(inventory.equipped, emptyInventory().equipped);
   assert.equal(inventory.bouquet, false);
   for (const value of unusual) {
     const restored = readInventory(JSON.stringify({owned: ["petCat"], equipped: value}));
-    assert.deepEqual(restored.owned, ["petCat"]);
-    assert.ok(Object.values(restored.equipped).every(id => id === null));
+    assert.deepEqual(restored.owned, [...starterItems, "petCat"]);
+    assert.deepEqual(restored.equipped, emptyInventory().equipped);
   }
 });
 

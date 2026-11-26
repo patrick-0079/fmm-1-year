@@ -204,6 +204,12 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   }
   log("七件小镇纪念品均在亲手完成并收下后盖章");
 
+  expect(!earned("town-witch"), "集齐小物时提前颁发了女巫徽章");
+  await interactAt("town-hall","npc-photo-visitor");
+  await choose("收下女巫套装");
+  expect(earned("town-witch"), "向纪念馆暖栗收下套装后未颁发徽章");
+  closeActivity();
+
   const ordinary = achievementDefinitions.filter(d => !d.id.startsWith("days-"));
   const missing = ordinary.filter(d => !earned(d.id));
   expect(missing.length === 0, "尚未获得 " + missing.map(d => d.name).join("、"));

@@ -1,7 +1,7 @@
 import type { Equipped, ItemId } from "./items.ts";
 import { spriteFrames } from "./sprite-frames.ts";
-export type AvatarPose = "standing" | "sitting" | "lying";
-export type Facing = 0 | 1 | 2 | 3;
+import type { AvatarPose, Facing } from "./costume-frames.ts";
+export type { AvatarPose, Facing } from "./costume-frames.ts";
 export interface EquipmentPart {
   id: ItemId;
   layer: "behind" | "front";
@@ -9,7 +9,7 @@ export interface EquipmentPart {
   y: number;
   w: number;
   h: number;
-  style?: "band" | "earpieces" | "rearBand" | "rearEarpieces" | "wreathFar" | "wreathNear" | "straps" | "garment" | "bag" | "footwear";
+  style?: "band" | "earpieces" | "rearBand" | "rearEarpieces" | "wreathFar" | "wreathNear" | "straps" | "bag" | "hat";
   mirror?: boolean;
 }
 // Inner top corner of the pouch against the near shoulder, relative to the feet.
@@ -25,10 +25,13 @@ export function equipmentParts(
   facing: Facing,
   walkFrame = 0,
 ): EquipmentPart[] {
-  if (pose === "lying") return [];
-  if (pose === "sitting") facing = 0;
-  const shift = pose === "sitting" ? 6 : 0,
-    parts: EquipmentPart[] = [];
+  const hair = equipped.hair;
+  if (pose === "lying") return hair ? [
+    {id:hair, layer:"front", x:-15.3, y:-9.3, w:6.3, h:6.3},
+  ] : [];
+  if (pose !== "standing") { facing = 0; walkFrame = 0; }
+  const shift = pose === "sitting" ? 6 : pose === "bench" ? 3 : 0;
+  const parts: EquipmentPart[] = [];
   const add = (
     id: ItemId,
     layer: EquipmentPart["layer"],
@@ -51,8 +54,6 @@ export function equipmentParts(
     layer: EquipmentPart["layer"], x: number, y: number, w: number, h: number,
     style?: EquipmentPart["style"], mirror = false,
   ) => { if (head) add(head, layer, x, y + headShift, w, h, style, mirror); };
-  if (equipped.clothes === "roseDress" || equipped.clothes === "mintCape")
-    add(equipped.clothes, "front", -16, -44 - shift, 32, 44, "garment");
   if (bag === "moonBag" || bag === "berryBag" || bag === "rabbitSatchel") {
     if (facing === 3) add(bag, "front", -6, -19, 12, 12, "bag");
     else if (facing === 1 || facing === 2) {
@@ -61,12 +62,11 @@ export function equipmentParts(
       add(bag, "front", facing === 1 ? seamX : seamX - width, top, width, height, "bag", facing === 2);
     }
     else {
-      add(bag, "behind", -12, -18.5, 12, 12, "bag");
-      add(bag, "front", -16, -44 - shift, 32, 44, "straps");
+      if (bag !== "rabbitSatchel") add(bag, "behind", -12, -18.5, 12, 12, "bag");
+      add(bag, "front", -6, -18.8, 12, 11, "straps");
+      if (bag === "rabbitSatchel") add(bag, "front", 2.5, -13, 9.2, 7.3, "bag");
     }
   }
-  if (equipped.shoes === "ribbonShoes" || equipped.shoes === "starShoes")
-    add(equipped.shoes, "front", -16, -10 - shift, 32, 10, "footwear");
   if ((body === "anniversaryPin" || body === "echoBrooch") && facing !== 3)
     add(body, "front", facing === 1 ? -7.3 : facing === 2 ? 3.6 : -3.6, -16.7, 4.2, 4.5);
   if (head === "wreath") {
@@ -77,17 +77,21 @@ export function equipmentParts(
     addHead("behind", x, -38.5, width, 8.5, "wreathFar", facing === 3);
     addHead("front", x, -38.5, width, 8.5, "wreathNear", facing === 3);
   }
-  if (head === "candyClip")
-    // The barrette sits on the fringe. From behind, the back hair covers it.
-    addHead(facing === 3 ? "behind" : "front", facing === 1 ? -6.5 : facing === 2 ? .5 : facing === 3 ? 2.5 : -10, -36.5, 7.5, 7, undefined, facing === 1 || facing === 3);
+  if (head === "witchHat") {
+    const profile = facing === 1 || facing === 2;
+    const width = profile ? 25 : 29;
+    addHead("front", -width/2, -52.5, width, 17.8, "hat", facing === 2);
+  }
   if (head === "headphones") {
     addHead("front", -12, -38.5, 24, 16, facing === 3 ? "rearBand" : "band");
     addHead("front", -12, -38.5, 24, 16, facing === 3 ? "rearEarpieces" : "earpieces");
   }
-  if (head === "starWings") {
-    // Keep the same small side-mounted clip when turning; do not turn it
-    // into an enlarged ornament in the middle of the back of the head.
-    addHead(facing === 3 ? "behind" : "front", facing === 3 ? -12.5 : facing === 2 ? -9.5 : 1, -37.5, 11.5, 8.5, undefined, facing === 2 || facing === 3);
+  if (hair) {
+    const width = hair === "starWings" ? 8.5 : hair === "heartClip" ? 5.8 : 6.7;
+    // The barrette is on her left temple. The far profile and back hair cover it.
+    const center = [7.2, -.6, -7.4, -7.2][facing];
+    add(hair, facing === 2 || facing === 3 ? "behind" : "front",
+      center-width/2, -35 + headShift, width, 6.8, undefined, facing === 2 || facing === 3);
   }
   return parts;
 }

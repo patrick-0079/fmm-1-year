@@ -29,7 +29,7 @@ test("switching full → invitation → full cleans the deployed directory", asy
     await build({ publicDir, build: { outDir, emptyOutDir: true }, logLevel: "silent" });
     const files = (await readdir(outDir, { recursive: true })).map(name => name.replaceAll("\\", "/")).sort();
     const html = await readFile(join(outDir, "index.html"), "utf8");
-    assert.doesNotMatch(html, /room-interactive|nemu-sprites|application-|rel="modulepreload"/);
+    assert.doesNotMatch(html, /room-interactive|fufu-garments|application-|rel="modulepreload"/);
     const marker = JSON.parse(await readFile(join(outDir, "release.json"), "utf8"));
     assert.ok(html.includes(`name="fufu-release" content="${marker.mode}" data-version="${marker.version}"`),
       "the entry HTML and its separately revalidated release marker must identify the same build");
@@ -80,8 +80,8 @@ test("switching full → invitation → full cleans the deployed directory", asy
     ["town-work-poses", "town-radio"], ["town-gestures", "town-baker"], ["cake-slice", "town-baker"]]) {
     assert.ok(entries.some(([path, , scenes]) => path.startsWith("assets/" + prefix + "-") && scenes.includes(scene)), prefix);
   }
-  for (const prefix of ["wardrobe-v11", "reward-icons", "flower-wreath", "fufu-garments", "fufu-footwear",
-    "strawberry-flats", "qingya-bouquet", "stationery-sealed", "stationery-album", "astrolabe-relics",
+  for (const prefix of ["wardrobe-icons", "fufu-garments", "fufu-footwear",
+    "qingya-bouquet", "stationery-sealed", "stationery-album", "astrolabe-relics",
     "keepsakes", "arcade-postcard", "fufu-cursor-arrow", "fufu-cursor-play"]) {
     assert.ok(entries.some(([path, , scenes]) => path.startsWith("assets/" + prefix + "-") && scenes.includes("*")), prefix);
   }
@@ -89,7 +89,7 @@ test("switching full → invitation → full cleans the deployed directory", asy
     assert.deepEqual(entries.find(([path]) => path.startsWith("assets/" + prefix + "-"))?.[2], ["page"], prefix);
   }
   assert.deepEqual(entries.map(([file]) => file).sort(), explicit.files.filter(name => name.startsWith("assets/") && name !== paper));
-  assert.match(entries[0][0], /^assets\/nemu-sprites-/);
+  assert.match(entries[0][0], /^assets\/fufu-garments-/);
   assert.match(entries[1][0], /^assets\/room-interactive-/);
   assert.match(entries.at(-1)![0], /^assets\/anniversary-town-hd-v13-/);
   for (const [asset, expected] of entries) {
@@ -110,7 +110,7 @@ test("switching full → invitation → full cleans the deployed directory", asy
       const body = await readFile(join(outDir, file), "utf8");
       for (const name of gameArt) assert.ok(!body.includes(name), name);
       assert.doesNotMatch(body, /一卷绷带骨碌碌地滚到芙芙鞋尖|我数左边，你数右边|我们一起数回声/);
-      assert.doesNotMatch(body, /room-interactive|nemu-sprites|town-guests|anniversary-town|town-playground|patrick-camp|texture-cache\.js|rabe-anniversary-letter|patrick-anniversary-letter|star-xiaoye|star-zhenghao|成为了芙妮宝星|CharaStudio|stationery-|1-year\/picture\/|\.mp4\b/);
+      assert.doesNotMatch(body, /room-interactive|fufu-garments|town-guests|anniversary-town|town-playground|patrick-camp|texture-cache\.js|rabe-anniversary-letter|patrick-anniversary-letter|star-xiaoye|star-zhenghao|成为了芙妮宝星|CharaStudio|stationery-|1-year\/picture\/|\.mp4\b/);
     }
   }
   assert.ok(lite.files.includes("favicon.svg") && lite.files.includes("_headers"));

@@ -40,7 +40,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 装备定义、部位、获取说明 | `src/items.ts`；图标在 `src/item-art.ts`，佩戴定位在 `src/equipment.ts`，人物绘制在 `src/avatar.ts` |
 | 地图互动提示 | `src/interaction-cues.ts` 配置动作、类别、本体锚点与避让范围；`interaction-glints.ts` 绘制细微反光；`interaction-prompt.ts` 与对应样式/布局模块负责物件旁的清晰按钮 |
 | 调试台与正式构建 | `src/debug-panel.ts` 集中管理地图、七色花、游戏、时间、碰撞和衣橱。`VITE_WARDROBE_DEBUG=true` 显示调试入口，全饰品试穿需手动开启。面板在当前标签页保留展开状态。正式构建改为 `false` 后重新部署，生产构建变量可以覆盖仓库默认值 |
-| 周年游园券、七幅棋盘与像素角色 | `src/arcade-art.ts`、`src/arcade-pixels.ts` 与 `src/festival-v11.css`。运行 `npm run art:festival` 重建游戏图和鞋子图层 |
+| 周年游园券、七幅棋盘与像素角色 | `src/arcade-art.ts`、`src/arcade-pixels.ts` 与 `src/festival-v11.css`。运行 `npm run art:festival` 重建小游戏图与衣橱图集 |
 | 原创音乐《把晚安留给你》 | `src/lullaby.ts` 保存乐谱、各地图速度与配器。`src/sound.ts` 负责解锁音频、音量、放映时的音量变化和后台暂停 |
 | 小游戏规则与面板 | `src/arcade-engines.ts`、`src/arcade-bonus.ts`、`src/arcade.ts`；新增种类也要补 `town-data.ts` 与说明 |
 | 蛋糕、礼物、气球、烟花 | `src/activities.ts`；切割判定在 `src/cake-party.ts`，拆缎带/揭盒盖/领奖在 `src/gift-unwrapping.ts`，礼盒素材锚点在 `src/gift-art.ts`，气球裁切在 `src/party-art.ts`；礼盒美术说明见 `doc/artwork/ARTWORK-v37.md` |
@@ -69,7 +69,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 侧身背包按左右各三帧的袖口后缘定位。改人物图集时，同步核对 `src/equipment.ts` 中的 `sideBagSeams`。打开开发页 `/tests/equipment-fixture.html#backpacks` 可以对照三款包的待机与迈步姿势，检查肩带是否接到肩头、包身是否贴在袖子后方。
 
-头饰用同页的 `#headwear` 检查：原角色和四件头饰各展示四向三帧、坐姿与睡姿，共 70 幅对照。花环的远弧在头发后、近弧在头发前，两部分共享原图裁切与比例；背面反转花环的侧边装饰。星糖发夹和星翼固定在额前，转身后被后发遮住，星翼只可能露出外缘，不得变成后脑中央的大饰物。耳机背面使用窄后壳，不画正面的心形耳垫。头饰纵向锚点按 `spriteFrames` 的实际帧高跟随头顶起伏；更换角色图时需同时核对待机与两步行走。试衣镜与地图共用 `drawAvatar`，所有头饰在睡姿隐藏；修改后还要在真实背包穿脱、转身并返回地图走动，不能只看静态图标。
+同页 `#headwear` 可对照花环、耳机和五枚发夹。花环分为两层，远弧在头发后方。发夹位于左鬓，随头顶起伏，在另一侧和背面被头发遮挡。床上保留衣服和发夹。试衣镜、活动和地图共用 `drawAvatar`。
 
 修改道路、物件或出口后，运行 `npm test` 的全地图可达性检查，并在开发 URL 后加 `?debug=collision` 查看轮廓和脚底坐标。测试会从出生点、床边和勇气花园的长椅出口走到全部交互点，逐段验证不穿墙、不跨水面和不误入陷阱；它不能替代对地图插画的目视对齐检查。
 
@@ -141,9 +141,9 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 调整小游戏排版后，在开发页 `/tests/exploration-fixture.html` 选择「验收七款小游戏的画幅与镜头」。分别用桌面和手机窗口运行，检查开局、暂停、恢复、展开扫雷规则及返回地图时的画布尺寸、镜头缩放和页面位置。棋盘的绘制与点击命中共用 `src/arcade.ts` 的缩放和原点，操作栏放在画布下方，和地图一起随背包或游玩说明暂停。
 
-验收鞋子时访问 `/tests/equipment-fixture.html`，对照原鞋与两双配饰的四向三帧和坐姿。当前佩戴层使用 `fufu-footwear-v38.webp`，鞋子使用角色原画的脚部透明轮廓。更换角色源图时要同步核对 `scripts/build-shoes.mjs` 的逐帧坐标，再运行 `npm run art:festival`。草莓鞋的礼盒与背包插画共用 `strawberry-flats-v38.webp`，用 `node scripts/build-strawberry-shoe-art.mjs` 重建；美术及按键记录见 [ARTWORK-v38.md](doc/artwork/ARTWORK-v38.md)。小游戏画面与可试听、可导出的原曲在开发页 `/tests/festival-preview.html`。
+开发页 `/tests/equipment-fixture.html#footsteps` 展示两双鞋的前、侧、后视图和两种坐姿。`npm run art:wardrobe` 按每套衣服的脚底重建佩戴层，同时导出礼盒与衣橱共用的图标。
 
-验收蔷薇裙、薄荷披肩、头戴与背包叠穿时查看同页第一组逐帧对照。`npm run art:meadow` 从人物原画重建衣料及肩带遮罩，也会导出 v15 的七色花和花门。当前夜间场景使用 `npm run art:night`。[v15 素材说明](doc/artwork/ARTWORK-v15.md) · [金盏菊和白雏菊原画、重建方法](doc/artwork/ARTWORK-v20.md)
+同页 `#outfits` 展示八套角色造型。花海坐地、长椅垂腿与床上侧卧分别绘制。换装原画和图集布局见 [衣橱美术说明](doc/artwork/wardrobe/README.md)。`npm run art:meadow` 生成七色花与花门，`npm run art:night` 生成夜间场景。
 
 开发页 `/tests/exploration-fixture.html` 使用独立的临时存档。「验收游戏内衣橱、装备预览与分页」可以在电脑和手机宽度运行，覆盖 15 格与 8 格分页、四向预览、装备与伙伴、洋桔梗、画幅和页面位置。「测量实际琴声与示范」连接真实媒体输出，测量四根弦及示范轨的播放位置和峰值。「验收月兔台、金盏菊与清档」从南侧主街走进摊位，再检查清档取消、确认、声音偏好及开始页。「验收周年演奏、调试与背包」检查错音、示范、鼠标与键盘各自弹完整首曲、调试隔离、游戏内背包的位置、贝斯开合前后的画布尺寸与镜头、打开小游戏不滚动，并生成小镇四个时段的对照图。自然时钟在四个时段边界前后各约十秒过渡。
 
@@ -163,7 +163,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 `src/main.ts`、`src/page-journal.css` 与 `src/game-viewport.ts` 管理游戏外布局。地图以 3:2 适配可用宽高，导航和触控键随视口排列在下方或右侧。`src/game-control-menu.ts` 管理地图图标及「地图」「徽章」两个页签。徽章册直接在导航区内展开，首张地图加载期间也可翻阅。自动保存的地图和时间显示在游戏状态栏中。右栏按可用高度排列目的地卡片。卡面的六张风景图取自对应的地图原画，合在 `src/assets/map-postcards.webp` 中随样式表加载。更新时按 `--print-y` 核对六个位置，花海在第五格。
 
-`src/achievements.ts` 定义五章与 54 枚徽章，由实际收信、互动、收集和单局成绩判定。新徽章在页面右上角排队展示。新徽章的提示音由 `src/sound.ts` 使用 Web Audio 实时合成，通过游戏的音效通道播放，沿用交互音效开关和总音量，不加载外部音频。小镇手作徽章依据 `townKeepsakes.items` 盖章。修改目录时同时核对徽章、隐藏线索及章节数测试。独立的活动时长计时从开局手势开始，读档时只补登有游戏记录佐证的徽章。
+`src/achievements.ts` 定义五章与 55 枚徽章，由实际收信、互动、收集和单局成绩判定。新徽章在页面右上角排队展示。新徽章的提示音由 `src/sound.ts` 使用 Web Audio 实时合成，通过游戏的音效通道播放，沿用交互音效开关和总音量，不加载外部音频。小镇手作徽章依据 `townKeepsakes.items` 盖章。修改目录时同时核对徽章、隐藏线索及章节数测试。独立的活动时长计时从开局手势开始，读档时只补登有游戏记录佐证的徽章。
 
 画面角落只保留当前位置、时间等标签，不再放快捷切图、花环穿脱或复活点条幅。地图切换使用地图导航和实际出口；花环穿脱使用背包或 H 键。添加界面或事件时不要重新绑定已移除的角落按钮，复活仍回到小屋床上。
 
@@ -185,7 +185,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | `fufu-journey-v1` | 上次的地图、脚下位置及保存时间；在休息姿势下记录可安全起身的位置 |
 | `fufu-garden-bag-v1` | 苹果、花朵、星屑、每日采集记录与旧花环数据 |
 | `fufu-world-clock-v2` | 昼夜起始时间和推进量。首次从 `fufu-world-clock-v1` 读取时，按旧周期换算游戏时间，包含离线和长椅跳时 |
-| `fufu-souvenirs-v1` | 获得的纪念品和六个装备位 |
+| `fufu-souvenirs-v1` | 初始衣橱、获得的纪念品和七个装备位 |
 | `fufu-town-talked-v1` | 已交谈的小镇居民 |
 
 只在同一浏览器、同一网站来源下保存。更换域名、端口、浏览器或使用隐私窗口可能看到不同进度；没有跨设备同步。存储被禁用时仍可游玩，但不能保证刷新后保留。
@@ -248,7 +248,7 @@ R2 CORS 完整示例在 [README](README.md#花园小电视cdn-周年放映)。`C
 | 页面 | 用途 |
 | --- | --- |
 | `/tests/interaction-fixture.html` | 真实控制器的暂停、恢复、焦点、快捷键与活动计时回归，不写存档 |
-| `/tests/equipment-fixture.html` | 15 件纪念品的方向、坐姿、睡姿；睡觉不能出现饰品 |
+| `/tests/equipment-fixture.html` | 24 件物品的四向动作、两种坐姿、睡姿和叠穿 |
 | `/tests/scenery-fixture.html` | 窗景、晨露花和四处小镇设施的底图合成 |
 | `/tests/mobile-fixture.html` | 375/320 宽度真实页面，使用当前来源的本机进度 |
 | `/tests/media-fixture.html` | 图片、音视频和缺失素材，使用专用测试容器 |

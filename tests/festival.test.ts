@@ -234,6 +234,26 @@ test("miner misses have no penalty and rewards can be followed by another full f
   assert.equal(game.status, "playing");
 });
 
+test("fresh and legacy wardrobes receive four outfits and three clips without changing earned gear", () => {
+  const starters = ["cloudPajamas","apricotNightgown","sailorSet","honeyOveralls","heartClip","fishClip","starClip"];
+  for (const raw of [null, JSON.stringify({owned:[],equipped:{}})]) {
+    const bag = readInventory(raw);
+    assert.deepEqual([...bag.owned].sort(),starters.slice().sort());
+    assert.equal(bag.equipped.hair,"heartClip");
+    assert.ok(equipItem(bag,"heartClip"));
+    assert.equal(readInventory(JSON.stringify(bag)).equipped.hair,null);
+    assert.ok(equipItem(bag,"fishClip"));
+    assert.ok(equipItem(bag,"honeyOveralls"));
+    assert.deepEqual(readInventory(JSON.stringify(bag)),bag);
+  }
+  for (const id of ["candyClip","starWings"] as const) {
+    const old = readInventory(JSON.stringify({owned:[id,"roseDress"],equipped:{head:id,clothes:"roseDress"}}));
+    assert.equal(old.equipped.head,null); assert.equal(old.equipped.hair,id);
+    grantItem(old,"wreath"); equipItem(old,"wreath");
+    assert.equal(old.equipped.hair,id); assert.equal(old.equipped.clothes,"roseDress");
+    assert.deepEqual(readInventory(JSON.stringify(old)),old);
+  }
+});
 test("all wardrobe slots persist independently and the older moon bag migrates", () => {
   const bag = emptyInventory();
   for (const id of [

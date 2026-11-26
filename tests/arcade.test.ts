@@ -6,7 +6,7 @@ import {
   HopGame,
   FlightGame,
 } from "../src/arcade-engines.ts";
-import {
+import { starterItems,
   readInventory,
   emptyInventory,
   grantItem,
@@ -148,7 +148,7 @@ test("souvenir rewards are unique, equipment slots persist and legacy wreaths mi
   const corrupt = readInventory(
     '{"owned":["wreath","bad","wreath"],"equipped":{"body":"wreath","head":"headphones"}}',
   );
-  assert.deepEqual(corrupt.owned, ["wreath"]);
+  assert.deepEqual(corrupt.owned, [...starterItems, "wreath"]);
   assert.deepEqual(corrupt.equipped, emptyInventory().equipped);
   const rewards = Object.values(ARCADES).map((g) => g.reward);
   assert.equal(new Set(rewards).size, 7);

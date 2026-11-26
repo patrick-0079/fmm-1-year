@@ -19,7 +19,7 @@ const groups = [
   [["town", "ruins"], "arcade-props-v14"],
   [["ruins"], "echo-ruins echo-well echo-mines echo-miner echo-snake astrolabe-mechanisms guardian-moonstone"],
   [["meadow"], "night-meadow-v16 meadow-life-v16 patrick-camp meadow-jelly-bells star-bottle-closeup"],
-  [["*"], "nemu-sprites fufu-rest-poses fufu-footwear-v38 fufu-garments-v15 flower-wreath wardrobe-v11 reward-icons strawberry-flats-v38 qingya-bouquet stationery-sealed stationery-desk astrolabe-relics peach-walk"],
+  [["*"], "fufu-footwear fufu-garments wardrobe-icons qingya-bouquet stationery-sealed stationery-desk astrolabe-relics peach-walk"],
   [["*"], "arcade-postcard-v14 stationery-album"],
 ];
 const byName = new Map(groups.flatMap(([scenes, names]) => names.split(" ").map(name => [name, scenes])));

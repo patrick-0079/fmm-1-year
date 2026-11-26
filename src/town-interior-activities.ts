@@ -149,7 +149,9 @@ export class TownInteriorActivities {
     };
     const dates = document.createElement("small");
     dates.textContent = `${anniversary.start} — ${anniversary.end}`;
-    content.append(count, dates, list);
+    const note = document.createElement("p");
+    note.textContent = "「七件小物都收齐了？白昼或黄昏来馆里找我，给你留了套女巫戏服。」——暖栗";
+    content.append(count, dates, list, note);
     update();
     this.activities.dialogue(spot.title, "", [], null, spot.approach, () => {
       this.refreshDisplay = undefined;

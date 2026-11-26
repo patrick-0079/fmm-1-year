@@ -13,14 +13,12 @@ import {
   type ItemId,
   type InventoryState,
 } from "./items";
-import { drawItem, wreathUrl, rewardsUrl, whenWardrobeReady } from "./item-art";
+import { drawItem, whenWardrobeReady } from "./item-art";
 import { debugTarget, reservedShortcut } from "./input";
 import { sfx } from "./sound";
-import { prepareProp } from "./scene-art";
 import type { Facing } from "./equipment";
 import { whenAvatarLayersReady } from "./avatar";
 import bouquetUrl from "./assets/qingya-bouquet.webp";
-import { sceneImage } from "./texture-cache";
 import envelopeUrl from "./assets/stationery-sealed.webp";
 import { renderGameMailDesk, type LetterList } from "./game-mail-desk";
 import type { AstrolabeState } from "./astrolabe";
@@ -38,7 +36,7 @@ function categoryName(category: Category) { return category === "all" ? "全部"
 const turns: Facing[] = [0, 2, 3, 1];
 const facingNames = ["正面", "左侧", "右侧", "背面"];
 const slotArt: Record<EquipSlot, ItemId> = {
-  head: "wreath", clothes: "roseDress", shoes: "ribbonShoes",
+  head: "wreath", hair: "heartClip", clothes: "roseDress", shoes: "ribbonShoes",
   backpack: "berryBag", body: "anniversaryPin", pet: "petCat",
 };
 function browserStorage(): Storage | null {
@@ -57,8 +55,6 @@ export class Inventory {
   private onBagReturn?: () => void;
   private trigger = document.querySelector<HTMLButtonElement>(".bag-toggle")!;
   private root: HTMLElement = document.querySelector(".inventory-panel")!;
-  private wreath = sceneImage(wreathUrl);
-  private rewards = sceneImage(rewardsUrl);
   private tab: BagTab = "wardrobe";
   private category: Category = "all";
   private choosingCategory = false;
@@ -87,8 +83,6 @@ export class Inventory {
       legacy = this.storage?.getItem(NATURE_KEY) ?? null;
     } catch {}
     this.earned = readInventory(raw, legacy);
-    this.wreath.onload = () => this.drawIcons();
-    this.rewards.onload = () => this.drawIcons();
     whenWardrobeReady(() => this.drawIcons());
     whenAvatarLayersReady(() => this.drawPreview());
     this.trigger.setAttribute("aria-expanded", "false");
@@ -125,6 +119,7 @@ export class Inventory {
     }, { capture: true });
     this.sync();
   }
+  get collectedItems(): readonly ItemId[] { return this.earned.owned; }
   has(id: ItemId) {
     // Collection events still check the real save while the fitting room is open.
     return this.earned.owned.includes(id);
@@ -280,16 +275,19 @@ export class Inventory {
     this.trigger.setAttribute("aria-expanded", "true");
     this.updateSuspension();
     this.render();
-    void prepareProp("relics").then(() => this.drawIcons()).catch(() => {});
     this.root.querySelector<HTMLButtonElement>(".bag-close")!.focus({ preventScroll: true });
   }
   grant(id: ItemId, announce = true) {
-    if (!grantItem(this.earned, id)) return false;
+    return this.grantItems([id], announce);
+  }
+  grantItems(ids: readonly ItemId[], announce = true) {
+    const added = ids.filter(id => grantItem(this.earned, id));
+    if (!added.length) return false;
     this.save();
     this.render();
     if (announce) {
       sfx("match");
-      this.toast(`获得纪念品：${ITEMS[id].name} · 按 B 打开背包`);
+      this.toast(`获得纪念品：${added.map(id => ITEMS[id].name).join("、")} · 按 B 打开背包`);
     }
     return true;
   }
@@ -330,8 +328,12 @@ export class Inventory {
     this.world.equipment = { ...this.state.equipped };
   }
   syncSavedInventory(raw: string) {
+    // A reset is followed by a new save generation. Never merge old prizes back into that write.
+    try {
+      const receipt = JSON.parse(raw);
+      if (receipt?.reset === true || (!receipt?.owned?.length && receipt?.bouquet !== true)) return;
+    } catch { return; }
     const latest = readInventory(raw);
-    if (!latest.owned.length && !latest.bouquet) return;
     if (mergeInventoryReceipts(latest, this.earned)) {
       try { this.storage?.setItem(INVENTORY_KEY, JSON.stringify(latest)); } catch {}
     }
@@ -350,7 +352,8 @@ export class Inventory {
         this.earned.equipped = latest.equipped;
         this.sync();
       }
-      this.storage?.setItem(INVENTORY_KEY, JSON.stringify(this.earned));
+      const receipt = change === "reset" ? {...this.earned, reset:true} : this.earned;
+      this.storage?.setItem(INVENTORY_KEY, JSON.stringify(receipt));
     } catch {}
   }
   private togglePanel() {
@@ -686,7 +689,7 @@ export class Inventory {
       c.clearRect(0, 0, canvas.width, canvas.height);
       c.imageSmoothingEnabled = true;
       c.imageSmoothingQuality = "high";
-      drawItem(c, canvas.dataset.item as ItemId, 4, 4, 72, 72, this.wreath, this.rewards);
+      drawItem(c, canvas.dataset.item as ItemId, 4, 4, 72, 72);
     }
     const townIcons = this.root.querySelectorAll<HTMLCanvasElement>("canvas[data-town-icon]");
     if (townIcons.length && !townKeepsakeArtReady()) {

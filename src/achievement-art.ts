@@ -135,6 +135,15 @@ function ticket(c: Ink, x: number, y: number, w: number, h: number) {
   rect(c, x + 3, y + 3, w - 6, h - 6, "#fff0c4");
 }
 const art: Record<string, (c: Ink, choice?: string) => void> = {
+  "town-witch"(c) {
+    oval(c,16,24,14,4,ink);
+    oval(c,16,23,13,3,"#83567b");
+    polygon(c,ink,[6,22],[11,15],[16,5],[23,3],[25,7],[21,7],[21,12],[25,22]);
+    polygon(c,"#65577c",[8,21],[13,15],[17,6],[22,5],[19,8],[20,14],[23,21]);
+    polygon(c,lilac,[9,18],[22,17],[24,21],[7,22]);
+    oval(c,18,19,3,3,gold); oval(c,19,18,2,2,lilac);
+    spark(c,5,9,gold);
+  },
   cake(c) {
     oval(c, 16, 24, 13, 3, "#9baab1");
     oval(c, 16, 23, 12, 2, cream);
