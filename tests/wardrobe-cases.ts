@@ -56,14 +56,15 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   const grid = getComputedStyle(panel.querySelector(".bag-grid")!);
   check(grid.gridTemplateColumns.split(" ").length === (compact ? 4 : 5) && grid.gridTemplateRows.split(" ").length === (compact ? 2 : 3), "显示的行列数不正确");
   const ids = catalogue();
+  const pageCount = Math.ceil(Object.keys(ITEMS).length / (compact ? 8 : 15));
   let pages = 1;
   while (panel.querySelector('[data-page="1"]:not(:disabled)')) {
     button('[data-page="1"]').click();
     ids.push(...catalogue());
     pages++;
-    check(pages <= 3, "翻页没有到达末页");
+    check(pages <= pageCount, "翻页没有到达末页");
   }
-  check(pages === (compact ? 3 : 2), "页数与屏幕容量不一致");
+  check(pages === pageCount, "页数与屏幕容量不一致");
   check(panel.querySelector('[data-page="1"]:disabled'), "最后一页没有禁用下一页");
   if (compact) button('[data-tab="equipped"]').click();
   check(visibleSlots().length === EQUIP_SLOTS.length, "衣橱缺少装备槽");
@@ -101,7 +102,7 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   button(".bag-close").click();
   sameFrame();
   check(panel.hidden && document.activeElement===world.canvas && !world.suspended, "收起后未恢复地图操作");
-  log((compact ? "手机 4×2 三页、身上七槽" : "桌面 5×3 两页和七个装备槽") + "、七部位筛选、左右转身、未确认退出、3:2 画幅和视口均通过");
+  log((compact ? "手机 4×2" : "桌面 5×3") + " 共 " + pages + " 页，七个装备槽、部位筛选、左右转身、未确认退出、3:2 画幅和视口均通过");
 }
 
 /** The book's controls must keep scrolling inside the book, including at its edges. */

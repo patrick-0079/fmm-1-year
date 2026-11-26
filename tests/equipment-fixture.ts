@@ -22,6 +22,7 @@ function table(id: string) {
   document.getElementById(id)!.append(element);
   return (name:string, worn: Equipped, icon?:ItemId) => {
     const row=rows.insertRow(); const label=document.createElement("th");
+    if (worn.clothes) row.dataset.outfit = worn.clothes;
     label.scope="row"; label.textContent=name; row.append(label);
     if (icon) {
       const c=document.createElement("canvas"); c.width=80; c.height=48;
@@ -40,6 +41,7 @@ function table(id: string) {
       canvas.setAttribute("aria-label",name+" · "+p.name);
       row.insertCell().append(canvas);
     }
+    return row;
   };
 }
 const bodyRow=table("outfits"), headRow=table("headwear"), bagRow=table("backpacks");
@@ -62,5 +64,5 @@ for (const [i,clothes] of outfits.entries()) {
     body:i%2 ? "echoBrooch" : "anniversaryPin",
   });
 }
-mixRow("月灯女巫套装",{clothes:"witchDress",head:"witchHat",hair:"heartClip"});
+mixRow("月灯女巫套装",{clothes:"witchDress",head:"witchHat",hair:"heartClip"}).id = "witch-set";
 document.body.dataset.ready="true";

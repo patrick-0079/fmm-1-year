@@ -212,7 +212,7 @@ test("every documented stamp can be completed and replay never duplicates receip
   grantDebugLetters(p.residents);
   for (const l of allLetters) markLetterRead(p.residents, l.id);
   for (const id of Object.keys(ARCADES) as GameId[]) p.arcadeBests[id] = 400;
-  const ctx = { ...empty, owned:["witchDress","witchHat"], townTalked: TOWN_NPCS.map(n => n.id), playSeconds: 7 * 24 * 60 };
+  const ctx = { ...empty, owned:["mikoOutfit"], townTalked: TOWN_NPCS.map(n => n.id), playSeconds: 7 * 24 * 60 };
   assert.equal(reconcileAchievements(p, ctx).fresh.length, 55);
   assert.deepEqual(reconcileAchievements(p, ctx).fresh, []);
   assert.equal(reconcileAchievements(readProgress(JSON.stringify(p)), ctx).entries.filter(e => e.earned).length, 55);
@@ -220,15 +220,15 @@ test("every documented stamp can be completed and replay never duplicates receip
   assert.equal(achievementDefinitions.filter(d => d.id.startsWith("ruin-")).length, 5);
 });
 
-test("the witch stamp requires seven distinct keepsakes and the real two-piece reward", () => {
+test("the miko stamp requires seven distinct keepsakes and accepting the shrine maiden outfit", () => {
   const p=newGame();
-  const check=(owned:string[])=>reconcileAchievements(p,{...empty,owned}).entries.find(e=>e.id==="town-witch")!;
-  p.townKeepsakes.items=townInteriorKeys.slice(1);
-  assert.equal(check(["witchDress","witchHat"]).earned,false);
+  const check=(owned:string[])=>reconcileAchievements(p,{...empty,owned}).entries.find(e=>e.id==="town-miko")!;
+  p.townKeepsakes.items=[...townInteriorKeys.slice(1),townInteriorKeys[1]];
+  assert.equal(check(["mikoOutfit"]).earned,false);
   p.townKeepsakes.items=[...townInteriorKeys];
   assert.equal(check([]).earned,false); assert.match(check([]).progressLabel,/待向暖栗领取/);
-  assert.equal(check(["witchDress"]).earned,false);
-  assert.equal(check(["witchDress","witchHat"]).earned,true);
+  assert.equal(check(["witchDress","witchHat"]).earned,false);
+  assert.equal(check(["mikoOutfit"]).earned,true);
   assert.deepEqual(reconcileAchievements(readProgress(JSON.stringify(p)),empty).fresh,[]);
 });
 test("each claimed town keepsake earns exactly its own stamp, including existing saves", () => {

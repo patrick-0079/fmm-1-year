@@ -16,7 +16,7 @@ export type ItemId =
   | "rabbitSatchel"
   | "cloudPajamas" | "apricotNightgown" | "sailorSet" | "honeyOveralls"
   | "heartClip" | "fishClip" | "starClip"
-  | "witchDress" | "witchHat";
+  | "witchDress" | "witchHat" | "mikoOutfit";
 export const EQUIP_SLOTS = [
   "head",
   "hair",
@@ -136,8 +136,8 @@ export const ITEMS: Record<
     description: "给继续挑战的小冒险家，一份额外的小惊喜。",
     source: "任意小游戏领奖后达到双倍目标",
   },
-  witchDress: { name: "月灯女巫裙", slot: "clothes", description: "墨蓝钟形裙上搭着梅紫短斗篷，领口扣住一弯小月亮。", source: "收齐七件小镇小物后，在周年纪念馆找暖栗领取" },
-  witchHat: { name: "月灯尖帽", slot: "head", description: "帽尖轻轻折向一侧，丁香紫缎带上别着月牙。", source: "与月灯女巫裙一同在周年纪念馆领取" },
+  witchDress: { name: "月灯女巫裙", slot: "clothes", description: "墨蓝钟形裙上搭着梅紫短斗篷，领口扣住一弯小月亮。", source: "初始衣橱" },
+  witchHat: { name: "月灯尖帽", slot: "head", description: "帽尖轻轻折向一侧，丁香紫缎带上别着月牙。", source: "初始衣橱" },
   cloudPajamas: { name: "云朵翻领睡衣", slot: "clothes", description: "雾蓝翻领衫配长裤，口袋里缝着一朵白云。", source: "初始衣橱" },
   apricotNightgown: { name: "杏桃晚安裙", slot: "clothes", description: "圆圆的奶油领下系着一枚小蝴蝶结，裙摆刚好盖过膝头。", source: "初始衣橱" },
   sailorSet: { name: "海盐水手装", slot: "clothes", description: "海军蓝水手领，珊瑚红领巾，一条能迈开步子的短裤。", source: "初始衣橱" },
@@ -145,10 +145,17 @@ export const ITEMS: Record<
   heartClip: { name: "爱心发夹", slot: "hair", description: "芙芙常戴的小爱心，下面别着两根淡紫发卡。", source: "初始衣橱" },
   fishClip: { name: "小鱼发夹", slot: "hair", description: "一尾薄荷蓝的小鱼游进了发梢。", source: "初始衣橱" },
   starClip: { name: "星星发夹", slot: "hair", description: "一颗蜂蜜金的小星，轻轻别在刘海旁。", source: "初始衣橱" },
+  mikoOutfit: {
+    name: "绯袴巫女服",
+    slot: "clothes",
+    description: "白衣交领，宽袖垂在绯袴两旁。腰前打了个小结，是暖栗替芙芙系的。",
+    source: "收齐七件小镇小物，白昼或黄昏在周年纪念馆找暖栗领取",
+  },
 };
-export const townWitchSet = ["witchDress", "witchHat"] as const;
+export const townCollectionReward = "mikoOutfit" satisfies ItemId;
 export const starterItems: readonly ItemId[] = [
   "heartClip", "fishClip", "starClip", "cloudPajamas", "apricotNightgown", "sailorSet", "honeyOveralls",
+  "witchDress", "witchHat",
 ];
 export interface InventoryState {
   owned: ItemId[];

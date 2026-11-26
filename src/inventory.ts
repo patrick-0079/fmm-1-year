@@ -278,16 +278,12 @@ export class Inventory {
     this.root.querySelector<HTMLButtonElement>(".bag-close")!.focus({ preventScroll: true });
   }
   grant(id: ItemId, announce = true) {
-    return this.grantItems([id], announce);
-  }
-  grantItems(ids: readonly ItemId[], announce = true) {
-    const added = ids.filter(id => grantItem(this.earned, id));
-    if (!added.length) return false;
+    if (!grantItem(this.earned, id)) return false;
     this.save();
     this.render();
     if (announce) {
       sfx("match");
-      this.toast(`获得纪念品：${added.map(id => ITEMS[id].name).join("、")} · 按 B 打开背包`);
+      this.toast(`获得纪念品：${ITEMS[id].name} · 按 B 打开背包`);
     }
     return true;
   }

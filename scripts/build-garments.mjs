@@ -5,7 +5,7 @@ import { spriteFrames } from "../src/sprite-frames.ts";
 import { filename, figures, master, output, raster, readSheet, transparent } from "./wardrobe-sheets.mjs";
 import { shoeLayers } from "./build-shoes.mjs";
 
-const designs = ["base", "rose", "mint", "cloud", "apricot", "sailor", "honey", "witch"];
+const designs = ["base", "rose", "mint", "cloud", "apricot", "sailor", "honey", "witch", "miko"];
 if (designs.length !== outfits.length) throw new Error("Missing outfit artwork");
 const bodies = [], shoes = [];
 for (const [row, name] of designs.entries()) {
@@ -47,6 +47,7 @@ const catalogueRows = [
    "moonBag","berryBag","rabbitSatchel","anniversaryPin","echoBrooch","petBunny","petCat","rabbitPouch"]},
   {sheet:"starter-icons", columns:4, rows:2, names:["cloudPajamas","apricotNightgown","sailorSet","honeyOveralls","heartClip","fishClip","starClip"]},
   {sheet:"witch-icons", columns:2, rows:2, names:["witchDress","witchHat","witchHatProfile","witchHatBack"]},
+  {sheet:"miko-icon", columns:1, rows:1, names:["mikoOutfit"]},
 ];
 const icons = [], bounds = {}, cell = 144, cols = 6;
 for (const {sheet, columns, rows, names} of catalogueRows) {

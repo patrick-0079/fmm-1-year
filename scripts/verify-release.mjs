@@ -322,16 +322,16 @@ try {
   await collector.getByRole("button",{name:/继续上次的冒险/}).click();
   await collector.locator('.scene-wrap[data-current-map="town-hall"]').waitFor();
   await collector.locator("#world").press("e");
-  await collector.getByRole("button",{name:"收下女巫套装",exact:true}).click();
+  await collector.getByRole("button",{name:"收下巫女服",exact:true}).click();
   await collector.getByRole("button",{name:"打开衣橱",exact:true}).click();
   assert.equal(await collector.locator(".debug-trigger").count(),0);
   assert.ok(await collector.evaluate(()=>{
     const bag=JSON.parse(localStorage.getItem("fufu-souvenirs-v1"));
     const book=JSON.parse(localStorage.getItem("nemu-anniversary-v1")).achievements.earned;
-    return ["witchDress","witchHat"].every(id=>bag.owned.includes(id)) && book.filter(id=>id==="town-witch").length===1;
+    return ["witchDress","witchHat","mikoOutfit"].every(id=>bag.owned.includes(id)) && book.filter(id=>id==="town-miko").length===1;
   }));
   await collector.close();
-  console.log("调试关闭的全量包：集齐七件的纪念馆旧档通过暖栗对话领取裙帽、盖章和打开衣橱。");
+  console.log("调试关闭的全量包：集齐七件小物后，通过暖栗对话领取巫女服、盖章和打开衣橱。");
   assert.deepEqual(errors, []);
   console.log(`正式游戏：帮助、锁定装扮、双标签读信、相册回退、${assets.length} 项站内缓存、断网切图与刷新续档通过`);
 } finally {

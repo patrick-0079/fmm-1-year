@@ -234,8 +234,8 @@ test("miner misses have no penalty and rewards can be followed by another full f
   assert.equal(game.status, "playing");
 });
 
-test("fresh and legacy wardrobes receive four outfits and three clips without changing earned gear", () => {
-  const starters = ["cloudPajamas","apricotNightgown","sailorSet","honeyOveralls","heartClip","fishClip","starClip"];
+test("the starter wardrobe includes five outfits, an independent witch hat and three clips", () => {
+  const starters = ["cloudPajamas","apricotNightgown","sailorSet","honeyOveralls","witchDress","witchHat","heartClip","fishClip","starClip"];
   for (const raw of [null, JSON.stringify({owned:[],equipped:{}})]) {
     const bag = readInventory(raw);
     assert.deepEqual([...bag.owned].sort(),starters.slice().sort());
@@ -243,7 +243,12 @@ test("fresh and legacy wardrobes receive four outfits and three clips without ch
     assert.ok(equipItem(bag,"heartClip"));
     assert.equal(readInventory(JSON.stringify(bag)).equipped.hair,null);
     assert.ok(equipItem(bag,"fishClip"));
+    assert.ok(equipItem(bag,"witchDress"));
+    assert.ok(equipItem(bag,"witchHat"));
     assert.ok(equipItem(bag,"honeyOveralls"));
+    assert.equal(bag.equipped.head,"witchHat");
+    assert.equal(bag.equipped.hair,"fishClip");
+    assert.equal(equipItem(bag,"mikoOutfit"),false);
     assert.deepEqual(readInventory(JSON.stringify(bag)),bag);
   }
   for (const id of ["candyClip","starWings"] as const) {

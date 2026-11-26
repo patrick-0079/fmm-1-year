@@ -52,7 +52,7 @@ test("every clothing design selects its own complete pose atlas including both s
   assert.equal(avatarPose({kind:"sitting",scene:"challenge"}), "bench");
   assert.equal(avatarPose({kind:"lying",scene:"room"}), "lying");
   const clothing = Object.entries(ITEMS).filter(([,i])=>i.slot==="clothes").map(([id])=>id);
-  assert.equal(clothing.length,7);
+  assert.equal(clothing.length,8);
   assert.deepEqual(new Set(clothing),new Set(outfits.filter(Boolean)));
   for (const [row, outfit] of outfits.entries()) {
     assert.equal(outfitIndex(outfit),row);

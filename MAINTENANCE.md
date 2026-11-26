@@ -143,7 +143,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 开发页 `/tests/equipment-fixture.html#footsteps` 展示两双鞋的前、侧、后视图和两种坐姿。`npm run art:wardrobe` 按每套衣服的脚底重建佩戴层，同时导出礼盒与衣橱共用的图标。
 
-同页 `#outfits` 展示八套角色造型。花海坐地、长椅垂腿与床上侧卧分别绘制。换装原画和图集布局见 [衣橱美术说明](doc/artwork/wardrobe/README.md)。`npm run art:meadow` 生成七色花与花门，`npm run art:night` 生成夜间场景。
+同页 `#outfits` 展示九套角色造型。花海坐地、长椅垂腿与床上侧卧分别绘制。换装原画和图集布局见 [衣橱美术说明](doc/artwork/wardrobe/README.md)。`npm run art:meadow` 生成七色花与花门，`npm run art:night` 生成夜间场景。
 
 开发页 `/tests/exploration-fixture.html` 使用独立的临时存档。「验收游戏内衣橱、装备预览与分页」可以在电脑和手机宽度运行，覆盖 15 格与 8 格分页、四向预览、装备与伙伴、洋桔梗、画幅和页面位置。「测量实际琴声与示范」连接真实媒体输出，测量四根弦及示范轨的播放位置和峰值。「验收月兔台、金盏菊与清档」从南侧主街走进摊位，再检查清档取消、确认、声音偏好及开始页。「验收周年演奏、调试与背包」检查错音、示范、鼠标与键盘各自弹完整首曲、调试隔离、游戏内背包的位置、贝斯开合前后的画布尺寸与镜头、打开小游戏不滚动，并生成小镇四个时段的对照图。自然时钟在四个时段边界前后各约十秒过渡。
 
@@ -248,7 +248,7 @@ R2 CORS 完整示例在 [README](README.md#花园小电视cdn-周年放映)。`C
 | 页面 | 用途 |
 | --- | --- |
 | `/tests/interaction-fixture.html` | 真实控制器的暂停、恢复、焦点、快捷键与活动计时回归，不写存档 |
-| `/tests/equipment-fixture.html` | 24 件物品的四向动作、两种坐姿、睡姿和叠穿 |
+| `/tests/equipment-fixture.html` | 25 件物品的四向动作、两种坐姿、睡姿和叠穿 |
 | `/tests/scenery-fixture.html` | 窗景、晨露花和四处小镇设施的底图合成 |
 | `/tests/mobile-fixture.html` | 375/320 宽度真实页面，使用当前来源的本机进度 |
 | `/tests/media-fixture.html` | 图片、音视频和缺失素材，使用专用测试容器 |

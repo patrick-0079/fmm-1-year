@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { writeFile } from "node:fs/promises";
 import { createServer } from "vite";
-import { outfits } from "../src/costume-frames.ts";
+import { cellWidth, cellHeight, outfits } from "../src/costume-frames.ts";
 import { ITEMS, starterItems, INVENTORY_KEY } from "../src/items.ts";
 import { SAVE_KEY } from "../src/core.ts";
 import { townInteriorKeys } from "../src/town-interior-id.ts";
@@ -43,7 +43,7 @@ try {
         const top=84+i*85; c.fillStyle=i%2 ? "#fcf8f2" : "#f2e7dc"; c.fillRect(12,top,704,82);
         c.fillStyle="#654957"; c.font="15px Microsoft YaHei"; c.textAlign="left";
         c.fillText(row.querySelector("th").textContent,24,top+47);
-        const sampleRow = i===rows.length-1 ? document.querySelector("#catalog tbody tr:last-child") : row;
+        const sampleRow = row.dataset.outfit === "witchDress" ? document.querySelector("#witch-set") : row;
         const samples=sampleRow.querySelectorAll("td canvas");
         [0,4,12,13,14].forEach((frame,j)=>{const tile=samples[frame],w=tile.width*.78;
           c.drawImage(tile,positions[j]-w/2,top,w,tile.height*.78);});
@@ -53,7 +53,7 @@ try {
     await writeFile(process.env.WARDROBE_PREVIEW,Buffer.from(preview,"base64"));
   }
   await page.close();
-  console.log("八套角色的 120 个方向与姿势帧均已绘制。");
+  console.log(`${shapes.length} 套角色的 ${shapes.length * 15} 个方向与姿势帧均已绘制。`);
 
   for (const options of [desktop,{...desktop,viewport:{width:390,height:844},isMobile:true,hasTouch:true}]) {
     const page=await browser.newPage(options);
@@ -97,28 +97,33 @@ try {
   await equip("heartClip");
   await actual.reload(); await start();
   assert.equal((await snapshot()).equipment.hair,null);
-  const starterClothes=starterItems.filter(id=>ITEMS[id].slot==="clothes");
-  for (const [i,id] of starterClothes.entries()) {
-    await equip(id);
-    const hair=["fishClip","starClip","heartClip","fishClip"][i];
-    await equip(hair);
+  const checkRestPoses = async (id, hair) => {
     for (const [scene,spot,kind,col] of [["room","bed","lying",14],["challenge","rest","sitting",13],["meadow","meadow-camp","sitting",12]]) {
       await actual.evaluate(async ([s,p])=>window.contentQA.visit(s,p),[scene,spot]);
       await actual.locator("#world").press("e");
       await actual.waitForFunction(([scene,kind,sx,sy])=>{
         const state=window.contentQA.snapshot();
         return state.scene===scene && state.rest?.kind===kind && window.qaDressedFrame?.[0]===sx && window.qaDressedFrame[1]===sy;
-      },[scene,kind,col*144,outfits.indexOf(id)*184],{timeout:10000});
+      },[scene,kind,col*cellWidth,outfits.indexOf(id)*cellHeight],{timeout:10000});
       assert.equal((await snapshot()).equipment.hair,hair);
       if (scene==="room") await actual.getByRole("button",{name:"起床继续冒险",exact:true}).click();
       if (scene==="challenge") await actual.getByRole("button",{name:"起身继续走",exact:true}).click();
       if (scene==="meadow") await actual.locator("#world").press("d",{delay:120});
     }
     console.log(ITEMS[id].name+"与"+ITEMS[hair].name+"通过床、长椅和花海的实景绘制检查。");
+  };
+  const starterClothes=starterItems.filter(id=>ITEMS[id].slot==="clothes");
+  const clips=["fishClip","starClip","heartClip"];
+  for (const [i,id] of starterClothes.entries()) {
+    await equip(id);
+    if (id === "witchDress") await equip("witchHat");
+    const hair=clips[i % clips.length];
+    await equip(hair);
+    await checkRestPoses(id,hair);
   }
   await actual.reload(); await start();
-  assert.equal((await snapshot()).equipment.clothes,"honeyOveralls");
-  assert.equal((await snapshot()).equipment.hair,"fishClip");
+  const initialWitch=(await snapshot()).equipment;
+  assert.deepEqual([initialWitch.clothes,initialWitch.head,initialWitch.hair],["witchDress","witchHat","starClip"]);
   await actual.evaluate(({key})=>localStorage.setItem(key,JSON.stringify({
     owned:["wreath","starWings","mintCape","moonBag"],equipped:{head:"starWings",clothes:"mintCape",body:"moonBag"},
   })),{key:INVENTORY_KEY});
@@ -146,14 +151,13 @@ try {
     await actual.locator("#world").press("e");
     await actual.locator(".activity-hud:not([hidden])").waitFor();
   };
-  const reward=actual.getByRole("button",{name:"收下女巫套装",exact:true});
-  const stamp=async()=> (await snapshot()).progress.achievements.earned.includes("town-witch");
+  const reward=actual.getByRole("button",{name:"收下巫女服",exact:true});
+  const stamp=async()=> (await snapshot()).progress.achievements.earned.includes("town-miko");
   const inventory=()=>actual.evaluate(key=>JSON.parse(localStorage.getItem(key)),INVENTORY_KEY);
   await setKeepsakes(townInteriorKeys.slice(0,6));
   await talk("town-hall"); assert.equal(await reward.count(),0); assert.equal(await stamp(),false);
   await actual.locator(".activity-close").click();
 
-  // A save from before the reward was introduced may already have all seven pieces.
   await setKeepsakes(townInteriorKeys);
   const trial=actual.locator('[data-debug="wardrobe"]');
   const toggleTrial=async()=>{
@@ -161,33 +165,31 @@ try {
     await trial.evaluate(button=>button.click());
     await actual.locator(".debug-close").click();
   };
-  await toggleTrial(); await equip("witchDress"); await equip("witchHat");
-  assert.equal((await snapshot()).equipment.head,"witchHat");
-  assert.ok(!(await inventory()).owned.includes("witchDress")); assert.equal(await stamp(),false);
+  await toggleTrial(); await equip("mikoOutfit");
+  assert.equal((await snapshot()).equipment.clothes,"mikoOutfit");
+  assert.ok(!(await inventory()).owned.includes("mikoOutfit")); assert.equal(await stamp(),false);
   await toggleTrial(); assert.equal((await snapshot()).equipment.clothes,"cloudPajamas");
   await talk("town"); assert.equal(await reward.count(),0);
   await actual.locator(".activity-close").click();
   await talk("town-hall"); await actual.getByRole("button",{name:"先聊聊拍照"}).click();
-  assert.equal(await stamp(),false); assert.ok(!(await inventory()).owned.includes("witchDress"));
+  assert.equal(await stamp(),false); assert.ok(!(await inventory()).owned.includes("mikoOutfit"));
   await actual.locator(".activity-close").click();
   await talk("town-hall"); await reward.click();
   assert.equal(await stamp(),true);
   const claimed=await inventory();
-  assert.ok(["witchDress","witchHat"].every(id=>claimed.owned.filter(item=>item===id).length===1));
+  assert.equal(claimed.owned.filter(item=>item==="mikoOutfit").length,1);
   assert.equal(claimed.equipped.clothes,"cloudPajamas");
   await actual.getByRole("button",{name:"打开衣橱",exact:true}).click();
   await actual.locator(".bag-close").click();
-  await equip("witchDress"); await equip("witchHat");
+  await equip("mikoOutfit"); await equip("witchHat");
   await actual.reload(); await start();
   const dressed=(await snapshot()).equipment;
-  assert.deepEqual([dressed.clothes,dressed.head,dressed.hair],["witchDress","witchHat","starClip"]);
+  assert.deepEqual([dressed.clothes,dressed.head,dressed.hair],["mikoOutfit","witchHat","starClip"]);
   await talk("town-hall"); assert.equal(await reward.count(),0);
-  assert.equal((await snapshot()).progress.achievements.earned.filter(id=>id==="town-witch").length,1);
+  assert.equal((await snapshot()).progress.achievements.earned.filter(id=>id==="town-miko").length,1);
   await actual.locator(".activity-close").click();
-  await actual.evaluate(()=>window.contentQA.visit("room","bed"));
-  await actual.locator("#world").press("e");
-  await actual.waitForFunction(()=>window.qaDressedFrame?.[0]===14*144 && window.qaDressedFrame[1]===7*184);
-  console.log("六件小物、街头交谈和暂缓领奖均未提前发奖。旧档集齐七件后在馆内领到裙、帽和一枚徽章，换装、睡姿、刷新和再次对话均通过。");
+  await checkRestPoses("mikoOutfit","starClip");
+  console.log("集齐七件后从暖栗手中领取巫女服并获得一枚绯袴留影徽章。还差一件、街头交谈、暂缓领取、试穿、刷新和再次对话均通过。");
 } finally {
   await browser?.close();
   await server.close();

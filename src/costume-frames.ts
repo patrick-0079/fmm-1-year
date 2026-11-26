@@ -22,7 +22,7 @@ export function poseFrame(pose: AvatarPose, facing: Facing, step: number) {
   return facing * 3 + step;
 }
 
-export const outfits = [null, "roseDress", "mintCape", "cloudPajamas", "apricotNightgown", "sailorSet", "honeyOveralls", "witchDress"] as const satisfies readonly (ItemId | null)[];
+export const outfits = [null, "roseDress", "mintCape", "cloudPajamas", "apricotNightgown", "sailorSet", "honeyOveralls", "witchDress", "mikoOutfit"] as const satisfies readonly (ItemId | null)[];
 export function outfitIndex(clothes?: ItemId | null) {
   return Math.max(0, outfits.findIndex(id => id === clothes));
 }

@@ -7,7 +7,7 @@ import { rainbowFlowers } from "./rainbow-flowers.ts";
 import { producers } from "./star-catalog.ts";
 import { deliveryIds } from "./letters.generated.ts";
 import { achievementEvents, type AchievementEvent } from "./achievement-events.ts";
-import { townWitchSet } from "./items.ts";
+import { townCollectionReward } from "./items.ts";
 import { townInteriorKeys } from "./town-interior-id.ts";
 import { townKeepsakeBadge, townKeepsakeChoice, townKeepsakeInfo } from "./town-keepsakes.ts";
 
@@ -95,7 +95,7 @@ const explore: Definition[] = [
     description: hint + "。", difficulty: id === "first" ? "简单" : id === "light" ? "挑战" : id === "radio" ? "探索" : "普通",
     ...(id === "radio" ? { hint: "听月泉边，连最轻的声音也能传很远。" } : {}),
   })),
-  { id: "town-witch", chapter: "explore", name: "灯下的小女巫", difficulty: "挑战", description: "收齐七件小镇小物，白昼或黄昏在周年纪念馆找暖栗，收下月灯女巫套装。" },
+  { id: "town-miko", chapter: "explore", name: "绯袴留影", difficulty: "挑战", description: "收齐七件小镇小物，白昼或黄昏在周年纪念馆找暖栗，收下绯袴巫女服。" },
   ...townInteriorKeys.map((key): Definition => ({
     id: townKeepsakeBadge(key), chapter: "explore", name: townKeepsakeInfo[key].name, difficulty: "简单",
     description: `在小镇室内完成对应的手作，收下${townKeepsakeInfo[key].name}。`,
@@ -303,11 +303,11 @@ export function reconcileAchievements(progress: Progress, context: AchievementCo
     meters.set(townKeepsakeBadge(key), { ...yesNo(owned), keepsakeChoice: owned ? townKeepsakeChoice(progress.townKeepsakes, key) : undefined });
   }
   const keepsakes = townInteriorKeys.filter(key=>progress.townKeepsakes.items.includes(key)).length;
-  const claimed = townWitchSet.every(id=>context.owned.includes(id));
-  const witch = meter(keepsakes + Number(claimed), townInteriorKeys.length + 1, "步");
-  witch.progressLabel = claimed && keepsakes === townInteriorKeys.length ? "已收下女巫套装"
+  const claimed = context.owned.includes(townCollectionReward);
+  const collection = meter(keepsakes + Number(claimed), townInteriorKeys.length + 1, "步");
+  collection.progressLabel = claimed && keepsakes === townInteriorKeys.length ? "已收下绯袴巫女服"
     : `小镇小物 ${keepsakes} / ${townInteriorKeys.length}` + (keepsakes === townInteriorKeys.length ? " · 待向暖栗领取" : "");
-  meters.set("town-witch",witch);
+  meters.set("town-miko", collection);
   meters.set("ruin-set", meter(progress.astrolabe.found.length, rings.length, "枚星盘环"));
   const minutes = Math.floor(Math.max(0, Number.isFinite(context.playSeconds) ? context.playSeconds : 0) / 60);
   for (const { days: n } of days) {
