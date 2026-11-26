@@ -1,4 +1,4 @@
-import { arriveOnShift, waitOnBench } from "./resident-visits";
+import { arriveOnShift, waitForVisit, waitOnBench } from "./resident-visits";
 import type { World } from "../src/world";
 import { SAVE_KEY, readProgress } from "../src/core";
 import { INVENTORY_KEY, readInventory } from "../src/items";
@@ -76,16 +76,12 @@ export async function verifyGardenDiscovery(world: World) {
   close();
   assert(!state().achievements.facts.includes("xiaoye-plush"), "拥抱中断时过早计入小叶子会面");
   await enter("garden", "xiaoye-plush");
-  const until = performance.now() + 10000;
-  while (!state().achievements.facts.includes("xiaoye-plush")) {
-    if (performance.now() > until) throw Error("完整拥抱后没有计入小叶子会面");
-    await new Promise(done => setTimeout(done, 50));
-  }
+  await waitForVisit(() => state().achievements.facts.includes("xiaoye-plush"), "完整拥抱后没有计入小叶子会面");
   close();
   for (const [egg,phase] of [["sunset","dusk"],["firefly","night"],["dew","dawn"]] as const) {
     for (let i=0; world.currentPhase!==phase && i<4; i++) await waitOnBench(world);
     await enter("challenge", egg);
-    assert(state().achievements.facts.includes(egg), "时段彩蛋没有计入徽章：" + egg);
+    await waitForVisit(() => state().achievements.facts.includes(egg), "时段彩蛋没有计入徽章：" + egg);
     close();
   }
   assert(state().achievements.earned.includes("day-secrets"), "跨天发现三种彩蛋后未获得徽章");

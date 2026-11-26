@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { daylightMix } from "../src/daylight-mix.ts";
+import { worldTime } from "../src/day.ts";
 import { drawSceneDaylight, drawWindowLightOnFloor } from "../src/scene-daylight.ts";
 
 test("all four surfaces share continuous, monotonic clock transitions at the boundaries", () => {
@@ -15,6 +16,20 @@ test("all four surfaces share continuous, monotonic clock transitions at the bou
     assert.deepEqual(after, { from: phases[i + 1], to: phases[i + 1], mix: 0 });
   }
   assert.deepEqual(daylightMix(23.99), daylightMix(0));
+});
+
+test("each daylight fade takes twenty real seconds on the running world clock", () => {
+  for (const boundary of [540, 720, 1260, 1440]) {
+    const light = (offset: number) => daylightMix(worldTime(boundary + offset).hours);
+    const from = worldTime(boundary - 1).phase, to = worldTime(boundary).phase;
+    assert.deepEqual(light(-10.001), { from, to: from, mix: 0 });
+    for (const [offset, mix] of [[-5, .25], [0, .5], [5, .75]]) {
+      const sample = light(offset);
+      assert.deepEqual([sample.from, sample.to], [from, to]);
+      assert.ok(Math.abs(sample.mix - mix) < 1e-9);
+    }
+    assert.deepEqual(light(10.001), { from: to, to, mix: 0 });
+  }
 });
 
 test("room and garden lighting reuses its raster, keeps real lamps warm and changes light direction", () => {

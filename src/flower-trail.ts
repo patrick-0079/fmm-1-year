@@ -12,6 +12,10 @@ export class FlowerTrail {
   private preview = false;
   get previewOpen() { return this.preview; }
   setPreviewOpen(on:boolean) { this.preview=on; this.refresh(); }
+  reset() {
+    this.firstExplorationTime = undefined;
+    this.setPreviewOpen(false);
+  }
   constructor(private world: World, private found: () => string[], private save: () => void, private toast: (text: string) => void) {
     world.canEnter = scene => scene !== "meadow" || this.preview || meadowOpen(found());
     const available = world.available, layers = world.getDepthLayers, tick = world.onTick;

@@ -5,7 +5,7 @@ const legacyClockKey = "fufu-world-clock-v1";
 const legacyDaySeconds = 10 * 60;
 type WorldClock = { origin: number; shift: number };
 
-function parseClock(raw: string | null, now: number): WorldClock | null {
+export function readWorldClock(raw: string | null, now: number): WorldClock | null {
   if (!raw) return null;
   try {
     const clock = JSON.parse(raw);
@@ -19,11 +19,11 @@ function parseClock(raw: string | null, now: number): WorldClock | null {
 
 export function loadWorldClock(storage: Pick<Storage, "getItem" | "setItem">, now: number): WorldClock {
   const raw = storage.getItem(WORLD_CLOCK_KEY);
-  const current = parseClock(raw, now);
+  const current = readWorldClock(raw, now);
   if (current) return current;
   const clock = { origin: now, shift: 0 };
   if (raw === null) {
-    const old = parseClock(storage.getItem(legacyClockKey), now);
+    const old = readWorldClock(storage.getItem(legacyClockKey), now);
     if (old) {
       // Include bench jumps and offline time at the old rate up to this first visit.
       const elapsed = (now - old.origin) / 1000 + old.shift;

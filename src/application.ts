@@ -357,7 +357,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     },
   };
   inventory.onEquip = () => activities.finishEquipmentChoice();
-  const nature = new Nature(world, activities, toast, inventory);
+  const nature = new Nature(world, activities, toast, inventory, canSaveReceipts);
   world.isPresentingDialogue = () => activities.dialogueOpen;
   const arcade = new Arcade(world, activities, inventory, (id, score) => {
     const best = progress.arcadeBests[id] ?? 0;
@@ -948,7 +948,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     nature.reset();
     inventory.reset();
     starQuest.reset();
-    flowerTrail.setPreviewOpen(false);
+    flowerTrail.reset();
     town.reset();
     arcade.close();
     reader.close();

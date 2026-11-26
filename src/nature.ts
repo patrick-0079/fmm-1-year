@@ -1,4 +1,4 @@
-import { NATURE_KEY, WORLD_CLOCK_KEY, loadWorldClock, pickedGardenEggs, readGardenBag } from "./nature-save";
+import { NATURE_KEY, WORLD_CLOCK_KEY, loadWorldClock, pickedGardenEggs, readGardenBag, readWorldClock } from "./nature-save";
 import { REAL_MINUTES_PER_DAY, eggAvailable, phaseNames, untilNextPhase, worldTime } from "./day";
 import type { Phase } from "./day";
 import { drawTownLight } from "./town-light";
@@ -47,6 +47,7 @@ export class Nature {
   private windowImage = sceneImage(roomArtUrl);
   private timeline = { origin: Date.now(), shift: 0 };
   private state = readGardenBag();
+  private storage: Storage | null = null;
   private lastUi = 0;
   private lastClockLabel = "";
   private oldPhase = "";
@@ -57,9 +58,17 @@ export class Nature {
     private activities: Activities,
     private toast: (text: string) => void,
     private inventory: Inventory,
+    private canSave: () => boolean,
   ) {
-    try { this.timeline = loadWorldClock(localStorage, Date.now()); } catch { /* Optional storage. */ }
-    try { this.state = readGardenBag(localStorage.getItem(NATURE_KEY)); } catch { /* Optional storage. */ }
+    try {
+      this.storage = window.localStorage;
+      this.timeline = loadWorldClock(this.storage, Date.now());
+      this.state = readGardenBag(this.storage.getItem(NATURE_KEY));
+    } catch { this.storage = null; }
+    window.addEventListener("storage", event => {
+      if (event.key === WORLD_CLOCK_KEY || event.key === NATURE_KEY || event.key === null) this.syncGarden();
+    });
+    window.addEventListener("pageshow", event => { if (event.persisted) this.syncGarden(); });
     this.world.available = (spot) => this.available(spot);
     this.world.onEnvironment = c => this.draw(c);
     this.world.onLighting = (c) => this.lighting(c);
@@ -101,19 +110,55 @@ export class Nature {
   }
   get timePreview() { return this.previewPhase; }
   get pickedEggs() { return pickedGardenEggs(this.state); }
-  private key(id: string) {
-    return `${this.clock.day}:${this.world.scene}:${id}`;
+  private key(id: string, day: number) {
+    return `${day}:${this.world.scene}:${id}`;
   }
   private picked(id: string) {
-    return this.state.picked[this.key(id)] ?? 0;
+    return this.state.picked[this.key(id, this.clock.day)] ?? 0;
   }
-  private mark(id: string) {
-    this.state.picked[this.key(id)] = this.picked(id) + 1;
+  /** Take one and return the quantity available before this pickup. */
+  private claim(id: string, limit: number) {
+    const { day, phase } = this.clock;
+    const key = this.key(id, day), count = this.state.picked[key] ?? 0;
+    if (count >= limit || !eggAvailable(id, phase)) return 0;
+    this.state.picked[key] = count + 1;
+    return limit - count;
+  }
+  private syncGarden() {
+    if (!this.storage) return;
+    let clock;
+    try {
+      // A queued storage event may already have been superseded by another write.
+      clock = readWorldClock(this.storage.getItem(WORLD_CLOCK_KEY), Date.now());
+      this.state = readGardenBag(this.storage.getItem(NATURE_KEY));
+    } catch { this.storage = null; return; }
+    const jumped = clock && (clock.origin !== this.timeline.origin || clock.shift !== this.timeline.shift);
+    if (clock) this.timeline = clock;
+    this.refreshClock();
+    if (jumped) this.onTimeJump();
+  }
+  private changeGarden(action: () => void) {
+    const scene = this.world.scene;
+    const apply = () => {
+      if (this.world.scene !== scene || !this.canSave()) return;
+      this.syncGarden();
+      action();
+    };
+    // A bench jump and a harvest must agree on the day, including the final fruit
+    // picked from two windows at once. Keep the lock only for the synchronous change.
+    if (!this.storage || !navigator.locks) { apply(); return; }
+    let acquired = false;
+    void navigator.locks.request(NATURE_KEY, () => {
+      acquired = true;
+      apply();
+    }).catch(error => {
+      if (acquired) throw error;
+      apply();
+    });
   }
   private saveClock() {
-    try {
-      localStorage.setItem(WORLD_CLOCK_KEY, JSON.stringify(this.timeline));
-    } catch {}
+    try { this.storage?.setItem(WORLD_CLOCK_KEY, JSON.stringify(this.timeline)); }
+    catch { this.storage = null; }
   }
   private save() {
     // Only today's and yesterday's scenery state is needed; the bag is cumulative.
@@ -121,8 +166,8 @@ export class Nature {
       if (Number(key.split(":")[0]) < this.clock.day - 1)
         delete this.state.picked[key];
     try {
-      localStorage.setItem(NATURE_KEY, JSON.stringify(this.state));
-    } catch {}
+      this.storage?.setItem(NATURE_KEY, JSON.stringify(this.state));
+    } catch { this.storage = null; }
     this.lastUi = 0;
     this.tick();
   }
@@ -159,9 +204,8 @@ export class Nature {
     )
       return false;
     if (id === "wreath") {
-      this.state.wreath = true;
       this.inventory.grant("wreath");
-      this.save();
+      this.changeGarden(() => { this.state.wreath = true; this.save(); });
       sfx("match");
       this.activities.note(
         "捡到一顶花环 · 按 H 戴上，或打开背包为芙芙搭配",
@@ -172,6 +216,7 @@ export class Nature {
       const bench = this.world.config.spots.find((s) => s.id === "rest");
       if (!bench) return false;
       this.world.sit(bench, bench.approach);
+      let seat = this.world.restState;
       this.activities.menu(
         `在长椅上坐下了 · 现在是${phaseNames[this.clock.phase]}，歇一会再走吧`,
         [
@@ -182,7 +227,15 @@ export class Nature {
               this.activities.close();
             },
           },
-          { title: "坐着等到下一时段", run: () => this.rest() },
+          { title: "坐着等到下一时段", run: () => {
+            const elapsed = this.elapsed;
+            const target = Math.round(elapsed + untilNextPhase(elapsed, this.previewPhase ?? undefined));
+            this.changeGarden(() => {
+              if (!seat || this.world.restState !== seat) return;
+              seat = null;
+              this.rest(target);
+            });
+          } },
           {
             title: "看看时段彩蛋",
             run: () =>
@@ -194,20 +247,22 @@ export class Nature {
       );
       return true;
     }
+    this.changeGarden(() => this.harvest(id));
+    return true;
+  }
+  private harvest(id: string) {
     if (id === "apple") {
       this.pickApple();
-      return true;
+      return;
     }
     if (id === "flowers") {
       this.pickFlower();
-      return true;
+      return;
     }
-    const spot = this.world.config.spots.find((s) => s.id === id)!;
-    if (!this.available(spot)) {
+    if (!this.claim(id, 1)) {
       this.toast("这份小惊喜正在等另一个时刻。去勇气花园的长椅歇一会，也许会有新发现。");
-      return true;
+      return;
     }
-    this.mark(id);
     this.state.star++;
     this.save();
     if (id === "dew" || id === "sunset" || id === "firefly") this.world.onAchievementEvent(id);
@@ -219,13 +274,11 @@ export class Nature {
       firefly: "萤火虫绕着你画了一个爱心，又飞回花丛 · 星夜心愿已收好，星屑 +1",
     };
     this.activities.note(words[id]);
-    return true;
   }
   private pickApple() {
-    const remaining = 3 - this.picked("apple");
+    const remaining = this.claim("apple", 3);
     const basket = this.world.scene === "garden";
     if (remaining > 0) {
-      this.mark("apple");
       this.state.apple++;
       sfx("flip");
       this.save();
@@ -235,13 +288,12 @@ export class Nature {
         ? `${basket ? "拿到" : "摘到"}一颗甜苹果！${basket ? "果篮里" : "树上"}还剩 ${remaining - 1} 颗`
         : basket ? "果篮里的苹果拿完啦 · 明天还会补上"
           : "今天树上的苹果摘完啦 · 明天会重新长出来",
-      remaining > 1 ? [{ title: basket ? "再拿一颗" : "再摘一颗", run: () => this.pickApple() }] : [],
+      remaining > 1 ? [{ title: basket ? "再拿一颗" : "再摘一颗", run: () => this.interact("apple") }] : [],
     );
   }
   private pickFlower() {
-    const remaining = 3 - this.picked("flowers");
+    const remaining = this.claim("flowers", 3);
     if (remaining > 0) {
-      this.mark("flowers");
       this.state.flower++;
       this.inventory.grant("wreath");
       this.state.wreath = true;
@@ -254,7 +306,7 @@ export class Nature {
         : "这片花今天采完啦，明天再来看看。",
       [
         ...(remaining > 1
-          ? [{ title: "再采一朵", run: () => this.pickFlower() }]
+          ? [{ title: "再采一朵", run: () => this.interact("flowers") }]
           : []),
       ],
     );
@@ -262,15 +314,15 @@ export class Nature {
   private toggleCrown() {
     if (!this.inventory.has("wreath") && this.inventory.state.equipped.head !== "wreath") return;
     this.inventory.toggle("wreath");
-    this.state.wearing = this.inventory.has("wreath") && this.inventory.state.equipped.head === "wreath";
-    this.save();
+    this.changeGarden(() => { this.state.wearing = this.inventory.wearingWreath; this.save(); });
   }
-  private rest() {
-    const elapsed = this.elapsed;
-    const next = elapsed + untilNextPhase(elapsed, this.previewPhase ?? undefined);
-    this.timeline = { origin: Date.now(), shift: Math.round(next) };
+  private rest(target: number) {
+    // A second window may already have reached the boundary chosen on this bench.
+    if (target > this.elapsed) {
+      this.timeline = { origin: Date.now(), shift: target };
+      this.saveClock();
+    }
     this.previewPhase = null;
-    this.saveClock();
     this.refreshClock();
     this.onTimeJump();
     this.activities.note(

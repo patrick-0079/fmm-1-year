@@ -192,25 +192,23 @@ async function checkHarvest() {
   await placeOnMap("garden", apple.approach);
   for (let i = 1; i <= 3; i++) {
     world.interact();
-    expect(q(".bag-count").textContent?.includes("苹果 "+i),"苹果没有入袋");
+    await wait(() => q(".bag-count").textContent!.includes("苹果 "+i));
     expect(q(".activity-status").textContent?.includes("还剩 "+(3-i)+" 颗"),"剩余的树果数量不正确");
     q(".activity-close").click();
   }
   expect(!world.available(apple),"拿空的果篮仍显示为可采集目标");
-  world.interact(); world.onInteract("apple");
-  expect(q(".bag-count").textContent?.includes("苹果 3"),"同一天能收第四颗苹果");
-  q(".activity-close").click();
+  world.onInteract("apple");
+  expect(q(".activity-hud").hidden && q(".bag-count").textContent?.includes("苹果 3"),"同一天能收第四颗苹果");
   const flowers = scenes.garden.spots.find(s=>s.id==="flowers")!;
   world.switchScene("garden", flowers.approach);
   for (let i = 1; i <= 3; i++) {
     world.interact();
-    expect(q(".bag-count").textContent?.includes("花朵 "+i),"花朵没有入袋");
+    await wait(() => q(".bag-count").textContent!.includes("花朵 "+i));
     q(".activity-close").click();
   }
   expect(!world.available(flowers),"采空的花丛仍显示为可采集目标");
-  world.interact(); world.onInteract("flowers");
-  expect(q(".bag-count").textContent?.includes("花朵 3"),"同一天能收第四丛花");
-  q(".activity-close").click();
+  world.onInteract("flowers");
+  expect(q(".activity-hud").hidden && q(".bag-count").textContent?.includes("花朵 3"),"同一天能收第四丛花");
   log("拿完果篮的三颗苹果、采完当日三朵花，核对背包数量");
 }
 async function checkAll() {
