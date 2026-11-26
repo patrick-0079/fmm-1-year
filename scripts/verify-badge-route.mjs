@@ -60,7 +60,8 @@ try {
   // 10-second foreground intervals through the game's unmodified sampling timer.
   for (const days of [1, 3, 7]) {
     const id = "days-" + days;
-    const target = days * 600000;
+    const targetMinutes = days * 24;
+    const target = targetMinutes * 60_000;
     let elapsed = await played();
     while (elapsed < target - 10000) {
       await page.clock.fastForward(10000);
@@ -70,8 +71,8 @@ try {
     }
     assert.ok(!(await earned()).includes(id), "提前解锁 " + id);
     await page.clock.fastForward(target - elapsed + 2200);
-    assert.ok((await earned()).includes(id), "应在累计 " + days * 10 + " 分钟时解锁 " + id);
-    console.log("前台 " + days * 10 + " 分钟，徽章已保存");
+    assert.ok((await earned()).includes(id), "应在累计 " + targetMinutes + " 分钟时解锁 " + id);
+    console.log("前台 " + targetMinutes + " 分钟，徽章已保存");
   }
   assert.deepEqual((await earned()).sort(), catalogue);
   await page.reload();

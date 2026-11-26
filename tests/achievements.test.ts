@@ -162,12 +162,25 @@ test("split visits, flowers, stars, clues and foreground time require distinct r
   assert.deepEqual(scene.fresh, ["day-secrets"]);
   for (const id of ["rainbow", "star-bottle"]) assert.equal(scene.entries.find(e => e.id === id)!.current, 1);
   p.rainbowFlowers = [...rainbowIds]; p.creditStars = producers.map(s => s.id);
-  assert.deepEqual(pages(599.999).fresh, ["rainbow", "star-bottle"]);
-  assert.deepEqual(pages(600).fresh, ["days-1"]);
-  assert.deepEqual(pages(1799.9).fresh, []);
-  assert.deepEqual(pages(1800).fresh, ["days-3"]);
-  assert.deepEqual(pages(4199.99).fresh, []);
-  assert.deepEqual(pages(4200).fresh, ["days-7"]);
+  assert.deepEqual(pages(1439.999).fresh, ["rainbow", "star-bottle"]);
+  assert.deepEqual(pages(1440).fresh, ["days-1"]);
+  assert.deepEqual(pages(4319.999).fresh, []);
+  assert.deepEqual(pages(4320).fresh, ["days-3"]);
+  assert.deepEqual(pages(10079.999).fresh, []);
+  assert.deepEqual(pages(10080).fresh, ["days-7"]);
+});
+
+test("previously earned day stamps survive the longer day and partial foreground minutes carry over", () => {
+  const previous = newGame();
+  previous.achievements.earned.push("days-1");
+  const p = readProgress(JSON.stringify(previous));
+  const { entries, fresh } = reconcileAchievements(p, { ...empty, playSeconds: 15 * 60 });
+  assert.deepEqual(fresh, []);
+  const first = entries.find(entry => entry.id === "days-1")!;
+  assert.ok(first.earned);
+  assert.equal(first.progressLabel, "已盖章 · 累计前台游玩 15 分钟");
+  const third = entries.find(entry => entry.id === "days-3")!;
+  assert.deepEqual([third.current, third.goal, third.earned], [15, 72, false]);
 });
 
 test("legacy migration uses real inventory and recent clues once; old camp records survive without replaying the visitor", () => {
@@ -199,7 +212,7 @@ test("every documented stamp can be completed and replay never duplicates receip
   grantDebugLetters(p.residents);
   for (const l of allLetters) markLetterRead(p.residents, l.id);
   for (const id of Object.keys(ARCADES) as GameId[]) p.arcadeBests[id] = 400;
-  const ctx = { ...empty, townTalked: TOWN_NPCS.map(n => n.id), playSeconds: 4200 };
+  const ctx = { ...empty, townTalked: TOWN_NPCS.map(n => n.id), playSeconds: 7 * 24 * 60 };
   assert.equal(reconcileAchievements(p, ctx).fresh.length, 54);
   assert.deepEqual(reconcileAchievements(p, ctx).fresh, []);
   assert.equal(reconcileAchievements(readProgress(JSON.stringify(p)), ctx).entries.filter(e => e.earned).length, 54);

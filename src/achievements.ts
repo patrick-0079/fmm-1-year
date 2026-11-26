@@ -1,5 +1,6 @@
 import type { Progress } from "./core.ts";
 import type { GameId } from "./arcade-engines.ts";
+import { REAL_MINUTES_PER_DAY } from "./day.ts";
 import { ARCADES, TOWN_NPCS } from "./town-data.ts";
 import { earnedSeals, rings, seals } from "./astrolabe.ts";
 import { rainbowFlowers } from "./rainbow-flowers.ts";
@@ -109,7 +110,7 @@ const advanced: Definition[] = [
   { id: "miner-320", chapter: "advanced", name: "再往井底一点", difficulty: "进阶", description: "琥珀深井黄金矿工单局收集 320 矿光，首次达标后选择「继续游玩」。" },
   ...days.map(({ days, name, difficulty }): Definition => ({
     id: "days-" + days, chapter: "advanced", name, difficulty,
-    description: `开始探索后，在线并保持游戏页面可见，累计游玩 ${days * 10} 分钟，相当于 ${days} 个游戏日。可以分次累积。`,
+    description: `开始探索后，在线并保持游戏页面可见，累计游玩 ${days * REAL_MINUTES_PER_DAY} 分钟，相当于 ${days} 个游戏日。可以分次累积。`,
   })),
 ];
 export const achievementDefinitions: readonly Definition[] = [...daily, ...letters, ...games, ...explore, ...advanced];
@@ -300,9 +301,12 @@ export function reconcileAchievements(progress: Progress, context: AchievementCo
     meters.set(townKeepsakeBadge(key), { ...yesNo(owned), keepsakeChoice: owned ? townKeepsakeChoice(progress.townKeepsakes, key) : undefined });
   }
   meters.set("ruin-set", meter(progress.astrolabe.found.length, rings.length, "枚星盘环"));
+  const minutes = Math.floor(Math.max(0, Number.isFinite(context.playSeconds) ? context.playSeconds : 0) / 60);
   for (const { days: n } of days) {
-    const minutes = Math.floor(Math.max(0, Number.isFinite(context.playSeconds) ? context.playSeconds : 0) / 60);
-    meters.set("days-" + n, meter(minutes, n * 10, "分钟前台游玩"));
+    const id = "days-" + n;
+    const play = meter(minutes, n * REAL_MINUTES_PER_DAY, "分钟前台游玩");
+    if (minutes < play.goal && progress.achievements.earned.includes(id)) play.progressLabel = `已盖章 · 累计前台游玩 ${minutes} 分钟`;
+    meters.set(id, play);
   }
   const fresh: string[] = [];
   const collected = new Set(progress.achievements.earned);

@@ -1,4 +1,12 @@
-export const DAY_SECONDS = 600;
+export const REAL_MINUTES_PER_DAY = 24;
+export const DAY_SECONDS = REAL_MINUTES_PER_DAY * 60;
+const MINUTES_PER_WORLD_DAY = 24 * 60;
+const worldMinutesPerSecond = MINUTES_PER_WORLD_DAY / DAY_SECONDS;
+
+function clockMinutes(elapsed: number) {
+  const seconds = Number.isFinite(elapsed) ? Math.max(0, elapsed) : 0;
+  return 8 * 60 + seconds * worldMinutesPerSecond;
+}
 export type Phase = "dawn" | "day" | "dusk" | "night";
 export const phaseNames: Record<Phase, string> = {
   dawn: "清晨",
@@ -7,8 +15,9 @@ export const phaseNames: Record<Phase, string> = {
   night: "星夜",
 };
 export function worldTime(elapsed: number) {
-  const safe = Number.isFinite(elapsed) ? Math.max(0, elapsed) : 0;
-  const hours = ((((safe / DAY_SECONDS) * 24 + 8) % 24) + 24) % 24;
+  const total = clockMinutes(elapsed);
+  const minuteOfDay = total % MINUTES_PER_WORLD_DAY;
+  const hours = minuteOfDay / 60;
   const phase: Phase =
     hours >= 5 && hours < 8
       ? "dawn"
@@ -20,14 +29,14 @@ export function worldTime(elapsed: number) {
   return {
     hours,
     phase,
-    day: Math.floor(((safe / DAY_SECONDS) * 24 + 8) / 24) + 1,
-    label: `${String(Math.floor(hours)).padStart(2, "0")}:${String(Math.floor((hours % 1) * 60)).padStart(2, "0")}`,
+    day: Math.floor(total / MINUTES_PER_WORLD_DAY) + 1,
+    label: `${String(Math.floor(hours)).padStart(2, "0")}:${String(Math.floor(minuteOfDay) % 60).padStart(2, "0")}`,
   };
 }
 export function untilNextPhase(elapsed: number, displayedPhase = worldTime(elapsed).phase) {
   const nextHour = { dawn: 8, day: 17, dusk: 20, night: 5 }[displayedPhase];
-  const hoursAhead = (nextHour - worldTime(elapsed).hours + 24) % 24;
-  return hoursAhead / 24 * DAY_SECONDS + 0.01;
+  const ahead = nextHour * 60 - clockMinutes(elapsed) % MINUTES_PER_WORLD_DAY;
+  return (ahead < 0 ? ahead + MINUTES_PER_WORLD_DAY : ahead) / worldMinutesPerSecond;
 }
 export function eggAvailable(id: string, phase: Phase) {
   return id === "dew"

@@ -6,6 +6,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { dirname, join, resolve } from "node:path";
 import { build, preview } from "vite";
 import { OPEN_AT } from "../src/launch/time.ts";
+import { rainbowIds } from "../src/rainbow-flowers.ts";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright-core");
@@ -50,6 +51,14 @@ async function checkPlayViewport(page) {
     }));
     throw new Error("游戏或操作键超出视口 " + JSON.stringify(layout), { cause: error });
   });
+}
+
+async function checkWorldTime(page, label, phase, day) {
+  await page.waitForFunction(({ label, phase, day }) => {
+    const clock = document.querySelector(".time-pill");
+    return clock?.dataset.phase === phase && clock.textContent.includes(label) &&
+      document.querySelector(".day-hint")?.textContent.includes(`第 ${day} 天 · 24 分钟一昼夜`);
+  }, { label, phase, day }, { timeout: 5000 });
 }
 
 let server, browser;
@@ -127,6 +136,15 @@ try {
   assert.equal(await maps.getAttribute("aria-selected"), "true");
   assert.ok(await book.isHidden());
   await enter.click();
+  for (const [ms, label, phase, day] of [
+    [999, "08:00", "day", 1], [1000, "08:01", "day", 1],
+    [539999, "16:59", "day", 1], [540000, "17:00", "dusk", 1], [720000, "20:00", "night", 1],
+    [959999, "23:59", "night", 1], [960000, "00:00", "night", 2],
+    [1260000, "05:00", "dawn", 2], [1440000, "08:00", "day", 2],
+  ]) {
+    await game.clock.setFixedTime(new Date(OPEN_AT + ms));
+    await checkWorldTime(game, label, phase, day);
+  }
   assert.equal(await game.locator(".scene-nav button:visible").count(), 5);
   const stamps = await game.locator(".scene-nav .map-stamp").evaluateAll(icons => icons.map(icon => icon.innerHTML));
   assert.equal(new Set(stamps).size, 6);
@@ -161,9 +179,20 @@ try {
   await phone.route(/^https:\/\//, route => route.abort());
   const rotated = await phone.newPage();
   rotated.on("pageerror", error => errors.push(error.message));
+  await rotated.addInitScript(({ now, flowers }) => {
+    if (localStorage.getItem("fufu-world-clock-v1") !== null) return;
+    localStorage.setItem("fufu-world-clock-v1", JSON.stringify({ origin: now - 2_500_000, shift: 125 }));
+    localStorage.setItem("nemu-anniversary-v1", JSON.stringify({ rainbowFlowers: flowers }));
+  }, { now: OPEN_AT, flowers: rainbowIds });
   await rotated.clock.setFixedTime(new Date(OPEN_AT));
   await rotated.goto(base);
   await rotated.getByRole("button", { name: /开始小冒险/ }).tap();
+  await checkWorldTime(rotated, "17:00", "dusk", 5);
+  await rotated.clock.setFixedTime(new Date(OPEN_AT + 1000));
+  await checkWorldTime(rotated, "17:01", "dusk", 5);
+  await rotated.reload();
+  await rotated.getByRole("button", { name: /继续上次的冒险/ }).tap();
+  await checkWorldTime(rotated, "17:01", "dusk", 5);
   await checkPlayViewport(rotated);
   for (const [width, height] of [[844, 390], [568, 320], [320, 568], [320, 480], [390, 844]]) {
     await rotated.setViewportSize({ width, height });
@@ -191,6 +220,17 @@ try {
   await rotated.locator('.scene-wrap[data-current-map="garden"]').waitFor();
   assert.equal(await rotated.locator('.scene-nav [data-scene="garden"]').getAttribute("aria-pressed"), "true");
   await checkPlayViewport(rotated);
+  for (const [scene, label, ms, outsidePhase] of [
+    ["meadow", "花海 · 静夜", 180000, "night"], ["ruins", "遗迹 · 长明灯", 720000, "dawn"],
+  ]) {
+    await rotated.locator(`.scene-nav [data-scene="${scene}"]`).tap();
+    await rotated.locator(`.scene-wrap[data-current-map="${scene}"]`).waitFor();
+    await rotated.clock.setFixedTime(new Date(OPEN_AT + ms));
+    await rotated.locator(`.time-pill[data-phase="${outsidePhase}"]`).filter({ hasText: label }).waitFor();
+  }
+  await rotated.locator('.scene-nav [data-scene="garden"]').tap();
+  await checkWorldTime(rotated, "05:00", "dawn", 6);
+  console.log("24 分钟昼夜逐分钟显示，旧档迁移与刷新续时、花海和遗迹的独立光景通过");
   await phone.close();
   console.log("桌面缩放及手机横竖屏切换后，3:2 地图、声音、地图导航与操作键均在视口内，背包和切图可触摸");
   const frameBeforeTabs = await game.locator("#world").boundingBox();

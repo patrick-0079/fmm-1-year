@@ -1,5 +1,5 @@
-import { NATURE_KEY, pickedGardenEggs, readGardenBag } from "./nature-save";
-import { eggAvailable, phaseNames, untilNextPhase, worldTime } from "./day";
+import { NATURE_KEY, WORLD_CLOCK_KEY, loadWorldClock, pickedGardenEggs, readGardenBag } from "./nature-save";
+import { REAL_MINUTES_PER_DAY, eggAvailable, phaseNames, untilNextPhase, worldTime } from "./day";
 import type { Phase } from "./day";
 import { drawTownLight } from "./town-light";
 import { isTownInterior } from "./town-interior-id";
@@ -40,16 +40,15 @@ const gardenCovers = prepareMapCovers([...gardenDetails, ...cinemaSurroundings])
 const roomFloralCovers = prepareMapCovers(roomFlowers);
 
 export { NATURE_KEY } from "./nature-save";
-const CLOCK_KEY = "fufu-world-clock-v1";
 export class Nature {
   private treeImage = sceneImage(treeUrl);
   private benchImage = sceneImage(benchUrl);
   private dewImage = sceneImage(dewUrl);
   private windowImage = sceneImage(roomArtUrl);
-  private origin = Date.now();
-  private shift = 0;
+  private timeline = { origin: Date.now(), shift: 0 };
   private state = readGardenBag();
   private lastUi = 0;
+  private lastClockLabel = "";
   private oldPhase = "";
   private previewPhase: Phase | null = null;
   private reduce = matchMedia("(prefers-reduced-motion: reduce)");
@@ -59,24 +58,8 @@ export class Nature {
     private toast: (text: string) => void,
     private inventory: Inventory,
   ) {
-    try {
-      const clock = JSON.parse(localStorage.getItem(CLOCK_KEY) || "null");
-      if (
-        clock &&
-        Number.isFinite(clock.origin) &&
-        clock.origin > 0 &&
-        clock.origin <= Date.now() &&
-        Number.isFinite(clock.shift) &&
-        clock.shift >= 0
-      ) {
-        this.origin = clock.origin;
-        this.shift = clock.shift;
-      }
-    } catch {
-      // A damaged clock starts a fresh day, without discarding the separate bag.
-    }
+    try { this.timeline = loadWorldClock(localStorage, Date.now()); } catch { /* Optional storage. */ }
     try { this.state = readGardenBag(localStorage.getItem(NATURE_KEY)); } catch { /* Optional storage. */ }
-    this.saveClock();
     this.world.available = (spot) => this.available(spot);
     this.world.onEnvironment = c => this.draw(c);
     this.world.onLighting = (c) => this.lighting(c);
@@ -102,7 +85,7 @@ export class Nature {
     this.tick();
   }
   get elapsed() {
-    return Math.max(0, (Date.now() - this.origin) / 1000 + this.shift);
+    return Math.max(0, (Date.now() - this.timeline.origin) / 1000 + this.timeline.shift);
   }
   private get clock() {
     const time=worldTime(this.elapsed), phase=this.previewPhase;
@@ -129,10 +112,7 @@ export class Nature {
   }
   private saveClock() {
     try {
-      localStorage.setItem(
-        CLOCK_KEY,
-        JSON.stringify({ origin: this.origin, shift: this.shift }),
-      );
+      localStorage.setItem(WORLD_CLOCK_KEY, JSON.stringify(this.timeline));
     } catch {}
   }
   private save() {
@@ -148,8 +128,7 @@ export class Nature {
   }
   reset() {
     this.state = readGardenBag();
-    this.origin = Date.now();
-    this.shift = 0;
+    this.timeline = { origin: Date.now(), shift: 0 };
     this.previewPhase=null;
     this.oldPhase = "";
     this.lastUi = 0;
@@ -287,7 +266,9 @@ export class Nature {
     this.save();
   }
   private rest() {
-    this.shift += untilNextPhase(this.elapsed, this.clock.phase);
+    const elapsed = this.elapsed;
+    const next = elapsed + untilNextPhase(elapsed, this.previewPhase ?? undefined);
+    this.timeline = { origin: Date.now(), shift: Math.round(next) };
     this.previewPhase = null;
     this.saveClock();
     this.refreshClock();
@@ -311,15 +292,16 @@ export class Nature {
       }
       this.oldPhase = clock.phase;
     }
-    if (Date.now() - this.lastUi < 350) return;
+    if (Date.now() - this.lastUi < 350 && this.lastClockLabel === clock.label) return;
     this.lastUi = Date.now();
+    this.lastClockLabel = clock.label;
     const time = document.querySelector(".time-pill")!;
     this.world.canvas.parentElement!.dataset.lightScene=this.world.scene;
     (time as HTMLElement).dataset.phase=clock.phase;
     time.textContent = ruins ? "♫ 遗迹 · 长明灯" : meadow ? "☾ 花海 · 静夜" : `${{ dawn: "☀", day: "☀", dusk: "◒", night: "☾" }[clock.phase]} ${clock.label} · ${phaseNames[clock.phase]}`;
     time.setAttribute(
       "title",
-      ruins ? "地底的石灯昼夜长明" : meadow ? "花海长夜，庭院的时钟仍在走动" : `第 ${clock.day} 天 · 现实十分钟为一天；勇气花园长椅可休息到下一时段`,
+      ruins ? "地底的石灯昼夜长明" : meadow ? "花海长夜，庭院的时钟仍在走动" : `第 ${clock.day} 天 · 现实 1 秒是游戏 1 分钟 · 勇气花园长椅可休息到下一时段`,
     );
     document.querySelector(".bag-count")!.textContent =
       `苹果 ${this.state.apple} · 花朵 ${this.state.flower} · 星屑 ${this.state.star}`;
@@ -327,7 +309,7 @@ export class Nature {
     this.state.wearing = this.inventory.has("wreath") && wearing;
     document.querySelector(".day-hint")!.textContent = isTownInterior(this.world.scene) ? "走回门垫，从南门回小镇街道。" :
       ruins ? "石廊里的三块铭文，记着一段遗忘的晚安。" : meadow ? "草间有落星，营火旁有一只收着星光的玻璃瓶。" :
-      `第 ${clock.day} 天 · 十分钟一昼夜 · ${clock.phase === "dawn" ? "晨露花醒来了" : clock.phase === "dusk" ? "溪边漂来一只纸船" : clock.phase === "night" ? "萤火心愿悄悄出现" : "去勇气花园的长椅休息，等一场黄昏和星夜"}`;
+      `第 ${clock.day} 天 · ${REAL_MINUTES_PER_DAY} 分钟一昼夜 · ${clock.phase === "dawn" ? "晨露花醒来了" : clock.phase === "dusk" ? "溪边漂来一只纸船" : clock.phase === "night" ? "萤火心愿悄悄出现" : "去勇气花园的长椅休息，等一场黄昏和星夜"}`;
   }
   refreshClock() {
     this.lastUi = 0;

@@ -50,7 +50,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | 芙芙主题鼠标指针 | `scripts/build-cursors.mjs` 是两款指针的矢量母稿。`npm run art:cursors` 更新 `src/assets/fufu-cursor-*` 的 SVG 和 PNG。两种指针均为 32×32，尖端热点都是 (2, 2)。倒计时与游戏共用 `src/launch/cursors.css`，地图交互与阅读区域另见 `src/fufu-cursors.css`。地图悬停和点击共用 `World.spotAt`。 |
 | 小镇道路与障碍 | `src/town-surfaces.ts` 定义街面，`src/post-streets.ts` 描出邮局上下两条岔路与石阶，`src/town-terraces.ts` 描出店前露台、码头与护栏。`src/town-scenery.ts` 维护树冠遮挡和庆典装饰 |
 | 溪水和树木 | `src/landscape.ts`、`src/landscape-renderer.ts`；溪水绘制与碰撞共享形状 |
-| 昼夜和采集 | `src/day.ts`、`src/nature.ts`；现实 600 秒一天，现实离线时间也计入时钟 |
+| 昼夜和采集 | `src/day.ts`、`src/nature.ts`。现实每秒推进一个游戏分钟，每 24 分钟完成一昼夜，离线时间也计入时钟 |
 | 操作说明与页面布局 | `src/help.ts`、`src/main.ts`；样式导入顺序见 `main.ts`，新样式集中在对应功能文件 |
 
 维护者配置的内容由页面只读展示。不要加入访客输入、留言提交、录音上传或假装能同步的存储界面。
@@ -184,7 +184,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | `fufu-foreground-play-v1` | 已开始、在线且页面可见时累计的游玩毫秒数。切换窗口通过共享计时接续，清档时同时重置 |
 | `fufu-journey-v1` | 上次的地图、脚下位置及保存时间；在休息姿势下记录可安全起身的位置 |
 | `fufu-garden-bag-v1` | 苹果、花朵、星屑、每日采集记录与旧花环数据 |
-| `fufu-world-clock-v1` | 昼夜起始时间和长椅推进时间 |
+| `fufu-world-clock-v2` | 昼夜起始时间和推进量。首次从 `fufu-world-clock-v1` 读取时，按旧周期换算游戏时间，包含离线和长椅跳时 |
 | `fufu-souvenirs-v1` | 获得的纪念品和六个装备位 |
 | `fufu-town-talked-v1` | 已交谈的小镇居民 |
 

@@ -31,6 +31,7 @@ import { EVENT_IDS, SAVE_KEY, readProgress } from "./core";
 import { JOURNEY_KEY, readJourney, showJourneyStatus } from "./journey";
 import { scenes } from "./maps";
 import { icon } from "./icons";
+import { REAL_MINUTES_PER_DAY } from "./day";
 import { prepareMapArt, registerResourceCache } from "./texture-cache";
 import { resourceMeter, showResourceCount } from "./loading-meter";
 import { mountLoadingMonitor } from "./network-debug";
@@ -103,7 +104,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
               <div class="garden-pocket">
                 <span class="pocket-items">${icon("gift")}<span class="bag-count">苹果 0 · 花朵 0 · 星屑 0</span></span>
                 <span class="exploration-count">${icon("star")} <span id="explored">0</span>/${EVENT_IDS.length} 个角落</span>
-                <span class="day-hint">十分钟一昼夜 · 找长椅休息，等一场黄昏和星夜</span>
+                <span class="day-hint">${REAL_MINUTES_PER_DAY} 分钟一昼夜 · 找长椅休息，等一场黄昏和星夜</span>
                 <small class="save-status"></small>
               </div>
             </div>
