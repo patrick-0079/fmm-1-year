@@ -1,6 +1,8 @@
 import flowerUrl from "./assets/courage-tall-flowers.webp";
 import { courageFlowerbeds } from "./courage-flowerbeds";
 import type { DepthLayer } from "./world";
+import { drawMapProp } from "./map-prop-frames";
+import { sceneArt } from "./scene-art";
 
 export { flowerUrl as courageFlowerUrl };
 const columns = { bells: 0, daisies: 1, cosmos: 2 } as const;
@@ -22,7 +24,11 @@ export function courageFlowerLayers(image: HTMLImageElement | undefined): DepthL
       c.fill();
       if (bed.turned) c.scale(-1, 1);
       c.imageSmoothingEnabled = true;
-      c.drawImage(image, columns[bed.flower] * 192, 0, 192, 192, -96 * scale, -184 * scale, 192 * scale, 192 * scale);
+      if (bed.flower === "daisies") {
+        drawMapProp(c, sceneArt.smallMapProps, "daisies", -96 * scale, -184 * scale, 192 * scale, 192 * scale);
+      } else {
+        c.drawImage(image, columns[bed.flower] * 192, 0, 192, 192, -96 * scale, -184 * scale, 192 * scale, 192 * scale);
+      }
       c.restore();
     },
   }));

@@ -40,7 +40,7 @@ export function equipmentParts(
 ): EquipmentPart[] {
   const hair = equipped.hair;
   if (pose === "lying") return hair ? [
-    {id:hair, layer:"front", x:-15.3, y:-9.3, w:6.3, h:6.3},
+    {id:hair, layer:"front", x:-16.15, y:-10.15, w:8, h:8},
   ] : [];
   if (pose !== "standing") { facing = 0; walkFrame = 0; }
   const shift = pose === "sitting" ? 6 : pose === "bench" ? 3 : 0;
@@ -108,7 +108,7 @@ export function equipmentParts(
     }
   }
   if (body && ITEMS[body]?.slot === "body") {
-    if (facing === 0) add(body, "front", .8, -17.9 + torsoShift, 3.2, 3.4);
+    if (facing === 0) add(body, "front", .15, -18.7 + torsoShift, 5, 5);
     if (facing === 1) {
       const [shoulder, top] = profileShoulders[1][walkFrame];
       add(body, "front", shoulder - 6.1, top + 1.3, 1.45, 2.8, "pinEdge");
@@ -121,10 +121,10 @@ export function equipmentParts(
   const cap = head === "witchHat" || head === "blueBeret" || head === "strawHat";
   const crownX = facing === 1 ? -3.1 : facing === 2 ? 2.9 : 0;
   if (hair && (facing === 0 || facing === 1)) {
-    const width = hair === "starWings" ? 8.5 : hair === "heartClip" ? 5.8 : 6.7;
+    const size = hair === "starWings" ? 9 : 8;
     const center = facing === 0 ? 7.2 : -.6;
-    const templeY = cap ? -31.6 : -35;
-    add(hair, "front", center-width/2, templeY + headShift, width, 6.8);
+    const templeCenter = cap ? -28.2 : -31.6;
+    add(hair, "front", center-size/2, templeCenter-size/2 + headShift, size, size);
   }
   if (cap || head === "ginghamBand") {
     const width = (head === "ginghamBand" ? 23 : head === "blueBeret" ? 27 : 33.5) - (profile ? 2.5 : 0);

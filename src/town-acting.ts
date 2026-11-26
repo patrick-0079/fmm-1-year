@@ -8,8 +8,7 @@ import { canTravelBetween, facingFromMovement, type Point } from "./core";
 import type { Facing } from "./equipment";
 import { townScene } from "./town-map";
 import { drawCakeSlice } from "./cake-party";
-import bouquetUrl from "./assets/qingya-bouquet.webp";
-import cakeUrl from "./assets/cake-slice-v11.webp";
+import { drawMapProp } from "./map-prop-frames";
 import gesturesUrl from "./assets/town-gestures.webp";
 import { sceneArt } from "./scene-art";
 import { sceneImage } from "./texture-cache";
@@ -22,8 +21,6 @@ export interface TownAct {
   pageId: string;
   elapsed: number;
 }
-const flowers = sceneImage(bouquetUrl);
-const cakeSlice = sceneImage(cakeUrl);
 const gestures = sceneImage(gesturesUrl);
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
 const clamp = (n: number) => Math.min(1, Math.max(0, n));
@@ -361,8 +358,7 @@ function nameplate(c: Brush, n: TownNpc, at: Point, visited: boolean) {
 }
 
 function drawBouquet(c: Brush, x: number, y: number) {
-  if (flowers.naturalWidth)
-    c.drawImage(flowers, x - 8, y - 12, 16, (16 * flowers.naturalHeight) / flowers.naturalWidth);
+  drawMapProp(c, sceneArt.smallMapProps, "bouquet", x - 8, y - 12, 16, 16 * 256 / 218);
 }
 
 const orangeOfferSeconds = 0.42;
@@ -452,7 +448,7 @@ function presentLayer(
         if (bites === 2) {
           disk(c, "#c19fa7", x, y + 0.8, 5.4, 1.8);
           disk(c, cream, x, y + 0.4, 4.9, 1.2);
-        } else drawCakeSlice(c, x, y + 1 - lift, bites === 1 ? 0.72 : 0.94, cakeSlice);
+        } else drawCakeSlice(c, x, y + 1 - lift, bites === 1 ? 0.72 : 0.94, sceneArt.smallMapProps);
       }
     },
   };

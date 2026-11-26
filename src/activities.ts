@@ -4,7 +4,7 @@ import { sfx } from "./sound";
 import { reservedShortcut, readingTarget } from "./input";
 import cakeUrl from "./assets/anniversary-cake.webp";
 import { sceneImage } from "./texture-cache";
-import cakeSliceUrl from "./assets/cake-slice-v11.webp";
+import { sceneArt } from "./scene-art";
 import { wishAtBurst, wishOpacity } from "./celebration";
 import {
   cakeGuides,
@@ -49,7 +49,6 @@ function balloonBox(i: number, amount: number, rise = 0) {
 
 export class Activities {
   private cakeImage = sceneImage(cakeUrl);
-  private cakeSliceImage = sceneImage(cakeSliceUrl);
   private mode = "";
   private dialogueEnd?: () => void;
   private dialogueAt?: { scene: World["scene"]; point: Point };
@@ -906,7 +905,7 @@ export class Activities {
       c.fillText("♡ 周年分享台 ♡", 249, 212);
       cakePlates.forEach((p, i) => {
         if (!this.eaten.has(i) && !(this.cakeStage === 4 && this.eating === i))
-          drawCakeSlice(c, p.x, p.y, 0.9, this.cakeSliceImage);
+          drawCakeSlice(c, p.x, p.y, 0.9, sceneArt.smallMapProps);
         else {
           c.fillStyle = "#fff1da";
           c.beginPath();
@@ -936,7 +935,7 @@ export class Activities {
           start.x + (actor.x - 5 - start.x) * p,
           start.y + (actor.y - 25 - start.y) * p,
           size,
-          this.cakeSliceImage,
+          sceneArt.smallMapProps,
         );
       for (let i = 0; i < 3; i++) {
         const phase = (time + i * 0.5) % 2.2;

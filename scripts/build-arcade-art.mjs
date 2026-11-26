@@ -20,7 +20,14 @@ for (const [sheet, games] of sheets) {
 // The source contains different silhouettes and margins. Trim using alpha
 // before packing normalized cells. The renderer supplies each prop's aspect.
 const props = "src/assets/arcade-props-v14.png", layers = [], size = 96;
+const boardSprites = { 0: "flyer", 2: "rose-cake", 3: "mint-cake" };
 for (let i = 0; i < 8; i++) {
+  // Keep native board-pixel sprites at the upper-left of their existing cells.
+  if (boardSprites[i]) {
+    layers.push({input: "doc/artwork/small-sprites/arcade-" + boardSprites[i] + ".png",
+      left: (i % 4) * size, top: Math.floor(i / 4) * size});
+    continue;
+  }
   const width = 384, height = 512;
   const raw = await sharp(props).extract({left:(i%4)*width,top:Math.floor(i/4)*height,width,height})
     .ensureAlpha().raw().toBuffer();

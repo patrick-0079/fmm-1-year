@@ -4,6 +4,7 @@ import { campfire, campLetterSpot, campSeat, meadowExit, starJar, tentRoof, tent
 import { meadowFlock as flock } from "./meadow-ground";
 import { sfx } from "./sound";
 import { drawWildSprite } from "./wild-art";
+import { drawMapProp } from "./map-prop-frames";
 import type { DepthLayer, World } from "./world";
 import { drawMoonCircle } from "./moon-circle";
 import { drawFirefly, fireflyDrift } from "./firefly-art";
@@ -236,7 +237,7 @@ export class NightMeadow {
       {y: 168, outline: still ? mapFragment(tentRoof).mask : undefined,
         draw: c => drawFlexibleCover(c,this.world,tentRoof,still)},
       {y: 145, draw: c => drawKettleSteam(c, sceneryTime, still)},
-      {y: starJar.y, draw: c => drawWildSprite(c, atlas, 3, starJar.x, starJar.y, 17)},
+      {y: starJar.y, draw: c => drawMapProp(c, sceneArt.smallMapProps, "starJar", starJar.x - 8.5, starJar.y - 17, 17, 17)},
       ...this.campGuest.layers(sceneArt.patrickCamp, this.reduced.matches),
       ...visibleMapCovers(this.world, sceneryCovers),
     ];

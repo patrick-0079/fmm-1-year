@@ -1,5 +1,7 @@
 import type { Hazard } from "./core";
 import { trapSprite } from "./trap-art";
+import { drawMapProp } from "./map-prop-frames";
+import { sceneArt } from "./scene-art";
 
 function leaf(c: CanvasRenderingContext2D, x: number, y: number, angle: number, gold: boolean) {
   c.save();
@@ -68,7 +70,8 @@ export function drawGardenHazard(c: CanvasRenderingContext2D, image: HTMLImageEl
   const t=reduced?0:time;
   if(trap.kind==="ribbon" || trap.kind==="stone") {
     const {frame:f,x,y,w,h}=trapSprite({...trap,kind:trap.kind});
-    if(image) c.drawImage(image,f.x,f.y,f.w,f.h,x,y,w,h);
+    if (trap.kind === "ribbon") drawMapProp(c, sceneArt.smallMapProps, "vine", x, y, w, h);
+    else if (image) c.drawImage(image,f.x,f.y,f.w,f.h,x,y,w,h);
   } else if(trap.kind==="mist") mist(c,trap,t);
   else breeze(c,trap,t);
   c.restore();

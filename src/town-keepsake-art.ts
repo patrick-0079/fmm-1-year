@@ -1,5 +1,6 @@
 import url from "./assets/town-interiors/keepsakes.webp";
-import { loadSceneImage } from "./texture-cache";
+import shelfUrl from "./assets/shelf-keepsakes.webp?no-inline";
+import { loadSceneImage, sceneImage } from "./texture-cache";
 import frames from "./town-keepsake-frames.json";
 import type { TownInteriorKey } from "./town-interior-id";
 
@@ -15,17 +16,17 @@ export function prepareTownKeepsakeArt() {
   return loading;
 }
 
-function frame(key: TownInteriorKey, choice?: string) {
-  if (key === "florist" && choice === "cream") return frames["florist-cream"];
-  if (key === "post" && choice === "lamps") return frames["post-lamps"];
-  if (key === "radio" && choice === "bells") return frames["radio-bells"];
-  return frames[key];
+function frameKey(key: TownInteriorKey, choice?: string): keyof typeof frames {
+  if (key === "florist" && choice === "cream") return "florist-cream";
+  if (key === "post" && choice === "lamps") return "post-lamps";
+  if (key === "radio" && choice === "bells") return "radio-bells";
+  return key;
 }
 
 // The source frames are the finished workbench pieces at three pixels per unit.
 export function drawFinishedKeepsake(c: Ink, room: TownInteriorKey, choice: string | undefined, x: number, y: number, scale = 1) {
   if (!sheet) return;
-  const [sx, sy, w, h, dx, dy] = frame(room, choice);
+  const [sx, sy, w, h, dx, dy] = frames[frameKey(room, choice)];
   c.save();
   c.imageSmoothingEnabled = true;
   c.imageSmoothingQuality = "high";
@@ -37,7 +38,7 @@ const receiptWidths = { florist: 112, baker: 117, maker: 106, post: 145, books: 
 const icons = new Map<readonly number[], HTMLCanvasElement>();
 export function drawTownKeepsake(c: Ink, room: TownInteriorKey, choice?: string, x = 0, y = 0, size = 48) {
   if (!sheet) return;
-  const source = frame(room, choice);
+  const source = frames[frameKey(room, choice)];
   let icon = icons.get(source);
   if (!icon) {
     icon = document.createElement("canvas");
@@ -51,8 +52,27 @@ export function drawTownKeepsake(c: Ink, room: TownInteriorKey, choice?: string,
   c.restore();
 }
 
+const shelf = sceneImage(shelfUrl);
+export const prepareShelfKeepsakes = () => loadSceneImage(shelfUrl);
+// Source positions and sizes in the 2× miniature shelf atlas.
+const shelfFrames: Partial<Record<keyof typeof frames, [x: number, w: number]>> = {
+  florist: [0, 24], "florist-cream": [28, 24], hall: [56, 74],
+  post: [134, 58], "post-lamps": [196, 58], books: [258, 104],
+};
+
 export function drawShelfKeepsake(c: Ink, room: TownInteriorKey, choice: string | undefined, [x, y, w, h]: readonly number[]) {
-  const [, , sw, sh, dx, dy] = frame(room, choice);
+  const key = frameKey(room, choice);
+  const [, , sw, sh, dx, dy] = frames[key];
   const scale = Math.min((w - 6) * 3 / sw, (h - 3) * 3 / sh);
+  const small = shelfFrames[key];
+  if (small && shelf.naturalWidth) {
+    const width = sw * scale / 3, height = sh * scale / 3;
+    c.save();
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = "high";
+    c.drawImage(shelf, small[0], 0, small[1], 40, x + (w - width) / 2, y + h - 1.2 - height, width, height);
+    c.restore();
+    return;
+  }
   drawFinishedKeepsake(c, room, choice, x + w / 2 - scale * (dx + sw / 6), y + h - 1.2 - scale * (dy + sh / 3), scale);
 }

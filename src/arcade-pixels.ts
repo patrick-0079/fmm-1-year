@@ -58,11 +58,14 @@ export function motif(c: CanvasRenderingContext2D, name: PixelMotif, x: number, 
 }
 export const wishTokens: readonly PixelMotif[] = ["star", "moon", "berry", "cake", "letter", "gift", "mic", "bunny"];
 export interface Backdrop { background: HTMLImageElement; props: HTMLImageElement }
-const propCells = { flyer: 0, hare: 1, roseCake: 2, mintCake: 3, sweet: 4, snakeHead: 5, winder: 6, gold: 7 };
-export function illustrated(c: CanvasRenderingContext2D, art: Backdrop | undefined, name: keyof typeof propCells, x: number, y: number, w: number, h: number) {
+const propFrames = {
+  flyer: [0, 0, 25, 21], hare: [96, 0, 96, 96], roseCake: [192, 0, 62, 20], mintCake: [288, 0, 60, 19],
+  sweet: [0, 96, 96, 96], snakeHead: [96, 96, 96, 96], winder: [192, 96, 96, 96], gold: [288, 96, 96, 96],
+} as const;
+export function illustrated(c: CanvasRenderingContext2D, art: Backdrop | undefined, name: keyof typeof propFrames, x: number, y: number, w: number, h: number) {
   if (!art?.props.complete || !art.props.naturalWidth) return false;
-  const cell = propCells[name];
-  c.drawImage(art.props, (cell % 4) * 96, Math.floor(cell / 4) * 96, 96, 96, Math.round(x), Math.round(y), w, h);
+  const [sx, sy, sw, sh] = propFrames[name];
+  c.drawImage(art.props, sx, sy, sw, sh, Math.round(x), Math.round(y), w, h);
   return true;
 }
 export function scenery(c: CanvasRenderingContext2D, art: Backdrop | undefined, base: string) {

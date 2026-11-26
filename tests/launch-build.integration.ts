@@ -78,7 +78,10 @@ test("switching full → invitation → full cleans the deployed directory", asy
     ["anniversary-town-hd", "town"], ["radio", "town-radio"], ["meadow-jelly-bells", "meadow"],
     ["echo-mines", "ruins"], ["garden-guest-routines", "garden"], ["gardener-tending", "challenge"],
     ["party-props-v11", "town"], ["party-props-v11", "garden"],
-    ["town-work-poses", "town-radio"], ["town-gestures", "town-baker"], ["cake-slice", "town-baker"]]) {
+    ["festival-balloons-map", "town"], ["festival-balloons-map", "garden"], ["astrolabe-map", "ruins"],
+    ["shelf-keepsakes", "town-hall"], ["achievement-letter-seals", "*"], ["worn-jewelry", "*"],
+    ...["room", "garden", "challenge", "meadow", "town", "town-baker", "town-florist"].map(scene => ["small-map-props", scene]),
+    ["town-work-poses", "town-radio"], ["town-gestures", "town-baker"]]) {
     assert.ok(entries.some(([path, , scenes]) => path.startsWith("assets/" + prefix + "-") && scenes.includes(scene)), prefix);
   }
   for (const prefix of ["wardrobe-icons", "fufu-garments", "fufu-footwear",

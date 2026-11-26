@@ -5,7 +5,6 @@ import { gardenGuests, peachSpot, type GardenGuest } from "./garden-guests";
 import { TOWN_FRAMES } from "./town-data";
 import npcUrl from "./assets/town-npcs.webp";
 import { sceneImage } from "./texture-cache";
-import cakeUrl from "./assets/cake-slice-v11.webp";
 import { drawCakeSlice } from "./cake-party";
 import { drawItem } from "./item-art";
 import { prepareProp, sceneArt } from "./scene-art";
@@ -28,7 +27,6 @@ const reduced = () => motionPreference.matches;
 export class GardenLife {
   readonly residents = new GardenResidents();
   private npcs = sceneImage(npcUrl);
-  private cake = sceneImage(cakeUrl);
   private age = 0;
   private time = 0;
   private pose: Pose = "idle";
@@ -205,7 +203,7 @@ export class GardenLife {
       const t=this.pose==="smile" || reduced() ? 1 : Math.min(1,this.age/.64);
       const foot=this.residents.get("picnic-friend").foot;
       layers.push({y:foot.y+4,draw:c=>
-        drawCakeSlice(c,sugar.x-20+(foot.x-sugar.x+20)*t,sugar.y-1+(foot.y-sugar.y-14)*t-Math.sin(t*Math.PI)*4,.93,this.cake)});
+        drawCakeSlice(c,sugar.x-20+(foot.x-sugar.x+20)*t,sugar.y-1+(foot.y-sugar.y-14)*t-Math.sin(t*Math.PI)*4,.93,sceneArt.smallMapProps)});
     }
     return layers;
   }

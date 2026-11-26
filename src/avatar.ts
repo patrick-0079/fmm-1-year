@@ -1,14 +1,20 @@
 import { drawItem, wardrobeUrl, type WardrobeArt } from "./item-art";
 import garmentUrl from "./assets/fufu-garments.webp";
 import footwearUrl from "./assets/fufu-footwear.webp";
+import jewelryUrl from "./assets/worn-jewelry.webp";
 import { equipmentParts, type AvatarPose, type Facing, type EquipmentPart } from "./equipment";
 import { artScale, cellWidth, cellHeight, footStripHeight, footwearIds, costumeFrame, outfitIndex, poseFrame } from "./costume-frames";
 import type { Equipped, ItemId } from "./items";
 import { sceneImage } from "./texture-cache";
 import { drawWornBags } from "./worn-bags";
 
-export const avatarUrls = [garmentUrl, footwearUrl, wardrobeUrl];
+export const avatarUrls = [garmentUrl, footwearUrl, wardrobeUrl, jewelryUrl];
 const footwear = sceneImage(footwearUrl), garments = sceneImage(garmentUrl);
+const jewelry = sceneImage(jewelryUrl);
+const jewelryCells: Partial<Record<ItemId, number>> = {
+  anniversaryPin: 0, echoBrooch: 1, leafPin: 2, tulipPin: 3, shellPin: 4,
+  candyClip: 5, fishClip: 6, starClip: 7, starWings: 8, heartClip: 9,
+};
 const headwearViews: Partial<Record<ItemId, readonly [WardrobeArt, WardrobeArt, WardrobeArt, WardrobeArt]>> = {
   wreath: ["wreathFront", "wreathLeft", "wreathRight", "wreathRear"],
   witchHat: ["hatFront", "hatLeft", "hatRight", "hatRear"],
@@ -17,7 +23,7 @@ const headwearViews: Partial<Record<ItemId, readonly [WardrobeArt, WardrobeArt, 
   strawHat: ["strawHat", "strawSide", "strawSide", "strawRear"],
 };
 export function whenAvatarLayersReady(refresh: () => void) {
-  for (const sheet of [footwear, garments]) {
+  for (const sheet of [footwear, garments, jewelry]) {
     if (!sheet.naturalWidth) sheet.addEventListener("load", refresh, {once:true});
   }
 }
@@ -75,7 +81,12 @@ function paintPart(c: CanvasRenderingContext2D, p: EquipmentPart, facing: Facing
       c.fillStyle = p.id === "echoBrooch" ? "#d99979" : "#edbb71";
       c.fillRect(.35, .35, .65, p.h - 1.0);
     } else {
-      drawItem(c,headwearViews[p.id]?.[facing] ?? p.id,0,0,p.w,p.h);
+      const cell = jewelryCells[p.id];
+      if (cell !== undefined && jewelry.naturalWidth) {
+        c.drawImage(jewelry, cell % 5 * 40, Math.floor(cell / 5) * 40, 40, 40, 0, 0, p.w, p.h);
+      } else {
+        drawItem(c,headwearViews[p.id]?.[facing] ?? p.id,0,0,p.w,p.h);
+      }
     }
   }
   c.restore();

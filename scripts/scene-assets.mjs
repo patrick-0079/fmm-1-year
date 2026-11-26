@@ -3,9 +3,10 @@ const interiors = Object.keys(rooms).map(name => "town-" + name);
 const groups = [
   [["page"], "journal-letter journal-album journal-cinema meadow-postcard"],
   [["room"], "room-interactive window-skies-v12 white-bass-v18 fufu-room-fox fox-tail-rest gift-v37 xiaoye-note"],
-  [["room", "garden", "town", "town-baker"], "cake-slice-v11"],
+  [["room", "garden", "challenge", "meadow", "town", "town-baker", "town-florist"], "small-map-props"],
+  [["town-hall"], "shelf-keepsakes"],
   [["room", "garden"], "anniversary-cake"],
-  [["garden", "town"], "party-props-v11"],
+  [["garden", "town"], "party-props-v11 festival-balloons-map"],
   [["garden"], "anniversary-garden-tree-free apple-basket garden-balloon-guest garden-guest-routines qingtang-picnic xiaoye-plush xiaoye-embrace-v55 suyan"],
   [["garden", "challenge"], "garden-creek-props garden-keepsakes-v12 orchard-v16 garden-bench apple-tree morning-dew-flower"],
   [["garden", "challenge", "town"], "anniversary-visitors rainbow-flowers-v15"],
@@ -17,10 +18,10 @@ const groups = [
   [["town", "town-radio"], "yeshenhua"],
   [["garden", "town", ...interiors], "town-npcs"],
   [["town", "ruins"], "arcade-props-v14"],
-  [["ruins"], "echo-ruins echo-well echo-mines echo-miner echo-snake astrolabe-mechanisms guardian-moonstone"],
+  [["ruins"], "echo-ruins echo-well echo-mines echo-miner echo-snake astrolabe-mechanisms astrolabe-map guardian-moonstone"],
   [["meadow"], "night-meadow-v16 meadow-life-v16 patrick-camp meadow-jelly-bells star-bottle-closeup"],
-  [["*"], "fufu-footwear fufu-garments wardrobe-icons qingya-bouquet stationery-sealed stationery-desk astrolabe-relics peach-walk"],
-  [["*"], "arcade-postcard-v14 stationery-album"],
+  [["*"], "fufu-footwear fufu-garments wardrobe-icons worn-jewelry qingya-bouquet stationery-sealed stationery-desk astrolabe-relics peach-walk"],
+  [["*"], "arcade-postcard-v14 stationery-album achievement-letter-seals"],
 ];
 const byName = new Map(groups.flatMap(([scenes, names]) => names.split(" ").map(name => [name, scenes])));
 

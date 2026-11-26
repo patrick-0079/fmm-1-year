@@ -1,6 +1,7 @@
 import partyUrl from "./assets/party-props-v11.webp";
 import { sceneImage } from "./texture-cache";
 import { fitItem } from "./equipment";
+import { sceneArt } from "./scene-art";
 const party = sceneImage(partyUrl);
 export const partyFrames = [
   [39, 46, 302, 531],
@@ -20,8 +21,20 @@ export function drawPartyProp(
   w: number,
   h: number,
 ) {
+  const [sx, sy, sw, sh] = partyFrames[index];
+  const b = fitItem(sw, sh, x, y, w, h);
+  const balloons = sceneArt.balloonMap;
+  // All map balloon poses fit within 62 units, including a fully inflated garden balloon.
+  if (index < 4 && h <= 62 && balloons.naturalWidth) {
+    const cell = balloons.naturalWidth / 4, height = balloons.naturalHeight;
+    const width = Math.round(height * sw / sh);
+    c.save();
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = "high";
+    c.drawImage(balloons, index * cell, 0, width, height, b.x, b.y, b.w, b.h);
+    c.restore();
+    return;
+  }
   if (!party.complete || !party.naturalWidth) return;
-  const [sx, sy, sw, sh] = partyFrames[index],
-    b = fitItem(sw, sh, x, y, w, h);
   c.drawImage(party, sx, sy, sw, sh, b.x, b.y, b.w, b.h);
 }
