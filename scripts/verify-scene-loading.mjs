@@ -23,7 +23,8 @@ async function recordLocalFilm(browser, base) {
     const bytes = await page.evaluate(async () => {
       const canvas = document.createElement("canvas");
       canvas.width = 160; canvas.height = 100;
-      const paint = canvas.getContext("2d"), stream = canvas.captureStream(15);
+      const paint = canvas.getContext("2d"), stream = canvas.captureStream(0);
+      const [track] = stream.getVideoTracks();
       const mimeType = MediaRecorder.isTypeSupported("video/mp4") ? "video/mp4" : "video/webm";
       const recorder = new MediaRecorder(stream, { mimeType }), parts = [];
       const finished = new Promise((resolve, reject) => {
@@ -33,7 +34,12 @@ async function recordLocalFilm(browser, base) {
       recorder.start();
       for (let frame = 0; frame < 16; frame++) {
         paint.fillStyle = "#292539"; paint.fillRect(0, 0, 160, 100);
+        for (let y = 0; y < 10; y++) for (let x = 0; x < 16; x++) {
+          paint.fillStyle = `hsl(${(x * 31 + y * 59 + frame * 17) % 360} 60% 50%)`;
+          paint.fillRect(x * 10, y * 10, 8, 8);
+        }
         paint.fillStyle = "#f6accb"; paint.fillRect(frame * 8, 28, 30, 30);
+        track.requestFrame();
         await new Promise(done => setTimeout(done, 75));
       }
       recorder.stop();
