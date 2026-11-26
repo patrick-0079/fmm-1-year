@@ -77,6 +77,8 @@ export async function verifyGardenDiscovery(world: World) {
   assert(!state().achievements.facts.includes("xiaoye-plush"), "拥抱中断时过早计入小叶子会面");
   await enter("garden", "xiaoye-plush");
   await waitForVisit(() => state().achievements.facts.includes("xiaoye-plush"), "完整拥抱后没有计入小叶子会面");
+  assert([...document.querySelectorAll(".activity-actions button")].some(button => button.textContent === "收下信"),
+    "看完拥抱后应该仍可领取未收的信");
   close();
   for (const [egg,phase] of [["sunset","dusk"],["firefly","night"],["dew","dawn"]] as const) {
     for (let i=0; world.currentPhase!==phase && i<4; i++) await waitOnBench(world);

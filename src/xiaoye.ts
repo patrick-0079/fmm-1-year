@@ -19,6 +19,8 @@ export class Xiaoye {
   private hug = new XiaoyeHug();
   private time = 0;
   private ownsDialogue = false;
+  private offeredDuringHug = false;
+  private lastHugTime = 0;
   private idleMirrored = false;
   private lampStart: Point = {x:0,y:0};
   private contactFoot: Point = { x:xiaoyeSpot.x, y:xiaoyeSpot.y };
@@ -29,21 +31,27 @@ export class Xiaoye {
     this.panels = Array.from(document.querySelectorAll<HTMLElement>(
       ".inventory-panel,.map-reader,.game-letter-reader",
     ));
+    document.addEventListener("visibilitychange", () => {
+      this.lastHugTime = performance.now() / 1000;
+    });
     const tick = world.onTick, depth = world.getDepthLayers, effects = world.onEffects,
       presentation = world.getActorPresentation;
     world.onTick = (dt, time) => {
       tick(dt, time);
       this.time = world.ambientTime;
       const wasHugging=this.hug.active, mirrored=this.hug.mirrored;
-      const finished = this.hug.tick(dt, world.player, this.available() && this.ownsDialogue);
+      // Movement caps dt on slow frames. The hug uses actual foreground seconds.
+      const elapsed = dt > 0 ? time - this.lastHugTime : 0;
+      this.lastHugTime = time;
+      const finished = this.hug.tick(elapsed, world.player, this.available() && this.ownsDialogue);
       if (wasHugging && !this.hug.active) {
         this.idleMirrored = mirrored;
         if (!finished) this.activities.dismissDialogue(xiaoyeSpot);
         else {
-          if (this.mail.received(handedLetters.xiaoye)) {
+          if (!this.offeredDuringHug) {
             const topic = world.chats.next(xiaoyeSpot.id, gardenChatTopics["xiaoye-plush"], this.phase());
             showGardenChat(topic, this.dialogue.bind(this));
-          } else this.offerLetter();
+          }
           world.onAchievementEvent("xiaoye-plush");
         }
       }
@@ -89,23 +97,28 @@ export class Xiaoye {
     }
     const lampStart=this.lampPoint();
     if (!this.hug.begin(this.world.player)) return true;
+    this.lastHugTime = performance.now() / 1000;
     this.lampStart=lampStart;
     // The plush takes a small, validated step. Never move the player's real feet.
     this.contactFoot=contact;
-    this.dialogue(xiaoyeHugText, []);
+    this.offeredDuringHug = !this.mail.received(handedLetters.xiaoye);
+    if (this.offeredDuringHug) this.offerLetter();
+    else this.dialogue(xiaoyeHugText, []);
     return true;
   }
 
   private offerLetter(received = false) {
-    this.dialogue(received ? "（小叶子等你把信收好，才轻轻放下爪子。）" : "（小叶子用绒爪托起一封信，封口有一枚红色爱心蜡封。）", [
+    this.dialogue(received ? "（小叶子等你把信收好，才轻轻放下爪子。）" : "（软乎乎的大猫猫轻轻抱住了你，用绒爪递来一封盖着红色爱心蜡封的信。）", [
       letterChoice(this.mail, handedLetters.xiaoye, () => this.offerLetter(true)),
     ]);
   }
 
   private dialogue(text: string, options: { title: string; run: () => void }[]) {
+    // Replacing our own page invokes its close callback before installing the next.
+    this.ownsDialogue = false;
     this.activities.dialogue(xiaoyeSpot.title, text, options, c => {
       this.drawEmbrace(c,2,{x:24,y:53},false,0,false,54/HEIGHT);
-    }, xiaoyeSpot, () => this.reset());
+    }, xiaoyeSpot, () => { if (this.ownsDialogue) this.reset(); });
     this.ownsDialogue = true;
   }
 

@@ -111,9 +111,26 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
     }
     for (const step of steps) choose(step);
     const final=author==="post"?"继续":"收下信";
-    if (author==="xiaoye") await wait(()=>actions().some(b=>b.textContent?.startsWith(final)), "拥抱结束后没有递出信封");
+    if (author === "xiaoye") {
+      const firstOffer = actions().find(button => button.textContent === final);
+      assert(firstOffer && world.getActorPresentation(), "拥抱刚开始时就应能收下小叶子的信");
+      world.canvas.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+      try {
+        await wait(() => q(".activity-hud").hidden, "拥抱中走开后对白没有收起");
+      } finally {
+        world.canvas.dispatchEvent(new KeyboardEvent("keyup", { key: "ArrowRight", bubbles: true }));
+      }
+      firstOffer!.click();
+      assert(letterCount() === count && !has("letter-xiaoye"), "中途离开后旧按钮仍能收信");
+      await visit(scene, id);
+    }
     assert(letterCount()===count && !has("letter-"+author),author+" 在实际领取前提前盖章");
     choose(final);
+    if (author === "xiaoye") {
+      assert(world.getActorPresentation(), "收信打断了正在播放的拥抱");
+      await wait(() => !world.getActorPresentation(), "收信后拥抱没有自然结束");
+      assert(actions().some(button => button.textContent === "现在读信"), "拥抱结束后读信入口消失");
+    }
     await wait(()=>letterCount()===count+1,author+" 实际收信后信箱数量未增加");
     if (author==="rabe") {
       assert(!has("letter-rabe"),"Rabe 的信尚未拆开就已盖章");
