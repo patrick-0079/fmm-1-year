@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
+    "postbuild": "node scripts/publish-game-packs.mjs prepare",
+    "packs:published": "node scripts/publish-game-packs.mjs published",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "check": "npm test && npm run build",
@@ -24,6 +26,7 @@
     "audio:bass": "node --experimental-strip-types scripts/build-bass-audio.mjs"
   },
   "devDependencies": {
+    "aws4fetch": "^1.0.20",
     "sharp": "^0.35.5",
     "typescript": "~5.9.3",
     "vite": "^7.3.1",

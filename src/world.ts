@@ -472,9 +472,16 @@ export class World {
     const pending = this.mapRequests.get(scene);
     if (pending) return pending;
     const urls = [...avatarUrls, ...(isTownInterior(scene) ? [art[scene]] : sceneTextures[scene])];
-    const request = prepareMapArt(scene, report).then(async () => {
+    let total = 0, fallback = false;
+    const loading: LoadProgress | undefined = report && ((loaded, count, fromSite = false) => {
+      total = count;
+      fallback = fromSite;
+      report(Math.min(loaded, count * .999), count, fromSite);
+    });
+    const request = prepareMapArt(scene, loading).then(async () => {
       const [images] = await Promise.all([Promise.all(urls.map(url => loadSceneImage(url))), prepareSceneArt(scene)]);
       urls.forEach((url, index) => this.images.set(url, images[index]));
+      if (total) report?.(total, total, fallback);
     }).finally(() => { this.mapRequests.delete(scene); });
     this.mapRequests.set(scene, request);
     return request;

@@ -106,7 +106,9 @@ try {
     }, visit);
     let films = 0, originals = 0;
     await context.route(/^https:\/\/cdn\./, route => {
-      if (/\.mp4(?:\?|$)/i.test(route.request().url())) films++; else originals++;
+      const url = route.request().url();
+      if (/\.mp4(?:\?|$)/i.test(url)) films++;
+      else if (!url.endsWith(".pack")) originals++;
       return route.fulfill({ status: 503, headers: { "Access-Control-Allow-Origin": "*" }, body: "QA: offline CDN" });
     });
     const page = await context.newPage(), errors = [], warnings = [];
@@ -139,8 +141,8 @@ try {
     assert.equal(artwork[0], paper, "journal paper starts before the other page artwork");
     assert.deepEqual(artwork.filter(path => !journalImages.includes(path)), [paper], "journal paper transfers once");
     assert.ok(await entrance.isDisabled());
-    await page.waitForFunction(() => document.querySelector(".entry-progress")?.getAttribute("aria-valuetext") === "3/4");
-    assert.equal(await meter.getAttribute("aria-valuetext"), "3/4");
+    await page.waitForFunction(() => document.querySelector(".entry-progress")?.getAttribute("aria-valuetext") === "75.0%");
+    assert.equal(await meter.getAttribute("aria-valuetext"), "75.0%");
     if (restored) assert.equal(albumRequests, 2, "the journal recovered its failed cover before the game started");
     const badges = page.getByRole("tab", { name: "徽章", exact: true });
     await badges.click();
@@ -167,7 +169,7 @@ try {
       const result = await bar.evaluate(el => ({ total: el.max, ready: el.value,
         text: el.nextElementSibling.textContent, accessible: el.getAttribute("aria-valuetext") }));
       assert.equal(result.total, total);
-      assert.equal(result.text, `${result.ready}/${total}`);
+      assert.equal(result.text, "站内补载 " + (100 * result.ready / total).toFixed(1) + "%");
       assert.equal(result.accessible, result.text);
       assert.ok(result.ready < total);
     };

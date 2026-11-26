@@ -1,6 +1,7 @@
 import { ResourceQueue, type LoadProgress, type Resource } from "./resource-queue";
 import { traffic, recordTransfer } from "./network-debug";
 import { fetchVerifiedAsset } from "./resource-stream.js";
+import { PackResources, type PackIndex } from "./pack-resources";
 
 const base = new URL(import.meta.env.BASE_URL, document.baseURI);
 const version = document.querySelector<HTMLMetaElement>('meta[name="fufu-release"]')?.dataset.version ??
@@ -8,6 +9,20 @@ const version = document.querySelector<HTMLMetaElement>('meta[name="fufu-release
 const workerUrl = new URL("texture-cache.js?v=" + version, base);
 let registration: Promise<unknown> | undefined;
 let catalogue: Promise<ResourceQueue> | undefined;
+let packs: PackResources | undefined;
+
+async function loadPackIndex() {
+  if (!import.meta.env.PROD || !globalThis.caches || !globalThis.crypto?.subtle) return;
+  try {
+    const [response, cache] = await Promise.all([
+      fetch(new URL(`game-packs-${version}.json`, base), { mode: "same-origin", signal: AbortSignal.timeout(8000) }),
+      caches.open("fufu-game-textures-v1:" + base.pathname),
+    ]);
+    if (!response.ok) return;
+    const index: PackIndex = await response.json();
+    if (index.release === version) return { index, cache };
+  } catch { /* A missing index or disabled storage uses the existing file queue. */ }
+}
 
 export function registerResourceCache() {
   if (!import.meta.env.PROD || !("serviceWorker" in navigator) || !window.isSecureContext) return;
@@ -73,24 +88,50 @@ async function readResource([path, digest]: Resource, priority: "high" | "low", 
 }
 
 function getQueue() {
-  return catalogue ??= fetch(new URL(`game-assets-${version}.json`, base), { mode: "same-origin", signal: AbortSignal.timeout?.(60_000) })
-    .then(async response => {
+  return catalogue ??= Promise.all([fetch(new URL(`game-assets-${version}.json`, base),
+    { mode: "same-origin", signal: AbortSignal.timeout?.(60_000) }), loadPackIndex()])
+    .then(async ([response, packIndex]) => {
       if (!response.ok) throw new Error("无法读取游戏资源清单");
       const files: Resource[] = await response.json();
       if (!Array.isArray(files) || !files.length) throw new Error("游戏资源清单为空");
       const metrics = traffic;
-      if (!metrics) return new ResourceQueue(files, readResource);
-      metrics.total = files.length;
+      if (packIndex) {
+        try { packs = new PackResources(packIndex.index, files, base, packIndex.cache,
+          metrics ? bytes => metrics.assets.add(bytes, performance.now()) : undefined); }
+        catch { /* The file manifest remains authoritative when the pack index is incompatible. */ }
+      }
+      if (metrics) metrics.total = files.length;
       return new ResourceQueue(files, async (...args) => {
-        metrics.active++;
-        try { await readResource(...args); metrics.completed++; }
-        finally { metrics.active--; }
+        if (metrics) metrics.active++;
+        try {
+          if (!await packs?.wait(args[0][0], args[3])) await readResource(...args);
+          if (metrics) metrics.completed++;
+        } finally { if (metrics) metrics.active--; }
       });
     }).catch(error => { catalogue = undefined; throw error; });
 }
 
-export async function prepareGameResources(scene?: string, report?: LoadProgress) {
-  await (await getQueue()).prepare(scene, report);
+async function prepareResources(scene?: string, report?: LoadProgress, finish?: (file: Resource) => Promise<void>) {
+  const queue = await getQueue();
+  const selected = scene ? queue.files.filter(([, , s]) => s.includes("*") || s.includes(scene)) : queue.files;
+  let loaded = 0, done = false;
+  const update = () => {
+    if (!report) return;
+    const transfer = packs?.progress(selected);
+    if (transfer?.total && !transfer.fallback) {
+      report(done ? transfer.total : Math.min(transfer.received, transfer.total * .999), transfer.total);
+    } else report(loaded, selected.length, true);
+  };
+  const unsubscribe = report && packs?.watch(update);
+  try {
+    await Promise.all([packs?.prepare(scene), queue.prepare(scene, report && (n => { loaded = n; update(); }), finish)]);
+    done = true;
+    update();
+  } finally { unsubscribe?.(); }
+}
+
+export function prepareGameResources(scene?: string, report?: LoadProgress) {
+  return prepareResources(scene, report);
 }
 
 const registered = new Map<string, HTMLImageElement>();
@@ -112,8 +153,15 @@ function decodeImage(image: HTMLImageElement, url: string, priority: "high" | "l
   if (!task) {
     image.decoding = "async";
     image.fetchPriority = priority;
-    image.src = url;
-    task = image.decode().catch(error => { decoded.delete(image); throw error; });
+    task = (async () => {
+      // An uncontrolled tab cannot resolve the original image URL through Cache Storage yet.
+      const blob = packs && !url.startsWith("data:") && navigator.serviceWorker?.controller?.scriptURL !== workerUrl.href
+        ? await packs.imageBlob(new URL(url, document.baseURI)).catch(() => undefined) : undefined;
+      const objectUrl = blob && URL.createObjectURL(blob);
+      image.src = objectUrl || url;
+      try { await image.decode(); }
+      finally { if (objectUrl) URL.revokeObjectURL(objectUrl); }
+    })().catch(error => { decoded.delete(image); throw error; });
     decoded.set(image, task);
   }
   return task;
@@ -126,11 +174,10 @@ export async function loadSceneImage(url: string, priority: "high" | "low" = "hi
 }
 
 export async function prepareMapArt(scene: string, report?: LoadProgress) {
-  const queue = await getQueue();
   const next = interrupted?.scene === scene ? interrupted.art : new Map<string, HTMLImageElement>();
   const waiting: (() => void)[] = [];
   let decoding = 0;
-  await queue.prepare(scene, report, async ([path]) => {
+  await prepareResources(scene, report, async ([path]) => {
     if (!/\.(?:webp|png|jpe?g|avif|svg)(?:\?|$)/i.test(path)) return;
     if (decoding < 4) decoding++;
     else await new Promise<void>(resume => waiting.push(resume));

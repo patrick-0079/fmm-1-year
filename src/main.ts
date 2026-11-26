@@ -205,7 +205,7 @@ async function start(): Promise<void> {
   document.querySelector("#location-name")!.textContent = title;
   enter.textContent = "正在准备" + title + "…";
   try {
-    await prepareMapArt(scene, (loaded, total) => showResourceCount(meter, loaded, total));
+    await prepareMapArt(scene, (loaded, total, fallback) => showResourceCount(meter, loaded, total, fallback));
   } catch {
     enter.disabled = false;
     enter.textContent = title + "未载齐，点击重试";

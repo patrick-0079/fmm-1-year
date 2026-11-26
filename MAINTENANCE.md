@@ -200,7 +200,11 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 花园周年视频（约 67.1 MiB）的 GET 和版本检查 HEAD 都等站内非视频资源全部下载后才以低优先级发送。影片不阻塞任何地图。优先比较 ETag，否则要求修改时间和长度都一致；只有长度相同不足以复用。完整下载才会替换旧片；没有存储配额或 CDN 指定 `no-store` 时仍可播放本次下载。影片保存在 `fufu-complete-films-v1`，与存档独立。
 
-完整构建生成版本化的 `game-assets-<version>.json`。在 `scripts/scene-assets.mjs` 维护地图归属。首页三张卡片与页底插图标为 `page`，先请求并解码，再启动游戏队列。人物、背包与装扮、徽章、信笺和相册预览等公共资源标为 `*`，每份存档都要先备齐。花海手账封面使用独立小图，CDN 相册原图按需读取。入口和切图的分母是公共资源与目标地图的去重总数，图片解码完成才增加分子。前台最多四项并行，后台最多两项。需要下载目标地图时，中止其他地图的后台传输，复用目标地图已在途的文件。转场结束后后台队列重新请求已中止的文件。Worker 用 SHA-256 校验缓存，重试只补缺项。禁用 Worker 时仍使用同一清单与进入条件。
+完整构建生成 `game-assets-<version>.json` 和 `game-packs-<version>.json`。在 `scripts/scene-assets.mjs` 维护地图归属。首页三张卡片与页底插图先解码，再准备公共资源（`*`）和存档所在地图。相同地图组合的素材按字节拼接；玩家先读已校验的本机文件，再从 R2 流式读取连续缺失的区间。每个文件收齐、通过 SHA-256 校验后就以原 URL 写入游戏缓存，WAV 支持 Range。切图优先于后台预载。相册原图按需读取。
+
+入口和切图的百分比保留一位小数。使用 pack 时按所需包的字节进度计算，含已验证的缓存。遇到缺包、校验失败、首字节等待 8 秒或连续 15 秒无数据时显示「站内补载」，按就绪文件数计算。进入地图所需的图片解码完成后才显示 100.0%。用 `node scripts/verify-game-packs.mjs` 验证冷启动与中途断流。
+
+Cloudflare 完整构建根据 `WORKERS_CI_BRANCH` 生成 `artifacts/game-packs/<分支>/` 下的包，再上传到 R2 的 `1-year/game-packs/<分支>/<分支>-<组>-<SHA-256>.pack`。Git 忽略 `.pack`；站点仅发布索引和散文件。部署命令在 Wrangler 成功后执行 `npm run --if-present packs:published`，补传缺项并验证线上 release、CDN 的 Range 与 CORS。分支的 `published-sets.json` 用 R2 条件写入协调发布，保留最近两套不同的已上线素材和在途构建引用的包。发布日志以 `[pack]` 标识同步、复用和清理结果。若补传耗尽，在 Cloudflare 重试该分支最新构建即可。精简构建跳过上传和清理。
 
 调试开启时，初始加载页与游戏内调试台都显示「网络下载」。资源和影片网速均按近五秒收到的数据块更新。同源资源完成后以 Resource Timing 校准字节数，持久缓存命中单独计数。用 `node scripts/verify-map-bandwidth.mjs <调试构建目录>` 启动本地限速服务器，比较切图后的首包、服务器实际发出的字节与面板读数。用 `node scripts/verify-scene-loading.mjs <调试构建目录> --debug` 验证切图抢占、影片分块下载进度、缓存命中和停传归零。
 

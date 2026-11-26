@@ -15,3 +15,6 @@
 
 /game-assets-*.json
   Cache-Control: public, max-age=31536000, immutable
+
+/game-packs-*.json
+  Cache-Control: public, max-age=31536000, immutable

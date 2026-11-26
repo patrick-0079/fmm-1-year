@@ -365,9 +365,9 @@ git push origin main
 | 仓库                         | `patrick-0079/fmm-1-year`                                                                         |
 | 生产分支                     | `main`                                                                                            |
 | 构建命令（可选）             | `npm run build`。虽然界面标注可选，本项目需要构建，必须填写。                                     |
-| 部署命令                     | `npx wrangler deploy`                                                                             |
+| 部署命令                     | `npx wrangler deploy && npm run --if-present packs:published` |
 | 启用预览构建                 | 开启；非生产分支用于预览。                                                                        |
-| 预览命令（如显示）           | 保留默认 `npx wrangler preview`。                                                                 |
+| 预览命令（如显示）           | `npx wrangler preview && npm run --if-present packs:published` |
 | 使用 Cloudflare Access 保护  | 面向粉丝公开访问时关闭。开启会要求受保护地址的访客登录。若开关注明仅保护预览，则只影响预览地址。  |
 | 高级设置 → 根目录            | `/`，即仓库根目录。                                                                               |
 | 高级设置 → API 令牌          | 保留“创建新令牌 / 将自动创建新令牌”，由 Cloudflare 自动管理部署凭据；不需要在网页代码里填写令牌。 |
@@ -375,7 +375,8 @@ git push origin main
 | 构建变量值                   | `24`                                                                                              |
 | 周年发布构建变量             | `FULL_BUILD=false` 发布倒计时包；11 月 30 日改为 `true` 并重新部署。 |
 | 调试面板构建变量             | `VITE_WARDROBE_DEBUG` 当前默认 `true`，正式上线设为 `false` 并重新构建。 |
-| 其他变量、Secrets 与存储绑定 | 留空。 |
+| 资源包构建变量 | `R2_ACCOUNT_ID`、`R2_BUCKET=fmm`。 |
+| 资源包构建 Secret | `R2_ACCESS_KEY_ID`、`R2_SECRET_ACCESS_KEY`，仅配置在受信任的生产和预览分支构建中。 |
 
 本地可执行 `npx wrangler deploy --dry-run` 验证静态部署配置；实际部署仍由你在 Cloudflare 中完成。
 

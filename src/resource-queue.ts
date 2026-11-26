@@ -1,5 +1,5 @@
 export type Resource = readonly [path: string, digest: string, scenes: readonly string[]];
-export type LoadProgress = (loaded: number, total: number) => void;
+export type LoadProgress = (loaded: number, total: number, fallback?: boolean) => void;
 type Priority = "high" | "low";
 type Read = (file: Resource, priority: Priority, retry: boolean, signal: AbortSignal) => Promise<void>;
 type Task = { file: Resource; promise: Promise<void>; run: () => void; priority: Priority; controller?: AbortController };

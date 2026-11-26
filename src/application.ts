@@ -476,8 +476,8 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
   const sceneDestination = sceneTransition.querySelector(".scene-transition-destination")!;
   const sceneStatus = sceneTransition.querySelector(".scene-transition-status")!;
   const mapMeter = sceneTransition.querySelector("progress")!;
-  function mapProgress(loaded: number, total: number) {
-    showResourceCount(mapMeter, loaded, total);
+  function mapProgress(loaded: number, total: number, fallback?: boolean) {
+    showResourceCount(mapMeter, loaded, total, fallback);
   }
   function showSceneTransition(scene: SceneId) {
     const title = scenes[scene].title;

@@ -7,6 +7,7 @@ import { validateStationery } from "./scripts/validate-stationery.mjs";
 import { readLetterCatalogue } from "./scripts/scan-letters.mjs";
 import { assetScenes } from "./scripts/scene-assets.mjs";
 import { textureWorkerSource } from "./scripts/texture-worker-source.mjs";
+import { buildBranch, makeGamePacks, writeGamePacks } from "./scripts/game-packs.mjs";
 import { OPEN_AT } from "./src/launch/time";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
@@ -74,7 +75,8 @@ function developmentResources() {
 }
 
 function releaseEntry(mode: "full" | "lite", debug: boolean): Plugin {
-  const marker = (version: string) => JSON.stringify({ mode, version });
+  const marker = (version: string) => JSON.stringify({ mode, version, commit: process.env.WORKERS_CI_COMMIT_SHA });
+  let packBuild: ReturnType<typeof makeGamePacks> | undefined;
   return {
     name: "fufu-release-entry",
     transformIndexHtml: {
@@ -129,7 +131,11 @@ function releaseEntry(mode: "full" | "lite", debug: boolean): Plugin {
         if (html?.type !== "asset" || typeof html.source !== "string") this.error("缺少发布首页 index.html");
         hash.update(html.source);
         for (const name of Object.keys(bundle).sort()) hash.update(name);
-        const manifest = mode === "full" ? JSON.stringify(resourceManifest(bundle)) : undefined;
+        const files = mode === "full" ? resourceManifest(bundle) : undefined;
+        if (files) packBuild = makeGamePacks(files, (path: string) => (bundle[path] as Rollup.OutputAsset).source, buildBranch());
+        const packIndex = packBuild && JSON.stringify(packBuild.index);
+        if (packIndex) hash.update(packIndex);
+        const manifest = files && JSON.stringify(files);
         const worker = manifest && textureWorkerSource(debug);
         if (manifest && worker) hash.update(manifest).update(worker);
         const version = hash.digest("hex").slice(0, 16);
@@ -137,11 +143,15 @@ function releaseEntry(mode: "full" | "lite", debug: boolean): Plugin {
         this.emitFile({ type: "asset", fileName: "release.json",
           source: marker(version) });
         if (manifest && worker) {
+          this.emitFile({ type: "asset", fileName: `game-packs-${version}.json`, source: JSON.stringify({ ...packBuild!.index, release: version }) });
           this.emitFile({ type: "asset", fileName: `game-assets-${version}.json`, source: manifest });
           this.emitFile({ type: "asset", fileName: "texture-cache.js",
             source: `const assetVersion = ${JSON.stringify(version)};\nconst assetFiles = ${manifest};\n${worker}` });
         }
       },
+    },
+    async writeBundle(options) {
+      if (packBuild && options.dir) await writeGamePacks(options.dir, packBuild);
     },
   };
 }
