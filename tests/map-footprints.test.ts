@@ -34,6 +34,28 @@ test("the garden south lantern can be approached behind its pier while both neig
   assert.ok(canTravelBetween({x:573,y:543},{x:573,y:569},scenes.garden));
 });
 
+test("the flower beds wrap around both sides of the cottage steps and leave the doorstep open", () => {
+  checkFeet("garden", [[410,151.3],[470,150],[307,142],[577,139],[330,163],[550,161],[558,169]],
+    [[326,138],[554,138],[350,146],[533,146],[367,156],[505,156],[410,161],[471,161]]);
+  for (const map of [scenes.garden, bloomingGarden]) {
+    const door = map.spots.find(s => s.id === "door")!;
+    assert.ok(canTravelBetween({x:446,y:175}, door.approach, map));
+    assert.ok(canTravelBetween(door.approach, {x:446,y:117}, map));
+    assert.equal(canTravelBetween({x:325,y:169}, {x:326,y:138}, map), false);
+    assert.equal(canTravelBetween({x:558,y:169}, {x:554,y:138}, map), false);
+  }
+});
+
+test("feet stop at the north bridge lantern's stone base while the approach still leads directly onto the deck", () => {
+  checkFeet("garden", [[786,66],[797,53],[799,59],[816,56],[847,56]], [[794,70],[797,71]]);
+  for (const map of [scenes.garden, bloomingGarden]) {
+    const bridge = map.spots.find(s => s.id === "north-town-gate")!;
+    assert.ok(canTravelBetween(bridge.approach, bridge, map));
+    assert.ok(canTravelBetween(bridge, bridge.approach, map));
+    assert.equal(canTravelBetween({x:795,y:58}, {x:795,y:71}, map), false);
+  }
+});
+
 test("both lower plaza fences stop feet at the stone and leave the centre path and both sides walkable", () => {
   checkFeet("garden",
     [[341,383],[352,386],[355,420],[543,382],[530,386],[525,420],[440,421]],
