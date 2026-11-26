@@ -77,6 +77,7 @@ test("switching full → invitation → full cleans the deployed directory", asy
   for (const [prefix, scene] of [["stationery-desk", "*"], ["room-interactive", "room"], ["town-quarry", "town"],
     ["anniversary-town-hd", "town"], ["radio", "town-radio"], ["meadow-jelly-bells", "meadow"],
     ["echo-mines", "ruins"], ["garden-guest-routines", "garden"], ["gardener-tending", "challenge"],
+    ["party-props-v11", "town"], ["party-props-v11", "garden"],
     ["town-work-poses", "town-radio"], ["town-gestures", "town-baker"], ["cake-slice", "town-baker"]]) {
     assert.ok(entries.some(([path, , scenes]) => path.startsWith("assets/" + prefix + "-") && scenes.includes(scene)), prefix);
   }
