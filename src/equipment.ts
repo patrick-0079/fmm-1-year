@@ -115,23 +115,29 @@ export function equipmentParts(
       add(body, "front", shoulder - 6.1, top + 1.3, 1.45, 2.8, "pinEdge");
     }
   }
-  if (head === "headphones") {
-    addHead(-12, -38.5, 24, 16, facing === 3 ? "rearBand" : "band");
-    addHead(-12, -38.5, 24, 16, facing === 3 ? "rearEarpieces" : "earpieces");
-  }
   const cap = head === "witchHat" || head === "blueBeret" || head === "strawHat";
   const crownX = facing === 1 ? -3.1 : facing === 2 ? 2.9 : 0;
   if (hair && (facing === 0 || facing === 1)) {
     const size = hair === "starWings" ? 9 : hairSize;
-    const center = facing === 0 ? 7.2 : -.6;
+    const templeX = facing === 0 ? 7.2 : -.6;
+    // A clip grips the fringe just forward of the near cup.
+    const center = head === "headphones" ? templeX - (profile ? 3.8 : 1.6) : templeX;
     const templeCenter = cap ? -28.2 : -31.6;
     add(hair, "front", center-size/2, templeCenter-size/2 + headShift, size, size);
   }
-  if (cap || head === "ginghamBand") {
-    const width = (head === "ginghamBand" ? 23 : head === "blueBeret" ? 27 : 33.5) - (profile ? 2.5 : 0);
-    const height = head === "witchHat" ? width*.45 : head === "ginghamBand" ? 15 : 15.5;
-    const bottom = head === "ginghamBand" && facing === 3 ? -27.8 : -31.1;
-    addHead(crownX-width/2, bottom-height, width, height, cap ? "hat" : undefined, facing === 2 && head !== "witchHat");
+  if (head === "headphones") {
+    addHead(-12, -38.5, 24, 16, facing === 3 ? "rearBand" : "band");
+    addHead(-12, -38.5, 24, 16, facing === 3 ? "rearEarpieces" : "earpieces");
+  }
+  if (head === "ginghamBand") {
+    // Fit the cloth to the temples; only the two tied ends project above the hair.
+    if (profile) addHead(crownX-5.6, -43, 11.2, 16, undefined, facing === 2);
+    else if (facing === 3) addHead(-10.7, -39.5, 21.4, 13.4);
+    else addHead(-10.2, -44.4, 20.4, 18.2);
+  } else if (cap) {
+    const width = (head === "blueBeret" ? 27 : 33.5) - (profile ? 2.5 : 0);
+    const height = head === "witchHat" ? width*.45 : 15.5;
+    addHead(crownX-width/2, -31.1-height, width, height, "hat", facing === 2 && head !== "witchHat");
   }
   if (equipped.wreath === "wreath") {
     // The artist already hid the far side of the garland behind the skull.

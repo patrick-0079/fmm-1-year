@@ -134,6 +134,21 @@ test("headphones expose rear shells only in the back view, with front cups retai
     );
   }
 });
+test("clips on the near temple tuck under the headphone band and cups", () => {
+  for (const hair of ["candyClip","starWings","heartClip","fishClip","starClip"] as const) {
+    for (const pose of ["standing","sitting","bench"] as const) for (const step of [0,1,2]) {
+      for (const facing of [0,1,2,3] as const) {
+        const parts = equipmentParts({head:"headphones",hair,wreath:"wreath"}, pose, facing, step);
+        const near = pose !== "standing" || facing <= 1;
+        const rear = pose === "standing" && facing === 3;
+        assert.deepEqual(parts.map(p => p.style ?? p.id), [
+          ...(near ? [hair] : []), rear ? "rearBand" : "band", rear ? "rearEarpieces" : "earpieces", "wreath",
+        ]);
+      }
+    }
+    assert.deepEqual(equipmentParts({head:"headphones", hair, wreath:"wreath"}, "lying", 0).map(p => p.id), [hair]);
+  }
+});
 test("headwear follows the sprite crown throughout a stride", () => {
   for (const head of ["wreath", "candyClip", "headphones", "starWings", "witchHat", "blueBeret", "ginghamBand", "strawHat"] as const) {
     for (const facing of [0, 1, 2, 3] as Facing[]) {

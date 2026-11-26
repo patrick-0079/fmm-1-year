@@ -7,13 +7,15 @@ import { courageBorder } from "../src/courage-border.ts";
 const map = scenes.challenge;
 test("the gardener's lantern and south treetops cover a visitor on the lawn without spilling onto the gate path", () => {
   for (const [id,x,y] of [
-    ["gardener-gate-lamp-and-flowers",382,498], ["southwest-beech",154,444], ["southeast-beech",731,452],
+    ["gardener-gate-lamp-and-flowers",382,498], ["gardener-gate-lamp-and-flowers",336,493],
+    ["gardener-gate-lamp-and-flowers",342,493], ["southwest-gate-pine",328,481],
+    ["southwest-gate-pine",331,488], ["southwest-beech",154,444], ["southeast-beech",731,452],
   ] as const) {
     const layer=courageBorder.find(part=>part.id===id)!;
     assert.ok(canStand({x,y},map.walls,map.bounds,map.floor));
     assert.ok(layer.y>y && polygonContains({x,y},layer.points),id);
   }
-  for (const [x,y] of [[450,530],[419,484],[408,484],[390,481],[731,435],[154,416]]) {
+  for (const [x,y] of [[450,530],[419,484],[408,484],[390,481],[356,485],[333,482],[345,494],[731,435],[154,416]]) {
     assert.ok(courageBorder.every(part=>!polygonContains({x,y},part.points)),x+","+y);
   }
 });

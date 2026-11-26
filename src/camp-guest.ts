@@ -162,8 +162,11 @@ export class CampGuest {
         c.beginPath();
         c.ellipse(x, y - 1, 10, 2.7, 0, 0, Math.PI * 2);
         c.fill();
+        c.translate(x, y);
+        // Both walking frames face left in the atlas. The seated frames offer the letter to the right.
+        if (walking && campGuestSeat.x > campGuestStart.x) c.scale(-1, 1);
         c.drawImage(alignedCampSheet(sheet), (frame % 2) * cell, Math.floor(frame / 2) * cell, cell, cell,
-          x - size / 2, y - baseline * size / cell, size, size);
+          -size / 2, -baseline * size / cell, size, size);
         c.restore();
       },
     };
