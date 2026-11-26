@@ -116,7 +116,7 @@ test("fringe clips belong to the near temple and sit under the witch hat brim", 
     }
   }
 });
-test("headphones expose rear shells only in the back view, with front cups retained elsewhere", () => {
+test("headphones turn from two front cups to one near shell, then two narrow rear shells", () => {
   for (const frame of [0, 1, 2]) {
     const rear = equipmentParts({head: "headphones"}, "standing", 3, frame);
     assert.deepEqual(new Set(rear.map(p => p.style)), new Set(["rearBand", "rearEarpieces"]));
@@ -124,7 +124,7 @@ test("headphones expose rear shells only in the back view, with front cups retai
     for (const facing of [0, 1, 2] as Facing[]) {
       assert.deepEqual(
         new Set(equipmentParts({head: "headphones"}, "standing", facing, frame).map(p => p.style)),
-        new Set(["band", "earpieces"]),
+        new Set(facing === 0 ? ["band", "earpieces"] : ["profileBand", "profileCup"]),
       );
     }
     assert.deepEqual(
@@ -134,6 +134,25 @@ test("headphones expose rear shells only in the back view, with front cups retai
     );
   }
 });
+test("the profile cup stays on the near ear and the strap reaches the top of the shell throughout the stride", () => {
+  for (const clothes of outfits) for (const facing of [1, 2] as const) for (const frame of [0, 1, 2]) {
+    const [band, cup] = equipmentParts({head:"headphones", clothes}, "standing", facing, frame);
+    assert.equal(band.mirror, facing === 2);
+    assert.equal(cup.mirror, facing === 2);
+    assert.ok(cup.w >= cup.h && cup.y + cup.h < -21.8, "the near housing faces the camera above the collar");
+    assert.ok(band.y < cup.y - 7 && band.y+band.h > cup.y && band.y+band.h < cup.y+cup.h/2);
+    const hinge = facing === 1 ? band.x+band.w-1 : band.x+1;
+    assert.ok(Math.abs(hinge-(cup.x+cup.w/2)) < 1);
+  }
+  const ear = (clothes: ItemId | null, facing: Facing, frame: number) => {
+    const [, cup] = equipmentParts({head:"headphones", clothes}, "standing", facing, frame);
+    return [Math.round((cup.x+cup.w/2)*4+72), Math.round((cup.y+cup.h/2)*4+184)];
+  };
+  assert.deepEqual(ear(null, 1, 0), [70,75]);
+  assert.deepEqual(ear(null, 2, 0), [76,75]);
+  assert.deepEqual(ear("mintCape", 2, 1), [78,81]);
+  assert.deepEqual(ear("mikoOutfit", 1, 2), [67,78]);
+});
 test("clips on the near temple tuck under the headphone band and cups", () => {
   for (const hair of ["candyClip","starWings","heartClip","fishClip","starClip"] as const) {
     for (const pose of ["standing","sitting","bench"] as const) for (const step of [0,1,2]) {
@@ -141,17 +160,19 @@ test("clips on the near temple tuck under the headphone band and cups", () => {
         const parts = equipmentParts({head:"headphones",hair,wreath:"wreath"}, pose, facing, step);
         const near = pose !== "standing" || facing <= 1;
         const rear = pose === "standing" && facing === 3;
+        const side = pose === "standing" && (facing === 1 || facing === 2);
         assert.deepEqual(parts.map(p => p.style ?? p.id), [
-          ...(near ? [hair] : []), rear ? "rearBand" : "band", rear ? "rearEarpieces" : "earpieces", "wreath",
+          ...(near ? [hair] : []), ...(rear ? ["rearBand","rearEarpieces"] : side ? ["profileBand","profileCup"] : ["band","earpieces"]), "wreath",
         ]);
       }
     }
     assert.deepEqual(equipmentParts({head:"headphones", hair, wreath:"wreath"}, "lying", 0).map(p => p.id), [hair]);
   }
 });
-test("headwear follows the sprite crown throughout a stride", () => {
+test("crown attachments follow the sprite crown throughout a stride", () => {
   for (const head of ["wreath", "candyClip", "headphones", "starWings", "witchHat", "blueBeret", "ginghamBand", "strawHat"] as const) {
     for (const facing of [0, 1, 2, 3] as Facing[]) {
+      if (head === "headphones" && (facing === 1 || facing === 2)) continue; // These track the painted ear.
       const rest = equipmentParts({[ITEMS[head].slot]:head}, "standing", facing, 0);
       const restingCrown = -spriteFrames[facing * 3].h * 43 / 330;
       for (const frame of [0, 1, 2]) {

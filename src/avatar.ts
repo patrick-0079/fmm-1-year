@@ -47,22 +47,48 @@ function paintPart(c: CanvasRenderingContext2D, p: EquipmentPart, facing: Facing
       c.strokeStyle = "#eed5dc"; c.lineWidth = .55;
       c.beginPath(); c.moveTo(x + side * .65, 10.6); c.lineTo(x + side * .65, 13.2); c.stroke();
     }
+  } else if (p.style === "profileBand" || p.style === "profileCup") {
+    c.translate(p.mirror ? p.x + p.w : p.x, p.y);
+    if (p.mirror) c.scale(-1, 1);
+    c.lineJoin = "round";
+    if (p.style === "profileBand") {
+      // In profile the far side disappears at the crown. Only the strap
+      // leading from behind the cowlick down to the near hinge is visible.
+      c.beginPath();
+      c.moveTo(.25, .65);
+      c.quadraticCurveTo(.9, .16, 1.9, .25);
+      c.bezierCurveTo(4, 2.15, 4.9, 6.25, 4.95, 9.3);
+      c.lineTo(3.05, 9.45);
+      c.bezierCurveTo(3.04, 6.15, 2.25, 2.7, .25, .65);
+      c.closePath();
+      c.fillStyle = "#c5a1c4"; c.fill();
+      c.lineWidth = .48; c.strokeStyle = "#78586e"; c.stroke();
+    } else {
+      // The pale cushion is just visible ahead of the broad outer housing.
+      c.beginPath(); c.ellipse(4.15, 3.9, 3.94, 3.64, -.12, 0, 2*Math.PI);
+      c.fillStyle = "#f6ddbc"; c.fill();
+      c.lineWidth = .55; c.strokeStyle = "#77576c"; c.stroke();
+      c.beginPath(); c.ellipse(4.65, 3.75, 3.23, 3.27, -.12, 0, 2*Math.PI);
+      c.fillStyle = "#bea0c6"; c.fill();
+      c.lineWidth = .42; c.strokeStyle = "#805e78"; c.stroke();
+      c.beginPath();
+      c.moveTo(4.68, 1.63); c.quadraticCurveTo(5.13, 3.19, 6.72, 3.73);
+      c.quadraticCurveTo(5.17, 4.19, 4.68, 5.83);
+      c.quadraticCurveTo(4.22, 4.22, 2.68, 3.73);
+      c.quadraticCurveTo(4.20, 3.20, 4.68, 1.63); c.closePath();
+      c.fillStyle = "#ffe5a9"; c.fill();
+      c.lineWidth = .28; c.strokeStyle = "#997384"; c.stroke();
+    }
   } else if (p.style === "band" || p.style === "earpieces") {
     c.translate(0,p.y);
-    const profile = facing === 1 || facing === 2;
-    if (facing === 2) c.scale(-1,1);
     if (p.style === "band") {
       c.beginPath();
-      if (profile) {
-        c.moveTo(7.4, 8.3); c.bezierCurveTo(7, -1.8, -3.4, -2, -1.5, 12);
-      } else {
-        c.moveTo(-10.6, 12.2); c.bezierCurveTo(-11,-1.6,10,-1.6,10.6,12.2);
-      }
+      c.moveTo(-10.6, 12.2); c.bezierCurveTo(-11,-1.6,10,-1.6,10.6,12.2);
       c.lineCap = "round";
       c.lineWidth = 2.3; c.strokeStyle = "#775971"; c.stroke();
       c.lineWidth = 1.25; c.strokeStyle = "#dcb7d4"; c.stroke();
-    } else for (const x of profile ? [-1.5] : [-10.5,10.5]) {
-      const y=12.5, width=profile ? 3.15 : 2.05;
+    } else for (const x of [-10.5,10.5]) {
+      const y=12.5, width=2.05;
       c.fillStyle="#78586e"; c.beginPath(); c.ellipse(x,y,width,4.2,0,0,Math.PI*2); c.fill();
       c.fillStyle="#c4a8d0"; c.beginPath(); c.ellipse(x,y-.15,width-.55,3.5,0,0,Math.PI*2); c.fill();
       c.fillStyle="#fff0cc";

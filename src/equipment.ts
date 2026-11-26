@@ -1,6 +1,6 @@
 import { ITEMS, type Equipped, type ItemId } from "./items.ts";
 import { spriteFrames } from "./sprite-frames.ts";
-import { outfitIndex, outfits, type AvatarPose, type Facing } from "./costume-frames.ts";
+import { artScale, cellHeight, cellWidth, outfitIndex, outfits, type AvatarPose, type Facing } from "./costume-frames.ts";
 export type { AvatarPose, Facing } from "./costume-frames.ts";
 export interface EquipmentPart {
   id: ItemId;
@@ -9,7 +9,7 @@ export interface EquipmentPart {
   y: number;
   w: number;
   h: number;
-  style?: "band" | "earpieces" | "rearBand" | "rearEarpieces" | "straps" | "bag" | "hat" | "pinEdge";
+  style?: "band" | "earpieces" | "profileBand" | "profileCup" | "rearBand" | "rearEarpieces" | "straps" | "bag" | "hat" | "pinEdge";
   mirror?: boolean;
 }
 // The near shoulder moves independently of the trailing hair as the arms swing.
@@ -17,6 +17,21 @@ const profileShoulders = {
   1: [[-1.1,-19.8],[-.7,-19.5],[-.6,-19.7]],
   2: [[1.9,-19.5],[1.7,-19.1],[1,-19.7]],
 } as const;
+
+// Near ear centres in the 144 × 184 garment cells, in atlas order (three
+// left-facing frames, then three right-facing frames). The side lock covers
+// the ear: fit just behind the outer eye, above the jaw, on each drawing.
+const profileEars = {
+  base:             [[70,75],[70,76],[70,76], [76,75],[75,77],[76,75]],
+  roseDress:        [[69,74],[69,76],[69,74], [76,74],[77,77],[77,74]],
+  mintCape:         [[68,79],[69,80],[69,79], [77,79],[78,81],[77,79]],
+  cloudPajamas:     [[69,74],[69,76],[70,75], [76,74],[76,77],[77,75]],
+  apricotNightgown: [[70,75],[69,76],[70,74], [76,74],[76,77],[76,75]],
+  sailorSet:        [[70,75],[70,76],[69,75], [76,74],[76,77],[77,75]],
+  honeyOveralls:    [[69,74],[69,76],[68,75], [76,74],[76,77],[76,75]],
+  witchDress:       [[69,75],[69,76],[70,75], [77,74],[77,77],[77,76]],
+  mikoOutfit:       [[70,77],[68,78],[67,78], [76,78],[76,80],[77,78]],
+} as const satisfies Record<NonNullable<typeof outfits[number]> | "base", readonly (readonly [number, number])[]>;
 
 // Positions on the left-facing garment, measured from the foot centre.
 // A pack rests on the back seam; the satchel hangs at the left hip.
@@ -126,8 +141,19 @@ export function equipmentParts(
     add(hair, "front", center-size/2, templeCenter-size/2 + headShift, size, size);
   }
   if (head === "headphones") {
-    addHead(-12, -38.5, 24, 16, facing === 3 ? "rearBand" : "band");
-    addHead(-12, -38.5, 24, 16, facing === 3 ? "rearEarpieces" : "earpieces");
+    if (profile) {
+      const outfit = outfits[outfitIndex(equipped.clothes)] ?? "base";
+      const right = profile === 2;
+      const [px, py] = profileEars[outfit][(right ? 3 : 0) + walkFrame];
+      const cx = (px - cellWidth/2) / artScale, cy = (py - cellHeight) / artScale;
+      const piece = (x: number, y: number, w: number, h: number, style: "profileBand" | "profileCup") =>
+        add(head, "front", cx + (right ? -x-w : x), cy+y, w, h, style, right);
+      piece(-3.75, -11.7, 5.2, 9.7, "profileBand");
+      piece(-4.15, -3.9, 8.3, 7.8, "profileCup");
+    } else {
+      addHead(-12, -38.5, 24, 16, facing === 3 ? "rearBand" : "band");
+      addHead(-12, -38.5, 24, 16, facing === 3 ? "rearEarpieces" : "earpieces");
+    }
   }
   if (head === "ginghamBand") {
     // Fit the cloth to the temples; only the two tied ends project above the hair.
