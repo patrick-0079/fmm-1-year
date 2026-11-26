@@ -39,8 +39,9 @@ export function equipmentParts(
   walkFrame = 0,
 ): EquipmentPart[] {
   const hair = equipped.hair;
+  const hairSize = hair === "heartClip" ? 10 : 8;
   if (pose === "lying") return hair ? [
-    {id:hair, layer:"front", x:-16.15, y:-10.15, w:8, h:8},
+    {id:hair, layer:"front", x:-12.15-hairSize/2, y:-6.15-hairSize/2, w:hairSize, h:hairSize},
   ] : [];
   if (pose !== "standing") { facing = 0; walkFrame = 0; }
   const shift = pose === "sitting" ? 6 : pose === "bench" ? 3 : 0;
@@ -121,7 +122,7 @@ export function equipmentParts(
   const cap = head === "witchHat" || head === "blueBeret" || head === "strawHat";
   const crownX = facing === 1 ? -3.1 : facing === 2 ? 2.9 : 0;
   if (hair && (facing === 0 || facing === 1)) {
-    const size = hair === "starWings" ? 9 : 8;
+    const size = hair === "starWings" ? 9 : hairSize;
     const center = facing === 0 ? 7.2 : -.6;
     const templeCenter = cap ? -28.2 : -31.6;
     add(hair, "front", center-size/2, templeCenter-size/2 + headShift, size, size);

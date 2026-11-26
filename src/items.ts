@@ -148,7 +148,7 @@ export const ITEMS: Record<
   apricotNightgown: { name: "杏桃晚安裙", slot: "clothes", description: "圆圆的奶油领下系着一枚小蝴蝶结，裙摆刚好盖过膝头。", source: "初始衣橱" },
   sailorSet: { name: "海盐水手装", slot: "clothes", description: "海军蓝水手领，珊瑚红领巾，一条能迈开步子的短裤。", source: "初始衣橱" },
   honeyOveralls: { name: "麦芽背带裤", slot: "clothes", description: "麦芽色背带裤罩着鼠尾草绿短袖，胸前口袋留给路上捡的小物。", source: "初始衣橱" },
-  heartClip: { name: "爱心发夹", slot: "hair", description: "芙芙常戴的小爱心，下面别着两根淡紫发卡。", source: "初始衣橱" },
+  heartClip: { name: "爱心发夹", slot: "hair", description: "玫红色的心形细框里透出一缕粉发，下面别着两根淡紫发卡。", source: "初始衣橱" },
   fishClip: { name: "小鱼发夹", slot: "hair", description: "一尾薄荷蓝的小鱼游进了发梢。", source: "初始衣橱" },
   starClip: { name: "星星发夹", slot: "hair", description: "一颗蜂蜜金的小星，轻轻别在刘海旁。", source: "初始衣橱" },
   mintSneakers: { name: "薄荷帆布鞋", slot: "shoes", description: "系紧奶白鞋带，沿着石板路散步去。", source: "初始衣橱" },
