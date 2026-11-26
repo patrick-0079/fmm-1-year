@@ -442,6 +442,7 @@ export class Nature {
       return [
         ...creek,
         ...visibleMapCovers(this.world, gardenCovers),
+        { y: 282, draw: (c: CanvasRenderingContext2D) => this.activities.drawTiedBalloons(c) },
         ...gardenForeground.map(part => ({y:part.y, outline:mapFragment(part.points).mask, draw:(c:CanvasRenderingContext2D) => this.world.drawMapFragment(c,part.points)})),
         { y: apple.y + 4, draw: (c: CanvasRenderingContext2D) => {
           const basket = this.world.appleBasket;

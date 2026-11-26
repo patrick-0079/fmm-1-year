@@ -37,6 +37,16 @@ interface WorkbenchHandle {
 }
 const colors = ["#f49fbc", "#9ddbe9", "#c1a4ea", "#ffdb80", "#b4e9bc"];
 const narrowDialogue = matchMedia("(max-width: 540px)");
+const balloonTies = [{x:179,y:260,frame:0}, {x:205,y:261,frame:2}, {x:231,y:260,frame:3}];
+const flightEnd = 340;
+
+function balloonBox(i: number, amount: number, rise = 0) {
+  const tie = balloonTies[i], full = amount / 4;
+  const h = 31 + full * 31, w = h * .58;
+  const ribbonEnd = tie.y + (228 - i * 7 - tie.y) * full;
+  return { x: tie.x - w / 2, y: ribbonEnd - h - rise, w, h };
+}
+
 export class Activities {
   private cakeImage = sceneImage(cakeUrl);
   private cakeSliceImage = sceneImage(cakeSliceUrl);
@@ -63,8 +73,8 @@ export class Activities {
   private giftCollected = false;
   private giftReturnFocus = false;
   private balloon = [0, 0, 0];
-  private released = false;
-  private rise = 0;
+  // null while the ribbons are tied to the stall; flightEnd leaves the hooks empty.
+  private balloonRise: number | null;
   private bursts = 0;
   private sessionLaunches = 0;
   private launches = 0;
@@ -84,6 +94,7 @@ export class Activities {
     private world: World,
     private hooks: Hooks,
   ) {
+    this.balloonRise = hooks.isComplete?.("balloons") ? flightEnd : null;
     this.hud = document.querySelector(".activity-hud")!;
     this.status = this.hud.querySelector(".activity-status")!;
     new ResizeObserver(() => this.updateReadingFocus()).observe(this.status);
@@ -246,8 +257,7 @@ export class Activities {
     this.eatTime = 0;
     this.blow = 0;
     this.balloon = [0, 0, 0];
-    this.released = false;
-    this.rise = 0;
+    this.balloonRise = null;
     this.bursts = 0;
     this.launches = 0;
     this.particles = [];
@@ -422,10 +432,9 @@ export class Activities {
     if (this.gift.untie(index)) { sfx("flip"); this.giftControls(); }
   }
   balloons() {
-    if (this.released) {
+    if (this.balloonRise !== null) {
       this.balloon = [0, 0, 0];
-      this.released = false;
-      this.rise = 0;
+      this.balloonRise = null;
     }
     this.begin("balloons", "点摊位上的气球充气 · 每只四下，再一起放飞");
     this.balloonControls();
@@ -436,11 +445,11 @@ export class Activities {
       const b = this.action(`${["粉", "蓝", "紫"][i]}气球 ${amount}/4`, () =>
         this.inflate(i),
       );
-      b.disabled = amount === 4 || this.released;
+      b.disabled = amount === 4 || this.balloonRise !== null;
     });
-    if (this.balloon.every((n) => n === 4) && !this.released)
+    if (this.balloon.every((n) => n === 4) && this.balloonRise === null)
       this.action("一起放飞", () => {
-        this.released = true;
+        this.balloonRise = 0;
         sfx("release");
         this.hooks.complete("balloons");
         this.status.textContent = "愿芙芙的每个小心愿，都能轻轻飞到星星旁";
@@ -448,7 +457,7 @@ export class Activities {
       });
   }
   private inflate(i: number) {
-    if (this.balloon[i] < 4 && !this.released) {
+    if (this.balloon[i] < 4 && this.balloonRise === null) {
       this.balloon[i]++;
       sfx("inflate");
       this.balloonControls();
@@ -597,14 +606,13 @@ export class Activities {
       }
       return true;
     }
-    if (
-      this.mode === "balloons" &&
-      type === "down" &&
-      point.y < 252 &&
-      point.y > 155
-    ) {
-      const i = Math.round((point.x - 179) / 26);
-      if (i >= 0 && i < 3) {
+    if (this.mode === "balloons" && type === "down" && this.balloonRise === null) {
+      const i = balloonTies.reduce((nearest, tie, index) =>
+        Math.abs(point.x - tie.x) < Math.abs(point.x - balloonTies[nearest].x) ? index : nearest, 0);
+      const box = balloonBox(i, this.balloon[i]);
+      // Include its tether so repeated taps still reach the same rising balloon.
+      if (point.x >= box.x - 2 && point.x <= box.x + box.w + 2 &&
+          point.y >= box.y - 2 && point.y <= balloonTies[i].y + 2) {
         this.inflate(i);
         return true;
       }
@@ -636,7 +644,8 @@ export class Activities {
         this.cakeControls();
       }
     }
-    if (this.released) this.rise = Math.min(650, this.rise + dt * 42);
+    if (this.balloonRise !== null && this.balloonRise < flightEnd)
+      this.balloonRise = this.world.scene === "garden" ? Math.min(flightEnd, this.balloonRise + dt * 42) : flightEnd;
     for (const wish of this.skyWishes) {
       wish.life -= dt;
       wish.y -= dt * 4;
@@ -721,28 +730,32 @@ export class Activities {
         this.world.drawAvatarAt(c, 503, 318, 1);
       }
     }
-    if (this.world.scene === "garden") {
-      if (this.mode === "balloons" || this.released)
-        this.balloon.forEach((amount, i) => {
-          const height = 38 + amount * 6,
-            x = 179 + i * 26 + Math.sin(t * 1.3 + i) * 2,
-            y = 228 - this.rise - i * 7;
-          if (y < -80) return;
-          c.save();
-          c.translate(x, y);
-          c.rotate(Math.sin(t * 1.1 + i) * 0.035);
-          drawPartyProp(
-            c,
-            [0, 2, 3][i],
-            -height * 0.29,
-            -height,
-            height * 0.58,
-            height,
-          );
-          c.restore();
-        });
-    }
+    if (this.world.scene === "garden" && this.balloonRise !== null && this.balloonRise < flightEnd)
+      this.drawBalloons(c, t, this.balloonRise);
     c.restore();
+  }
+  drawTiedBalloons(c: CanvasRenderingContext2D) {
+    if (this.balloonRise === null) this.drawBalloons(c, this.world.ambientTime, 0);
+  }
+  private drawBalloons(c: CanvasRenderingContext2D, time: number, rise: number) {
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    this.balloon.forEach((amount, i) => {
+      const {x, y, w, h} = balloonBox(i, amount, rise);
+      c.save();
+      c.translate(x + w / 2, y + h);
+      if (this.balloonRise === null && amount > 0) {
+        const length = balloonTies[i].y - (y + h);
+        c.strokeStyle = "#9a7661";
+        c.lineWidth = .65;
+        c.beginPath();
+        c.moveTo(0, 0);
+        c.quadraticCurveTo(-1.8, length * .6, 0, length);
+        c.stroke();
+      }
+      if (!still) c.rotate(Math.sin(time * 1.1 + i) * .028);
+      drawPartyProp(c, balloonTies[i].frame, -w / 2, -h, w, h);
+      c.restore();
+    });
   }
   private drawEffects(c: CanvasRenderingContext2D) {
     if (this.world.scene !== "garden") return;

@@ -538,6 +538,33 @@ await check("夜空替我说只计算一次互动内成功发出的烟花", () =
   settle();
 });
 
+await check("三只心愿气球起初系在摊前，放飞后留空，重新互动才补下一组", async () => {
+  await world.prepareScene("garden");
+  world.switchScene("garden");
+  const sample = document.createElement("canvas");
+  sample.width = 270; sample.height = 282;
+  const paint = sample.getContext("2d", {willReadFrequently:true})!;
+  const centers = [179,205,231];
+  const visible = () => {
+    paint.clearRect(0,0,sample.width,sample.height);
+    activities.drawTiedBalloons(paint);
+    return centers.filter(x=>paint.getImageData(x-5,215,10,45).data.some((v,i)=>i%4===3 && v>128)).length;
+  };
+  assert(visible()===3, "首次打开摊位前没有展示三只气球");
+  activities.balloons();
+  for (const x of centers) world.onPointer("down",{x,y:237},"touch");
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")];
+  assert(buttons.length===3 && buttons.every(b=>b.textContent?.includes("1/4")), "点击球面没给对应气球充气");
+  for (const x of centers) for (let i=0;i<3;i++) world.onPointer("down",{x,y:237},"touch");
+  [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")].find(b=>b.textContent==="一起放飞")!.click();
+  assert(completedActivities.has("balloons") && visible()===0,"放飞后系点还有气球");
+  activities.close();
+  world.switchScene("town"); world.switchScene("garden");
+  assert(visible()===0,"重新进入花园自动补了气球");
+  activities.balloons();
+  assert(visible()===3 && document.querySelector(".activity-actions")!.textContent?.includes("紫气球 0/4"),"再次互动没有重新装好气球");
+});
+
 await check("蛋糕、礼盒、气球和烟花收起后，键盘焦点与操作立即返回地图", () => {
   for (const activity of ["cake", "gifts", "balloons", "fireworks"] as const) {
     activities[activity]();
