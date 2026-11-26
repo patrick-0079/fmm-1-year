@@ -1,6 +1,8 @@
 import { EQUIP_SLOTS, ITEMS, INVENTORY_KEY } from "../src/items";
 import { elderPlaces } from "../src/elders-data";
 import type { World } from "../src/world";
+import { outfits, type Facing } from "../src/costume-frames";
+import { backpacks } from "./bag-fitting-cases";
 
 /** Run once at desktop width and once at phone width in the isolated exploration fixture. */
 export async function verifyWardrobe(world: World, log: (message: string) => void) {
@@ -100,11 +102,43 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   check(facings.size===4 && drawings.size===4, "四个角度没有绘出不同的人物");
   button('[data-turn="-1"]').click();
   check(original===JSON.stringify(world.equipment) && saved===localStorage.getItem(INVENTORY_KEY), "试穿写入了地图或本机存档");
+  const expected = document.createElement("canvas");
+  expected.width = avatar().width; expected.height = avatar().height;
+  function apply(id: keyof typeof ITEMS) {
+    button(`[data-select="${id}"]`).click();
+    button(`[data-equip="${id}"]`).click();
+  }
+  let pairViews = 0;
+  for (const clothes of outfits) {
+    chooseCategory("clothes");
+    if (world.equipment.clothes !== clothes) {
+      const change = clothes ?? world.equipment.clothes;
+      if (change) apply(change);
+    }
+    chooseCategory("backpack");
+    for (const backpack of backpacks) {
+      if (world.equipment.backpack !== backpack) apply(backpack);
+      check(world.equipment.clothes === clothes && world.equipment.backpack === backpack, "换装没有应用到游戏角色");
+      const seen = new Set<Facing>();
+      for (let turn=0; turn<4; turn++) {
+        await frame();
+        const facing = Number(avatar().dataset.facing) as Facing;
+        seen.add(facing);
+        world.drawWardrobePreview(expected, {...world.equipment, clothes, backpack}, facing);
+        check(avatar().toDataURL() === expected.toDataURL(), `${clothes ?? "原装"}/${backpack}/${facing} 衣橱画面与佩戴状态不符`);
+        pairViews++;
+        button('[data-turn="1"]').click();
+      }
+      check(seen.size === 4, "穿搭旋转遗漏了一个朝向");
+    }
+  }
   sameFrame();
   button(".bag-close").click();
   sameFrame();
   check(panel.hidden && document.activeElement===world.canvas && !world.suspended, "收起后未恢复地图操作");
-  log((compact ? "手机 4×2" : "桌面 5×3") + " 共 " + pages + " 页，七个装备槽、部位筛选、左右转身、未确认退出、3:2 画幅和视口均通过");
+  fitting.click();
+  check(original===JSON.stringify(world.equipment) && saved===localStorage.getItem(INVENTORY_KEY), "结束全组合试穿后存档发生变化");
+  log((compact ? "手机 4×2" : "桌面 5×3") + " 衣橱核对 " + pairViews + " 个穿搭朝向，" + pages + " 页、七个装备槽和视口检查通过");
 }
 
 /** The book's controls must keep scrolling inside the book, including at its edges. */

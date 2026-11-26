@@ -1,6 +1,6 @@
 import type { Equipped, ItemId } from "./items.ts";
 import { spriteFrames } from "./sprite-frames.ts";
-import type { AvatarPose, Facing } from "./costume-frames.ts";
+import { outfitIndex, outfits, type AvatarPose, type Facing } from "./costume-frames.ts";
 export type { AvatarPose, Facing } from "./costume-frames.ts";
 export interface EquipmentPart {
   id: ItemId;
@@ -17,6 +17,20 @@ const profileShoulders = {
   1: [[-1.1,-19.8],[-.7,-19.5],[-.6,-19.7]],
   2: [[1.9,-19.5],[1.7,-19.1],[1,-19.7]],
 } as const;
+
+// Positions on the left-facing garment, measured from the foot centre.
+// A pack rests on the back seam; the satchel hangs at the left hip.
+const bagSeats = {
+  base:            { back: 2.3, hip: 1.2 },
+  roseDress:       { back: 2.0, hip: .8 },
+  mintCape:        { back: 3.8, hip: 3.2 },
+  cloudPajamas:    { back: .9,  hip: .1 },
+  apricotNightgown:{ back: 1.6, hip: .6 },
+  sailorSet:       { back: 1.2, hip: .1 },
+  honeyOveralls:   { back: .9,  hip: .1 },
+  witchDress:      { back: 1.8, hip: .65 },
+  mikoOutfit:      { back: 2.1, hip: 1.3 },
+} satisfies Record<NonNullable<typeof outfits[number]> | "base", {back:number; hip:number}>;
 /** Relative to the foot baseline, using separate front/back and side views. */
 export function equipmentParts(
   equipped: Equipped,
@@ -58,27 +72,38 @@ export function equipmentParts(
   if (bag === "moonBag" || bag === "berryBag" || bag === "rabbitSatchel") {
     const satchel = bag === "rabbitSatchel";
     if (profile) {
-      const [shoulder, top] = profileShoulders[profile][walkFrame];
-      const right = facing === 2;
-      add(bag, "underArm", right ? shoulder - 1 : shoulder - 5.4, top, 6.4, 8, "straps", right);
-      if (satchel) {
-        // The pouch stays at her left hip. From the opposite side only the sling is visible.
-        if (!right) add(bag, "underArm", shoulder - 2.3, top + 6.1, 7.6, 5.4, "bag");
+      const seat = bagSeats[outfits[outfitIndex(equipped.clothes)] ?? "base"];
+      const right = profile === 2;
+      const sway = [.0, .35, -.15][walkFrame] - (right ? .4 : 0);
+      const rise = [0, .15, -.2][walkFrame];
+      const sidePart = (x:number, y:number, w:number, h:number, style:"straps" | "bag") =>
+        add(bag, "underArm", right ? -x-w : x, y+rise, w, h, style, right);
+      if (satchel && right) {
+        sidePart(-10.6+sway, -22.4, 11.3, 7.5, "straps");
+      } else if (satchel) {
+        const hip = seat.hip+sway;
+        sidePart(-7.6+sway, -21.05, hip+7.15-(-7.6+sway), 9.35, "straps");
+        sidePart(hip, -13.05, 7.6, 5.4, "bag");
       } else {
-        const moon = bag === "moonBag", width = moon ? 5.6 : 4.9;
-        const inner = shoulder + (right ? -1 : 1) * 1.4;
-        add(bag, "underArm", right ? inner-width : inner, top + (moon ? -.7 : 1), width, moon ? 12.9 : 11.4, "bag", right);
+        const back = seat.back+sway, moon = bag === "moonBag";
+        sidePart(-5.75+sway, -20.75, seat.back+5.75, 10, "straps");
+        sidePart(back, moon ? -20.25 : -18.75, moon ? 4.9 : 4.15, moon ? 11.8 : 10.2, "bag");
       }
     } else if (facing === 3) {
-      add(bag, "underArm", -6.2, -20.7 + headShift, 12.4, 10.6, "straps");
-      if (satchel) add(bag, "underArm", -9.4, -14.2 + headShift, 4.1, 6.2, "bag");
+      add(bag, "underArm", -8.1, -21.8 + headShift, 14.2, 10.4, "straps");
+      if (satchel) add(bag, "underArm", -9.8, -12.65 + headShift, 4.0, 6.1, "bag");
       else {
         const width = bag === "moonBag" ? 12 : 10.6;
         add(bag, "underArm", -width/2, (bag === "moonBag" ? -20.1 : -18.7) + headShift, width, width*1.1, "bag");
       }
     } else {
-      add(bag, "underArm", -5.3, -18.7 + torsoShift, 10.6, pose === "sitting" ? 5.4 : 7.1, "straps");
-      if (satchel) add(bag, "underArm", 2.9, -13.1 + torsoShift, 7.8, 5.5, "bag");
+      const seated = pose !== "standing";
+      const shoulderY = pose === "sitting" ? -15.9 : pose === "bench" ? -18.45 : -21.15;
+      const hipY = pose === "sitting" ? -9.95 : pose === "bench" ? -12.15 : -13.25;
+      const hipX = seated ? 5.3 : 4.65;
+      // add() normally offsets resting equipment. These points already use the seated artwork.
+      add(bag, "underArm", -7.85, shoulderY-shift, 15.7, hipY+1.45-shoulderY, "straps");
+      if (satchel) add(bag, "underArm", hipX, hipY-shift, 6.2, 5.25, "bag");
     }
   }
   if (body === "anniversaryPin" || body === "echoBrooch") {

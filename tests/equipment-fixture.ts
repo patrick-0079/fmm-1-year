@@ -3,6 +3,7 @@ import { outfits, type AvatarPose, type Facing } from "../src/costume-frames";
 import { ITEMS, type Equipped, type ItemId } from "../src/items";
 import { drawItem } from "../src/item-art";
 import { loadSceneImage } from "../src/texture-cache";
+import { backpacks } from "./bag-fitting-cases";
 
 await Promise.all(avatarUrls.map(loadSceneImage));
 const poses: {pose: AvatarPose; facing: Facing; step: number; name: string}[] = [];
@@ -47,6 +48,17 @@ const bodyRow=table("outfits"), headRow=table("headwear"), bagRow=table("backpac
 const shoeRow=table("footsteps"), mixRow=table("catalog");
 for (const clothes of outfits)
   bodyRow(clothes ? ITEMS[clothes].name : "原版淡紫睡衣",{clothes},clothes ?? undefined);
+for (const backpack of backpacks) {
+  const section = document.createElement("section");
+  section.id = "fit-" + backpack;
+  const title = document.createElement("h3");
+  title.textContent = ITEMS[backpack].name;
+  section.append(title);
+  document.getElementById("bag-fits")!.append(section);
+  const addFit = table(section.id);
+  for (const clothes of outfits)
+    addFit(clothes ? ITEMS[clothes].name : "原版淡紫睡衣", {clothes, backpack});
+}
 headRow("摘下头饰和发夹",{});
 shoeRow("原鞋",{});
 for (const id of Object.keys(ITEMS) as ItemId[]) {
@@ -89,8 +101,6 @@ export function verifyWornViews() {
       const visible=pose==="lying" ? slot==="hair" : facing===0 || facing===1;
       check(differs({[slot]:id})===visible,id);
     }
-    for (const backpack of ["moonBag","berryBag","rabbitSatchel"] as const)
-      check(differs({backpack})===(pose!=="lying"),backpack);
     check(differs({head:"witchHat"})===(pose!=="lying"),"witchHat");
     if (pose==="standing" && facing>=2) {
       const hat=paint(pose,facing,step,{clothes,head:"witchHat"});

@@ -33,7 +33,11 @@ try {
   for (const row of shapes) assert.equal(new Set(row).size,15);
   const wornViews=await page.evaluate(async ()=>(await import("/tests/equipment-fixture.ts")).verifyWornViews());
   assert.equal(wornViews,outfits.length*15);
-  console.log(`${wornViews} 个角色姿势逐像素核对了发夹、胸针、尖帽和三款包的佩戴与摘下画面。`);
+  console.log(`${wornViews} 个角色姿势逐像素核对了发夹、胸针和尖帽的佩戴与摘下画面。`);
+  const fits = await page.evaluate(async () => (await import("/tests/bag-fitting-cases.ts")).verifyBagFits());
+  const bagCount = Object.values(ITEMS).filter(item => item.slot === "backpack").length;
+  assert.deepEqual(fits, {frames:bagCount*outfits.length*15, angles:bagCount*outfits.length*4});
+  console.log(`${fits.angles} 个背包、衣服与朝向组合，含坐卧共 ${fits.frames} 帧，包身位置、肩带、袖口和长发遮挡通过。`);
   if (process.env.WARDROBE_PREVIEW) {
     const preview=await page.evaluate(()=>{
       const rows=[...document.querySelectorAll("#outfits tbody tr")];

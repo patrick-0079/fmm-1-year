@@ -67,7 +67,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 `/tests/interaction-prompt-fixture.html` 单独检查按钮手势：左键、右键和 Enter 每次只激活一次；按下后目标变化、隐藏或触摸取消，都不能在抬起时误触另一个物件。位置和文字可以随地图更新，但一次已开始的手势不能被重新指派给其他目标。
 
-侧身背包按 `src/equipment.ts` 的 `profileShoulders` 连接肩头，`src/worn-bags.ts` 绘制肩带和随动作变化的手臂、发梢遮挡。开发页 `/tests/equipment-fixture.html#backpacks` 可以对照三款包的待机、迈步和落座姿势，以及胸针在左衣襟露出的侧缘。
+背包的挂点在 `src/equipment.ts`，肩带和遮挡由 `src/worn-bags.ts` 绘制。`src/bag-fittings.json` 按衣服与帧存储手袖轮廓和衣料可见轮廓。坐标以 `fufu-garments.webp` 对应图格左上角为原点，轮廓沿逆时针记录。更换服装原画时同步校对这两条轮廓。开发页 `/tests/equipment-fixture.html#bag-fits` 可逐格对照三款包、九套造型、四个朝向及坐卧姿势。
 
 同页 `#headwear` 可对照花环、耳机、尖帽和五枚发夹。花环分为两层，远弧在头发后方。发夹位于左鬓，正面和左侧可见。尖帽按头顶位置对齐，各朝向有独立画稿，帽檐压住卷发和发夹。床上保留衣服和发夹。试衣镜、活动和地图共用 `drawAvatar`。
 
