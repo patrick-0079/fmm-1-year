@@ -127,8 +127,9 @@ html:has(.game-window :focus) { overflow-anchor: none; }
   .game-controls { display: flex; flex-direction: column; align-self: stretch; container-type: size; max-height: var(--map-height); border-left: 1px solid #e3d7cb; }
   .game-controls .scene-nav { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 4px; padding: 6px; }
   .game-controls .scene-nav > button { min-width: 0; gap: 3px; padding-inline: 2px; font-size: 12px; }
-  /* Let the map alone set the rail height. The collection scrolls within it. */
-  .game-controls > .achievement-book { flex: 1; contain: size; max-height: none; }
+  /* On short maps, reserve room for the headings and a usable row of stamps. */
+  .game-controls:has(> .achievement-book:not([hidden])) { container-type: inline-size; }
+  .game-controls > .achievement-book { flex: 1; container-type: size; min-height: 13.5rem; max-height: none; }
   .achievement-book:not([hidden]) ~ .game-meta { display: none; }
   .game-controls .touch-controls { flex: none; gap: 4px; justify-content: center; padding: 4px; }
   .game-controls .touch-interact { flex: none; width: 46px; min-width: 44px; padding-inline: 2px; }

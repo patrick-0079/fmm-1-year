@@ -54,6 +54,36 @@ async function checkPlayViewport(page) {
   });
 }
 
+async function checkBadgeScroll(book) {
+  await book.locator('[data-book-chapter="explore"]').click();
+  const list = book.getByRole("region", { name: "探索与彩蛋" });
+  assert.ok(await list.evaluate(list => {
+    const panel = list.closest('[role="tabpanel"]');
+    const heading = panel.querySelector("h2");
+    const title = new Range();
+    title.selectNodeContents(heading);
+    const cover = panel.querySelector(".achievement-cover"), tabs = panel.querySelector(".achievement-chapter-bar");
+    const coverTop = cover.getBoundingClientRect().top, tabsTop = tabs.getBoundingClientRect().top, pageY = window.scrollY;
+    const stamps = list.querySelectorAll("[data-book-pick]");
+    const firstTop = stamps[0].getBoundingClientRect().top;
+    list.scrollTop = list.scrollHeight;
+    const last = stamps[stamps.length - 1].getBoundingClientRect();
+    const viewport = list.getBoundingClientRect();
+    return title.getClientRects().length === 1 && title.getBoundingClientRect().right <= cover.getBoundingClientRect().right &&
+      list.clientHeight >= 44 && list.scrollTop > 0 && stamps[0].getBoundingClientRect().top < firstTop &&
+      last.top < viewport.bottom && last.bottom <= viewport.bottom + 1 &&
+      cover.getBoundingClientRect().top === coverTop && tabs.getBoundingClientRect().top === tabsTop &&
+      panel.scrollTop === 0 && window.scrollY === pageY;
+  }), "滚动探索徽章时，单行册名和类别导航应保持就位，末枚徽章可以到达");
+  await list.locator("[data-book-pick]").last().click();
+  assert.ok(await list.locator("#achievement-detail").evaluate(detail => {
+    const view = detail.closest(".achievement-list").getBoundingClientRect(), top = detail.getBoundingClientRect().top;
+    return top >= view.top - 1 && top < view.bottom && document.activeElement === detail;
+  }), "展开末枚徽章应在列表内显示详情");
+  await book.locator('[data-book-chapter="daily"]').click();
+  assert.equal(await book.locator(".achievement-list").evaluate(el => el.scrollTop), 0);
+}
+
 async function checkWorldTime(page, label, phase, day) {
   await page.waitForFunction(({ label, phase, day }) => {
     const clock = document.querySelector(".time-pill");
@@ -158,6 +188,7 @@ try {
     assert.ok(layout.filled && Math.abs(layout.detailGap) < 1 && layout.focused, `${width}px 展开的详情应紧跟完整的一行徽章`);
     if (width === 768) assert.ok(layout.firstRow >= 4, "平板下方的徽章应充分利用整行宽度");
   }
+  await checkBadgeScroll(book);
   await badges.press("ArrowLeft");
   assert.equal(await maps.getAttribute("aria-selected"), "true");
   assert.ok(await book.isHidden());
@@ -233,6 +264,7 @@ try {
       panel.getBoundingClientRect().bottom <= innerHeight + 1));
     const after = await rotated.locator("#world").boundingBox();
     assert.ok(Math.abs(frame.width - after.width) < 1 && Math.abs(frame.height - after.height) < 1);
+    if (width === 568 || width === 390) await checkBadgeScroll(phoneBook);
     await phoneBook.locator('[data-book-chapter="advanced"]').tap();
     await phoneBook.locator("[data-book-pick]").last().tap();
     assert.ok(await phoneBook.locator("#achievement-detail").evaluate(detail => {
