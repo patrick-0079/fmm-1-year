@@ -93,6 +93,6 @@ export const sceneLights: Record<BaseSceneId, Light[]> = {
 };
 for (const g of townGates) {
   if (g.kind==="wicket")
-    sceneLights[g.scene].push(g.scene==="town" ? warm(southStreetLamp.x,southStreetLamp.lightY,40) : warm(g.x-g.width*.305,g.y-g.width*.17,32));
+    sceneLights[g.scene].push(g.scene==="town" ? warm(southStreetLamp.x,southStreetLamp.lightY,40) : warm(515,515,32));
   if (g.kind==="bridge") sceneLights.garden.push(warm(795,39,35),warm(869,49,32));
 }

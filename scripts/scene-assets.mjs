@@ -8,7 +8,6 @@ const groups = [
   [["garden"], "anniversary-garden-tree-free apple-basket garden-balloon-guest garden-guest-routines qingtang-picnic xiaoye-plush xiaoye-embrace-v55 suyan"],
   [["garden", "challenge"], "garden-creek-props garden-keepsakes-v12 orchard-v16 garden-bench apple-tree morning-dew-flower"],
   [["garden", "challenge", "town"], "anniversary-visitors rainbow-flowers-v15"],
-  [["garden", "town"], "country-wicket-v18"],
   [["challenge"], "courage-garden courage-path-props-v35 courage-tall-flowers gardener-tending gardener-hat"],
   [["challenge", "ruins"], "elder-residents"],
   [["town"], "anniversary-town-v13 anniversary-town-hd-v13 town-quarry town-guests town-playground-animation town-pond-water arcade-blocks-v14 arcade-hop-v14 arcade-flight-v14 arcade-link-v14"],

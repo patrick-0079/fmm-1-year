@@ -1,7 +1,6 @@
 import playgroundAnimationsUrl from "./assets/town-playground-animation.webp";
 import keepsakesUrl from "./assets/garden-keepsakes-v12.webp";
 import skiesUrl from "./assets/window-skies-v12.webp";
-import gateUrl from "./assets/country-wicket-v18.webp";
 import bassUrl from "./assets/white-bass-v18.webp";
 import relicsUrl from "./assets/astrolabe-relics.webp";
 import astrolabePropsUrl from "./assets/astrolabe-mechanisms.webp";
@@ -28,13 +27,13 @@ import { drawItem } from "./item-art";
 import { loadSceneImage, sceneImage } from "./texture-cache";
 export { keepsakesUrl, skiesUrl, relicsUrl };
 
-const urls = {foxRest:foxRestUrl, balloonGuest:balloonGuestUrl, gardenerWork:gardenerWorkUrl, playgroundAnimations:playgroundAnimationsUrl, keepsakes:keepsakesUrl, skies:skiesUrl, gate:gateUrl, bass:bassUrl, relics:relicsUrl, astrolabeProps:astrolabePropsUrl, fox:foxUrl, picnic:picnicUrl, peachWalk:peachWalkUrl, quarry:townQuarryUrl, elders:elderResidentsUrl, xiaoye:xiaoyeUrl, xiaoyeEmbrace:xiaoyeEmbraceUrl, yeshenhua:yeshenhuaUrl, suyan:suyanUrl, townGuests:townGuestsUrl, patrickCamp:patrickCampUrl, anniversaryVisitors:visitorsUrl};
+const urls = {foxRest:foxRestUrl, balloonGuest:balloonGuestUrl, gardenerWork:gardenerWorkUrl, playgroundAnimations:playgroundAnimationsUrl, keepsakes:keepsakesUrl, skies:skiesUrl, bass:bassUrl, relics:relicsUrl, astrolabeProps:astrolabePropsUrl, fox:foxUrl, picnic:picnicUrl, peachWalk:peachWalkUrl, quarry:townQuarryUrl, elders:elderResidentsUrl, xiaoye:xiaoyeUrl, xiaoyeEmbrace:xiaoyeEmbraceUrl, yeshenhua:yeshenhuaUrl, suyan:suyanUrl, townGuests:townGuestsUrl, patrickCamp:patrickCampUrl, anniversaryVisitors:visitorsUrl};
 type Prop = keyof typeof urls;
 export const sceneArt = Object.fromEntries(Object.entries(urls).map(([key, url]) => [key, sceneImage(url)])) as Record<Prop, HTMLImageElement>;
 export const townNpcSheet = sceneImage(townNpcsUrl);
 const propsByScene: Record<BaseSceneId,Prop[]> = {
-  room:["skies","bass","fox"], garden:["keepsakes","gate","picnic","peachWalk","xiaoye","xiaoyeEmbrace","suyan","anniversaryVisitors"], challenge:["keepsakes","elders","anniversaryVisitors"],
-  town:["gate","quarry","yeshenhua","townGuests","anniversaryVisitors"], meadow:["patrickCamp"], ruins:["relics","astrolabeProps","elders"],
+  room:["skies","bass","fox"], garden:["keepsakes","picnic","peachWalk","xiaoye","xiaoyeEmbrace","suyan","anniversaryVisitors"], challenge:["keepsakes","elders","anniversaryVisitors"],
+  town:["quarry","yeshenhua","townGuests","anniversaryVisitors"], meadow:["patrickCamp"], ruins:["relics","astrolabeProps","elders"],
 };
 const idleArtByScene: Partial<Record<SceneId, Prop>> = {
   room: "foxRest", garden: "balloonGuest", challenge: "gardenerWork", town: "playgroundAnimations",

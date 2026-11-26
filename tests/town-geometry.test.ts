@@ -24,6 +24,32 @@ test("gate pillars block both sides without filling the walk-through opening", (
   }
 });
 
+test("the south street lamp marks the garden exit and the paving beside it stays clear", () => {
+  const town = scenes.town;
+  assert.equal(clickedInteraction({x:409,y:971}, town.spots)?.id, "town-return");
+  assert.ok(canTravelBetween({x:474,y:982}, {x:484,y:986}, town));
+  assert.equal(clickedInteraction({x:484,y:986}, town.spots), undefined);
+  for (const x of [430, 464])
+    assert.equal(crossedTownGate("town", {x,y:985}, {x,y:987})?.id, "town-return");
+});
+
+test("the garden's south exit follows the white stone gateposts and west fence sign", () => {
+  const garden = scenes.garden;
+  const gate = garden.spots.find(s => s.id === "town-gate");
+  assert.ok(gate);
+  assert.equal(nearbyInteraction({x:576,y:519}, garden.spots), gate);
+  assert.equal(clickedInteraction({x:536,y:553}, garden.spots), gate);
+  for (const x of [568,581]) {
+    const before = {x,y:562}, after = {x,y:567};
+    assert.ok(canTravelBetween(before,after,garden));
+    assert.equal(crossedTownGate("garden",before,after)?.id,gate.id);
+  }
+  for (const x of [553,598]) {
+    assert.ok(!canStand({x,y:563},garden.walls,garden.bounds,garden.floor,garden.surfaces));
+    assert.equal(crossedTownGate("garden",{x,y:562},{x,y:567}),undefined);
+  }
+});
+
 test("the painted lanes lead through their real openings and crossings only fire when leaving", () => {
   const garden=scenes.garden;
   for (const lane of [

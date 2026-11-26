@@ -60,6 +60,12 @@ test("the former orange flower migrates once and a complete old flower book stil
   assert.equal(pickRainbow(p.rainbowFlowers,"garden","prism-calendula"),undefined);
 });
 test("when the rainbow arch appears its pillars are solid, its mouth and the courtyard routes stay open", () => {
+  // The rose arch beside the bench is painted scenery. Only the separate
+  // flower portal's jewel, vines and opening should accept a travel click.
+  for (const point of [{x:141,y:337}, {x:155,y:346}])
+    assert.notEqual(clickedInteraction(point,bloomingGarden.spots)?.id,meadowGate.id);
+  for (const point of [{x:205,y:311}, {x:173,y:349}, {x:236,y:349}, {x:205,y:367}])
+    assert.equal(clickedInteraction(point,bloomingGarden.spots)?.id,meadowGate.id);
   for (const post of meadowGatePosts) {
     const center={x:post.x+post.w/2,y:post.y+post.h/2};
     for (const [map,walkable] of [[scenes.garden,true],[bloomingGarden,false]] as const)
