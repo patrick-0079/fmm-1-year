@@ -218,7 +218,7 @@ try {
   await press(".enter-button");
   await checkTapeKeepsake("已放入放映机");
   assert.deepEqual(errors, []);
-  console.log("相册、周年海报、小叶子线索、七色花门、帐篷取带、放映与勋章均通过。背包纪念卡在拾取和插带后分别刷新仍显示对应状态。");
+  console.log("相册、周年海报、小叶子线索、七色传送阵、帐篷取带、放映与勋章均通过。背包纪念卡在拾取和插带后分别刷新仍显示对应状态。");
 } finally {
   await browser?.close();
   await server.close();

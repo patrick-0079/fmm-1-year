@@ -31,7 +31,8 @@ import { drawInteractionGlints } from "./interaction-glints";
 import { reservedShortcut, readingTarget } from "./input";
 import { connectionLayers } from "./connections";
 import { crossedTownGate } from "./gate-layout";
-import { enteredMoonCircle } from "./meadow-map";
+import { enteredTravelCircle, meadowExit } from "./meadow-map";
+import { meadowGate } from "./rainbow-flowers";
 import { surfaceOutline } from "./collision";
 import { trapFootprint } from "./trap-art";
 import { drawGardenHazard } from "./garden-hazards";
@@ -50,7 +51,7 @@ import {
   type Hazard,
   type Point,
 } from "./core";
-import { bloomingGarden, scenes, type BaseSceneId, type Hotspot, type Scene, type SceneId } from "./maps";
+import { scenes, type BaseSceneId, type Hotspot, type Scene, type SceneId } from "./maps";
 import { isTownInterior, type TownInteriorId } from "./town-interior-id";
 import { crossedInteriorDoor } from "./town-interiors";
 import { interiorWindowLayers, paintTownInterior, paintTownInteriorLight, townInteriorArt } from "./town-interior-art";
@@ -544,7 +545,7 @@ export class World {
   get config() {
     if (this.scene === "town") return this.townMap;
     if (isTownInterior(this.scene)) return this.townInteriorMaps.get(this.scene) ?? scenes[this.scene];
-    if (this.scene === "garden") return this.gardenMapFor(this.canEnter("meadow") ? bloomingGarden : scenes.garden);
+    if (this.scene === "garden") return this.gardenMapFor(scenes.garden);
     return scenes[this.scene];
   }
   get visibleArea() {
@@ -761,8 +762,9 @@ export class World {
     if (this.walking && !this.targetEvent) {
       const gate = this.scene === "town" || isTownInterior(this.scene)
         ? crossedInteriorDoor(this.config.spots, before, this.player) : undefined;
-      const crossing = this.scene === "meadow" && enteredMoonCircle(before,this.player)
-        ? "meadow-exit"
+      const circle = this.scene === "meadow" ? meadowExit : this.scene === "garden" ? meadowGate : undefined;
+      const crossing = circle && enteredTravelCircle(circle,before,this.player) && this.available(circle)
+        ? circle.id
         : crossedEchoGate(this.scene,before,this.player) ?? crossedTownGate(this.scene,before,this.player)?.id ?? gate?.id;
       if (crossing) { this.clearInput(); this.onInteract(crossing); return; }
     }

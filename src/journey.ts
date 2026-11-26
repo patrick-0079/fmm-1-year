@@ -1,5 +1,5 @@
 import { canArriveAt, touchingHazard, type Point } from "./core.ts";
-import { bloomingGarden, scenes, type SceneId } from "./maps.ts";
+import { scenes, type SceneId } from "./maps.ts";
 import { meadowOpen } from "./rainbow-flowers.ts";
 
 export const JOURNEY_KEY = "fufu-journey-v1";
@@ -25,7 +25,7 @@ export function readJourney(raw: string | null, flowers: readonly string[]): Jou
       !Number.isFinite(new Date(value.savedAt).getTime())) return null;
     const unlocked = meadowOpen(flowers);
     const scene = value.scene === "meadow" && !unlocked ? "garden" : value.scene;
-    const map = scene === "garden" && unlocked ? bloomingGarden : scenes[scene];
+    const map = scenes[scene];
     const safe = scene === value.scene && canArriveAt(value, map) &&
       !touchingHazard(value, map.hazards);
     const {x, y} = safe ? value : map.spawn;

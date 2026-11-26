@@ -1,5 +1,6 @@
 import flowerAtlas from "./assets/rainbow-flowers-v15.webp";
 import { sceneImage } from "./texture-cache";
+import { drawPrismCircle } from "./prism-circle";
 import { rainbowFlowers, rainbowIds, pickRainbow, meadowOpen, meadowGate, rainbowReminderStrength } from "./rainbow-flowers";
 import type { World, DepthLayer } from "./world";
 import { sfx } from "./sound";
@@ -24,6 +25,14 @@ export class FlowerTrail {
       return available(spot) && !(rainbowIds.includes(spot.id) && found().includes(spot.id));
     };
     world.getDepthLayers = () => [...layers(), ...this.layers()];
+    const ground = world.onEnvironment;
+    world.onEnvironment = (c, t) => {
+      ground(c, t);
+      if (world.scene === "garden" && world.canEnter("meadow")) {
+        const near = Math.max(0, 1 - Math.hypot(world.player.x-meadowGate.x, world.player.y-meadowGate.y) / 60);
+        drawPrismCircle(c, meadowGate.x, meadowGate.y, this.reduce.matches ? 0 : t, near);
+      }
+    };
     world.onTick = (dt, t) => {
       tick(dt, t);
       this.time = t;
@@ -36,7 +45,7 @@ export class FlowerTrail {
     const count = document.querySelector<HTMLElement>(".prism-count");
     if (count) count.textContent = found.length + " / 7";
     const hint = document.querySelector<HTMLElement>(".prism-hint");
-    if (hint) hint.textContent = this.preview && !meadowOpen(found) ? "花门正在临时开放，你的真实花谱没有改变。" : unlocked ? "七色已齐。周年庭院西边、气球摊南侧出现了一道花门。" : "留意草丛里的七色小花。每隔 30 秒，未采过的花会短暂亮起。";
+    if (hint) hint.textContent = this.preview && !meadowOpen(found) ? "七色传送阵已临时点亮，可在气球摊南侧体验。" : unlocked ? "七色已齐。去周年庭院西边，在气球摊南侧踏入七色传送阵，就能到达花海。" : "留意草丛里的七色小花。每隔 30 秒，未采过的花会短暂亮起。";
     const list = document.querySelector<HTMLElement>(".prism-list");
     if (list) {
       list.replaceChildren(...rainbowFlowers.map(f => {
@@ -56,7 +65,7 @@ export class FlowerTrail {
       const found = this.found(), flower = pickRainbow(found,this.world.scene,id);
       if (flower) {
         this.save(); this.refresh(); sfx(found.length === 7 ? "complete" : "match");
-        this.toast(found.length === 7 ? "七色花谱集齐了！周年庭院西边的花门通往花海。" : `拾得${flower.name} · 七色花谱 ${found.length} / 7`);
+        this.toast(found.length === 7 ? "七色花谱集齐了！气球摊南侧的七色传送阵亮起来了，走进阵心就能到花海。" : `拾得${flower.name} · 七色花谱 ${found.length} / 7`);
       }
       return true;
     }
@@ -100,9 +109,6 @@ export class FlowerTrail {
         c.restore();
       }});
     });
-    if (this.world.scene === "garden" && (this.preview || meadowOpen(found))) {
-      layers.push({y:meadowGate.y+1,draw:c=>this.stamp(c,7,meadowGate.x,meadowGate.y,70)});
-    }
     return layers;
   }
 }

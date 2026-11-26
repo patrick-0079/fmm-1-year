@@ -1,4 +1,5 @@
 import type { Hotspot, Scene } from "./maps.ts";
+import type { Point } from "./core.ts";
 
 const points = (pairs: number[][]) => pairs.map(([x, y]) => ({x, y}));
 export const campfire = { x: 232, y: 156 };
@@ -22,14 +23,17 @@ export const tentTapeSpot: Hotspot = {
   },
 };
 export const starJar = { x: 198, y: 194 };
-export const meadowExit = { x: 58, y: 238 };
+export const meadowExit: Hotspot = {
+  id: "meadow-exit", title: "月芽传送阵 · 回庭院", x: 58, y: 238, portal: "garden", portalExit: "prism-arch",
+  approach: {x: 87, y: 239}, radius: 39, markerOffset: 0, selfMarked: true,
+};
 export const meadowFlock = [
   {x: 296, y: 235, size: 32, phase: 1},
   {x: 362, y: 269, size: 26, phase: 8},
   {x: 590, y: 312, size: 33, phase: 15},
 ];
-export function enteredMoonCircle(before:{x:number;y:number},after:{x:number;y:number}) {
-  const distance=(p:{x:number;y:number})=>((p.x-meadowExit.x)/12)**2+((p.y-meadowExit.y)/6.5)**2;
+export function enteredTravelCircle(center:Point, before:Point, after:Point) {
+  const distance=(p:Point)=>((p.x-center.x)/12)**2+((p.y-center.y)/6.5)**2;
   return distance(before)>1 && distance(after)<=1;
 }
 // Front canvas and crossed poles in source pixels. The open doorway exposes the
@@ -77,8 +81,7 @@ export const meadowGround: Scene = {
   ],
   hazards: [],
   spots: [
-    {id: "meadow-exit", title: "月芽传送阵 · 回庭院", ...meadowExit, portal: "garden", portalExit: "prism-arch",
-      approach: {x: 87, y: 239}, radius: 39, markerOffset: 0, selfMarked: true},
+    meadowExit,
     {id: "meadow-camp", title: "在营火边坐坐", ...campfire,
       approach: {x: 247, y: 184}, radius: 40, selfMarked: true},
     campLetterSpot, tentTapeSpot,

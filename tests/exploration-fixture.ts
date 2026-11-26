@@ -301,7 +301,7 @@ async function checkAll() {
   checkQuietEffect(q(".star-whisper"),false,"返回庭院后");
   expect(Math.hypot(world.player.x-meadowGate.approach.x,world.player.y-meadowGate.approach.y)<3,"返回落脚点错误");
   world.interact(); await insideMeadow();
-  log("实体花门可往返，营火可坐，鼠标寻路和 E 均能拾星，已拾署名可在瓶中重读");
+  log("七色传送阵可往返，营火可坐，鼠标寻路和 E 均能拾星，已拾署名可在瓶中重读");
   const initialX=world.player.x;
   key("ArrowRight"); await wait(()=>world.player.x>initialX+10); key("ArrowRight",false);
   await wait(()=>landing()?.x===world.player.x && landing()?.y===world.player.y);
@@ -639,8 +639,8 @@ q("#check-lanes").addEventListener("click",()=>void run(async()=>{
   world.switchScene("garden",meadowGate.approach); world.interact(); await insideMeadow();
   await capture("夜间花海 · 月芽传送阵",83,224,146);
   await walkUntil("ArrowLeft",()=>wait(()=>world.scene==="garden" && !world.paused));
-  expect(Math.hypot(world.player.x-meadowGate.approach.x,world.player.y-meadowGate.approach.y)<1,"踏入阵心没有回到七色花门");
-  log("月芽传送阵不会在落地时触发；走入阵心才返回庭院七色花门");
+  expect(Math.hypot(world.player.x-meadowGate.approach.x,world.player.y-meadowGate.approach.y)<1,"踏入阵心没有回到七色传送阵旁");
+  log("月芽传送阵不会在落地时触发；走入阵心才返回庭院七色传送阵旁");
 }));
 q("#check-bass").addEventListener("click",()=>void run(async()=>{
   if(!q(".intro-screen").classList.contains("dismissed")) await start();
@@ -678,8 +678,8 @@ q("#check-bass").addEventListener("click",()=>void run(async()=>{
   const openDebug = () => { if (q("#game-debug-panel").hidden) q(".debug-trigger").click(); };
   openDebug(); expect(dbg("wardrobe").getAttribute("aria-pressed")==="false","试穿应默认关闭");
   dbg("wardrobe").click(); expect(dbg("wardrobe").getAttribute("aria-pressed")==="true","试穿开关没有切换");
-  dbg("wardrobe").click(); dbg("flower-door").click();expect(world.canEnter("meadow") && state().rainbowFlowers.length===0,"临时花门污染了花谱");
-  dbg("flower-door").click(); expect(!world.canEnter("meadow"),"临时花门没有关闭");
+  dbg("wardrobe").click(); dbg("flower-door").click();expect(world.canEnter("meadow") && state().rainbowFlowers.length===0,"传送阵预览更改了采集进度");
+  dbg("flower-door").click(); expect(!world.canEnter("meadow"),"传送阵预览没有关闭");
   dbg("map:town").click(); await wait(()=>world.scene==="town" && !world.suspended);
   const photos=q("#town-samples");photos.replaceChildren();
   const rosters=new Set<string>();
@@ -721,7 +721,7 @@ q("#check-bass").addEventListener("click",()=>void run(async()=>{
   key("Escape"); expect(!q(".arcade-hud").hidden && !world.suspended,"背包关闭后小游戏未恢复");
   expect(Math.abs(scrollY-sy2)<3,"收起背包后没有回到打开前的视口");
   key("Escape");
-  log("调试试穿、花门预览与真实存档相互独立；小镇四时段、跳台开局不滚动、小游戏内打开背包均通过");
+  log("调试试穿、传送阵预览与真实存档相互独立；小镇四时段、跳台开局不滚动、小游戏内打开背包均通过");
 }));
 q("#camp-preview").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").hidden && world.paused) await start();

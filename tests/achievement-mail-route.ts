@@ -30,7 +30,7 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
     const previousStage = state().gardenTape;
     choose("周年录像带在哪里？");
     const clue = q(".activity-status").textContent ?? "";
-    for (const place of ["七色花", "气球摊南侧", "花门", "营火左边的帐篷", "放映机"])
+    for (const place of ["七色花", "气球摊南侧", "七色传送阵", "营火左边的帐篷", "放映机"])
       assert(clue.includes(place), "小叶子的录像带线索缺少" + place);
     choose("我记住啦");
     assert(state().gardenTape === previousStage, "打听线索时录像带状态变了");
@@ -163,7 +163,7 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
   }
   log("七种特殊花按三张地图亲手采集，前六朵没有提前解锁，第七朵盖章");
   await visit("garden",meadowGate.id);
-  await wait(()=>world.scene==="meadow" && !world.paused,"花门未通往花海");
+  await wait(()=>world.scene==="meadow" && !world.paused,"传送阵未通往花海");
   await visit("meadow","meadow-camp");
   assert(world.restState?.kind==="sitting","未坐到营火边");
   // Keep the real rest identity and animation callbacks; advance only the world clock.

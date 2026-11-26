@@ -68,7 +68,7 @@ const names = (spot: Hotspot) => spot.title.split(" · ")[0];
 export function resolveCue(spot: Hotspot, scene: SceneId, tape?: GardenTape): InteractionCue {
   if (spot.cue) return spot.cue;
   if (spot.portal) {
-    const tall = spot.id === "echo-gate" || spot.id === "prism-arch";
+    const tall = spot.id === "echo-gate";
     const title = isTownInterior(spot.portal) ? townInteriors[spot.portal].scene.title : destinations[spot.portal];
     return cue("exit", "前往" + title, 0, tall ? -31 : -7,
       tall ? [-35, -72, 70, 76] : [-27, -20, 54, 30], true);

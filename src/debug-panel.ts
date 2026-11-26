@@ -49,7 +49,7 @@ export function mountDebugPanel(
   holder.innerHTML = `<button type="button" class="debug-trigger" aria-controls="game-debug-panel" aria-expanded="false">⚙ 调试</button>
     <aside id="game-debug-panel" class="debug-panel" aria-label="游戏调试面板" hidden>
       <header><div><small>FUFU / PLAYTEST</small><h3>游戏调试台</h3></div><button type="button" class="debug-close" aria-label="关闭调试面板">关闭 ×</button></header>
-      <p class="debug-note">试穿、花门和时段只在本次页面生效；亲手收集与通关仍会正常保存。</p>
+      <p class="debug-note">试穿、传送阵预览和时段设置只在本次页面生效。亲手收集与通关会正常保存。</p>
       <div class="debug-launch-time"></div>
       <section><h4>查看与试穿</h4><div>${button("wardrobe", "全饰品试穿")}${button("collision", "碰撞轮廓")}${button("layers", "图层显示")}</div></section>
       <details class="debug-mail"><summary>快捷收信</summary>
@@ -67,7 +67,7 @@ export function mountDebugPanel(
           .map(([id, { scene }]) => button("map:" + id, scene.title))
           .join("")}</div>
       </details>
-      <details class="debug-flowers"><summary>七色花与花海</summary><div>${button("flower-door", "临时开放花门")}</div><p>点花名到达花旁，是否采下由你决定。</p><div>${rainbowFlowers.map((f, i) => button("flower:" + i, f.name)).join("")}</div></details>
+      <details class="debug-flowers"><summary>七色花与花海</summary><div>${button("flower-door", "临时点亮传送阵")}</div><p>点花名到达花旁，是否采下由你决定。</p><div>${rainbowFlowers.map((f, i) => button("flower:" + i, f.name)).join("")}</div></details>
       <details><summary>小镇与遗迹小游戏</summary><div>${Object.entries(ARCADES)
         .map(([id, g]) => button("game:" + id, g.title))
         .join("")}</div></details>
@@ -150,7 +150,7 @@ export function mountDebugPanel(
         );
       if (cmd === "map:meadow") {
         b.disabled = !world.canEnter("meadow");
-        b.title = b.disabled ? "先集齐七花或临时开放花门" : "";
+        b.title = b.disabled ? "先集齐七花或临时点亮传送阵" : "";
       }
     });
   };

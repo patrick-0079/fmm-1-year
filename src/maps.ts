@@ -7,7 +7,7 @@ import { fenceSegments } from "./fences.ts";
 import { gardenPlantingBeds } from "./garden-planting-beds.ts";
 import { gardenGuests } from "./garden-guests.ts";
 import { townGates, gatePosts, gateSpot } from "./gate-layout.ts";
-import { rainbowFlowers, rainbowSpot, meadowGate, meadowGatePosts } from "./rainbow-flowers.ts";
+import { rainbowFlowers, rainbowSpot, meadowGate } from "./rainbow-flowers.ts";
 import { meadowScene } from "./meadow-map.ts";
 import { ruinsScene } from "./ruins-map.ts";
 import { roomGiftBases } from "./room-furniture.ts";
@@ -623,6 +623,5 @@ for (const id of ["garden", "challenge"] as const) {
   );
 }
 
-export const bloomingGarden: Scene = {
-  ...scenes.garden, walls: [...scenes.garden.walls,...meadowGatePosts],
-};
+// Route checks also import the unlocked garden. Its ground is now the same lawn.
+export const bloomingGarden = scenes.garden;
