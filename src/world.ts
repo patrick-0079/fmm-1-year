@@ -219,6 +219,32 @@ export class World {
   private secondaryPressed = false;
   onAction: (pressed: boolean) => boolean = () => false;
   actorHidden = false;
+  drawPlayerSprite(c: CanvasRenderingContext2D) {
+    // Read after movement so a walking frame releases any idle presentation immediately.
+    const presentation = !this.restState && !this.busy && !this.paused &&
+      !this.suspended && !this.stumble && !this.walking
+      ? this.getActorPresentation() : null;
+    const lean = presentation?.lean;
+    c.save();
+    c.translate(Math.round(this.player.x), Math.round(this.player.y));
+    if (typeof lean === "number" && Number.isFinite(lean))
+      c.rotate(Math.max(-0.12, Math.min(0.12, lean)));
+    if (this.stumble) {
+      const phase = Math.min(1, (this.time - this.stumble.started) / 0.45);
+      c.globalAlpha = 1 - phase * 0.7;
+      if (!this.reducedMotion.matches)
+        c.rotate(Math.sin(phase * Math.PI) * 0.28);
+      c.scale(1 - phase * 0.5, 1 - phase * 0.5);
+    } else if (this.immunity > 0) c.globalAlpha = 0.82;
+    drawAvatar(
+      c,
+      avatarPose(this.restState),
+      presentation?.facing ?? this.facing,
+      this.walking ? avatarWalkCycle[Math.floor(this.stepDistance * 4 / avatarStride)] : 0,
+      this.equipment,
+    );
+    c.restore();
+  }
   drawAvatarAt(c: CanvasRenderingContext2D, x: number, y: number, frame = 0) {
     c.save();
     c.translate(x, y);
@@ -860,35 +886,11 @@ export class World {
       if (this.actorHidden) return;
       const x = Math.round(this.player.x),
         y = Math.round(this.player.y);
-      // Read after update(), so starting to walk releases a presentation in the
-      // same frame, even though activity timers run before movement in onTick.
-      const presentation = !this.restState && !this.busy && !this.paused &&
-        !this.suspended && !this.stumble && !this.walking
-        ? this.getActorPresentation() : null;
-      const lean = presentation?.lean;
       c.fillStyle = "#53496045";
       c.beginPath();
       c.ellipse(x, y, 11, 3.5, 0, 0, Math.PI * 2);
       c.fill();
-      c.save();
-      c.translate(x, y);
-      if (typeof lean === "number" && Number.isFinite(lean))
-        c.rotate(Math.max(-0.12, Math.min(0.12, lean)));
-      if (this.stumble) {
-        const phase = Math.min(1, (this.time - this.stumble.started) / 0.45);
-        c.globalAlpha = 1 - phase * 0.7;
-        if (!this.reducedMotion.matches)
-          c.rotate(Math.sin(phase * Math.PI) * 0.28);
-        c.scale(1 - phase * 0.5, 1 - phase * 0.5);
-      } else if (this.immunity > 0) c.globalAlpha = 0.82;
-      drawAvatar(
-        c,
-        avatarPose(this.restState),
-        presentation?.facing ?? this.facing,
-        this.walking ? avatarWalkCycle[Math.floor(this.stepDistance * 4 / avatarStride)] : 0,
-        this.equipment,
-      );
-      c.restore();
+      this.drawPlayerSprite(c);
     };
     const layers: DepthLayer[] = [
       ...this.getDepthLayers(),

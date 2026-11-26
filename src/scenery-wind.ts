@@ -1,6 +1,7 @@
 import type { Point } from "./core";
 import type { World } from "./world";
 import { breezePulse, chimneyPhase, gustAge } from "./breeze.ts";
+import { artScale, cellHeight, cellWidth } from "./costume-frames.ts";
 
 type Rect = { x: number; y: number; w: number; h: number };
 // World-space ovals describe the soft part of a twig or fold and its travel at
@@ -385,6 +386,8 @@ function movingCover(
   drawMapTile(c, world, tile, step);
 }
 
+let playerCutout: CanvasRenderingContext2D | undefined;
+
 export function drawTownCrown(
   c: CanvasRenderingContext2D,
   world: World,
@@ -403,26 +406,39 @@ export function drawTownCrown(
     if (recipe && art?.naturalWidth && step) movingCover(c, world, tree.points, art, recipe, step);
     else world.drawMapFragment(c, tree.points);
   };
-  const face = { x:world.player.x, y:world.player.y - 30 };
-  if (world.actorHidden || world.player.y >= tree.y ||
-      !overlaps(bounds, {x:face.x-12, y:face.y-11, w:24, h:22})) {
+  if (world.actorHidden || world.player.y >= tree.y || c.canvas !== world.canvas) {
     paint();
     return;
   }
-  // Keep the canopy solid over feet and scenery while leaving the player’s
-  // face legible. Both passes use the same pose, including during a gust.
-  const faceMask = new Path2D();
-  faceMask.ellipse(face.x, face.y, 12, 11, 0, 0, Math.PI * 2);
-  const outside = new Path2D(faceMask);
-  outside.rect(bounds.x-3, bounds.y-3, bounds.w+6, bounds.h+6);
-  c.save();
-  c.clip(outside, "evenodd");
+  // Leave room around the standing frame for hats and walking poses. The
+  // actual dressed sprite supplies the alpha, including gaps between limbs.
+  const w = cellWidth / artScale + 12, h = cellHeight / artScale + 12;
+  const frame = { x: Math.round(world.player.x) - w / 2, y: Math.round(world.player.y) + 4 - h, w, h };
+  if (!overlaps(bounds, frame)) {
+    paint();
+    return;
+  }
+  const t = c.getTransform();
+  const left = Math.floor(frame.x * t.a + t.e), top = Math.floor(frame.y * t.d + t.f);
+  const width = Math.ceil(w * t.a) + 1, height = Math.ceil(h * t.d) + 1;
+  const cutout = playerCutout ??= document.createElement("canvas").getContext("2d")!;
+  if (cutout.canvas.width !== width) cutout.canvas.width = width;
+  if (cutout.canvas.height !== height) cutout.canvas.height = height;
+  cutout.clearRect(0, 0, width, height);
+  cutout.save();
+  cutout.setTransform(t.a, 0, 0, t.d, t.e - left, t.f - top);
+  world.drawPlayerSprite(cutout);
+  cutout.restore();
+  // Keep the pixels already on screen at the player's depth, including any
+  // intervening props. Copy at device resolution so exposed edges stay sharp.
+  cutout.globalCompositeOperation = "source-in";
+  cutout.drawImage(c.canvas, left, top, width, height, 0, 0, width, height);
+  cutout.globalCompositeOperation = "source-over";
   paint();
-  c.restore();
   c.save();
-  c.clip(faceMask);
+  c.resetTransform();
   c.globalAlpha *= .5;
-  paint();
+  c.drawImage(cutout.canvas, left, top);
   c.restore();
 }
 function smoke(c: CanvasRenderingContext2D, x: number, y: number, time: number, bakery: boolean, gust: number) {

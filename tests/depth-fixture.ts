@@ -52,7 +52,7 @@ interface DepthCase {
   actor?:{x:number;positions:number[]};
   // Compare the real avatar with the empty painting at a reported standing position.
   actorOverlap?:{feet:Point;facing:World["facing"];covered:Point[];visible:Point};
-  canopyEdge?:Point;
+  canopyActor?:{feet:Point;translucent:Point[];exposed:Point[]};
   existingOutline?:Point[];
   fragments?:Point[][];
   // Original-image pixel centres, checked at 3 rendered pixels per source
@@ -266,9 +266,13 @@ const cases:DepthCase[]=[
   {id:"garden-sign",scene:"garden",depth:479,solid:[{x:191,y:415},{x:208,y:415}],clear:[{x:197,y:420},{x:205,y:471}],existingOutline:gardenSign,fragments:[gardenSign]},
   {id:"garden-screen",scene:"garden",depth:273,solid:[{x:708,y:163},{x:721,y:164}],clear:[{x:716,y:169},{x:680,y:175}],existingOutline:televisionSilhouette,fragments:[televisionSilhouette]},
   {id:"town-west-tree",scene:"town",depth:432,solid:[{x:340,y:350},{x:320,y:370}],clear:[{x:330,y:331},{x:345,y:334}],existingOutline:townCanopies[0].points,fragments:[townCanopies[0].points]},
-  // Sample the interior of a leaf in the face aperture on both town textures.
-  {id:"south-road-west-crowns",scene:"town",depth:1025,solid:[{x:531,y:968},{x:579,y:978}],clear:[{x:560,y:970},{x:595,y:984}],canopyEdge:{x:533,y:996},existingOutline:southEdgeCanopies[0].points,fragments:[southEdgeCanopies[0].points]},
-  {id:"south-road-east-crowns",scene:"town",depth:1025,solid:[{x:737,y:970},{x:804,y:1001}],clear:[{x:775,y:970},{x:791,y:991}],canopyEdge:{x:737,y:998},existingOutline:southEdgeCanopies[1].points,fragments:[southEdgeCanopies[1].points]},
+  // The last two solid probes sit beside the shoes and on a distant branch.
+  {id:"south-road-west-crowns",scene:"town",depth:1025,solid:[{x:531,y:968},{x:520,y:972},{x:579,y:978}],clear:[{x:560,y:970},{x:595,y:984}],
+    canopyActor:{feet:{x:532,y:975},translucent:[{x:532,y:965},{x:534,y:972.5}],exposed:[{x:531,y:931},{x:532,y:943}]},
+    existingOutline:southEdgeCanopies[0].points,fragments:[southEdgeCanopies[0].points]},
+  {id:"south-road-east-crowns",scene:"town",depth:1025,solid:[{x:737,y:970},{x:754,y:1001},{x:804,y:1001}],clear:[{x:775,y:970},{x:791,y:991}],
+    canopyActor:{feet:{x:742,y:1004},translucent:[{x:741,y:960},{x:742,y:972},{x:741,y:986},{x:742,y:994},{x:744,y:1001.5}],exposed:[]},
+    existingOutline:southEdgeCanopies[1].points,fragments:[southEdgeCanopies[1].points]},
 ];
 const run=document.querySelector<HTMLButtonElement>("#depth-run")!;
 const summary=document.querySelector<HTMLElement>("#depth-summary")!;
@@ -327,7 +331,7 @@ async function verify(test:DepthCase){
   await world.prepareScene(test.scene);world.switchScene(test.scene);
   const center={x:(Math.min(...target!.points.map(p=>p.x))+Math.max(...target!.points.map(p=>p.x)))/2,y:test.depth-30};
   const saved={layers:world.getDepthLayers,hidden:world.actorHidden,paused:world.paused,
-    light:world.onLighting,effects:world.onEffects,overlay:world.onOverlay,draw:world.onDraw,player:{...world.player},facing:world.facing};
+    light:world.onLighting,effects:world.onEffects,overlay:world.onOverlay,draw:world.onDraw,player:{...world.player},facing:world.facing,equipment:world.equipment};
   const section=document.createElement("section"),heading=document.createElement("h2"),images=document.createElement("div");
   heading.textContent=test.scene+" · "+test.id;images.className="depth-images";section.append(heading,images);gallery.append(section);
   const bounds=[...target!.points,...test.solid,...test.clear,{x:center.x,y:test.depth+15}];
@@ -353,16 +357,33 @@ async function verify(test:DepthCase){
     const frontDepth=test.overhead ? world.config.height+1 : test.depth+1;
     world.getDepthLayers=()=>[...saved.layers(),probe(frontDepth)];drawNow();
     record.front=points.map(sample);photo(test.overhead?"人物经过旗绳下方，布面遮挡，旗间可见":"脚底在柱前，人物挡住柱脚");
-    if(test.canopyEdge){
-      world.player=test.canopyEdge;world.actorHidden=false;
-      world.getDepthLayers=()=>[...saved.layers(),probe(test.depth-1)];drawNow();
-      for(const [i,point] of test.solid.entries()){
-        const faded=sample(point),leaf=record.behind[i];
-        const expected = i === 0 ? leaf.rgb.map((v,j)=>(v+rgb[j])/2) : leaf.rgb;
-        assert(faded.rgb.every((channel,j)=>Math.abs(channel-expected[j])<8),
-          "树冠只在脸前透光，树根和远处枝叶仍须遮住人物");
+    if(test.canopyActor){
+      const {feet,translucent,exposed}=test.canopyActor, landmarks=[...translucent,...exposed];
+      world.player=feet;world.facing=0;
+      world.equipment={...saved.equipment,head:"witchHat",clothes:"roseDress",shoes:"mintSneakers"};
+      world.getDepthLayers=saved.layers;drawNow();
+      const leaves=landmarks.map(sample);
+      world.actorHidden=false;
+      world.getDepthLayers=()=>saved.layers().filter(layer=>layer.y!==test.depth);drawNow();
+      const dressed=landmarks.map(sample);
+      world.getDepthLayers=saved.layers;drawNow();
+      for(const [i,point] of landmarks.entries()){
+        const full=dressed[i].rgb, leaf=leaves[i].rgb;
+        assert(full.some((v,j)=>Math.abs(v-leaf[j])>12),"采样点未落在人物身上 "+JSON.stringify(point));
+        const expected=full.map((v,j)=>i<translucent.length?(v+leaf[j])/2:v);
+        assert(sample(point).rgb.every((v,j)=>Math.abs(v-expected[j])<9),"帽子、身体、鞋子与树冠的叠色不符 "+JSON.stringify(point));
+      }
+      photo("人物经过树后，衣着从枝叶间透出，伸出树冠的部分清晰可见");
+      world.getDepthLayers=()=>[...saved.layers(),probe(test.depth-1)];
+      const outsideActor=test.solid.slice(1);
+      world.actorHidden=true;drawNow();
+      const covered=outsideActor.map(sample);
+      world.actorHidden=false;drawNow();
+      for(const [i,point] of outsideActor.entries()){
+        assert(sample(point).rgb.every((v,j)=>Math.abs(v-covered[i].rgb[j])<4),"人物轮廓外的树叶未遮住探针");
       }
       world.player={...saved.player};world.actorHidden=true;
+      world.facing=saved.facing;world.equipment=saved.equipment;
     }
     if(baked){
       const shape=new Path2D(baked.path);
@@ -422,7 +443,7 @@ async function verify(test:DepthCase){
     const report=document.createElement("pre");report.textContent=JSON.stringify(record,null,2);section.append(report);
     world.getDepthLayers=saved.layers;world.actorHidden=saved.hidden;world.paused=saved.paused;
     world.onLighting=saved.light;world.onEffects=saved.effects;world.onOverlay=saved.overlay;world.onDraw=saved.draw;
-    world.player=saved.player;world.facing=saved.facing;world.setFocus(null);drawNow();
+    world.player=saved.player;world.facing=saved.facing;world.equipment=saved.equipment;world.setFocus(null);drawNow();
   }
 }
 async function verifyAll(){
