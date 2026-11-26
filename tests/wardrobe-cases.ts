@@ -86,7 +86,7 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   check(catalogue()[0] === ids[0], "切回全部没有回到第一页");
   if (!compact) button('.bag-slot[data-slot="backpack"]').click();
   else chooseCategory("backpack");
-  check(catalogue().length === 3 && !panel.querySelector('[data-select="wreath"]'), "背包类混入了其他穿戴部位");
+  check(catalogue().length === backpacks.length && !panel.querySelector('[data-select="wreath"]'), "背包类混入了其他穿戴部位");
   button('[data-select="moonBag"]').click();
   check(avatar().dataset.facing === "3", "从正面试背月兔包时未显示包身");
   button('[data-select="rabbitSatchel"]').click();
@@ -138,7 +138,7 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   check(panel.hidden && document.activeElement===world.canvas && !world.suspended, "收起后未恢复地图操作");
   fitting.click();
   check(original===JSON.stringify(world.equipment) && saved===localStorage.getItem(INVENTORY_KEY), "结束全组合试穿后存档发生变化");
-  log((compact ? "手机 4×2" : "桌面 5×3") + " 衣橱核对 " + pairViews + " 个穿搭朝向，" + pages + " 页、七个装备槽和视口检查通过");
+  log((compact ? "手机 4×2" : "桌面 5×3") + " 衣橱核对 " + pairViews + " 个穿搭朝向，" + pages + " 页、" + EQUIP_SLOTS.length + " 个装备槽和视口检查通过");
 }
 
 /** The book's controls must keep scrolling inside the book, including at its edges. */

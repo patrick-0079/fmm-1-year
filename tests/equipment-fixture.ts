@@ -1,8 +1,10 @@
 import { avatarUrls, drawAvatar } from "../src/avatar";
-import { outfits, type AvatarPose, type Facing } from "../src/costume-frames";
+import { footwearIds, outfits, type AvatarPose, type Facing } from "../src/costume-frames";
+import { equipmentParts } from "../src/equipment";
 import { ITEMS, type Equipped, type ItemId } from "../src/items";
-import { drawItem } from "../src/item-art";
-import { loadSceneImage } from "../src/texture-cache";
+import { drawItem, wardrobeUrl } from "../src/item-art";
+import iconFrames from "../src/wardrobe-icons.json";
+import { loadSceneImage, sceneImage } from "../src/texture-cache";
 import { backpacks } from "./bag-fitting-cases";
 
 await Promise.all(avatarUrls.map(loadSceneImage));
@@ -63,14 +65,15 @@ headRow("摘下头饰和发夹",{});
 shoeRow("原鞋",{});
 for (const id of Object.keys(ITEMS) as ItemId[]) {
   const item=ITEMS[id], worn={[item.slot]:id};
-  if (item.slot==="head" || item.slot==="hair") headRow(item.name,worn,id);
+  if (item.slot==="head" || item.slot==="hair" || item.slot==="wreath") headRow(item.name,worn,id);
+  if (item.slot==="head") headRow("花环 × "+item.name,{head:id,wreath:"wreath",hair:"heartClip"});
   if (item.slot==="backpack" || item.slot==="body") bagRow(item.name,worn,id);
   if (item.slot==="shoes") shoeRow(item.name,worn,id);
   if (item.slot==="pet") mixRow(item.name,worn,id);
 }
 for (const [i,clothes] of outfits.entries()) {
   mixRow(clothes ? ITEMS[clothes].name : "原版淡紫睡衣", {
-    clothes, hair:(["heartClip","fishClip","starClip"] as const)[i%3], head:clothes === "witchDress" ? "witchHat" : i%2 ? "wreath" : "headphones",
+    clothes, hair:(["heartClip","fishClip","starClip"] as const)[i%3], head:clothes === "witchDress" ? "witchHat" : "headphones", wreath:i%2 ? "wreath" : null,
     backpack:(["moonBag","rabbitSatchel","berryBag"] as const)[i%3], shoes:i%2 ? "ribbonShoes" : "starShoes",
     body:i%2 ? "echoBrooch" : "anniversaryPin",
   });
@@ -79,6 +82,7 @@ mixRow("月灯女巫套装",{clothes:"witchDress",head:"witchHat",hair:"heartCli
 document.body.dataset.ready="true";
 
 export function verifyWornViews() {
+  const atlas = sceneImage(wardrobeUrl);
   const canvas=document.createElement("canvas");
   canvas.width=116; canvas.height=108;
   const c=canvas.getContext("2d",{willReadFrequently:true})!;
@@ -89,6 +93,8 @@ export function verifyWornViews() {
     return new Uint32Array(c.getImageData(0,0,canvas.width,canvas.height).data.buffer);
   };
   const pinsAndClips = (Object.keys(ITEMS) as ItemId[]).filter(id=>["hair","body"].includes(ITEMS[id].slot));
+  const headwear = (Object.keys(ITEMS) as ItemId[]).filter(id=>ITEMS[id].slot === "head");
+  const wreathViews = ["wreathFront","wreathLeft","wreathRight","wreathRear"] as const;
   for (const clothes of outfits) for (const {pose,facing,step,name} of poses) {
     const bare=paint(pose,facing,step,{clothes});
     const differs=(worn:Equipped)=>{
@@ -102,6 +108,28 @@ export function verifyWornViews() {
       check(differs({[slot]:id})===visible,id);
     }
     check(differs({head:"witchHat"})===(pose!=="lying"),"witchHat");
+    const shoeViews = new Set<string>();
+    for (const shoes of footwearIds) {
+      check(differs({shoes}) === (pose !== "lying"), shoes);
+      if (pose !== "lying") shoeViews.add(canvas.toDataURL());
+    }
+    if (pose !== "lying" && shoeViews.size !== footwearIds.length) throw Error(name+" · 两双鞋用了同一帧");
+    for (const head of headwear) {
+      const layers: Equipped = {clothes,head,hair:"heartClip",wreath:"wreath"};
+      const actual = paint(pose,facing,step,layers);
+      const under = paint(pose,facing,step,{...layers,wreath:null});
+      if (pose === "lying") { check(actual.every((p,i)=>p===under[i]),"wreath"); continue; }
+      const crown = equipmentParts(layers,pose,facing,step).find(part=>part.id==="wreath")!;
+      const [sx,sy,sw,sh] = iconFrames[wreathViews[facing]];
+      const scale = Math.min(crown.w/sw,crown.h/sh), w = sw*scale, h = sh*scale;
+      c.save(); c.translate(58,101); c.scale(2,2);
+      c.imageSmoothingQuality = "high";
+      // Recompose from the native aspect ratio independently of the item renderer.
+      c.drawImage(atlas,sx,sy,sw,sh,crown.x+(crown.w-w)/2,crown.y+(crown.h-h)/2,w,h);
+      c.restore();
+      const expected = new Uint32Array(c.getImageData(0,0,canvas.width,canvas.height).data.buffer);
+      check(actual.some((p,i)=>p!==under[i]) && actual.every((p,i)=>p===expected[i]),"wreath");
+    }
     if (pose==="standing" && facing>=2) {
       const hat=paint(pose,facing,step,{clothes,head:"witchHat"});
       const clipped=paint(pose,facing,step,{clothes,head:"witchHat",hair:"heartClip"});

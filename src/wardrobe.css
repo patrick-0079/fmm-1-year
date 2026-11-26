@@ -329,7 +329,7 @@
 }
 .bag-filters {
   display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-columns: repeat(9, minmax(0, 1fr));
   gap: 2px;
 }
 .bag-filters button, .bag-category-toggle {
@@ -597,8 +597,8 @@
   .bag-filters {
     flex: 1;
     min-height: 0;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-template-rows: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(3, minmax(0, 1fr));
     gap: 3px;
     padding: 3px;
     border: 1px solid #d9ab83;

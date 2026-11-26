@@ -135,6 +135,7 @@ test("souvenir rewards are unique, equipment slots persist and legacy wreaths mi
   equipItem(bag, "moonBag");
   assert.deepEqual(bag.equipped, {
     ...emptyInventory().equipped,
+    wreath: "wreath",
     head: "headphones",
     backpack: "moonBag",
   });
@@ -142,9 +143,10 @@ test("souvenir rewards are unique, equipment slots persist and legacy wreaths mi
   equipItem(bag, "headphones");
   assert.deepEqual(bag.equipped, {
     ...emptyInventory().equipped,
+    wreath: "wreath",
     backpack: "moonBag",
   });
-  assert.equal(readInventory(null, '{"wearing":true}').equipped.head, "wreath");
+  assert.equal(readInventory(null, '{"wearing":true}').equipped.wreath, "wreath");
   const corrupt = readInventory(
     '{"owned":["wreath","bad","wreath"],"equipped":{"body":"wreath","head":"headphones"}}',
   );

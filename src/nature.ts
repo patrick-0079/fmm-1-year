@@ -312,7 +312,7 @@ export class Nature {
     );
   }
   private toggleCrown() {
-    if (!this.inventory.has("wreath") && this.inventory.state.equipped.head !== "wreath") return;
+    if (!this.inventory.has("wreath") && this.inventory.state.equipped.wreath !== "wreath") return;
     this.inventory.toggle("wreath");
     this.changeGarden(() => { this.state.wearing = this.inventory.wearingWreath; this.save(); });
   }
@@ -357,8 +357,7 @@ export class Nature {
     );
     document.querySelector(".bag-count")!.textContent =
       `苹果 ${this.state.apple} · 花朵 ${this.state.flower} · 星屑 ${this.state.star}`;
-    const wearing = this.inventory.state.equipped.head === "wreath";
-    this.state.wearing = this.inventory.has("wreath") && wearing;
+    this.state.wearing = this.inventory.wearingWreath;
     document.querySelector(".day-hint")!.textContent = isTownInterior(this.world.scene) ? "走回门垫，从南门回小镇街道。" :
       ruins ? "石廊里的三块铭文，记着一段遗忘的晚安。" : meadow ? "草间有落星，营火旁有一只收着星光的玻璃瓶。" :
       `第 ${clock.day} 天 · ${REAL_MINUTES_PER_DAY} 分钟一昼夜 · ${clock.phase === "dawn" ? "晨露花醒来了" : clock.phase === "dusk" ? "溪边漂来一只纸船" : clock.phase === "night" ? "萤火心愿悄悄出现" : "去勇气花园的长椅休息，等一场黄昏和星夜"}`;

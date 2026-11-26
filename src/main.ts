@@ -147,7 +147,7 @@ let showBadges = () => {
   const bag = readInventory(stored(INVENTORY_KEY), legacy);
   const context = {
     townTalked: readTownVisits(stored(TOWN_TALKED_KEY)), owned: bag.owned,
-    pickedEggs: pickedGardenEggs(readGardenBag(legacy)), wearingWreath: bag.equipped.head === "wreath",
+    pickedEggs: pickedGardenEggs(readGardenBag(legacy)), wearingWreath: bag.equipped.wreath === "wreath",
     playSeconds: Math.floor(readClock(stored(PLAYTIME_KEY)).milliseconds / 1000),
   };
   migrateAchievementFacts(saved, context);

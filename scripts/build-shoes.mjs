@@ -1,13 +1,17 @@
 import sharp from "sharp";
-import { cellWidth, cellHeight, footStripHeight } from "../src/costume-frames.ts";
+import { cellWidth, cellHeight, footStripHeight, footwearIds } from "../src/costume-frames.ts";
 import { figures, master, raster, readSheet } from "./wardrobe-sheets.mjs";
 
 // The artist's single-shoe views are front, left profile and heel. Mirrors
 // are derived only for the opposite foot/profile, never for an entire actor.
-const views = await Promise.all(["flats","boots"].map(async name => {
-  const sheet=await readSheet(master(name));
-  return figures(sheet,2,2).slice(0,3);
-}));
+const starterViews = figures(await readSheet(master("starter-footwear")), 4, 3);
+const views = {
+  ribbonShoes: figures(await readSheet(master("flats")), 2, 2),
+  starShoes: figures(await readSheet(master("boots")), 2, 2),
+  mintSneakers: starterViews.slice(0, 3),
+  honeyRainboots: starterViews.slice(4, 7),
+  pennyLoafers: starterViews.slice(8, 11),
+};
 const soleCenters = [
   [63,81],[61,80],[62,82],[56],[33,74],[33,82],
   [88],[63,113],[61,115],[62,81],[62,82],[62,82],[62,82],[62,82],
@@ -28,11 +32,14 @@ function slippers(pixels, frame) {
     }
     if (!points.length) throw new Error("No slipper in pose " + frame + " near " + seed);
     const sole=Math.max(...points.map(p=>p.y));
-    const tall = frame>=12 ? 18 : 16;
-    const foot=points.filter(p=>p.y>=sole-tall);
-    const left=Math.max(from,Math.min(...foot.map(p=>p.x))-2);
-    const right=Math.min(until-1,Math.max(...foot.map(p=>p.x))+2);
-    return {left,top:Math.min(...foot.map(p=>p.y))-2,right,bottom:Math.min(cellHeight-1,sole+2)};
+    const foot=points.filter(p=>p.y>=sole-16);
+    // Seated skirts and sleeves spread alongside the slippers. Measure each
+    // slipper at its sole, then find the ankle inside that footprint.
+    const solePixels = frame>=12 ? foot.filter(p=>p.y>=sole-5) : foot;
+    const firstX=Math.min(...solePixels.map(p=>p.x)), lastX=Math.max(...solePixels.map(p=>p.x));
+    const ankle = frame>=12 ? foot.filter(p=>p.x>firstX+1 && p.x<lastX-1) : foot;
+    const left=Math.max(from,firstX-2), right=Math.min(until-1,lastX+2);
+    return {left,top:Math.min(...ankle.map(p=>p.y))-2,right,bottom:Math.min(cellHeight-1,sole+2)};
   }).sort((a,b)=>a.bottom-b.bottom);
 }
 export async function shoeLayers(pixels,row,frame) {
@@ -42,21 +49,22 @@ export async function shoeLayers(pixels,row,frame) {
   const view=side ? 1 : facing===3 ? 2 : 0;
   const stripTop=cellHeight-footStripHeight;
   const layers=[];
-  for (const [kind,directions] of views.entries()) {
+  for (const [kind,id] of footwearIds.entries()) {
+    const boots = id === "starShoes" || id === "honeyRainboots";
     const strip=Buffer.from(pixels.subarray(stripTop*cellWidth*4));
     const art=[];
     for (const foot of feet) {
       const width=foot.right-foot.left+1;
-      const height=foot.bottom-foot.top+1 + (kind ? Math.round(width*(side ? .26 : .45)) : 0);
+      const height=foot.bottom-foot.top+1 + (boots ? Math.round(width*(side ? .26 : .45)) : 0);
       // Replace the original silhouette too, so old soles never peek out from under the boots.
-      for (let y=foot.top; y<=foot.bottom;y++)
-        strip.fill(0,((y-stripTop)*cellWidth+foot.left)*4,((y-stripTop)*cellWidth+foot.right+1)*4);
-      const sprite=raster(directions[view]).resize(width,height,{fit:"fill"});
+      for (let y=foot.top; y<=Math.min(cellHeight-1,foot.bottom+1);y++)
+        strip.fill(0,((y-stripTop)*cellWidth+Math.max(0,foot.left-1))*4,((y-stripTop)*cellWidth+Math.min(cellWidth,foot.right+2))*4);
+      const sprite=raster(views[id][view]).resize(width,height,{fit:"fill"});
       if (facing===2 || (!side && foot.left>cellWidth/2)) sprite.flop();
       art.push({input:await sprite.png().toBuffer(),left:foot.left,top:foot.bottom+1-height-stripTop});
     }
     const input=await sharp(strip,{raw:{width:cellWidth,height:footStripHeight,channels:4}}).composite(art).png().toBuffer();
-    layers.push({input,left:frame*cellWidth,top:(row*2+kind)*footStripHeight});
+    layers.push({input,left:frame*cellWidth,top:(row*footwearIds.length+kind)*footStripHeight});
   }
   return layers;
 }

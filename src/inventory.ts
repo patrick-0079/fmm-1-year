@@ -36,7 +36,7 @@ function categoryName(category: Category) { return category === "all" ? "全部"
 const turns: Facing[] = [0, 2, 3, 1];
 const facingNames = ["正面", "左侧", "右侧", "背面"];
 const slotArt: Record<EquipSlot, ItemId> = {
-  head: "wreath", hair: "heartClip", clothes: "roseDress", shoes: "ribbonShoes",
+  wreath: "wreath", head: "blueBeret", hair: "heartClip", clothes: "roseDress", shoes: "ribbonShoes",
   backpack: "berryBag", body: "anniversaryPin", pet: "petCat",
 };
 function browserStorage(): Storage | null {
@@ -229,7 +229,7 @@ export class Inventory {
     else this.changeTab("wardrobe");
   }
   get followingPet() { return this.earned.equipped.pet; }
-  get wearingWreath() { return this.earned.equipped.head === "wreath"; }
+  get wearingWreath() { return this.earned.equipped.wreath === "wreath"; }
   setCompanion(id: "petCat" | "petBunny", follow: boolean) {
     const first = follow && grantItem(this.earned,id);
     for (const outfit of [this.earned, this.fittingRoom]) {
@@ -653,7 +653,7 @@ export class Inventory {
       </header>` + (this.townPage ? this.renderTownKeepsakes(this.townPage) : notebook && page !== null ? renderRuinJournal(notebook.astrolabe, notebook.listened, page) : `
       <nav class="bag-tabs" aria-label="背包分类">${tabButtons}</nav>
       <div class="bag-dressing">
-        ${sideSlots(EQUIP_SLOTS.slice(0, 3), "left")}
+        ${sideSlots(EQUIP_SLOTS.slice(0, 4), "left")}
         <div class="bag-mirror">
           <canvas class="bag-avatar" width="160" height="144" data-facing="${this.facing}" role="img" aria-label="芙芙的${facingNames[this.facing]}穿搭预览"></canvas>
           <div class="bag-turns">
@@ -662,7 +662,7 @@ export class Inventory {
             <button type="button" data-turn="1" data-focus="turn-right" aria-label="向右转身">›</button>
           </div>
         </div>
-        ${sideSlots(EQUIP_SLOTS.slice(3), "right")}
+        ${sideSlots(EQUIP_SLOTS.slice(4), "right")}
       </div>
       <div class="bag-collection">${this.collection()}</div>
       <footer class="bag-footer">${this.footer()}</footer>`);

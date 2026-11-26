@@ -16,8 +16,13 @@ export type ItemId =
   | "rabbitSatchel"
   | "cloudPajamas" | "apricotNightgown" | "sailorSet" | "honeyOveralls"
   | "heartClip" | "fishClip" | "starClip"
-  | "witchDress" | "witchHat" | "mikoOutfit";
+  | "witchDress" | "witchHat" | "mikoOutfit"
+  | "mintSneakers" | "honeyRainboots" | "pennyLoafers"
+  | "letterPack" | "bearPack" | "compassPack"
+  | "leafPin" | "tulipPin" | "shellPin"
+  | "blueBeret" | "ginghamBand" | "strawHat";
 export const EQUIP_SLOTS = [
+  "wreath",
   "head",
   "hair",
   "clothes",
@@ -29,6 +34,7 @@ export const EQUIP_SLOTS = [
 export type EquipSlot = (typeof EQUIP_SLOTS)[number];
 export type Equipped = Partial<Record<EquipSlot, ItemId | null>>;
 export const slotNames: Record<EquipSlot, string> = {
+  wreath: "花环",
   head: "头饰",
   hair: "发夹",
   clothes: "衣服",
@@ -48,7 +54,7 @@ export const ITEMS: Record<
 > = {
   wreath: {
     name: "花园花环",
-    slot: "head",
+    slot: "wreath",
     description: "把花园里的小小喜欢，编在粉色发梢。",
     source: "在花园拾取或采花获得",
   },
@@ -145,6 +151,18 @@ export const ITEMS: Record<
   heartClip: { name: "爱心发夹", slot: "hair", description: "芙芙常戴的小爱心，下面别着两根淡紫发卡。", source: "初始衣橱" },
   fishClip: { name: "小鱼发夹", slot: "hair", description: "一尾薄荷蓝的小鱼游进了发梢。", source: "初始衣橱" },
   starClip: { name: "星星发夹", slot: "hair", description: "一颗蜂蜜金的小星，轻轻别在刘海旁。", source: "初始衣橱" },
+  mintSneakers: { name: "薄荷帆布鞋", slot: "shoes", description: "系紧奶白鞋带，沿着石板路散步去。", source: "初始衣橱" },
+  honeyRainboots: { name: "蜂蜜小雨靴", slot: "shoes", description: "提起青绿色的小鞋耳，就能踩进雨后的小水洼。", source: "初始衣橱" },
+  pennyLoafers: { name: "栗棕便士鞋", slot: "shoes", description: "焦糖色鞋面上，金色小便士刚好露出一角。", source: "初始衣橱" },
+  letterPack: { name: "薄荷信笺书包", slot: "backpack", description: "象牙白的信封翻盖上，扣着一粒珊瑚色火漆。", source: "初始衣橱" },
+  bearPack: { name: "小熊课本包", slot: "backpack", description: "两只圆耳朵探出包顶，奶油色的小熊鼻尖守着前袋。", source: "初始衣橱" },
+  compassPack: { name: "航海星书包", slot: "backpack", description: "海蓝包盖缀着一枚金色罗盘星，陪芙芙去认路。", source: "初始衣橱" },
+  leafPin: { name: "双叶胸针", slot: "body", description: "两片嫩绿的珐琅小叶，在金边里舒展开。", source: "初始衣橱" },
+  tulipPin: { name: "郁金香胸针", slot: "body", description: "把一枝珊瑚色的郁金香别在衣襟上。", source: "初始衣橱" },
+  shellPin: { name: "贝珠胸针", slot: "body", description: "水蓝色扇贝轻轻张开，露出一颗奶白珍珠。", source: "初始衣橱" },
+  blueBeret: { name: "雾蓝画家帽", slot: "head", description: "把软软的蓝帽沿往旁边拨一点，出门画画去。", source: "初始衣橱" },
+  ginghamBand: { name: "草莓格纹发带", slot: "head", description: "红白方格绕过发顶，两截布尾在结上翘起来。", source: "初始衣橱" },
+  strawHat: { name: "麦田小草帽", slot: "head", description: "奶油色的帽檐挡住阳光，鼠尾草绿的缎带在脑后打结。", source: "初始衣橱" },
   mikoOutfit: {
     name: "绯袴巫女服",
     slot: "clothes",
@@ -155,7 +173,8 @@ export const ITEMS: Record<
 export const townCollectionReward = "mikoOutfit" satisfies ItemId;
 export const starterItems: readonly ItemId[] = [
   "heartClip", "fishClip", "starClip", "cloudPajamas", "apricotNightgown", "sailorSet", "honeyOveralls",
-  "witchDress", "witchHat",
+  "witchDress", "witchHat", "mintSneakers", "honeyRainboots", "pennyLoafers",
+  "letterPack", "bearPack", "compassPack", "leafPin", "tulipPin", "shellPin", "blueBeret", "ginghamBand", "strawHat",
 ];
 export interface InventoryState {
   owned: ItemId[];
@@ -167,6 +186,7 @@ export const emptyInventory = (): InventoryState => ({
   owned: [...starterItems],
   bouquet: false,
   equipped: {
+    wreath: null,
     head: null,
     hair: "heartClip",
     clothes: null,
@@ -193,6 +213,8 @@ export function readInventory(
       if (p.equipped && Object.hasOwn(p.equipped, "hair")) state.equipped.hair = null;
       else if (["candyClip", "starWings"].includes(p.equipped?.head) && state.owned.includes(p.equipped.head))
         state.equipped.hair = p.equipped.head;
+      if (p.equipped?.head === "wreath" && !Object.hasOwn(p.equipped, "wreath") && state.owned.includes("wreath"))
+        state.equipped.wreath = "wreath";
       for (const slot of EQUIP_SLOTS) {
         const id = p.equipped?.[slot];
         if (state.owned.includes(id) && ITEMS[id as ItemId].slot === slot)
@@ -213,7 +235,7 @@ export function readInventory(
     const p = JSON.parse(legacy || "null");
     if (p && (p.wreath === true || p.wearing === true || p.flower > 0)) {
       state.owned.push("wreath");
-      if (p.wearing === true) state.equipped.head = "wreath";
+      if (p.wearing === true) state.equipped.wreath = "wreath";
     }
   } catch {}
   return state;

@@ -1,14 +1,21 @@
-import { drawItem, wardrobeUrl } from "./item-art";
+import { drawItem, wardrobeUrl, type WardrobeArt } from "./item-art";
 import garmentUrl from "./assets/fufu-garments.webp";
 import footwearUrl from "./assets/fufu-footwear.webp";
 import { equipmentParts, type AvatarPose, type Facing, type EquipmentPart } from "./equipment";
-import { artScale, cellWidth, cellHeight, footStripHeight, costumeFrame, outfitIndex, poseFrame } from "./costume-frames";
-import type { Equipped } from "./items";
+import { artScale, cellWidth, cellHeight, footStripHeight, footwearIds, costumeFrame, outfitIndex, poseFrame } from "./costume-frames";
+import type { Equipped, ItemId } from "./items";
 import { sceneImage } from "./texture-cache";
 import { drawWornBags } from "./worn-bags";
 
 export const avatarUrls = [garmentUrl, footwearUrl, wardrobeUrl];
 const footwear = sceneImage(footwearUrl), garments = sceneImage(garmentUrl);
+const headwearViews: Partial<Record<ItemId, readonly [WardrobeArt, WardrobeArt, WardrobeArt, WardrobeArt]>> = {
+  wreath: ["wreathFront", "wreathLeft", "wreathRight", "wreathRear"],
+  witchHat: ["hatFront", "hatLeft", "hatRight", "hatRear"],
+  blueBeret: ["blueBeret", "beretSide", "beretSide", "beretRear"],
+  ginghamBand: ["ginghamBand", "ginghamSide", "ginghamSide", "ginghamRear"],
+  strawHat: ["strawHat", "strawSide", "strawSide", "strawRear"],
+};
 export function whenAvatarLayersReady(refresh: () => void) {
   for (const sheet of [footwear, garments]) {
     if (!sheet.naturalWidth) sheet.addEventListener("load", refresh, {once:true});
@@ -16,13 +23,7 @@ export function whenAvatarLayersReady(refresh: () => void) {
 }
 function paintPart(c: CanvasRenderingContext2D, p: EquipmentPart, facing: Facing) {
   c.save();
-  if (p.style === "wreathFar" || p.style === "wreathNear") {
-    const far = p.style === "wreathFar", split = p.h*.42;
-    c.translate(p.mirror ? p.x+p.w : p.x, p.y);
-    if (p.mirror) c.scale(-1,1);
-    c.beginPath(); c.rect(0,far ? 0 : split,p.w,far ? split : p.h-split); c.clip();
-    drawItem(c,p.id,0,0,p.w,p.h,false);
-  } else if (p.style === "rearBand" || p.style === "rearEarpieces") {
+  if (p.style === "rearBand" || p.style === "rearEarpieces") {
     c.translate(0, p.y);
     if (p.style === "rearBand") {
       c.beginPath(); c.moveTo(-10.8, 11.3);
@@ -66,17 +67,15 @@ function paintPart(c: CanvasRenderingContext2D, p: EquipmentPart, facing: Facing
   } else {
     c.translate(p.mirror ? p.x+p.w : p.x, p.y);
     if (p.mirror) c.scale(-1,1);
-    if (p.style === "hat") {
-      drawItem(c, (["hatFront", "hatLeft", "hatRight", "hatRear"] as const)[facing], 0, 0, p.w, p.h);
-    } else if (p.style === "pinEdge") {
+    if (p.style === "pinEdge") {
       // Seen edge-on, only the setting catches the light on her left lapel.
       c.rotate(.25);
       c.fillStyle = "#805a53";
       c.beginPath(); c.roundRect(0, 0, p.w, p.h, p.w/2); c.fill();
-      c.fillStyle = p.id === "anniversaryPin" ? "#edbb71" : "#d99979";
+      c.fillStyle = p.id === "echoBrooch" ? "#d99979" : "#edbb71";
       c.fillRect(.35, .35, .65, p.h - 1.0);
     } else {
-      drawItem(c,p.id,0,0,p.w,p.h);
+      drawItem(c,headwearViews[p.id]?.[facing] ?? p.id,0,0,p.w,p.h);
     }
   }
   c.restore();
@@ -93,15 +92,22 @@ export function drawAvatar(c: CanvasRenderingContext2D, pose: AvatarPose, facing
   const f = costumeFrame(outfit,frame), w=f.w/artScale, h=f.h/artScale;
   const x=-w/2, y=pose === "lying" ? -h/2 : -h;
   const parts=equipmentParts(equipped,pose,facing,step);
-  for (const part of parts) if (part.layer === "behind") paintPart(c,part,facing);
-  const shoes = pose !== "lying" && footwear.naturalWidth && (equipped.shoes === "ribbonShoes" || equipped.shoes === "starShoes");
-  const bodyHeight = shoes ? cellHeight-footStripHeight : cellHeight;
+  const shoeIndex = pose !== "lying" && footwear.naturalWidth ? footwearIds.findIndex(id => id === equipped.shoes) : -1;
+  const bodyHeight = shoeIndex >= 0 ? cellHeight-footStripHeight : cellHeight;
   const hat = parts.find(p => p.style === "hat");
-  // Tuck the loose curl inside the crown. The cut lies underneath the hatband.
-  const tucked = hat ? Math.max(0, Math.round((hat.y + hat.h * .73 - y) * artScale)) : 0;
-  c.drawImage(garments,f.x,f.y+tucked,f.w,bodyHeight-tucked,x,y+tucked/artScale,w,(bodyHeight-tucked)/artScale);
-  if (shoes) {
-    const row=outfit*2+Number(equipped.shoes === "starShoes");
+  if (hat) {
+    // Only the central cowlick tucks into a cap. Keep the silhouette of the
+    // fringe visible below a tilted beret or the raised edge of a brim.
+    c.save();
+    c.beginPath();
+    c.rect(x, y, w, h);
+    c.rect(hat.x+hat.w/2-5.5, y, 11, hat.y+hat.h*.69-y);
+    c.clip("evenodd");
+  }
+  c.drawImage(garments,f.x,f.y,f.w,bodyHeight,x,y,w,bodyHeight/artScale);
+  if (hat) c.restore();
+  if (shoeIndex >= 0) {
+    const row=outfit*footwearIds.length+shoeIndex;
     c.drawImage(footwear,frame*cellWidth,row*footStripHeight,cellWidth,footStripHeight,
       x,-footStripHeight/artScale,w,footStripHeight/artScale);
   }

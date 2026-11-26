@@ -172,7 +172,7 @@ test("the camp letter is gated, saved once and read independently of the postman
 test("visiting residents, earning a keepsake and equipping items have separate records", () => {
   const bag = readInventory('{"owned":["wreath"],"equipped":{"head":"wreath"},"bouquet":true}');
   assert.ok(bag.bouquet);
-  assert.equal(bag.equipped.head, "wreath");
+  assert.equal(bag.equipped.wreath, "wreath");
   assert.deepEqual(bag.owned, [...starterItems, "wreath"]);
   assert.deepEqual(readInventory(JSON.stringify(bag)), bag);
   assert.equal(readInventory('{"bouquet":"yes"}').bouquet, false);

@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { writeFile } from "node:fs/promises";
-import { artScale, cellWidth, cellHeight, footStripHeight, outfits } from "../src/costume-frames.ts";
+import { artScale, cellWidth, cellHeight, footStripHeight, footwearIds, outfits } from "../src/costume-frames.ts";
 import { spriteFrames } from "../src/sprite-frames.ts";
 import { filename, figures, master, output, raster, readSheet, transparent } from "./wardrobe-sheets.mjs";
 import { shoeLayers } from "./build-shoes.mjs";
@@ -10,10 +10,8 @@ if (designs.length !== outfits.length) throw new Error("Missing outfit artwork")
 const bodies = [], shoes = [];
 for (const [row, name] of designs.entries()) {
   const walk = figures(await readSheet(master(name+"-walk")), 3, 4);
-  const resting = await readSheet(master(name+"-rest"));
-  const rest = row ? figures(resting,2,2) : figures(resting,2,1);
-  const seated = row ? rest[1] : figures(await readSheet(master("bench")),1,1)[0];
-  const poses = [...walk, row ? rest[2] : rest[0], seated, row ? rest[3] : rest[1]];
+  const rest = figures(await readSheet(master(name+"-rest")), 2, 2);
+  const poses = [...walk, rest[2], rest[1], rest[3]];
   for (const [frame, f] of poses.entries()) {
     const sleeping = frame === 14;
     const cellW = sleeping ? 2*cellWidth : cellWidth;
@@ -31,7 +29,7 @@ for (const [row, name] of designs.entries()) {
 }
 await transparent(cellWidth*16, cellHeight*designs.length).composite(bodies)
   .webp({quality:93,alphaQuality:100,effort:6}).toFile(filename(output("fufu-garments.webp")));
-await transparent(cellWidth*14, footStripHeight*2*designs.length).composite(shoes)
+await transparent(cellWidth*14, footStripHeight*footwearIds.length*designs.length).composite(shoes)
   .webp({quality:92,alphaQuality:100,effort:6}).toFile(filename(output("fufu-footwear.webp")));
 
 // Preserve the original heart and the two separate lilac pins below it.
@@ -50,11 +48,16 @@ const catalogueRows = [
   {sheet:"miko-icon", columns:1, rows:1, names:["mikoOutfit"]},
   {sheet:"worn-hat", columns:2, rows:2, names:["hatFront","hatLeft","hatRight","hatRear"]},
   {sheet:"worn-bags", columns:3, rows:2, names:["moonPackRear","berryPackRear","satchelFace","moonPackSide","berryPackSide","satchelEdge"]},
+  {sheet:"worn-wreath", columns:2, rows:2, names:["wreathFront","wreathLeft","wreathRight","wreathRear"]},
+  {sheet:"starter-headwear", columns:3, rows:3, names:["blueBeret","beretSide","beretRear","ginghamBand","ginghamSide","ginghamRear","strawHat","strawSide","strawRear"]},
+  {sheet:"starter-bags-pins", columns:3, rows:3, names:["letterPack","bearPack","compassPack","letterPackSide","bearPackSide","compassPackSide","leafPin","tulipPin","shellPin"]},
+  {sheet:"starter-footwear", columns:4, rows:3, names:[null,null,null,"mintSneakers",null,null,null,"honeyRainboots",null,null,null,"pennyLoafers"]},
 ];
 const icons = [], bounds = {}, cell = 144, cols = 6;
 for (const {sheet, columns, rows, names} of catalogueRows) {
   const isolated = figures(await readSheet(master(sheet)),columns,rows);
   for (const [index, id] of names.entries()) {
+    if (!id) continue;
     const f = id === "heartClip" ? {pixels:originalHeart,width:82,height:113} : isolated[index];
     const factor=(cell-8)/Math.max(f.width,f.height);
     const w=Math.round(f.width*factor), h=Math.round(f.height*factor);

@@ -33,7 +33,7 @@ try {
   for (const row of shapes) assert.equal(new Set(row).size,15);
   const wornViews=await page.evaluate(async ()=>(await import("/tests/equipment-fixture.ts")).verifyWornViews());
   assert.equal(wornViews,outfits.length*15);
-  console.log(`${wornViews} 个角色姿势逐像素核对了发夹、胸针和尖帽的佩戴与摘下画面。`);
+  console.log(`${wornViews} 个角色姿势核对了各双鞋、胸针、发夹与尖帽，以及花环等比覆盖各款头饰的画面。`);
   const fits = await page.evaluate(async () => (await import("/tests/bag-fitting-cases.ts")).verifyBagFits());
   const bagCount = Object.values(ITEMS).filter(item => item.slot === "backpack").length;
   assert.deepEqual(fits, {frames:bagCount*outfits.length*15, angles:bagCount*outfits.length*4});
@@ -118,8 +118,9 @@ try {
       if (scene==="challenge") await actual.getByRole("button",{name:"起身继续走",exact:true}).click();
       if (scene==="meadow") await actual.locator("#world").press("d",{delay:120});
     }
-    console.log(ITEMS[id].name+"与"+ITEMS[hair].name+"通过床、长椅和花海的实景绘制检查。");
+    console.log((id ? ITEMS[id].name : "默认淡紫睡衣")+"通过床、长椅和花海的实景绘制检查。");
   };
+  await checkRestPoses(null,null);
   const starterClothes=starterItems.filter(id=>ITEMS[id].slot==="clothes");
   const clips=["fishClip","starClip","heartClip"];
   for (const [i,id] of starterClothes.entries()) {
@@ -138,10 +139,17 @@ try {
   await actual.reload(); await start();
   let gear=(await snapshot()).equipment;
   assert.deepEqual([gear.head,gear.hair,gear.clothes,gear.backpack],[null,"starWings","mintCape","moonBag"]);
-  await equip("wreath"); await equip("starClip"); await equip("cloudPajamas");
+  await equip("blueBeret"); await equip("starClip"); await equip("cloudPajamas");
+  await equip("mintSneakers"); await equip("letterPack"); await equip("tulipPin");
+  await equip("wreath");
+  await actual.locator("#world").press("h");
+  assert.equal((await snapshot()).equipment.wreath,null);
+  assert.equal((await snapshot()).equipment.head,"blueBeret");
+  await actual.locator("#world").press("h");
   await actual.reload(); await start();
   gear=(await snapshot()).equipment;
-  assert.deepEqual([gear.head,gear.hair,gear.clothes,gear.backpack],["wreath","starClip","cloudPajamas","moonBag"]);
+  assert.deepEqual([gear.wreath,gear.head,gear.hair,gear.clothes,gear.shoes,gear.backpack,gear.body],
+    ["wreath","blueBeret","starClip","cloudPajamas","mintSneakers","letterPack","tulipPin"]);
   const bag=await actual.evaluate(key=>JSON.parse(localStorage.getItem(key)),INVENTORY_KEY);
   assert.ok(starterItems.every(id=>bag.owned.includes(id)));
   console.log("新档、旧发饰与背包迁移、摘下发夹及叠穿后刷新均已验证。");

@@ -67,9 +67,9 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 `/tests/interaction-prompt-fixture.html` 单独检查按钮手势：左键、右键和 Enter 每次只激活一次；按下后目标变化、隐藏或触摸取消，都不能在抬起时误触另一个物件。位置和文字可以随地图更新，但一次已开始的手势不能被重新指派给其他目标。
 
-背包的挂点在 `src/equipment.ts`，肩带和遮挡由 `src/worn-bags.ts` 绘制。`src/bag-fittings.json` 按衣服与帧存储手袖轮廓和衣料可见轮廓。坐标以 `fufu-garments.webp` 对应图格左上角为原点，轮廓沿逆时针记录。更换服装原画时同步校对这两条轮廓。开发页 `/tests/equipment-fixture.html#bag-fits` 可逐格对照三款包、九套造型、四个朝向及坐卧姿势。
+背包的挂点在 `src/equipment.ts`，肩带和遮挡由 `src/worn-bags.ts` 绘制。`src/bag-fittings.json` 按衣服与帧存储手袖轮廓和衣料可见轮廓。坐标以 `fufu-garments.webp` 对应图格左上角为原点，轮廓沿逆时针记录。更换服装原画时同步校对这两条轮廓。开发页 `/tests/equipment-fixture.html#bag-fits` 可逐格对照六款包、九套造型、四个朝向及坐卧姿势。
 
-同页 `#headwear` 可对照花环、耳机、尖帽和五枚发夹。花环分为两层，远弧在头发后方。发夹位于左鬓，正面和左侧可见。尖帽按头顶位置对齐，各朝向有独立画稿，帽檐压住卷发和发夹。床上保留衣服和发夹。试衣镜、活动和地图共用 `drawAvatar`。
+同页 `#headwear` 可对照每款头饰单戴和叠戴花环的效果。花环使用独立装备位与四向佩戴图，按原画比例绘制在发夹、帽子和耳机上方。发夹位于左鬓，正面和左侧可见。帽檐遮住发顶的卷发。床上保留衣服和发夹。试衣镜、活动和地图共用 `drawAvatar`。
 
 修改道路、物件或出口后，运行 `npm test` 的全地图可达性检查，并在开发 URL 后加 `?debug=collision` 查看轮廓和脚底坐标。测试会从出生点、床边和勇气花园的长椅出口走到全部交互点，逐段验证不穿墙、不跨水面和不误入陷阱；它不能替代对地图插画的目视对齐检查。
 
@@ -141,7 +141,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 调整小游戏排版后，在开发页 `/tests/exploration-fixture.html` 选择「验收七款小游戏的画幅与镜头」。分别用桌面和手机窗口运行，检查开局、暂停、恢复、展开扫雷规则及返回地图时的画布尺寸、镜头缩放和页面位置。棋盘的绘制与点击命中共用 `src/arcade.ts` 的缩放和原点，操作栏放在画布下方，和地图一起随背包或游玩说明暂停。
 
-开发页 `/tests/equipment-fixture.html#footsteps` 展示两双鞋的前、侧、后视图和两种坐姿。`npm run art:wardrobe` 按每套衣服的脚底重建佩戴层，同时导出礼盒与衣橱共用的图标。
+开发页 `/tests/equipment-fixture.html#footsteps` 展示五双鞋的前、侧、后视图和两种坐姿。`npm run art:wardrobe` 按每套衣服的脚底重建佩戴层，同时导出礼盒与衣橱共用的图标。
 
 同页 `#outfits` 展示九套角色造型。花海坐地、长椅垂腿与床上侧卧分别绘制。换装原画和图集布局见 [衣橱美术说明](doc/artwork/wardrobe/README.md)。`npm run art:meadow` 生成七色花与花门，`npm run art:night` 生成夜间场景。
 
@@ -185,7 +185,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 | `fufu-journey-v1` | 上次的地图、脚下位置及保存时间；在休息姿势下记录可安全起身的位置 |
 | `fufu-garden-bag-v1` | 苹果、花朵、星屑、每日采集记录与旧花环数据 |
 | `fufu-world-clock-v2` | 昼夜起始时间和推进量。首次从 `fufu-world-clock-v1` 读取时，按旧周期换算游戏时间，包含离线和长椅跳时 |
-| `fufu-souvenirs-v1` | 初始衣橱、获得的纪念品和七个装备位 |
+| `fufu-souvenirs-v1` | 初始衣橱、获得的纪念品和八个装备位。旧档佩戴的花环自动转入花环位 |
 | `fufu-town-talked-v1` | 已交谈的小镇居民 |
 
 只在同一浏览器、同一网站来源下保存。更换域名、端口、浏览器或使用隐私窗口可能看到不同进度；没有跨设备同步。存储被禁用时仍可游玩，但不能保证刷新后保留。
@@ -248,7 +248,7 @@ R2 CORS 完整示例在 [README](README.md#花园小电视cdn-周年放映)。`C
 | 页面 | 用途 |
 | --- | --- |
 | `/tests/interaction-fixture.html` | 真实控制器的暂停、恢复、焦点、快捷键与活动计时回归，不写存档 |
-| `/tests/equipment-fixture.html` | 25 件物品的四向动作、两种坐姿、睡姿和叠穿 |
+| `/tests/equipment-fixture.html` | 37 件物品的四向动作、两种坐姿、睡姿和叠穿 |
 | `/tests/scenery-fixture.html` | 窗景、晨露花和四处小镇设施的底图合成 |
 | `/tests/mobile-fixture.html` | 375/320 宽度真实页面，使用当前来源的本机进度 |
 | `/tests/media-fixture.html` | 图片、音视频和缺失素材，使用专用测试容器 |

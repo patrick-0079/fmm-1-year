@@ -4,10 +4,10 @@ import { ITEMS, type ItemId } from "../src/items";
 
 export const backpacks = (Object.keys(ITEMS) as ItemId[]).filter(id => ITEMS[id].slot === "backpack");
 
-// Landmarks read from the bare garment art, in world units. Both side profiles are
-// measured facing left. Each pair lies on the near hand or cuff during that stride.
+// Left-facing landmarks in world units, each on the near hand or cuff. The
+// redrawn base has a wider right-facing arm swing, measured separately below.
 const cuffs = {
-  base:             [[-.4,-11.7], [.4,-11.7], [-5.9,-12.6]],
+  base:             [[.5,-10.75], [1.85,-11], [-4.9,-11.1]],
   roseDress:        [[-1.7,-13.3], [-1.3,-13.4], [-5.8,-13.7]],
   mintCape:         [[-2.5,-11.3], [-1.7,-11.4], [-6.8,-13.4]],
   cloudPajamas:     [[-.4,-12.1], [.1,-12.1], [-5.1,-13.3]],
@@ -17,6 +17,7 @@ const cuffs = {
   witchDress:       [[-1.7,-11.8], [-.8,-12.0], [-5.7,-13.1]],
   mikoOutfit:       [[.65,-11.25], [1.5,-11.65], [-5.35,-12.9]],
 } as const;
+const baseRightCuffs = [[.9,-10.75], [-.75,-10.6], [7.1,-12.4]] as const;
 const longHair = new Set([null, "mintCape", "cloudPajamas", "apricotNightgown", "mikoOutfit"]);
 const scale = 4, width = 320, height = 208;
 type Bounds = readonly [left:number, top:number, right:number, bottom:number];
@@ -73,8 +74,8 @@ export function verifyBagFits() {
       if (facing === 1 || facing === 2) {
         const dir = facing === 1 ? 1 : -1;
         const [cx,cy] = cuffs[clothes ?? "base"][step];
-        const x = dir * (cx-(facing === 2 ? .4 : 0));
-        check(count([x-.38,cy-.38,x+.38,cy+.38],1) === 0, "包盖或肩带盖住了手和袖口");
+        const [x,y] = !clothes && facing === 2 ? baseRightCuffs[step] : [dir * (cx-(facing === 2 ? .4 : 0)),cy];
+        check(count([x-.38,y-.38,x+.38,y+.38],1) === 0, "包盖或肩带盖住了手和袖口");
         if (clothes === "mikoOutfit") {
           // In this part of the bare sprite the pale neutral fabric is the wide sleeve.
           // Test its entire interior, excluding the antialiased perimeter and red hakama.

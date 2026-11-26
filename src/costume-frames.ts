@@ -9,6 +9,7 @@ export const artScale = 4;
 export const cellWidth = 144;
 export const cellHeight = 184;
 export const footStripHeight = 52;
+export const footwearIds = ["ribbonShoes", "starShoes", "mintSneakers", "honeyRainboots", "pennyLoafers"] as const satisfies readonly ItemId[];
 export function avatarPose(rest: Pick<RestState, "kind" | "scene"> | null): AvatarPose {
   if (!rest) return "standing";
   if (rest.kind === "lying") return "lying";

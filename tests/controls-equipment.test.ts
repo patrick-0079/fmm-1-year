@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { equipmentParts, fitItem, type Facing } from "../src/equipment.ts";
-import { avatarPose, costumeFrame, outfitIndex, outfits, poseFrame } from "../src/costume-frames.ts";
+import { avatarPose, costumeFrame, footwearIds, outfitIndex, outfits, poseFrame } from "../src/costume-frames.ts";
 import { ITEMS, type ItemId } from "../src/items.ts";
 import { scenes } from "../src/maps.ts";
 import { canStand, canTravelBetween } from "../src/core.ts";
@@ -43,6 +43,8 @@ test("every clothing design selects its own complete pose atlas including both s
   const clothing = Object.entries(ITEMS).filter(([,i])=>i.slot==="clothes").map(([id])=>id);
   assert.equal(clothing.length,8);
   assert.deepEqual(new Set(clothing),new Set(outfits.filter(Boolean)));
+  const shoes = Object.entries(ITEMS).filter(([,item])=>item.slot==="shoes").map(([id])=>id);
+  assert.deepEqual(new Set(footwearIds),new Set(shoes));
   for (const [row, outfit] of outfits.entries()) {
     assert.equal(outfitIndex(outfit),row);
     const columns = [0,1,2,3].flatMap(dir=>[0,1,2].map(step=>poseFrame("standing",dir as Facing,step)));
@@ -55,7 +57,7 @@ test("every clothing design selects its own complete pose atlas including both s
 });
 test("rucksacks show the narrow gusset in profile and the satchel stays at the left hip", () => {
   for (const frame of [0,1,2]) {
-    for (const backpack of ["moonBag","berryBag","rabbitSatchel"] as const) {
+    for (const backpack of ["moonBag","berryBag","rabbitSatchel","letterPack","bearPack","compassPack"] as const) {
       const parts = (facing: Facing) => equipmentParts({backpack}, "standing", facing, frame);
       for (const facing of [1,2] as const) {
         const profile=parts(facing), strap=profile.find(p=>p.style==="straps")!;
@@ -77,7 +79,7 @@ test("rucksacks show the narrow gusset in profile and the satchel stays at the l
   }
 });
 test("lapel pins turn edge-on at the near shoulder and disappear with the far lapel", () => {
-  for (const body of ["anniversaryPin","echoBrooch"] as const) for (const step of [0,1,2]) {
+  for (const body of ["anniversaryPin","echoBrooch","leafPin","tulipPin","shellPin"] as const) for (const step of [0,1,2]) {
     const [front]=equipmentParts({body},"standing",0,step);
     const [edge]=equipmentParts({body},"standing",1,step);
     assert.ok(front.x > 0 && edge.x < 0 && edge.w < front.w/2 && edge.h < front.h);
@@ -85,19 +87,18 @@ test("lapel pins turn edge-on at the near shoulder and disappear with the far la
     for (const facing of [2,3] as const) assert.deepEqual(equipmentParts({body},"standing",facing,step),[]);
   }
 });
-test("flower crowns wrap behind and in front of the hair without rescaling either half", () => {
+test("the visible flower crown is drawn whole above every hat, band and fringe clip", () => {
   for (const pose of ["standing", "sitting", "bench"] as const) {
     for (const facing of [0, 1, 2, 3] as Facing[]) {
       for (const frame of [0, 1, 2]) {
-        const parts = equipmentParts({head: "wreath"}, pose, facing, frame);
-        assert.equal(parts.length, 2, "a crown is one far arc and one near arc");
-        const far = parts.find(p => p.style === "wreathFar")!;
-        const near = parts.find(p => p.style === "wreathNear")!;
-        assert.ok(far && near, "both arcs must remain available to the renderer");
-        assert.equal(far.layer, "behind", "hair conceals the far arc");
-        assert.equal(near.layer, "front", "the near arc rests over the hair");
-        const geometry = (p: typeof far) => [p.x, p.y, p.w, p.h, p.mirror];
-        assert.deepEqual(geometry(far), geometry(near), "both clips use the same fitted crown, avoiding a seam or doubled flowers");
+        for (const head of ["headphones","witchHat","blueBeret","ginghamBand","strawHat"] as const) {
+          const under = equipmentParts({head, hair:"heartClip"}, pose, facing, frame);
+          const layered = equipmentParts({wreath:"wreath", head, hair:"heartClip"}, pose, facing, frame);
+          assert.deepEqual(layered.slice(0, -1), under);
+          assert.equal(layered.at(-1)?.id, "wreath");
+          assert.equal(layered.at(-1)?.layer, "front");
+          assert.ok(under.some(part => part.id === head));
+        }
       }
     }
   }
@@ -134,7 +135,7 @@ test("headphones expose rear shells only in the back view, with front cups retai
   }
 });
 test("headwear follows the sprite crown throughout a stride", () => {
-  for (const head of ["wreath", "candyClip", "headphones", "starWings", "witchHat"] as const) {
+  for (const head of ["wreath", "candyClip", "headphones", "starWings", "witchHat", "blueBeret", "ginghamBand", "strawHat"] as const) {
     for (const facing of [0, 1, 2, 3] as Facing[]) {
       const rest = equipmentParts({[ITEMS[head].slot]:head}, "standing", facing, 0);
       const restingCrown = -spriteFrames[facing * 3].h * 43 / 330;

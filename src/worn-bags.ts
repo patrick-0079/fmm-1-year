@@ -1,23 +1,30 @@
 import { artScale, cellHeight, cellWidth, outfitIndex, outfits, poseFrame } from "./costume-frames";
 import type { AvatarPose, EquipmentPart, Facing } from "./equipment";
-import type { Equipped } from "./items";
-import { drawItem } from "./item-art";
+import type { Equipped, ItemId } from "./items";
+import { drawItem, type WardrobeArt } from "./item-art";
 import fittings from "./bag-fittings.json";
 
+const bags: Partial<Record<ItemId, {face: WardrobeArt; side: WardrobeArt; seam: string; strap: string}>> = {
+  moonBag: {face:"moonPackRear", side:"moonPackSide", seam:"#796080", strap:"#c0a1ca"},
+  berryBag: {face:"berryPackRear", side:"berryPackSide", seam:"#894d58", strap:"#d88089"},
+  rabbitSatchel: {face:"satchelFace", side:"satchelEdge", seam:"#685d49", strap:"#b1ad7c"},
+  letterPack: {face:"letterPack", side:"letterPackSide", seam:"#547269", strap:"#9fc6ac"},
+  bearPack: {face:"bearPack", side:"bearPackSide", seam:"#895f46", strap:"#d6a36c"},
+  compassPack: {face:"compassPack", side:"compassPackSide", seam:"#495770", strap:"#899bb4"},
+};
 function drawBagBody(c: CanvasRenderingContext2D, p: EquipmentPart, facing: Facing) {
-  const side = facing === 1 || facing === 2;
-  if (p.id === "rabbitSatchel") {
-    drawItem(c, facing === 3 ? "satchelEdge" : "satchelFace", 0, 0, p.w, p.h, false);
-  } else if (p.id === "berryBag") {
-    drawItem(c, side ? "berryPackSide" : "berryPackRear", 0, 0, p.w, p.h);
-  } else {
-    // On the artist's moon pack the flat padded back is the right edge.
-    if (side) { c.translate(p.w, 0); c.scale(-1, 1); }
-    drawItem(c, side ? "moonPackSide" : "moonPackRear", 0, 0, p.w, p.h);
-  }
+  const art = bags[p.id];
+  if (!art) return;
+  const satchel = p.id === "rabbitSatchel";
+  const side = satchel ? facing === 3 : facing === 1 || facing === 2;
+  // The moon pack's padded back is on the opposite edge of its original side view.
+  if (side && p.id === "moonBag") { c.translate(p.w, 0); c.scale(-1, 1); }
+  drawItem(c, side ? art.side : art.face, 0, 0, p.w, p.h, !satchel);
 }
 
 function drawBagStraps(c: CanvasRenderingContext2D, p: EquipmentPart, facing: Facing, returnSide = false) {
+  const art = bags[p.id];
+  if (!art) return;
   const { w, h } = p, satchel = p.id === "rabbitSatchel";
   c.lineCap = c.lineJoin = "round";
   c.beginPath();
@@ -57,12 +64,11 @@ function drawBagStraps(c: CanvasRenderingContext2D, p: EquipmentPart, facing: Fa
         mid+direction*w*.49, h*.89);
     }
   }
-  const berry = p.id === "berryBag";
   c.lineWidth = satchel ? .94 : 1.22;
-  c.strokeStyle = satchel ? "#685d49" : berry ? "#894d58" : "#796080";
+  c.strokeStyle = art.seam;
   c.stroke();
   c.lineWidth = satchel ? .48 : .66;
-  c.strokeStyle = satchel ? "#b1ad7c" : berry ? "#d88089" : "#c0a1ca";
+  c.strokeStyle = art.strap;
   c.stroke();
 }
 
