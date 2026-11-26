@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { cellWidth, cellHeight, footStripHeight, footwearIds, outfits } from "../src/costume-frames.ts";
 import { figures, master, raster, readSheet } from "./wardrobe-sheets.mjs";
@@ -85,9 +86,18 @@ function fitFoot(pixels, frame, side, outfit) {
 }
 
 const sampleWidth = 20, sampleHeight = 14;
-async function sampledView(figure) {
-  const size = 32;
+async function sampledView(figure, followContour) {
+  const size = followContour ? 72 : 32;
   const data = await raster(figure).resize(size, size, {fit:"fill"}).raw().toBuffer();
+  const bounds = Array.from({length:size}, (_, x) => {
+    let top = size, bottom = -1;
+    for (let y = 0; y < size; y++) {
+      if (data[(y * size + x) * 4 + 3] < 160) continue;
+      top = Math.min(top, y);
+      bottom = y;
+    }
+    return {top, bottom};
+  });
   // Bleed the nearest leather colour into empty texels before filtering.
   // The transparent area of the source image must not tint the worn edge.
   const queue = [];
@@ -102,12 +112,116 @@ async function sampledView(figure) {
       queue.push(to);
     }
   }
-  return sharp(data, {raw:{width:size, height:size, channels:4}})
+  let surface = data;
+  if (followContour) {
+    // The side-view art has a low toe and a tall heel. Normalize each
+    // painted column separately, keeping the upper, trim and sole in order.
+    surface = Buffer.alloc(data.length);
+    for (let x = 0; x < size; x++) {
+      const sourceX = Math.round(1 + x / (size - 1) * (size - 3));
+      const {top, bottom} = bounds[sourceX];
+      if (top > bottom) throw new Error("Empty column inside footwear artwork");
+      for (let y = 0; y < size; y++) {
+        const sourceY = top + (bottom - top) * y / (size - 1);
+        const first = (Math.floor(sourceY) * size + sourceX) * 4;
+        const second = (Math.ceil(sourceY) * size + sourceX) * 4;
+        const weight = sourceY % 1, dest = (y * size + x) * 4;
+        for (let c = 0; c < 3; c++) surface[dest + c] = data[first + c] * (1 - weight) + data[second + c] * weight;
+        surface[dest + 3] = 255;
+      }
+    }
+  }
+  return sharp(surface, {raw:{width:size, height:size, channels:4}})
     .resize(sampleWidth, sampleHeight, {fit:"fill"}).raw().toBuffer();
 }
 const shoeViews = Object.fromEntries(await Promise.all(footwearIds.map(async id => [
-  id, await Promise.all(figuresByShoe[id].slice(0, 3).map(sampledView)),
+  id, await Promise.all(figuresByShoe[id].slice(0, 3).map(figure => sampledView(figure, false))),
 ])));
+
+const contouredViews = Object.fromEntries(await Promise.all(footwearIds.map(async id => [
+  id, await Promise.all(figuresByShoe[id].slice(0, 3).map(figure => sampledView(figure, true))),
+])));
+
+// Hand-fitted masks use normalized garment coordinates. Red is the near shoe,
+// blue the visible part of the far shoe. Green extends a boot onto the shin.
+const maskedFrames = [1, 2, 3, 4, 5, 6, 7, 8, 10, 11];
+const maskPath = new URL("../doc/artwork/wardrobe/footwear-profile-masks.png", import.meta.url);
+const {data: profileMasks, info: maskInfo} = await sharp(fileURLToPath(maskPath))
+  .removeAlpha().raw().toBuffer({resolveWithObject:true});
+if (maskInfo.width !== cellWidth * maskedFrames.length || maskInfo.height !== outfits.length * footStripHeight)
+  throw new Error("Footwear masks must match the garment pose grid");
+
+function maskedFeet(pixels, row, frame, maskColumn) {
+  const feet = [[], []];
+  const cut = (row * footStripHeight * maskInfo.width + maskColumn * cellWidth) * maskInfo.channels;
+  for (let y = 0; y < footStripHeight; y++) {
+    for (let x = 0; x < cellWidth; x++) {
+      const offset = (y * cellWidth + x) * 4;
+      if (!pixels[stripTop * cellWidth * 4 + offset + 3]) continue;
+      const marker = cut + (y * maskInfo.width + x) * maskInfo.channels;
+      const near = profileMasks[marker], far = profileMasks[marker + 2];
+      if (!near && !far) continue;
+      feet[far ? 1 : 0].push({x, y:stripTop + y, offset, cuff:!!profileMasks[marker + 1]});
+    }
+  }
+  if (!feet[0].some(p => !p.cuff)) throw new Error(`Missing near shoe in outfit ${row}, frame ${frame}`);
+  const farPixels = new Set(feet[1].filter(p => !p.cuff).map(p => p.offset));
+  return feet.filter(points => points.length).map((points, side) => {
+    const sole = points.filter(p => !p.cuff && pixels[stripTop * cellWidth * 4 + p.offset + 3] >= 100);
+    if (!sole.length) throw new Error(`Empty shoe mask in outfit ${row}, frame ${frame}, foot ${side}`);
+    let left = Math.min(...sole.map(p => p.x)), right = Math.max(...sole.map(p => p.x));
+    const mid = (left + right) / 2;
+    const overlap = frame === 3 || frame === 6;
+    // Only a small part of the second shoe shows in profile. Project a
+    // full-size shoe through that window, keeping the toe and heel distinct.
+    if (side === 1 && overlap) {
+      const near = feet[0].filter(p => !p.cuff);
+      const width = Math.max(...near.map(p => p.x)) - Math.min(...near.map(p => p.x));
+      if (frame === 3) right = left + width;
+      else left = right - width;
+    }
+    const columns = Array.from({length:cellWidth}, () => ({top:Infinity, bootTop:Infinity, bottom:-Infinity}));
+    for (const point of points) {
+      const col = columns[point.x];
+      col.bootTop = Math.min(col.bootTop, point.y);
+      if (!point.cuff) {
+        col.top = Math.min(col.top, point.y);
+        col.bottom = Math.max(col.bottom, point.y);
+      }
+      const {offset} = point;
+      const nearSeam = side === 0 && overlap &&
+        [-4, 4, -cellWidth*4, cellWidth*4].some(delta => farPixels.has(offset + delta));
+      point.shade = nearSeam ? .66 : side === 1 ? (overlap ? .78 : .9) : 1;
+    }
+    return {points, left, right, mid, columns};
+  });
+}
+
+function paintSample(strip, dest, view, u, v, shade = 1) {
+  const sx = Math.max(0, Math.min(1, u)) * (sampleWidth - 1);
+  const sy = Math.max(0, Math.min(1, v)) * (sampleHeight - 1);
+  const x0 = Math.floor(sx), y0 = Math.floor(sy), wx = sx - x0, wy = sy - y0;
+  const a = (y0 * sampleWidth + x0) * 4;
+  const b = (y0 * sampleWidth + Math.min(x0 + 1, sampleWidth - 1)) * 4;
+  const stride = y0 < sampleHeight - 1 ? sampleWidth * 4 : 0;
+  for (let channel = 0; channel < 3; channel++) {
+    const upper = (1 - wx) * view[a + channel] + wx * view[b + channel];
+    const lower = (1 - wx) * view[a + channel + stride] + wx * view[b + channel + stride];
+    strip[dest + channel] = ((1 - wy) * upper + wy * lower) * shade;
+  }
+}
+
+function paintMaskedShoe(strip, foot, view, boots, mirror) {
+  const {points, left, right, columns} = foot;
+  for (const {x, y, offset, cuff, shade} of points) {
+    if (cuff && !boots) continue;
+    const column = columns[x];
+    const top = boots ? column.bootTop : column.top;
+    const u = (x - left) / Math.max(1, right - left);
+    const v = (y - top) / Math.max(1, column.bottom - top);
+    paintSample(strip, offset, view, mirror ? 1 - u : u, v, shade);
+  }
+}
 
 function mappedShoe(strip, pixels, foot, view, boots, mirror, outfit) {
   const {left, right, ankle, slope, top, bottom} = foot;
@@ -134,27 +248,17 @@ function mappedShoe(strip, pixels, foot, view, boots, mirror, outfit) {
       if (outfit === "mikoOutfit" && r > g * 1.5 && g > b * .8 && r - b > 30) continue;
 
       const u = (x - left) / (right - left);
-      const sourceX = (mirror ? 1 - u : u) * (sampleWidth - 1);
-      const sourceY = (level - top + extension) / (height + extension - 1) * (sampleHeight - 1);
-      const x0 = Math.floor(sourceX), y0 = Math.floor(sourceY);
-      const wx = sourceX - x0, wy = sourceY - y0;
-      const topLeft = (y0 * sampleWidth + x0) * 4;
-      const topRight = (y0 * sampleWidth + Math.min(x0 + 1, sampleWidth - 1)) * 4;
-      const nextRow = y0 < sampleHeight - 1 ? sampleWidth * 4 : 0;
-      const dest = offset - stripTop * cellWidth * 4;
-      // Keep the alpha of the original foot, including the exact sole contact.
-      for (let channel = 0; channel < 3; channel++) {
-        const near = (1 - wx) * view[topLeft + channel] + wx * view[topRight + channel];
-        const far = (1 - wx) * view[topLeft + channel + nextRow] + wx * view[topRight + channel + nextRow];
-        strip[dest + channel] = (1 - wy) * near + wy * far;
-      }
+      const v = (level - top + extension) / (height + extension - 1);
+      paintSample(strip, offset - stripTop * cellWidth * 4, view, mirror ? 1 - u : u, v);
     }
   }
 }
 
 export async function shoeLayers(pixels, row, frame) {
   const outfit = outfits[row];
-  const feet = ankleCenters[frame].map((_, side) => fitFoot(pixels, frame, side, outfit))
+  const maskColumn = maskedFrames.indexOf(frame);
+  const footprints = maskColumn >= 0 ? maskedFeet(pixels, row, frame, maskColumn) : [];
+  const feet = maskColumn >= 0 ? [] : ankleCenters[frame].map((_, side) => fitFoot(pixels, frame, side, outfit))
     .sort((a, b) => a.bottom - b.bottom);
   const facing = frame < 12 ? Math.floor(frame / 3) : 0;
   const profile = facing === 1 || facing === 2;
@@ -163,6 +267,10 @@ export async function shoeLayers(pixels, row, frame) {
   for (const [kind, id] of footwearIds.entries()) {
     const strip = Buffer.from(pixels.subarray(stripTop * cellWidth * 4));
     const boots = id === "starShoes" || id === "honeyRainboots";
+    for (const footprint of footprints) {
+      const mirror = facing === 2 || (!profile && footprint.mid > cellWidth / 2);
+      paintMaskedShoe(strip, footprint, contouredViews[id][view], boots, mirror);
+    }
     for (const foot of feet) {
       const mirror = facing === 2 || (!profile && foot.ankle > cellWidth / 2);
       mappedShoe(strip, pixels, foot, shoeViews[id][view], boots, mirror, outfit);

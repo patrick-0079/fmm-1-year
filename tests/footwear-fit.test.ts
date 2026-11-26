@@ -44,3 +44,21 @@ test("the far foot under a long hem and both seated tabi receive the selected le
     assert.ok(a > 200 && r - g > 35 && r - b > 45, clothes + " should show brown leather at " + x + ", " + y);
   }
 });
+
+test("the raised side-view toe samples the painted upper and sole of each source design", async () => {
+  const shoes = await readAtlas("fufu-footwear.webp");
+  const frame = 8, x = 119;
+  const sample = (id: typeof footwearIds[number], y: number) => {
+    const imageY = footwearIds.indexOf(id) * footStripHeight + y - (cellHeight - footStripHeight);
+    const offset = (imageY * shoes.info.width + frame * cellWidth + x) * 4;
+    return shoes.data.subarray(offset, offset + 4);
+  };
+  // The raised toe points right. Its upper is yellow on the rain boot and
+  // cream on the canvas sneaker; their outsole material is visible below.
+  const boot = sample("honeyRainboots", 160);
+  const sneaker = sample("mintSneakers", 160);
+  assert.ok(boot[3] > 220 && boot[0] > 175 && boot[1] > 130 && boot[1] - boot[2] > 65);
+  assert.ok(sneaker[3] > 220 && Math.min(sneaker[0], sneaker[1], sneaker[2]) > 145);
+  const bootSole = sample("honeyRainboots", 169);
+  assert.ok(bootSole[3] > 200 && bootSole[0] < boot[0] - 50 && bootSole[1] < boot[1] - 60);
+});
