@@ -86,7 +86,9 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   else chooseCategory("backpack");
   check(catalogue().length === 3 && !panel.querySelector('[data-select="wreath"]'), "背包类混入了其他穿戴部位");
   button('[data-select="moonBag"]').click();
-  check(["1","2"].includes(avatar().dataset.facing!), "试背时角色没有侧身");
+  check(avatar().dataset.facing === "3", "从正面试背月兔包时未显示包身");
+  button('[data-select="rabbitSatchel"]').click();
+  check(avatar().dataset.facing === "1", "试背斜挎包未转到挂包的一侧");
   const facings = new Set<string>();
   const drawings = new Set<string>();
   for (let i=0; i<4; i++) {

@@ -417,7 +417,9 @@ export class Inventory {
   private selectItem(id: ItemId) {
     this.selected = id;
     this.trying = this.state.owned.includes(id) && this.state.equipped[ITEMS[id].slot] !== id;
-    if (ITEMS[id].slot === "backpack" && (this.facing === 0 || this.facing === 3)) this.facing = 2;
+    if (id === "rabbitSatchel") {
+      if (this.facing === 2 || this.facing === 3) this.facing = 1;
+    } else if (ITEMS[id].slot === "backpack" && this.facing === 0) this.facing = 3;
     this.page = Math.max(0, Math.floor(this.filteredItems.indexOf(id) / this.pageSize));
     this.render();
   }

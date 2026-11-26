@@ -33,8 +33,7 @@ function table(id: string) {
       canvas.width=p.pose==="lying" ? 145 : 88; canvas.height=104;
       const ctx=canvas.getContext("2d")!;
       ctx.translate(canvas.width/2,p.pose==="lying" ? 61 : 98);
-      const zoom = worn.head === "witchHat" && p.pose !== "lying" ? 1.8 : 2;
-      ctx.scale(zoom,zoom);
+      ctx.scale(2,2);
       drawAvatar(ctx,p.pose,p.facing,p.step,worn);
       if (worn.pet && p.pose!=="lying") drawItem(ctx,worn.pet,8,-12,13,12);
       canvas.dataset.pose=p.pose;
@@ -66,3 +65,38 @@ for (const [i,clothes] of outfits.entries()) {
 }
 mixRow("月灯女巫套装",{clothes:"witchDress",head:"witchHat",hair:"heartClip"}).id = "witch-set";
 document.body.dataset.ready="true";
+
+export function verifyWornViews() {
+  const canvas=document.createElement("canvas");
+  canvas.width=116; canvas.height=108;
+  const c=canvas.getContext("2d",{willReadFrequently:true})!;
+  const paint=(pose:AvatarPose, facing:Facing, step:number, worn:Equipped) => {
+    c.clearRect(0,0,canvas.width,canvas.height);
+    c.save(); c.translate(58,pose==="lying" ? 60 : 101); c.scale(2,2);
+    drawAvatar(c,pose,facing,step,worn); c.restore();
+    return new Uint32Array(c.getImageData(0,0,canvas.width,canvas.height).data.buffer);
+  };
+  const pinsAndClips = (Object.keys(ITEMS) as ItemId[]).filter(id=>["hair","body"].includes(ITEMS[id].slot));
+  for (const clothes of outfits) for (const {pose,facing,step,name} of poses) {
+    const bare=paint(pose,facing,step,{clothes});
+    const differs=(worn:Equipped)=>{
+      const next=paint(pose,facing,step,{clothes,...worn});
+      return next.some((pixel,i)=>pixel!==bare[i]);
+    };
+    const check=(ok:boolean,id:ItemId)=>{if (!ok) throw Error(`${clothes ?? "原装"} · ${name} · ${ITEMS[id].name} 显隐错误`);};
+    for (const id of pinsAndClips) {
+      const slot=ITEMS[id].slot;
+      const visible=pose==="lying" ? slot==="hair" : facing===0 || facing===1;
+      check(differs({[slot]:id})===visible,id);
+    }
+    for (const backpack of ["moonBag","berryBag","rabbitSatchel"] as const)
+      check(differs({backpack})===(pose!=="lying"),backpack);
+    check(differs({head:"witchHat"})===(pose!=="lying"),"witchHat");
+    if (pose==="standing" && facing>=2) {
+      const hat=paint(pose,facing,step,{clothes,head:"witchHat"});
+      const clipped=paint(pose,facing,step,{clothes,head:"witchHat",hair:"heartClip"});
+      check(hat.every((pixel,i)=>pixel===clipped[i]),"heartClip");
+    }
+  }
+  return outfits.length * poses.length;
+}

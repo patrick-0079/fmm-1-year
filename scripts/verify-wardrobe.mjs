@@ -31,6 +31,9 @@ try {
   assert.equal(shapes.length,outfits.length);
   for (let pose=0;pose<15;pose++) assert.equal(new Set(shapes.map(row=>row[pose])).size,outfits.length);
   for (const row of shapes) assert.equal(new Set(row).size,15);
+  const wornViews=await page.evaluate(async ()=>(await import("/tests/equipment-fixture.ts")).verifyWornViews());
+  assert.equal(wornViews,outfits.length*15);
+  console.log(`${wornViews} 个角色姿势逐像素核对了发夹、胸针、尖帽和三款包的佩戴与摘下画面。`);
   if (process.env.WARDROBE_PREVIEW) {
     const preview=await page.evaluate(()=>{
       const rows=[...document.querySelectorAll("#outfits tbody tr")];
@@ -101,10 +104,11 @@ try {
     for (const [scene,spot,kind,col] of [["room","bed","lying",14],["challenge","rest","sitting",13],["meadow","meadow-camp","sitting",12]]) {
       await actual.evaluate(async ([s,p])=>window.contentQA.visit(s,p),[scene,spot]);
       await actual.locator("#world").press("e");
-      await actual.waitForFunction(([scene,kind,sx,sy])=>{
+      await actual.waitForFunction(([scene,kind,sx,row,height])=>{
         const state=window.contentQA.snapshot();
-        return state.scene===scene && state.rest?.kind===kind && window.qaDressedFrame?.[0]===sx && window.qaDressedFrame[1]===sy;
-      },[scene,kind,col*cellWidth,outfits.indexOf(id)*cellHeight],{timeout:10000});
+        return state.scene===scene && state.rest?.kind===kind && window.qaDressedFrame?.[0]===sx &&
+          Math.floor(window.qaDressedFrame[1]/height)===row;
+      },[scene,kind,col*cellWidth,outfits.indexOf(id),cellHeight],{timeout:10000});
       assert.equal((await snapshot()).equipment.hair,hair);
       if (scene==="room") await actual.getByRole("button",{name:"起床继续冒险",exact:true}).click();
       if (scene==="challenge") await actual.getByRole("button",{name:"起身继续走",exact:true}).click();

@@ -1,4 +1,3 @@
-import type { ItemId } from "./items";
 import { fitItem } from "./equipment";
 import wardrobeUrl from "./assets/wardrobe-icons.webp";
 import frames from "./wardrobe-icons.json";
@@ -11,7 +10,7 @@ export function whenWardrobeReady(callback: () => void) {
   else wardrobe.addEventListener("load", callback, {once:true});
 }
 
-export function drawItem(c: CanvasRenderingContext2D, id: ItemId | "rabbitPouch" | "witchHatProfile" | "witchHatBack",
+export function drawItem(c: CanvasRenderingContext2D, id: keyof typeof frames,
   x: number, y: number, w: number, h: number, fitted = true) {
   if (!wardrobe.naturalWidth) return;
   const [sx,sy,sw,sh] = frames[id];

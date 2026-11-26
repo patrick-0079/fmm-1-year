@@ -15,11 +15,9 @@ test("directional attachments stay on the body and only hair clips are worn in b
     const worn = { [item.slot]: id as ItemId };
     for (const facing of [0, 1, 2, 3] as Facing[])
       for (const pose of ["standing", "sitting", "bench"] as const) {
-        if (!["pet","clothes","shoes"].includes(item.slot) && !(item.slot === "body" && facing === 3 && pose === "standing"))
-          assert.ok(
-            equipmentParts(worn, pose, facing).length > 0,
-            `${id} has an attachment`,
-          );
+        const hidden = pose === "standing" && facing >= 2 && (item.slot === "body" || item.slot === "hair");
+        assert.equal(equipmentParts(worn, pose, facing).length > 0,
+          !hidden && !["pet","clothes","shoes"].includes(item.slot), `${id} · ${pose} · ${facing}`);
         for (const p of equipmentParts(worn, pose, facing)) {
           assert.equal(p.id, id);
           assert.ok(p.w > 0 && p.h > 0);
@@ -31,16 +29,7 @@ test("directional attachments stay on the body and only hair clips are worn in b
         assert.deepEqual(equipmentParts(worn, "lying", facing).map(p => p.id), item.slot === "hair" ? [id] : []);
       }
   }
-  assert.ok(
-    equipmentParts({ head: null, body: "moonBag" }, "standing", 0)
-      .filter((p) => !p.style)
-      .every((p) => p.layer === "behind"),
-  );
-  assert.ok(
-    equipmentParts({ head: null, body: "moonBag" }, "standing", 3).some(
-      (p) => p.layer === "front",
-    ),
-  );
+  assert.deepEqual(equipmentParts({body:"moonBag"}, "standing", 0).map(p=>p.style), ["straps"]);
   assert.deepEqual(
     equipmentParts({ head: null, body: "anniversaryPin" }, "standing", 3),
     [],
@@ -64,20 +53,36 @@ test("every clothing design selects its own complete pose atlas including both s
     assert.equal(last.y,row*last.h);
   }
 });
-test("each side-view pack meets the blouse at the shoulder across all six profile frames", () => {
-  // Back edge of the lavender sleeve at y = -16.6, measured on the base sprites.
-  // Comparing with the blouse keeps a bag resting on loose hair from passing.
-  const sleeve = {1: [.1, .5, .4], 2: [1, .6, -.2]} as const;
-  for (const facing of [1, 2] as const) {
-    for (const [frame, seam] of sleeve[facing].entries()) {
-      for (const backpack of ["moonBag", "berryBag", "rabbitSatchel"] as const) {
-        const bag = equipmentParts({backpack}, "standing", facing, frame).find(p => p.style === "bag")!;
-        assert.equal(bag.mirror, facing === 2);
-        const overlap = facing === 1 ? seam - bag.x : bag.x + bag.w - seam;
-        assert.ok(overlap >= .5 && overlap <= 2, `${backpack}, facing ${facing}, step ${frame}: shoulder overlap ${overlap}`);
-        assert.ok(bag.y < -18 && bag.y + bag.h > -13 && bag.y + bag.h < -9);
+test("rucksacks show the narrow gusset in profile and the satchel stays at the left hip", () => {
+  for (const frame of [0,1,2]) {
+    for (const backpack of ["moonBag","berryBag","rabbitSatchel"] as const) {
+      const parts = (facing: Facing) => equipmentParts({backpack}, "standing", facing, frame);
+      for (const facing of [1,2] as const) {
+        const profile=parts(facing), strap=profile.find(p=>p.style==="straps")!;
+        const bag=profile.find(p=>p.style==="bag");
+        assert.ok(strap && profile.every(p=>p.layer==="underArm"));
+        if (backpack === "rabbitSatchel") {
+          assert.equal(!!bag, facing === 1);
+          if (bag) assert.ok(bag.y >= strap.y && bag.w > bag.h);
+          continue;
+        }
+        assert.ok(bag && bag.w < bag.h / 2 && bag.mirror === (facing === 2));
+        const gap = facing === 1 ? bag.x - (strap.x+strap.w) : strap.x - (bag.x+bag.w);
+        assert.ok(Math.abs(gap)<1, "strap and gusset meet behind the shoulder");
       }
+      const front = parts(0).find(p=>p.style==="bag"), rear = parts(3).find(p=>p.style==="bag")!;
+      if (backpack === "rabbitSatchel") assert.ok(front && front.x > 0 && rear.x+rear.w < 0);
+      else assert.ok(!front && Math.abs(rear.x + rear.w/2)<.1);
     }
+  }
+});
+test("lapel pins turn edge-on at the near shoulder and disappear with the far lapel", () => {
+  for (const body of ["anniversaryPin","echoBrooch"] as const) for (const step of [0,1,2]) {
+    const [front]=equipmentParts({body},"standing",0,step);
+    const [edge]=equipmentParts({body},"standing",1,step);
+    assert.ok(front.x > 0 && edge.x < 0 && edge.w < front.w/2 && edge.h < front.h);
+    assert.equal(edge.style,"pinEdge");
+    for (const facing of [2,3] as const) assert.deepEqual(equipmentParts({body},"standing",facing,step),[]);
   }
 });
 test("flower crowns wrap behind and in front of the hair without rescaling either half", () => {
@@ -97,19 +102,16 @@ test("flower crowns wrap behind and in front of the hair without rescaling eithe
     }
   }
 });
-test("fringe-mounted clips remain small and are occluded by the hair when facing away", () => {
-  for (const head of ["candyClip", "starWings", "heartClip", "fishClip", "starClip"] as const) {
-    for (const frame of [0, 1, 2]) {
-      const front = equipmentParts({[ITEMS[head].slot]:head}, "standing", 0, frame);
-      const rear = equipmentParts({[ITEMS[head].slot]:head}, "standing", 3, frame);
-      assert.equal(front.length, 1);
-      assert.equal(rear.length, 1);
-      assert.equal(front[0].layer, "front");
-      assert.equal(rear[0].layer, "behind", `${head} must not be pasted over the back hair`);
-      assert.equal(rear[0].w, front[0].w, `${head} must not enlarge when turning away`);
-      assert.equal(rear[0].h, front[0].h);
-      const center = rear[0].x + rear[0].w / 2;
-      assert.ok(Math.abs(center) >= rear[0].w / 2, `${head} remains on the side rather than becoming a central back ornament`);
+test("fringe clips belong to the near temple and sit under the witch hat brim", () => {
+  for (const hair of ["candyClip","starWings","heartClip","fishClip","starClip"] as const) {
+    for (const frame of [0,1,2]) {
+      for (const facing of [0,1] as const) {
+        const parts=equipmentParts({head:"witchHat",hair},"standing",facing,frame);
+        assert.deepEqual(parts.map(p=>p.id),[hair,"witchHat"]);
+        const overlap=parts[1].y + parts[1].h - parts[0].y;
+        assert.ok(overlap > 0 && overlap < parts[0].h / 3);
+      }
+      for (const facing of [2,3] as const) assert.deepEqual(equipmentParts({hair},"standing",facing,frame),[]);
     }
   }
 });

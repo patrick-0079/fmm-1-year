@@ -44,10 +44,12 @@ const originalHeart = await sharp(filename(output("fufu-rest-poses.png")))
   .raw().toBuffer();
 const catalogueRows = [
   {sheet:"icons", columns:4, rows:4, names:["wreath","candyClip","headphones","starWings","roseDress","mintCape","ribbonShoes","starShoes",
-   "moonBag","berryBag","rabbitSatchel","anniversaryPin","echoBrooch","petBunny","petCat","rabbitPouch"]},
+   "moonBag","berryBag","rabbitSatchel","anniversaryPin","echoBrooch","petBunny","petCat"]},
   {sheet:"starter-icons", columns:4, rows:2, names:["cloudPajamas","apricotNightgown","sailorSet","honeyOveralls","heartClip","fishClip","starClip"]},
-  {sheet:"witch-icons", columns:2, rows:2, names:["witchDress","witchHat","witchHatProfile","witchHatBack"]},
+  {sheet:"witch-icons", columns:2, rows:2, names:["witchDress","witchHat"]},
   {sheet:"miko-icon", columns:1, rows:1, names:["mikoOutfit"]},
+  {sheet:"worn-hat", columns:2, rows:2, names:["hatFront","hatLeft","hatRight","hatRear"]},
+  {sheet:"worn-bags", columns:3, rows:2, names:["moonPackRear","berryPackRear","satchelFace","moonPackSide","berryPackSide","satchelEdge"]},
 ];
 const icons = [], bounds = {}, cell = 144, cols = 6;
 for (const {sheet, columns, rows, names} of catalogueRows) {

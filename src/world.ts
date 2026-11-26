@@ -228,7 +228,7 @@ export class World {
     const c = canvas.getContext("2d");
     if (!c) return;
     const pet = equipped.pet;
-    const scale = Math.min(canvas.height / (equipped.head === "witchHat" ? 60 : 50), canvas.width / (pet ? 62 : 40));
+    const scale = Math.min(canvas.height / (equipped.head === "witchHat" ? 53 : 50), canvas.width / (pet ? 62 : 40));
     c.clearRect(0, 0, canvas.width, canvas.height);
     c.save();
     c.imageSmoothingEnabled = false;
