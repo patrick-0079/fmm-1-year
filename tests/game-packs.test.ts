@@ -6,7 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { setImmediate } from "node:timers/promises";
 import { makeGamePacks, packBranch } from "../scripts/game-packs.mjs";
-import { recordPublished, syncPack } from "../scripts/publish-game-packs.mjs";
+import { recordPublished, syncPack, withBranchState } from "../scripts/publish-game-packs.mjs";
 import { PackResources } from "../src/pack-resources.ts";
 import type { Resource } from "../src/resource-queue.ts";
 
@@ -116,6 +116,7 @@ test("uploads repair mismatches and reuse complete packs on code-only builds", a
     const headers = new Headers(init?.headers);
     assert.equal(headers.get("content-md5"), createHash("md5").update(bodies.get(name)).digest("base64"));
     headers.set("content-length", String(bodies.get(name).length));
+    headers.set("etag", '"' + createHash("md5").update(bodies.get(name)).digest("hex") + '"');
     stored.set(name, headers);
     return new Response(null);
   };
@@ -123,9 +124,30 @@ test("uploads repair mismatches and reuse complete packs on code-only builds", a
     await writeFile(join(dir,pack.file), bodies.get(pack.file));
     assert.equal(await syncPack(request,dir,pack),"uploaded");
     assert.equal(await syncPack(request,dir,pack),"reused");
+    stored.get(pack.file)!.set("etag",'"different-bytes"');
+    assert.equal(await syncPack(request,dir,pack),"uploaded");
     stored.get(pack.file)!.set("x-amz-meta-sha256","wrong");
     assert.equal(await syncPack(request,dir,pack),"uploaded");
   }
+});
+
+test("two publications update the same JSON ledger with strong ETags even when compressed reads have weak ETags", async () => {
+  let body = "", etag = "";
+  const request = async (method: string, _: string, options: RequestInit = {}) => {
+    const headers = new Headers(options.headers);
+    if (method === "GET") return body ? new Response(body, { headers: {
+      etag: headers.get("accept-encoding") === "identity" ? etag : "W/" + etag,
+    } }) : new Response(null, { status:404 });
+    assert.equal(headers.get(body ? "if-match" : "if-none-match"), body ? etag : "*");
+    body = String(options.body);
+    etag = '"' + createHash("md5").update(body).digest("hex") + '"';
+    return new Response(null, { headers: { etag } });
+  };
+  for (const run of ["a","b"]) await withBranchState(request, async (state: {pending:Record<string,string>}) => {
+    state.pending[run] = run;
+  });
+  assert.deepEqual(JSON.parse(body).pending,{a:"a",b:"b"});
+  assert.equal(JSON.parse(body).lease,null);
 });
 
 test("retention keeps two different live sets, including shared packs and in-flight releases", () => {

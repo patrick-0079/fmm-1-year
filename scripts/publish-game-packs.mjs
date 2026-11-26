@@ -43,20 +43,30 @@ function storage(env, branch) {
   };
 }
 
-async function withBranchState(request, action) {
+export async function withBranchState(request, action) {
   const owner = randomUUID();
   const deadline = Date.now() + 140_000;
   while (Date.now() < deadline) {
-    const response = await request("GET", stateKey);
+    // A compressed JSON representation can carry a weak ETag. R2's conditional PUT
+    // must compare the strong ETag of the stored bytes.
+    const response = await request("GET", stateKey, { headers: { "Accept-Encoding": "identity" } });
     const state = response.status === 404 ? emptyState() : await ok(response, "读取版本记录").json();
     if (state.format !== 1 || !Array.isArray(state.history) || !state.pending || !Array.isArray(state.retired))
       throw Error("无法识别已有的资源发布记录");
     let etag = response.headers.get("etag");
-    if (!etag && response.status !== 404) throw Error("版本记录缺少 ETag");
+    if (response.status !== 404 && !etag) throw Error("版本记录缺少 ETag");
+    if (etag?.startsWith("W/")) {
+      const head = ok(await request("HEAD", stateKey, { headers: { "Accept-Encoding": "identity" } }), "检查版本记录");
+      const strong = head.headers.get("etag");
+      if (!strong || strong.startsWith("W/")) throw Error("版本记录缺少可用于条件写入的强 ETag");
+      // Retry with a fresh body if a writer changed it between GET and HEAD.
+      if (etag.slice(2) !== strong) { await delay(500); continue; }
+      etag = strong;
+    }
     const save = async lease => {
       state.lease = lease;
       const res = await request("PUT", stateKey, { body: JSON.stringify(state), headers: {
-        "Content-Type": "application/json", "Cache-Control": "no-store", [etag ? "If-Match" : "If-None-Match"]: etag || "*",
+        "Content-Type": "application/json", "Cache-Control": "no-store, no-transform", [etag ? "If-Match" : "If-None-Match"]: etag || "*",
       } });
       if (res.status === 412 || res.status === 409) return false;
       ok(res, "保存版本记录");
@@ -70,22 +80,25 @@ async function withBranchState(request, action) {
       if (!await save(lease())) throw Error("此分支已由另一构建接管");
     };
     try { return await action(state, checkpoint); }
-    finally { await save(null); } // The conditional write cannot unlock another publisher's lease.
+    finally {
+      if (!await save(null)) throw Error("当前发布锁已过期，版本记录由新持有者维护");
+    }
   }
   throw Error("等待该分支的发布锁超时");
 }
 
 export async function syncPack(request, dir, pack) {
+  const body = await readFile(join(dir, pack.file));
+  if (body.length !== pack.size || sha256(body) !== pack.hash) throw Error("本机资源包校验失败");
+  const md5 = createHash("md5").update(body).digest();
   const matches = head => head.ok && Number(head.headers.get("content-length")) === pack.size &&
-    head.headers.get("x-amz-meta-sha256") === pack.hash;
+    head.headers.get("x-amz-meta-sha256") === pack.hash && head.headers.get("etag") === '"' + md5.toString("hex") + '"';
   const head = await request("HEAD", pack.file);
   if (matches(head)) return "reused";
   if (head.status !== 404) ok(head, "检查 " + pack.file);
-  const body = await readFile(join(dir, pack.file));
-  if (body.length !== pack.size || sha256(body) !== pack.hash) throw Error("本机资源包校验失败");
   const res = await request("PUT", pack.file, { body, headers: {
     "Content-Type": "application/octet-stream", "Cache-Control": "public, max-age=31536000, immutable, no-transform",
-    "Content-MD5": createHash("md5").update(body).digest("base64"), "x-amz-meta-sha256": pack.hash,
+    "Content-MD5": md5.toString("base64"), "x-amz-meta-sha256": pack.hash,
   } });
   ok(res, "上传 " + pack.file);
   if (!matches(await request("HEAD", pack.file))) throw Error("远端资源包校验失败");
@@ -117,8 +130,8 @@ async function deployed(site, release) {
   } catch { return false; }
 }
 
-async function verifyPublic(index, pack, site) {
-  const res = await fetch(index.base + pack.file, { headers: { Range: "bytes=0-0", Origin: new URL(site).origin },
+async function verifyPublic(index, pack, site, dir) {
+  const res = await fetch(index.base + pack.file, { headers: { Range: "bytes=0-0", Origin: new URL(site).origin, "Accept-Encoding": "identity" },
     signal: AbortSignal.timeout(15000) });
   const cors = res.headers.get("access-control-allow-origin");
   if (res.status !== 206 || res.headers.get("content-range") !== "bytes 0-0/" + pack.size ||
@@ -126,7 +139,10 @@ async function verifyPublic(index, pack, site) {
     await res.body?.cancel();
     throw Error("公开地址 Range/CORS 校验失败 HTTP " + res.status);
   }
-  if ((await res.arrayBuffer()).byteLength !== 1) throw Error("公开地址未返回目标字节");
+  const first = new Uint8Array(await res.arrayBuffer()), local = await readFile(join(dir, pack.file));
+  const etag = '"' + createHash("md5").update(local).digest("hex") + '"';
+  if (first.length !== 1 || first[0] !== local[0] || res.headers.get("etag") !== etag)
+    throw Error("公开地址返回了错误版本的资源包");
 }
 
 async function branchHead(branch) {
@@ -174,7 +190,7 @@ async function publish(phase) {
     if (await deployed(site, release)) { online = true; break; }
   }
   if (!online) throw Error("线上版本与这次构建不符，推迟历史更新和清理");
-  if (!await syncSet(index.packs, p => verifyPublic(index, p, site))) throw Error("公开下载校验未完成，推迟清理");
+  if (!await syncSet(index.packs, p => verifyPublic(index, p, site, dir))) throw Error("公开下载校验未完成，推迟清理");
   await withBranchState(request, async (state, checkpoint) => {
     if (!await deployed(site, release)) throw Error("线上版本已切换，推迟清理");
     const candidates = recordPublished(state, current, build);
