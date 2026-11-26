@@ -516,6 +516,27 @@
 .bag-keepsake[data-town-keepsakes] canvas { width: min(75%, 56px); max-height: 48%; object-fit: contain; }
 .bag-mail-count { color: #765343; font-size: clamp(10px, 1.3cqw, 13px); line-height: 1.2; }
 .bag-keepsake.is-locked img { opacity: .5; filter: saturate(.35); }
+.bag-keepsakes:has(+ .bag-tape) { flex: 1; min-height: 0; }
+.bag-tape {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  padding: 0 var(--gap);
+  border: 1px solid #c99e77;
+  border-radius: 5px;
+  background: #fff2dd;
+  font-size: clamp(11px, 1.6cqw, 15px);
+}
+.bag-tape canvas {
+  width: clamp(22px, 4cqw, 36px);
+  height: auto;
+  image-rendering: pixelated;
+}
+.bag-tape small {
+  margin-left: auto;
+  color: #765343;
+  font-size: clamp(10px, 1.3cqw, 13px);
+}
 .inventory-panel[data-town-keepsakes-open] { display: flex; padding: clamp(8px, 1.5cqw, 16px); }
 .bag-town-paper {
   flex: 1;
@@ -548,6 +569,8 @@
 .bag-town-detail canvas { width: clamp(42px, 13cqw, 116px); height: auto; }
 .bag-town-detail p { max-width: 24em; line-height: 1.55; }
 @container (max-width: 560px) {
+  .inventory-panel:has(.bag-tape) .bag-dressing { display: none; }
+  .inventory-panel:has(.bag-tape) .bag-collection { grid-column: 1 / -1; }
   .bag-keepsakes { gap: 3px; padding: 3px; }
   .bag-keepsake { padding: 2px; line-height: 1.15; }
   .bag-town-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
@@ -619,6 +642,7 @@
 }
 @container (max-width: 340px) {
   .inventory-panel { right: 1.3%; height: 58cqw; }
+  .inventory-panel:has(.bag-tape) .bag-footer { display: none; }
   .bag-heading h3 { top: -1px; translate: -50% -68%; font-size: 15px; }
   .bag-tabs { margin-top: 3px; }
   .bag-detail:has(+ .bag-apply:enabled) small { display: none; }

@@ -1,5 +1,7 @@
 import { NATURE_KEY } from "./nature-save";
 import type { World } from "./world";
+import type { GardenTape } from "./core";
+import { paintAchievementArt } from "./achievement-art";
 import {
   ITEMS,
   INVENTORY_KEY,
@@ -51,6 +53,7 @@ export class Inventory {
   notebookState: () => { astrolabe: AstrolabeState; listened: boolean } | null = () => null;
   mailbox?: () => LetterList;
   townKeepsakes: () => TownKeepsakes = () => ({ items: [] });
+  gardenTape: () => GardenTape = () => "missing";
   private mailCleanups: (() => void)[] | null = null;
   private onBagReturn?: () => void;
   private trigger = document.querySelector<HTMLButtonElement>(".bag-toggle")!;
@@ -223,6 +226,9 @@ export class Inventory {
       const label = this.root.querySelector("[data-town-keepsakes] .bag-mail-count");
       if (label) label.textContent = `${this.townKeepsakes().items.length} / ${townInteriorKeys.length}`;
     }
+  }
+  refreshGardenTape() {
+    if (!this.root.hidden && this.root.querySelector(".bag-keepsakes")) this.render();
   }
   openWardrobe() {
     if (this.root.hidden) this.open();
@@ -569,10 +575,12 @@ export class Inventory {
       const book = this.hasNotebook();
       const bouquet = this.hasBouquet();
       const townCount = this.townKeepsakes().items.length;
+      const tape = this.gardenTape();
       const mail = this.mailbox ? `<button type="button" class="bag-keepsake" data-mail data-focus="mail"><img src="${envelopeUrl}" alt=""><span>晚安来信</span><small class="bag-mail-count"></small></button>` : "";
       return `<div class="bag-keepsakes">${mail}<button type="button" class="bag-keepsake ${book ? "" : "is-locked"}" data-notebook data-focus="notebook" ${book ? "" : "disabled"} aria-label="${book ? "翻开遗迹手记" : "遗迹手记，和回声遗迹的守护者交谈后获得"}">${journalCoverMarkup}<span>遗迹手记</span></button>
         <button type="button" class="bag-keepsake ${bouquet ? "" : "is-locked"}" data-bouquet data-focus="bouquet" ${bouquet ? "" : "disabled"} title="${bouquet ? "查看花束与赠语" : "在周年小镇的青芽花店领取"}"><img src="${bouquetUrl}" alt=""><span>青芽的洋桔梗</span></button>
-        <button type="button" class="bag-keepsake" data-town-keepsakes data-focus="town-keepsakes"><canvas data-town-icon="hall" width="48" height="52" aria-hidden="true"></canvas><span>小镇小物</span><small class="bag-mail-count">${townCount} / ${townInteriorKeys.length}</small></button></div>`;
+        <button type="button" class="bag-keepsake" data-town-keepsakes data-focus="town-keepsakes"><canvas data-town-icon="hall" width="48" height="52" aria-hidden="true"></canvas><span>小镇小物</span><small class="bag-mail-count">${townCount} / ${townInteriorKeys.length}</small></button></div>
+        ${tape === "missing" ? "" : `<div class="bag-tape" data-garden-tape><canvas data-stamp-art="garden-tape" width="32" height="32" aria-hidden="true"></canvas><strong>周年录像带</strong><small>${tape === "inserted" ? "已放入放映机" : "已拾取"}</small></div>`}`;
     }
     const start = this.page * this.pageSize;
     const items = this.filteredItems;
@@ -667,6 +675,7 @@ export class Inventory {
       <div class="bag-collection">${this.collection()}</div>
       <footer class="bag-footer">${this.footer()}</footer>`);
     this.refreshMailCount();
+    if (this.root.querySelector("[data-garden-tape]")) paintAchievementArt(this.root);
     this.clearJournalHint = bindJournalScrollHint(this.root);
     if (focused) {
       const target = focusKey ? this.root.querySelector<HTMLElement>(`[data-focus="${focusKey}"]:not(:disabled)`) : null;

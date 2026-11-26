@@ -206,10 +206,12 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
   }
   function mergeLiveCollections(other: ReturnType<typeof readProgress>) {
     const flowers = progress.rainbowFlowers.length, visited = progress.visited.length;
+    const tape = progress.gardenTape;
     const { items, radioTrack } = progress.townKeepsakes;
     const flower = townKeepsakeChoice(progress.townKeepsakes, "florist"), postcard = townKeepsakeChoice(progress.townKeepsakes, "post");
     const souvenirs = items.length;
     mergeCollections(progress, other);
+    if (progress.gardenTape !== tape) inventory.refreshGardenTape();
     if (flowers !== progress.rainbowFlowers.length) flowerTrail.refresh();
     if (visited !== progress.visited.length) document.querySelector("#explored")!.textContent = String(progress.visited.length);
     if (souvenirs !== items.length || radioTrack !== progress.townKeepsakes.radioTrack
@@ -264,7 +266,9 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
       chime(true);
     }
   }
+  const getGardenTape = () => progress.gardenTape;
   const inventory = new Inventory(world, toast);
+  inventory.gardenTape = getGardenTape;
   inventory.canSave = canSaveReceipts;
   inventory.townKeepsakes = () => progress.townKeepsakes;
   inventory.mailbox = mailbox;
@@ -389,7 +393,6 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     campLetterButton.hidden =
       world.restState?.scene !== "meadow" || !mail.received(handedLetters.patrick);
   };
-  const getGardenTape = () => progress.gardenTape;
   const meadow = new NightMeadow(world, () => progress.creditStars, save, () => progress.residents,
     () => { mail.collect(handedLetters.patrick); refreshCampLetter(); }, getGardenTape, () => {
       if (progress.gardenTape !== "missing" || !canSaveReceipts()) return;

@@ -121,11 +121,31 @@ try {
   const walk = await browser.newPage(device);
   walk.on("pageerror", error => errors.push(String(error)));
   await walk.route(/^https:\/\/cdn\./, route => route.abort());
-  await walk.goto(server.resolvedUrls.local[0] + "tests/exploration-fixture.html");
+  await walk.goto(server.resolvedUrls.local[0] + "tests/exploration-fixture.html", { waitUntil: "domcontentloaded" });
   const press = async (selector) => {
     const node = walk.locator(selector).first();
     if (device.hasTouch) await node.tap();
     else await node.click();
+  };
+  const checkTapeKeepsake = async (status) => {
+    await press(".bag-toggle");
+    await press('.bag-tabs [data-tab="keepsakes"]');
+    const bag = walk.locator('.inventory-panel[data-tab="keepsakes"]');
+    await bag.locator(".bag-keepsakes").waitFor({ state: "visible" });
+    const tape = bag.locator("[data-garden-tape]");
+    if (status) {
+      assert.equal(await tape.count(), 1);
+      assert.ok(await tape.isVisible());
+      const text = await tape.innerText();
+      assert.ok(text.includes("周年录像带") && text.includes(status), text);
+      assert.ok(await tape.evaluate(card => {
+        const action = 'button, a[href], [role="button"], [tabindex="0"]';
+        return !card.matches(action) && !card.querySelector(action);
+      }), "录像带纪念卡只展示收藏状态");
+    } else {
+      assert.equal(await tape.count(), 0, "取带前背包里不应出现录像带");
+    }
+    await press(".bag-close");
   };
   const chooseProp = async id => {
     const canvas = walk.locator("#world");
@@ -140,6 +160,7 @@ try {
     else await canvas.click({ position });
   };
   await press(".enter-button");
+  await checkTapeKeepsake(null);
   await walk.setViewportSize(device.hasTouch ? { width: 844, height: 390 } : { width: 827, height: 763 });
   await chooseProp("album");
   await press(".photo-book-photo");
@@ -180,8 +201,10 @@ try {
   else await interact();
   await walk.waitForFunction(() => window.contentQA.snapshot().progress.gardenTape === "carried");
   assert.ok(await walk.evaluate(() => window.contentQA.snapshot().progress.achievements.earned.includes("garden-tape")));
-  await walk.reload();
+  await checkTapeKeepsake("已拾取");
+  await walk.reload({ waitUntil: "domcontentloaded" });
   await press(".enter-button");
+  await checkTapeKeepsake("已拾取");
   await arrive("garden", "danmaku");
   await chooseProp("danmaku");
   const insert = walk.getByRole("button", { name: "放入录像带", exact: true });
@@ -190,8 +213,12 @@ try {
   await walk.locator(".cinema-hud").waitFor({ state: "visible" });
   assert.ok(await walk.evaluate(() => window.contentQA.snapshot().progress.achievements.earned.includes("memories")));
   await press(".cinema-leave");
+  await checkTapeKeepsake("已放入放映机");
+  await walk.reload({ waitUntil: "domcontentloaded" });
+  await press(".enter-button");
+  await checkTapeKeepsake("已放入放映机");
   assert.deepEqual(errors, []);
-  console.log("相册、周年海报、小叶子线索、采齐七色花、花门、帐篷取带、刷新后插带和回忆勋章全部通过");
+  console.log("相册、周年海报、小叶子线索、七色花门、帐篷取带、放映与勋章均通过。背包纪念卡在拾取和插带后分别刷新仍显示对应状态。");
 } finally {
   await browser?.close();
   await server.close();
