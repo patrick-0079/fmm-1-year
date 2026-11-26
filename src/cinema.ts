@@ -1,5 +1,7 @@
 import type { World } from "./world";
+import type { GardenTape } from "./core";
 import { gardenFilm, gardenScreen, televisionSilhouette } from "./cinema-config";
+import { anniversaryPoster } from "./cinema-poster";
 import { drawGardenScreen } from "./cinema-screen";
 import { CinemaSession, mediaTime, containVideo } from "./cinema-state";
 import { duckMusic } from "./sound";
@@ -27,6 +29,7 @@ export class GardenCinema {
     private world: World,
     private toast: (text: string) => void,
     private prepareResources: () => Promise<void>,
+    private getTape: () => GardenTape,
   ) {
     const layers = world.getDepthLayers,
       tick = world.onTick,
@@ -57,7 +60,7 @@ export class GardenCinema {
     world.onTick = (dt, t) => {
       tick(dt, t);
       this.time = t;
-      if (this.active && world.scene !== "garden") this.close();
+      if (this.active && (world.scene !== "garden" || this.getTape() !== "inserted")) this.close();
       if (t - this.lastUi > 0.4) {
         this.lastUi = t;
         this.render();
@@ -166,6 +169,7 @@ export class GardenCinema {
     const filmRate = traffic?.film;
     if (filmRate) this.download.onBytes = bytes => filmRate.add(bytes, performance.now());
     window.addEventListener("online", () => this.prepare());
+    this.render();
   }
   prepare() {
     if (this.preparing || this.resourcesReady) return;
@@ -185,8 +189,7 @@ export class GardenCinema {
     return this.session.active;
   }
   open() {
-    if (this.world.scene !== "garden") return;
-    this.session.open();
+    if (this.world.scene !== "garden" || !this.session.open(this.getTape())) return;
     this.ensureVideo();
     this.prepare();
     if (this.video!.readyState >= 3) this.session.ready();
@@ -219,6 +222,7 @@ export class GardenCinema {
   }
   reset() {
     this.close();
+    this.notified = false;
     if (this.video?.readyState) {
       this.video.currentTime = 0;
       this.session.pause();
@@ -241,7 +245,7 @@ export class GardenCinema {
     v.addEventListener("canplay", () => {
       this.session.ready();
       this.slow = false;
-      if (!this.active && !this.notified) {
+      if (!this.active && !this.notified && this.getTape() === "inserted") {
         this.toast("花园小电视准备好啦，随时回来按播放继续看 ♡");
         this.notified = true;
       }
@@ -251,10 +255,10 @@ export class GardenCinema {
     v.addEventListener("play", () => {
       if (this.active && this.expanded && !this.session.wanted)
         this.session.request();
-      if (!this.active || !this.session.wanted) v.pause();
+      if (!this.active || !this.session.wanted || this.getTape() !== "inserted") v.pause();
     });
     v.addEventListener("playing", () => {
-      if (!this.session.playing()) {
+      if (this.getTape() !== "inserted" || !this.session.playing()) {
         v.pause();
         return;
       }
@@ -351,7 +355,7 @@ export class GardenCinema {
   }
   private play() {
     const v = this.video;
-    if (!v || !this.session.request()) return;
+    if (!v || this.getTape() !== "inserted" || !this.session.request()) return;
     if (this.download.progress.state !== "ready" || !v.src) {
       this.render();
       return;
@@ -389,13 +393,17 @@ export class GardenCinema {
     if (traffic) traffic.filmStatus = this.download.progress.source ? "使用本机缓存" : this.resourcesFailed ? "等待资源重试" :
       ({ queued: "等待游戏资源", checking: "核对本机版本", loading: "下载中", ready: "已完成", error: "下载失败" })[this.download.progress.state];
     const shortcut = document.querySelector(".cinema-shortcut small");
-    if (shortcut) shortcut.textContent = progress;
+    if (shortcut) {
+      const tape = this.getTape();
+      shortcut.textContent = tape === "missing" ? "周年海报 · 找小叶子打听录像带" :
+        tape === "carried" ? "已拿到录像带 · 去花园放入放映机" : progress;
+    }
     if (!this.active) return;
     const v = this.video,
       s = this.session.stage;
     const messages: Record<typeof s, string> = {
       idle: "正在准备花园小电视…",
-      loading: "LOADING… 周年视频正在加载，可以先离开逛逛，稍后回来再看。",
+      loading: "放映机正在加载周年录像，可以先去花园逛逛，稍后回来再看。",
       ready:
         "画面准备好了 · 按播放开始观看。离开后再回来，缓冲和观看位置都会保留。",
       playing: "正在播放 · 离开时会暂停，回来继续看。",
@@ -455,6 +463,11 @@ export class GardenCinema {
   }
   private draw(c: CanvasRenderingContext2D) {
     if (this.world.scene !== "garden") return;
+    if (this.getTape() !== "inserted") {
+      const poster = anniversaryPoster();
+      drawGardenScreen(c, ctx => ctx.drawImage(poster, 0, 0, gardenScreen.w, gardenScreen.h));
+      return;
+    }
     const box = gardenScreen,
       v = this.video,
       s = this.session.stage;
@@ -481,8 +494,7 @@ export class GardenCinema {
         c.fillStyle = "#f8dfb0";
         c.font = '7px "Microsoft YaHei","PingFang SC",sans-serif';
         c.fillText(
-          s === "error" ? "画面还在路上" : downloading ? "正在下载周年影片" :
-            download.state === "queued" ? "等待游戏资源" : v ? "准备画面中…" : "芙芙 · 一周年放映",
+          s === "error" ? "画面还在路上" : "正在加载周年录像…",
           box.x + box.w / 2,
           box.y + 21,
         );

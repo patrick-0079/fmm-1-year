@@ -26,6 +26,15 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
     if (!action) throw Error("找不到「"+name+"」，当前选项 "+actions().map(b=>b.textContent).join("、"));
     action.click();
   };
+  const askAboutTape = () => {
+    const previousStage = state().gardenTape;
+    choose("周年录像带在哪里？");
+    const clue = q(".activity-status").textContent ?? "";
+    for (const place of ["七色花", "气球摊南侧", "花门", "营火左边的帐篷", "放映机"])
+      assert(clue.includes(place), "小叶子的录像带线索缺少" + place);
+    choose("我记住啦");
+    assert(state().gardenTape === previousStage, "打听线索时录像带状态变了");
+  };
   const close = () => { if (!q(".activity-hud").hidden) q(".activity-close").click(); };
   const approach = async(scene: SceneId, id: string) => {
     close();
@@ -123,6 +132,7 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
       firstOffer!.click();
       assert(letterCount() === count && !has("letter-xiaoye"), "中途离开后旧按钮仍能收信");
       await visit(scene, id);
+      askAboutTape();
     }
     assert(letterCount()===count && !has("letter-"+author),author+" 在实际领取前提前盖章");
     choose(final);
@@ -130,6 +140,9 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
       assert(world.getActorPresentation(), "收信打断了正在播放的拥抱");
       await wait(() => !world.getActorPresentation(), "收信后拥抱没有自然结束");
       assert(actions().some(button => button.textContent === "现在读信"), "拥抱结束后读信入口消失");
+      await visit(scene, id);
+      await wait(() => actions().some(button => button.textContent === "周年录像带在哪里？"), "重逢后没有录像带线索");
+      askAboutTape();
     }
     await wait(()=>letterCount()===count+1,author+" 实际收信后信箱数量未增加");
     if (author==="rabe") {

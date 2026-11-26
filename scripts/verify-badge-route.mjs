@@ -152,11 +152,46 @@ try {
   });
   await walk.setViewportSize(device.viewport);
   await chooseProp("danmaku");
+  await walk.locator(".activity-status").filter({ hasText: "小叶子" }).waitFor();
+  assert.ok(await walk.locator(".cinema-hud").isHidden());
+  await press(".activity-close");
+  const arrive = (scene, id) => walk.evaluate(([scene, id]) => window.contentQA.visit(scene, id), [scene, id]);
+  const interact = async () => {
+    if (device.hasTouch) await press(".touch-interact");
+    else { await walk.locator("#world").focus(); await walk.keyboard.press("e"); }
+  };
+  await arrive("garden", "xiaoye-plush");
+  await interact();
+  const clue = walk.getByRole("button", { name: "周年录像带在哪里？", exact: true });
+  await clue.click();
+  assert.match(await walk.locator(".activity-status").innerText(), /七色花[\s\S]*帐篷/);
+  await press(".activity-close");
+  const flowers = await walk.evaluate(async () => (await import("/src/rainbow-flowers.ts")).rainbowFlowers);
+  for (const { scene, id } of flowers) {
+    await arrive(scene, id);
+    await interact();
+    await walk.waitForFunction(id => window.contentQA.snapshot().progress.rainbowFlowers.includes(id), id);
+  }
+  await arrive("garden", "prism-arch");
+  await interact();
+  await walk.waitForFunction(() => window.contentQA.snapshot().scene === "meadow" && !window.contentQA.snapshot().paused);
+  await arrive("meadow", "meadow-garden-tape");
+  if (device.hasTouch) await chooseProp("meadow-garden-tape");
+  else await interact();
+  await walk.waitForFunction(() => window.contentQA.snapshot().progress.gardenTape === "carried");
+  assert.ok(await walk.evaluate(() => window.contentQA.snapshot().progress.achievements.earned.includes("garden-tape")));
+  await walk.reload();
+  await press(".enter-button");
+  await arrive("garden", "danmaku");
+  await chooseProp("danmaku");
+  const insert = walk.getByRole("button", { name: "放入录像带", exact: true });
+  if (device.hasTouch) await insert.tap();
+  else await insert.click();
   await walk.locator(".cinema-hud").waitFor({ state: "visible" });
   assert.ok(await walk.evaluate(() => window.contentQA.snapshot().progress.achievements.earned.includes("memories")));
   await press(".cinema-leave");
   assert.deepEqual(errors, []);
-  console.log("从小屋出生，" + (device.hasTouch ? "触屏" : "鼠标") + "点相册、单张照片、地图导航和大屏，自动寻路后盖章");
+  console.log("相册、周年海报、小叶子线索、采齐七色花、花门、帐篷取带、刷新后插带和回忆勋章全部通过");
 } finally {
   await browser?.close();
   await server.close();

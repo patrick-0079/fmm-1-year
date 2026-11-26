@@ -12,6 +12,15 @@ export const campLetterSpot: Hotspot = {
     anchor: { x: 4, y: -6 }, objectBox: { x: -6, y: -8, w: 12, h: 9 },
   },
 };
+export const tentTapeSpot: Hotspot = {
+  id: "meadow-garden-tape", title: "拾起周年录像带", x: 164, y: 158,
+  approach: { x: 164, y: 180 }, radius: 31, selfMarked: true,
+  hitAreas: [{ x: 150, y: 145, w: 27, h: 15 }],
+  cue: {
+    kind: "collect", action: "拾起周年录像带", verb: "拾起", natural: false,
+    anchor: { x: 6, y: -8 }, objectBox: { x: -10, y: -11, w: 20, h: 12 },
+  },
+};
 export const starJar = { x: 198, y: 194 };
 export const meadowExit = { x: 58, y: 238 };
 export const meadowFlock = [
@@ -72,7 +81,7 @@ export const meadowGround: Scene = {
       approach: {x: 87, y: 239}, radius: 39, markerOffset: 0, selfMarked: true},
     {id: "meadow-camp", title: "在营火边坐坐", ...campfire,
       approach: {x: 247, y: 184}, radius: 40, selfMarked: true},
-    campLetterSpot,
+    campLetterSpot, tentTapeSpot,
     {id: "meadow-jar", title: "看看星光瓶", ...starJar,
       approach: {x: 186, y: 210}, radius: 34, selfMarked: true},
   ],

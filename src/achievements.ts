@@ -90,6 +90,7 @@ const explore: Definition[] = [
   { id: "day-secrets", chapter: "explore", name: "一天里的三个秘密", difficulty: "探索", description: "清晨采晨露花，黄昏拾金色纸船，星夜触发萤火心愿。可以跨天完成。", hint: "同一条溪流，一天会捎来几种小礼物？" },
   { id: "star-bottle", chapter: "explore", name: "瓶里住着一片星空", difficulty: "挑战", description: "拾齐花海草地上的全部署名星。", hint: "草叶之间藏着一片可以捧在手里的夜空。" },
   { id: "camp", chapter: "explore", name: "火边多了一个座位", difficulty: "探索", description: "在花海营火旁连续坐满 30 秒，等到派大星来陪你。", hint: "这里的火，好像够两个人烤。" },
+  { id: "garden-tape", chapter: "explore", name: "藏在花海的这一年", difficulty: "探索", description: "在花海的帐篷里找到并收下周年录像带。", hint: "小叶子记得，芙芙这一年的影像收在了哪里。" },
   ...seals.map(({ id, name, hint }): Definition => ({
     id: "ruin-" + id, chapter: "explore", name,
     description: hint + "。", difficulty: id === "first" ? "简单" : id === "light" ? "挑战" : id === "radio" ? "探索" : "普通",
@@ -296,6 +297,7 @@ export function reconcileAchievements(progress: Progress, context: AchievementCo
   meters.set("day-secrets", meter(eggs.filter(id => facts.has(id)).length, eggs.length, "个秘密"));
   meters.set("star-bottle", meter(producers.filter(p => progress.creditStars.includes(p.id)).length, producers.length, "颗落星"));
   meters.set("camp", yesNo(story.patrickArrived));
+  meters.set("garden-tape", yesNo(progress.gardenTape !== "missing"));
   const earnedInRuins = earnedSeals(progress.astrolabe, progress.echoes.listened);
   for (const seal of seals) meters.set("ruin-" + seal.id, yesNo(earnedInRuins.includes(seal.id)));
   for (const key of townInteriorKeys) {

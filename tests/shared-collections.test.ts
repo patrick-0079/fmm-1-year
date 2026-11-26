@@ -47,3 +47,18 @@ test("independent arcade records converge on the highest score per game", () => 
     assert.deepEqual(target.arcadeBests, { flight: 16, mines: 26, miner: 320 });
   }
 });
+
+test("the garden tape stays picked up and inserted when tabs save in either order", () => {
+  const states = ["missing", "carried", "inserted"] as const;
+  for (const [index, first] of states.entries()) {
+    for (const second of states.slice(index)) {
+      const a = readProgress(null), b = readProgress(null);
+      a.gardenTape = first;
+      b.gardenTape = second;
+      mergeCollections(b, a);
+      mergeCollections(a, b);
+      assert.equal(a.gardenTape, second);
+      assert.equal(b.gardenTape, second);
+    }
+  }
+});

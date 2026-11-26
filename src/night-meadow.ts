@@ -1,6 +1,6 @@
 import { producers } from "./content";
-import type { Point } from "./core";
-import { campfire, campLetterSpot, campSeat, meadowExit, starJar, tentRoof } from "./meadow-map";
+import type { Point, Progress } from "./core";
+import { campfire, campLetterSpot, campSeat, meadowExit, starJar, tentRoof, tentTapeSpot } from "./meadow-map";
 import { meadowFlock as flock } from "./meadow-ground";
 import { sfx } from "./sound";
 import { drawWildSprite } from "./wild-art";
@@ -47,6 +47,30 @@ function glint(c: CanvasRenderingContext2D, x: number, y: number, size: number, 
   c.fillRect(Math.round(x), Math.round(y - size), 1, size * 2 + 1);
 }
 
+function drawTentTape(c: CanvasRenderingContext2D) {
+  const { x, y } = tentTapeSpot;
+  c.fillStyle = "#372c3c70";
+  c.fillRect(x - 8, y - 1, 19, 2);
+  c.fillStyle = "#262534";
+  c.fillRect(x - 10, y - 9, 20, 9);
+  c.fillStyle = "#565161";
+  c.fillRect(x - 9, y - 10, 18, 8);
+  c.fillStyle = "#b59aab";
+  c.fillRect(x - 9, y - 10, 18, 1);
+  c.fillStyle = "#353340";
+  c.fillRect(x - 8, y - 8, 16, 4);
+  c.fillStyle = "#cec0af";
+  c.fillRect(x - 7, y - 8, 3, 3);
+  c.fillRect(x + 4, y - 8, 3, 3);
+  c.fillStyle = "#514650";
+  c.fillRect(x - 6, y - 7, 1, 1);
+  c.fillRect(x + 5, y - 7, 1, 1);
+  c.fillStyle = "#f0ceae";
+  c.fillRect(x - 5, y - 4, 10, 2);
+  c.fillStyle = "#c47580";
+  c.fillRect(x + 2, y - 4, 2, 1);
+}
+
 export class NightMeadow {
   private time = 0;
   private reduced = matchMedia("(prefers-reduced-motion: reduce)");
@@ -70,7 +94,8 @@ export class NightMeadow {
   }
 
   constructor(private world: World, private found: () => string[], private save: () => void,
-    campStory: () => ResidentStory, private collectCampLetter: () => void) {
+    campStory: () => ResidentStory, private collectCampLetter: () => void,
+    private getTape: () => Progress["gardenTape"], private collectTape: () => void) {
     this.reader = new MeadowStarReader(world);
     this.bottle = new StarBottleView(world, found);
     this.campGuest = new CampGuest(world, campStory, save);
@@ -87,9 +112,12 @@ export class NightMeadow {
         drawMoonCircle(c,meadowExit.x,meadowExit.y,this.reduced.matches ? 0 : this.time,near);
       }
     };
-    world.available = spot => available(spot) && (spot.id === campLetterSpot.id
-      ? this.campGuest.letterOnGround
-      : !(world.scene === "meadow" && this.found().includes(spot.id)));
+    world.available = spot => {
+      if (!available(spot)) return false;
+      if (spot.id === tentTapeSpot.id) return this.getTape() === "missing";
+      if (spot.id === campLetterSpot.id) return this.campGuest.letterOnGround;
+      return !(world.scene === "meadow" && this.found().includes(spot.id));
+    };
     world.onTick = (dt, t) => {
       tick(dt, t);
       if (world.scene !== "meadow") return;
@@ -128,6 +156,10 @@ export class NightMeadow {
   closeBottle() { this.bottle.close(); }
   interact(id: string) {
     if (this.world.scene !== "meadow") return false;
+    if (id === tentTapeSpot.id) {
+      if (this.getTape() === "missing") this.collectTape();
+      return true;
+    }
     if (id === campLetterSpot.id) {
       if (this.campGuest.letterOnGround) this.collectCampLetter();
       return true;
@@ -208,6 +240,7 @@ export class NightMeadow {
       ...this.campGuest.layers(sceneArt.patrickCamp, this.reduced.matches),
       ...visibleMapCovers(this.world, sceneryCovers),
     ];
+    if (this.getTape() === "missing") layers.push({ y: tentTapeSpot.y, draw: drawTentTape });
     const view = this.world.visibleArea;
     this.jellies?.animals.forEach((animal, index) => {
       if (!animal.visible) return;

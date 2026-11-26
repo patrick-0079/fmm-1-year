@@ -150,7 +150,7 @@ try {
     assert.equal(await page.locator(":modal").count(), 0);
     // Legacy saves also retain the original public letter from Kerry as already read.
     const historical = ["day-secrets", "gifts", "letter-kerry", "wreath"];
-    assert.equal(await page.locator(".achievement-count strong").textContent(), restored ? `${historical.length} / 55` : "0 / 55");
+    assert.equal(await page.locator(".achievement-count strong").textContent(), restored ? `${historical.length} / 56` : "0 / 56");
     await page.getByRole("tab", { name: "地图", exact: true }).click();
     cover.release();
     await Promise.all([starting.seen, page.waitForFunction(() => {
@@ -210,7 +210,7 @@ try {
     assert.equal(await current.getAttribute("data-current-map"), restored ? "town-radio" : "room");
     if (restored) {
       await badges.click();
-      assert.equal(await page.locator(".achievement-count strong").textContent(), `${historical.length} / 55`);
+      assert.equal(await page.locator(".achievement-count strong").textContent(), `${historical.length} / 56`);
       assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("nemu-anniversary-v1")).achievements.earned.sort()), historical);
       await page.getByRole("tab", { name: "地图", exact: true }).click();
       assert.ok(await page.locator(".achievement-flash").isHidden(), "loading legacy achievements must stay silent");
@@ -257,8 +257,10 @@ try {
     await page.locator(`.scene-wrap[data-current-map="${target}"]`).waitFor();
     await last.seen;
     assert.equal(films, 0);
+    const failedFilm = page.waitForResponse(response => /\.mp4(?:\?|$)/i.test(response.url()) && response.status() === 503);
     last.release();
-    await page.waitForFunction(() => document.querySelector(".cinema-shortcut small")?.textContent?.includes("视频预载失败"));
+    await failedFilm;
+    assert.match(await page.locator(".cinema-shortcut small").innerText(), /小叶子.*录像带/);
     assert.equal(films, 1);
     assert.ok(backgroundReads() > beforeCrossing, "interrupted background downloads resume after the crossing");
     assert.equal(originals, 0);
@@ -319,10 +321,22 @@ try {
     const debug = await browser.newContext();
     const page = await debug.newPage();
     const held = hold(asset("stationery-desk"));
-    const routeFilm = (ctx, path) => ctx.route(/^https?:\/\/(?!127\.0\.0\.1:)/, route =>
-      /\.mp4$/.test(route.request().url()) ? route.fulfill({ status: 307,
-        headers: { Location: base + path, "Access-Control-Allow-Origin": "*" } }) : route.abort());
-    await routeFilm(debug, "qa-film.mp4");
+    const routeFilm = async (ctx, path, tape, failFirst = false) => {
+      await ctx.addInitScript(tape => {
+        if (!localStorage.getItem("nemu-anniversary-v1")) {
+          localStorage.setItem("nemu-anniversary-v1", JSON.stringify({ gardenTape: tape, sound: true, bgm: true }));
+        }
+      }, tape);
+      await ctx.route(/^https?:\/\/(?!127\.0\.0\.1:)/, route => {
+        if (!/\.mp4$/.test(route.request().url())) return route.abort();
+        if (failFirst) {
+          failFirst = false;
+          return route.fulfill({ status: 503, headers: { "Access-Control-Allow-Origin": "*" } });
+        }
+        return route.fulfill({ status: 307, headers: { Location: base + path, "Access-Control-Allow-Origin": "*" } });
+      });
+    };
+    await routeFilm(debug, "qa-film.mp4", "carried");
     await page.addInitScript(() => {
       const draw = CanvasRenderingContext2D.prototype.fillText;
       CanvasRenderingContext2D.prototype.fillText = function (text, ...args) {
@@ -379,6 +393,7 @@ try {
     assert.ok(sticky, "debug close stays at the top of the scrolling panel");
     await panel.getByText("庆典互动与复活", { exact: true }).click();
     await panel.locator('[data-debug="event:garden:danmaku"]').click();
+    await page.getByRole("button", { name: "放入录像带", exact: true }).click();
     await page.locator(".cinema-hud:visible").waitFor();
     assert.ok(await panel.isVisible());
     await page.waitForFunction(() => parseFloat(document.querySelector('[data-speed="film"]')?.textContent) > 0);
@@ -390,9 +405,15 @@ try {
     assert.match(await page.locator(".cinema-player-loading").innerText(), /25%/);
     assert.ok(await panel.isVisible());
     await page.locator(".cinema-shrink").click();
+    await page.locator(".cinema-play").click();
+    await page.locator(".cinema-leave").click();
     filmPause.resolve();
     await page.waitForFunction(() => document.querySelector(".network-state")?.textContent?.includes("影片：已完成"));
     await page.waitForFunction(() => document.querySelector("video[data-garden-video]").readyState >= 3);
+    assert.ok(await page.locator("video[data-garden-video]").evaluate(video => video.paused && video.currentTime === 0));
+    await panel.locator('[data-debug="event:garden:danmaku"]').click();
+    await page.locator('.cinema-hud[data-stage="ready"]:visible').waitFor();
+    assert.ok(await page.locator("video[data-garden-video]").evaluate(video => video.paused && video.currentTime === 0));
     await page.locator(".cinema-hud .cinema-play").click();
     await page.waitForFunction(() => document.querySelector("video[data-garden-video]").currentTime > 0);
     await page.waitForFunction(() => [...document.querySelectorAll("[data-speed]")].every(el => el.textContent === "0 B/s"));
@@ -412,7 +433,7 @@ try {
 
     filmPause = Promise.withResolvers();
     const unknown = await browser.newContext();
-    await routeFilm(unknown, "qa-film.mp4?chunked");
+    await routeFilm(unknown, "qa-film.mp4?chunked", "inserted", true);
     const other = await unknown.newPage();
     await other.clock.setFixedTime(new Date("2026-12-03T09:00:00+08:00"));
     await other.goto(base);
@@ -420,6 +441,7 @@ try {
     await other.locator(".debug-trigger").click();
     await other.getByText("庆典互动与复活", { exact: true }).click();
     await other.locator('[data-debug="event:garden:danmaku"]').click();
+    await other.locator(".cinema-retry:visible").click();
     const amount = other.locator(".cinema-hud .cinema-progress");
     await amount.filter({ hasText: /已接收 [1-9]/ }).waitFor();
     assert.doesNotMatch(await amount.innerText(), /%/);
@@ -427,7 +449,38 @@ try {
     filmPause.resolve();
     await other.waitForFunction(() => document.querySelector("video[data-garden-video]")?.readyState >= 3);
     await unknown.close();
-    console.log("调试台固定与关闭、分路网速、停传归零、缓存复用、影片在放映屏和全屏均显示 25%、未知长度显示接收量、完整下载后可播放");
+    const buffered = await browser.newContext();
+    await routeFilm(buffered, "qa-film.mp4", "carried");
+    const ready = await buffered.newPage();
+    await ready.addInitScript(() => {
+      const draw = CanvasRenderingContext2D.prototype.drawImage;
+      window.gardenFrames = 0;
+      CanvasRenderingContext2D.prototype.drawImage = function (image, ...args) {
+        if (image instanceof HTMLVideoElement && image.hasAttribute("data-garden-video")) window.gardenFrames++;
+        return draw.call(this, image, ...args);
+      };
+    });
+    await ready.clock.setFixedTime(new Date("2026-12-03T09:00:00+08:00"));
+    await ready.goto(base);
+    await ready.getByRole("button", { name: /开始小冒险/ }).click();
+    await ready.waitForFunction(() => document.querySelector("video[data-garden-video]")?.readyState >= 3);
+    await ready.locator(".debug-trigger").click();
+    await ready.getByText("庆典互动与复活", { exact: true }).click();
+    await ready.locator('[data-debug="event:garden:danmaku"]').click();
+    const insert = ready.getByRole("button", { name: "放入录像带", exact: true });
+    await insert.waitFor();
+    await ready.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    assert.equal(await ready.evaluate(() => window.gardenFrames), 0, "a decoded frame must stay behind the poster until insertion");
+    assert.ok(await ready.locator(".cinema-hud").isHidden());
+    assert.match(await ready.locator(".cinema-shortcut small").innerText(), /已拿到录像带/);
+    await insert.click();
+    await ready.locator('.cinema-hud[data-stage="ready"]:visible').waitFor();
+    await ready.waitForFunction(() => window.gardenFrames > 0);
+    assert.ok(await ready.locator("video[data-garden-video]").evaluate(video => video.paused && video.currentTime === 0));
+    await ready.locator(".cinema-play").click();
+    await ready.waitForFunction(() => document.querySelector("video[data-garden-video]").currentTime > 0);
+    await buffered.close();
+    console.log("插带时影片已就绪与下载中两种情况、离开期间完成下载、回场手动播放、下载失败后重试、全屏与缓存复用通过");
   }
 } finally {
   filmPause?.resolve();

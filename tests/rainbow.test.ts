@@ -4,7 +4,7 @@ import { canStand, canTravelBetween, findPath, readProgress } from "../src/core.
 import { bloomingGarden, scenes } from "../src/maps.ts";
 import { rainbowFlowers, rainbowIds, meadowOpen, meadowGate, meadowGatePosts, pickRainbow, rainbowReminderStrength } from "../src/rainbow-flowers.ts";
 import { producers } from "../src/content.ts";
-import { campfire, enteredMoonCircle, meadowExit } from "../src/meadow-map.ts";
+import { campfire, enteredMoonCircle, meadowExit, tentTapeSpot } from "../src/meadow-map.ts";
 import { clickedInteraction, nearbyInteraction } from "../src/interaction.ts";
 
 test("unpicked flower reminders fade in every 30 seconds and hold steady in reduced motion", () => {
@@ -68,6 +68,18 @@ test("when the rainbow arch appears its pillars are solid, its mouth and the cou
   assert.ok(canTravelBetween(meadowGate.approach,meadowGate,bloomingGarden));
   for (const s of bloomingGarden.spots)
     assert.deepEqual(findPath(bloomingGarden.spawn,s.approach,bloomingGarden)?.at(-1),s.approach,s.id);
+});
+
+test("the tape inside the tent can be picked up from its walkable doorway", () => {
+  const map = scenes.meadow, tape = tentTapeSpot;
+  assert.ok(!canStand(tape, map.walls, map.bounds, map.floor));
+  assert.deepEqual(findPath(map.spawn, tape.approach, map)?.at(-1), tape.approach);
+  assert.equal(nearbyInteraction(tape.approach, map.spots), tape);
+  assert.equal(clickedInteraction({ x: tape.x, y: tape.y - 5 }, map.spots), tape);
+  for (const id of ["meadow-jar", "meadow-camp", "meadow-camp-letter"]) {
+    const neighbour = map.spots.find(spot => spot.id === id)!;
+    assert.equal(nearbyInteraction(neighbour.approach, map.spots), neighbour);
+  }
 });
 
 test("each producer has one anonymous, clickable and reachable star", () => {

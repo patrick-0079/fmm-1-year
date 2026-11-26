@@ -2,9 +2,9 @@ import rooms from "../src/town-interiors.generated.json" with { type: "json" };
 const interiors = Object.keys(rooms).map(name => "town-" + name);
 const groups = [
   [["page"], "journal-letter journal-album journal-cinema meadow-postcard"],
-  [["room"], "room-interactive window-skies-v12 white-bass-v18 fufu-room-fox fox-tail-rest anniversary-cake gift-v37 xiaoye-note"],
+  [["room"], "room-interactive window-skies-v12 white-bass-v18 fufu-room-fox fox-tail-rest gift-v37 xiaoye-note"],
   [["room", "garden", "town", "town-baker"], "cake-slice-v11"],
-  [["room", "garden"], "party-props-v11"],
+  [["room", "garden"], "party-props-v11 anniversary-cake"],
   [["garden"], "anniversary-garden-tree-free apple-basket garden-balloon-guest garden-guest-routines qingtang-picnic xiaoye-plush xiaoye-embrace-v55 suyan"],
   [["garden", "challenge"], "garden-creek-props garden-keepsakes-v12 orchard-v16 garden-bench apple-tree morning-dew-flower"],
   [["garden", "challenge", "town"], "anniversary-visitors rainbow-flowers-v15"],

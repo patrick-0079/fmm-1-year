@@ -50,7 +50,7 @@ export class Xiaoye {
         else {
           if (!this.offeredDuringHug) {
             const topic = world.chats.next(xiaoyeSpot.id, gardenChatTopics["xiaoye-plush"], this.phase());
-            showGardenChat(topic, this.dialogue.bind(this));
+            showGardenChat(topic, this.dialogueWithTapeClue.bind(this));
           }
           world.onAchievementEvent("xiaoye-plush");
         }
@@ -108,9 +108,19 @@ export class Xiaoye {
   }
 
   private offerLetter(received = false) {
-    this.dialogue(received ? "（小叶子等你把信收好，才轻轻放下爪子。）" : "（软乎乎的大猫猫轻轻抱住了你，用绒爪递来一封盖着红色爱心蜡封的信。）", [
+    this.dialogueWithTapeClue(received ? "（小叶子等你把信收好，才轻轻放下爪子。）" : "（软乎乎的大猫猫轻轻抱住了你，用绒爪递来一封盖着红色爱心蜡封的信。）", [
       letterChoice(this.mail, handedLetters.xiaoye, () => this.offerLetter(true)),
     ]);
+  }
+
+  private dialogueWithTapeClue(text: string, options: { title: string; run: () => void }[]) {
+    this.dialogue(text, [...options, {
+      title: "周年录像带在哪里？",
+      run: () => this.dialogue(
+        "（小叶子用绒爪递来一张手绘地图。）在周年花园、勇气花园和周年小镇集齐七色花，周年花园西边、气球摊南侧的花门就会打开。\n穿过花门，去花海西北找营火。录像带就在营火左边的帐篷里，带回周年花园放进放映机就能看啦。",
+        [{ title: "我记住啦", run: () => this.dialogueWithTapeClue(text, options) }],
+      ),
+    }]);
   }
 
   private dialogue(text: string, options: { title: string; run: () => void }[]) {

@@ -389,8 +389,15 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     campLetterButton.hidden =
       world.restState?.scene !== "meadow" || !mail.received(handedLetters.patrick);
   };
+  const getGardenTape = () => progress.gardenTape;
   const meadow = new NightMeadow(world, () => progress.creditStars, save, () => progress.residents,
-    () => { mail.collect(handedLetters.patrick); refreshCampLetter(); });
+    () => { mail.collect(handedLetters.patrick); refreshCampLetter(); }, getGardenTape, () => {
+      if (progress.gardenTape !== "missing" || !canSaveReceipts()) return;
+      progress.gardenTape = "carried";
+      save();
+      sfx("match");
+      toast("拾得周年录像带 · 带回周年花园，放进大屏前的放映机吧。");
+    });
   const starQuest = new AstrolabeQuest(world, activities, inventory, () => progress.astrolabe,
     () => progress.echoes.listened, save);
   const ruins = new EchoRuins(world, activities, () => progress.echoes, () => { save(); starQuest.refresh(); });
@@ -403,7 +410,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     else progress.bassSound=!progress.bassSound;
     update(); save();
   });
-  const cinema = new GardenCinema(world, toast, () => prepareGameResources());
+  const cinema = new GardenCinema(world, toast, () => prepareGameResources(), getGardenTape);
   const bedNote = new BedNote(world);
   const fox = new RoomFox(world, () => progress.roomFox, save);
   const sceneWrap = world.canvas.parentElement!;
@@ -430,7 +437,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     !activities.active && !arcade.active && !cinema.active && !bass.active && !bedNote.isOpen && !meadow.readerOpen && !meadow.bottleOpen &&
     cuePanels.every(panel => panel.hidden);
   world.onInteractionCue = spot => {
-    const cue = spot ? resolveCue(spot, world.scene) : null;
+    const cue = spot ? resolveCue(spot, world.scene, progress.gardenTape) : null;
     const verb = cue?.verb ?? (world.restState ? "起身" : "互动");
     if (touchAction.textContent !== verb) touchAction.textContent = verb;
     if (!spot || !cue) { prompt.update(null); return; }
@@ -631,6 +638,17 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     setMusicScene(scene);
     bedNote.refresh(progress.bedNoteUnlocked);
   };
+  function recordVisit(id: string) {
+    if (!EVENT_IDS.includes(id) || progress.visited.includes(id)) return;
+    progress.visited.push(id);
+    save();
+    update();
+  }
+  function openScreening() {
+    activities.close();
+    cinema.open();
+    recordVisit("danmaku");
+  }
   world.onInteract = (id) => {
     const spot = world.config.spots.find((s) => s.id === id);
     if (!spot || !world.available(spot)) return;
@@ -680,21 +698,35 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
       return;
     }
     if (nature.interact(id)) return;
-    if (EVENT_IDS.includes(id) && !progress.visited.includes(id)) {
-      progress.visited.push(id);
-      save();
-      update();
+    if (id === "danmaku") {
+      sfx("interact");
+      if (progress.gardenTape === "inserted") openScreening();
+      else {
+        const leave = { title: "先去逛逛", run: () => activities.close() };
+        if (progress.gardenTape === "missing") {
+          activities.menu("放映机的带仓还空着。去问问花园里的小叶子，它知道周年录像带在哪儿。", [leave], spot, 2.4);
+        } else {
+          activities.menu("放映机的带仓开着。把从花海带回来的周年录像带放进去吧。", [
+            { title: "放入录像带", run: () => {
+              if (!canSaveReceipts() || progress.gardenTape === "missing" || world.scene !== "garden") return;
+              progress.gardenTape = "inserted";
+              save();
+              openScreening();
+            } },
+            leave,
+          ], spot, 2.4);
+        }
+      }
+      return;
     }
+    recordVisit(id);
     prompt.update(null);
     sfx("interact");
     if (id === "cake") activities.cake();
     else if (id === "gifts") activities.gifts();
     else if (id === "balloons") activities.balloons();
     else if (id === "fireworks") activities.fireworks();
-    else if (id === "danmaku") {
-      activities.close();
-      cinema.open();
-    } else if (id === "courage") {
+    else if (id === "courage") {
       complete("courage");
       activities.note(
         "走过小挫折，摘到了勇气之花 · 愿芙芙一路有光，向阳生长 ♡",

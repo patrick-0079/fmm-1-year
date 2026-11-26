@@ -127,7 +127,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
           </button>
           <button class="page-memory-card cinema-shortcut memory-cinema">
             ${journalCover(cinemaCover, "tv")}
-            <span class="memory-card-copy"><span class="memory-card-title">周年放映</span><span class="memory-description">坐下来，一起重温这一年的小瞬间。</span><small>游戏资源备齐后再下载影片</small><span class="memory-card-action">去花园看放映 ${icon("arrow")}</span></span>
+            <span class="memory-card-copy"><span class="memory-card-title">周年放映</span><span class="memory-description">坐下来，一起重温这一年的小瞬间。</span><small>周年海报 · 找小叶子打听录像带</small><span class="memory-card-action">去花园看放映 ${icon("arrow")}</span></span>
           </button>
         </div>
       </section>

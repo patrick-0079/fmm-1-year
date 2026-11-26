@@ -240,6 +240,21 @@ const art: Record<string, (c: Ink, choice?: string) => void> = {
     polygon(c, leaf, [6, 22], [11, 17], [15, 21], [18, 18], [21, 22]);
     rect(c, 17, 15, 2, 2, gold);
   },
+  "garden-tape"(c) {
+    polygon(c, ink, [3, 7], [29, 7], [30, 8], [30, 24], [28, 26], [4, 26], [2, 24], [2, 8]);
+    rect(c, 3, 8, 26, 16, "#837587");
+    rect(c, 4, 9, 24, 2, lilac);
+    rect(c, 5, 12, 22, 8, ink);
+    for (const x of [9, 23]) {
+      oval(c, x, 16, 3, 3, cream);
+      rect(c, x - 1, 15, 2, 2, ink);
+    }
+    rect(c, 13, 12, 6, 8, "#f6cccd");
+    rect(c, 15, 14, 2, 4, ink);
+    rect(c, 14, 15, 1, 1, ink);
+    rect(c, 14, 18, 4, 1, ink);
+    rect(c, 5, 22, 22, 1, ink);
+  },
   fox,
   "fox-peace"(c) {
     polygon(
