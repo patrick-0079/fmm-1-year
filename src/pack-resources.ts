@@ -18,6 +18,11 @@ async function valid(bytes: ArrayBuffer, digest: string) {
   return btoa(String.fromCharCode(...new Uint8Array(hash))) === digest;
 }
 
+function sameScenes(left: readonly string[], right: readonly string[]) {
+  return (left.includes("*") && right.includes("*")) ||
+    (left.every(scene => right.includes(scene)) && right.every(scene => left.includes(scene)));
+}
+
 const mime: Record<string, string> = { webp: "image/webp", png: "image/png", svg: "image/svg+xml",
   jpg: "image/jpeg", jpeg: "image/jpeg", avif: "image/avif", wav: "audio/wav" };
 
@@ -39,18 +44,21 @@ export class PackResources {
     for (const pack of index.packs) {
       if (!/^[a-z0-9-]+\.pack$/.test(pack.file) || !/^[a-f0-9]{64}$/.test(pack.hash) ||
           !pack.file.endsWith("-" + pack.hash + ".pack") || jobs.has(pack.file)) throw Error("资源包版本无效");
+      const scenes = resources.get(pack.entries[0]?.[0])?.[2];
+      if (!scenes?.length) throw Error("资源包缺少所属场景");
       let end = 0;
       const members = pack.entries.map(([path, offset, size]) => {
         const resource = resources.get(path);
         if (!resource?.[1] || this.members.has(path) || end !== offset || !Number.isSafeInteger(size) || size <= 0)
           throw Error("资源包索引与资源清单不一致");
+        if (!sameScenes(scenes, resource[2])) throw Error("同一资源包的成员所属场景不一致");
         end += size;
         const item = member(resource, offset, size);
         this.members.set(path, item);
         return item;
       });
-      if (!members.length || end !== pack.size) throw Error("资源包长度无效");
-      groups.push([pack.file, pack.hash, resources.get(members[0].path)![2]]);
+      if (end !== pack.size) throw Error("资源包长度无效");
+      groups.push([pack.file, pack.hash, scenes]);
       jobs.set(pack.file, { url: new URL(pack.file, index.base), size: end, members });
     }
     this.queue = new ResourceQueue(groups, async ([name], priority, _retry, signal) => {

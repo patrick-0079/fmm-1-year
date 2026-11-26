@@ -8,7 +8,7 @@ import { BOTTLE_COMPACT_WIDTH,bottleEntries,bottleGeometry,bottleScrollTop,neare
 import type { World } from "./world";
 import { clearQuietStarEffect, showQuietStarEffect } from "./quiet-star-effect";
 import { creditStarTexture } from "./credit-star-art";
-import { sceneImage } from "./texture-cache";
+import { copySceneImage, sceneImage } from "./texture-cache";
 
 export class StarBottleView {
   readonly element=document.createElement("section");
@@ -146,14 +146,12 @@ export class StarBottleView {
         art.style.backgroundImage = `url("${creditStarTexture(person.shape).toDataURL()}")`;
       }
       if (person.sprite) {
-        const image = new Image();
-        image.alt = "";
-        image.draggable = false;
-        image.onload = () => {
+        void copySceneImage(person.sprite).then(image => {
+          image.alt = "";
+          image.draggable = false;
           art.style.backgroundImage = "none";
           art.append(image);
-        };
-        image.src = person.sprite;
+        }).catch(() => { /* The star keeps its painted fallback. */ });
       }
       button.append(art);
       button.addEventListener("click", event => {

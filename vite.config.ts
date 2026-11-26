@@ -1,11 +1,12 @@
 import { createHash } from "node:crypto";
-import { readFileSync, readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { readFileSync } from "node:fs";
+import { basename, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, loadEnv, normalizePath, type Plugin, type Rollup } from "vite";
 import { validateStationery } from "./scripts/validate-stationery.mjs";
 import { readLetterCatalogue } from "./scripts/scan-letters.mjs";
 import { assetScenes } from "./scripts/scene-assets.mjs";
+import { developmentResourcePaths } from "./scripts/development-resource-paths";
 import { textureWorkerSource } from "./scripts/texture-worker-source.mjs";
 import { buildBranch, makeGamePacks, writeGamePacks } from "./scripts/game-packs.mjs";
 import { OPEN_AT } from "./src/launch/time";
@@ -53,25 +54,44 @@ function preloadOrder(sources: string[]) {
   return 4;
 }
 
+function mediaScenes(source: string) {
+  const scenes = assetScenes(source);
+  if (!scenes) throw Error("游戏媒体缺少资源清单归属：" + source);
+  return scenes;
+}
+
+function compareText(left: string, right: string) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+// Use the source path to break ties, including pictures with the same name in different folders.
+function compareResources(a: { order: number; source: string }, b: { order: number; source: string }) {
+  return a.order - b.order || compareText(basename(a.source), basename(b.source)) || compareText(a.source, b.source);
+}
+
 function resourceManifest(bundle: Rollup.OutputBundle) {
+  const chunkScenes = (name: string) => ["view", "debug"].includes(name) ? [] : ["*"];
+  const styles = new Map<string, Set<string>>();
+  for (const chunk of Object.values(bundle)) {
+    if (chunk.type !== "chunk") continue;
+    for (const css of chunk.viteMetadata?.importedCss ?? []) {
+      const owners = styles.get(css) ?? new Set<string>();
+      for (const scene of chunkScenes(chunk.name)) owners.add(scene);
+      styles.set(css, owners);
+    }
+  }
   // The document already loads its decorative paper. It must never gate a map or film.
   return Object.values(bundle).filter(file => file.fileName.startsWith("assets/") && !/\.(?:mp4|m4v|webm|mov|ogv)$/i.test(file.fileName)
       && !(file.type === "asset" && file.originalFileNames.some(path => normalizePath(path) === "src/assets/journal-celestial-paper.webp")))
-    .map(file => ({ file, order: file.type === "asset" ? preloadOrder(file.originalFileNames.map(normalizePath)) : 4 }))
-    .sort((a, b) => a.order - b.order || (a.file.fileName < b.file.fileName ? -1 : 1))
-    .map(({ file }) => [file.fileName, createHash("sha256")
-      .update(file.type === "chunk" ? file.code : file.source).digest("base64"),
-      file.type === "chunk" ? (["view", "debug"].includes(file.name) ? [] : ["*"]) :
-        [...new Set(file.originalFileNames.flatMap(source => assetScenes(normalizePath(source)) ?? ["*"]))]]);
-}
-
-function developmentResources() {
-  const paths = ["src/assets", "src/launch", "ref/来信/信笺", "ref/相册/previews", "ref/花海星星"].flatMap(dir =>
-    readdirSync(join(root, dir), { recursive: true, encoding: "utf8" }).map(name => dir + "/" + normalizePath(name))
-      .filter(path => /\.(?:webp|wav)$/i.test(path) || /\/fufu-cursor-[^/]+\.(?:png|svg)$/.test(path) ||
-        (dir === "ref/来信/信笺" && /\.(?:png|jpg|jpeg|avif)$/i.test(path))));
-  return paths.filter(path => assetScenes(path)).sort((left, right) => preloadOrder([left]) - preloadOrder([right]))
-    .map(path => [path + (/^ref\/(相册|花海星星)\/|fufu-cursor-/.test(path) ? "?no-inline" : ""), "", assetScenes(path)]);
+    .map(file => {
+      const sources = file.type === "asset" ? file.originalFileNames.map(normalizePath).sort() : [];
+      const source = sources[0] ?? file.fileName;
+      const scenes = file.type === "chunk" ? chunkScenes(file.name)
+        : file.fileName.endsWith(".css") ? styles.get(file.fileName) ?? ["*"]
+        : (sources.length ? sources : [source]).flatMap(mediaScenes);
+      const digest = createHash("sha256").update(file.type === "chunk" ? file.code : file.source).digest("base64");
+      return { order: preloadOrder(sources), source, entry: [file.fileName, digest, [...new Set(scenes)]] };
+    }).sort(compareResources).map(item => item.entry);
 }
 
 function releaseEntry(mode: "full" | "lite", debug: boolean): Plugin {
@@ -94,10 +114,17 @@ function releaseEntry(mode: "full" | "lite", debug: boolean): Plugin {
       },
     },
     configureServer(server) {
-      if (mode === "full") server.middlewares.use("/game-assets-dev-full.json", (_request, response) => {
-        response.setHeader("Content-Type", "application/json");
-        response.setHeader("Cache-Control", "no-store");
-        response.end(JSON.stringify(developmentResources()));
+      if (mode === "full") server.middlewares.use("/game-assets-dev-full.json", async (_request, response, next) => {
+        try {
+          const paths = await developmentResourcePaths(server);
+          const entries = paths.map(path => {
+            const source = path.split("?")[0];
+            return { order: preloadOrder([source]), source, entry: [path, "", mediaScenes(source)] };
+          }).sort(compareResources).map(item => item.entry);
+          response.setHeader("Content-Type", "application/json");
+          response.setHeader("Cache-Control", "no-store");
+          response.end(JSON.stringify(entries));
+        } catch (error) { next(error); }
       });
       server.middlewares.use("/release.json", (_request, response) => {
         response.setHeader("Content-Type", "application/json");

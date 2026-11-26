@@ -12,6 +12,7 @@ import {
 } from "./arcade-engines";
 import { sfx } from "./sound";
 import { arcadeBackdrop, booths, chamberPrints, postcard } from "./arcade-art";
+import { requestSceneImage } from "./texture-cache";
 import { echoes, trialEcho } from "./echoes";
 import { motif, panel, type Backdrop } from "./arcade-pixels";
 import { LinkGame, MinesGame } from "./arcade-bonus";
@@ -280,13 +281,18 @@ export class Arcade {
           <button class="game-primary" data-game-action="primary"></button></div>
         <div class="arcade-extra-actions"></div><button class="arcade-close">${ruinId ? "返回遗迹" : "回到小镇"} ×</button>
         </div><div class="arcade-guide">
-          <div class="arcade-ticket"><img src="${ruinId ? chamberPrints[ruinId] : postcard}" alt="" width="84" height="56">
+          <div class="arcade-ticket">
             <div><small>${ruinId ? "ECHO ARCHIVE · 1ST" : "FUFU ON AIR · 1ST"}</small><b>${ruinId ? "回声遗迹 · 石刻拓本" : "芙芙直播一周年"}</b><span>${ruinId ? booth.stamp : "游园券 № "+booth.number+" / 07"}</span></div></div>
           <p class="arcade-status" role="status" aria-live="polite"></p>
           ${this.id === "mines" ? '<details class="mine-rules"><summary>扫雷规则与操作</summary><ul>'+mineRules.map(rule=>'<li>'+rule+'</li>').join("")+'</ul></details>' : ''}
           ${ruinId ? '<p class="echo-inscription">'+echoes[trialEcho[ruinId]].inscription+'</p>' : ''}
           <div class="arcade-reward-track"><progress aria-label="纪念奖励进度"></progress><span></span></div>
         </div>`;
+      const ticket = requestSceneImage(ruinId ? chamberPrints[ruinId] : postcard);
+      ticket.alt = "";
+      ticket.width = 84;
+      ticket.height = 56;
+      this.hud.querySelector(".arcade-ticket")!.prepend(ticket);
       this.hud
         .querySelector(".arcade-close")!
         .addEventListener("click", () => this.close());

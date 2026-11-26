@@ -285,9 +285,20 @@ try {
     localStorage.setItem("fufu-journey-v1", JSON.stringify({ scene, x: 200, y: 200, savedAt: Date.now() }));
   });
   for (const map of maps) {
+    // On the first cold start, the film request marks the end of background preloading.
+    const preloadFinished = map === "room" ? page.waitForRequest(request => /\.mp4(?:\?|$)/i.test(request.url())) : undefined;
     await page.goto(base + "?map=" + map);
     await page.getByRole("button", { name: /继续上次的冒险/ }).click();
     assert.equal(await page.locator(".scene-wrap").getAttribute("data-current-map"), map);
+    await preloadFinished;
+    const artwork = await page.evaluate(() => {
+      const note = document.querySelector(".bed-note-content img");
+      const bottle = document.querySelector(".star-bottle-glass");
+      return { noteRequested: note.hasAttribute("src"), noteDecoded: note.naturalWidth > 0,
+        bottleRequested: bottle.hasAttribute("src"), bottleDecoded: bottle.naturalWidth > 0 };
+    });
+    assert.deepEqual(artwork, { noteRequested: map === "room", noteDecoded: map === "room",
+      bottleRequested: map === "meadow", bottleDecoded: map === "meadow" }, map + " 的床笺与七花解锁后星光瓶解码范围");
   }
   assert.deepEqual(errors, []);
   await context.close();

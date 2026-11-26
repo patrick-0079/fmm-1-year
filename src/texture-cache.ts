@@ -173,6 +173,24 @@ export async function loadSceneImage(url: string, priority: "high" | "low" = "hi
   return image;
 }
 
+const retryAfter = new WeakMap<HTMLImageElement, number>();
+
+/** Optional canvas art can keep drawing its standing pose while the shared image decodes. */
+export function requestSceneImage(url: string) {
+  const image = sceneImage(url);
+  if (!decoded.has(image) && performance.now() >= (retryAfter.get(image) ?? 0)) {
+    void decodeImage(image, url, "low").catch(() => retryAfter.set(image, performance.now() + 5000));
+  }
+  return image;
+}
+
+/** DOM views need their own node when the same artwork appears more than once. */
+export async function copySceneImage(url: string) {
+  const image = new Image();
+  await decodeImage(image, url, "high");
+  return image;
+}
+
 export async function prepareMapArt(scene: string, report?: LoadProgress) {
   const next = interrupted?.scene === scene ? interrupted.art : new Map<string, HTMLImageElement>();
   const waiting: (() => void)[] = [];

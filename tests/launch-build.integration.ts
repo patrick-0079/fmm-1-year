@@ -5,8 +5,20 @@ import { copyFile, mkdtemp, mkdir, readdir, readFile, rm, writeFile } from "node
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { build } from "vite";
+import { build, createServer, type InlineConfig } from "vite";
 import { scanLetters } from "../scripts/scan-letters.mjs";
+
+async function devEntries(config: InlineConfig): Promise<[string, string, string[]][]> {
+  const server = await createServer({ ...config, logLevel: "silent",
+    server: { host: "127.0.0.1", port: 0, hmr: false, watch: null },
+    optimizeDeps: { noDiscovery: true, include: [] } });
+  try {
+    await server.listen();
+    const response = await fetch(new URL("game-assets-dev-full.json", server.resolvedUrls!.local[0]));
+    assert.equal(response.status, 200);
+    return await response.json();
+  } finally { await server.close(); }
+}
 
 // Runs separately from npm test: a pre-release CI build should not have to
 // produce the full game even temporarily. All outputs here live in one temp dir.
@@ -86,8 +98,16 @@ test("switching full → invitation → full cleans the deployed directory", asy
   }
   for (const prefix of ["wardrobe-icons", "fufu-garments", "fufu-footwear",
     "qingya-bouquet", "stationery-sealed", "stationery-album", "astrolabe-relics",
-    "keepsakes", "arcade-postcard", "fufu-cursor-arrow", "fufu-cursor-play"]) {
+    "keepsakes", "peach-walk", "fufu-cursor-arrow", "fufu-cursor-play"]) {
     assert.ok(entries.some(([path, , scenes]) => path.startsWith("assets/" + prefix + "-") && scenes.includes("*")), prefix);
+  }
+  assert.deepEqual(entries.find(([file]) => file.startsWith("assets/arcade-postcard-"))?.[2], ["town"]);
+  for (const prefix of ["apple-tree", "garden-bench"])
+    assert.deepEqual(entries.find(([file]) => file.startsWith("assets/" + prefix + "-"))?.[2], ["challenge"]);
+  const npcScenes = entries.find(([file]) => file.startsWith("assets/town-npcs-"))?.[2];
+  assert.ok(npcScenes?.includes("town") && !npcScenes.includes("town-radio"));
+  for (const [chunk, scenes] of [["main", ["*"]], ["cursors", ["*"]], ["view", []]] as const) {
+    assert.deepEqual(entries.find(([file]) => file.startsWith("assets/" + chunk + "-") && file.endsWith(".css"))?.[2], scenes);
   }
   for (const prefix of ["journal-letter", "journal-album", "journal-cinema", "meadow-postcard"]) {
     assert.deepEqual(entries.find(([path]) => path.startsWith("assets/" + prefix + "-"))?.[2], ["page"], prefix);
@@ -100,6 +120,20 @@ test("switching full → invitation → full cleans the deployed directory", asy
     const digest = createHash("sha256").update(await readFile(join(outDir, asset))).digest("base64");
     assert.equal(digest, expected, "resource cache integrity for " + asset);
   }
+  const development = await devEntries({ cacheDir: join(dir, "vite-cache") });
+  const devNames = development.map(([path]) => path);
+  assert.equal(new Set(devNames).size, devNames.length);
+  for (const name of walkSheets)
+    assert.ok(devNames.includes("src/assets/resident-walk/" + name + "?no-inline"), name);
+  for (const name of ["achievement-letter-seals", "garden-guest-routines", "gardener-hat", "guardian-moonstone",
+    "meadow-jelly-bells", "shelf-keepsakes", "town-pond-water", "town-work-poses"])
+    assert.ok(devNames.includes("src/assets/" + name + ".webp?no-inline"), name);
+  const developmentMedia = await Promise.all(development.map(async ([url, , scenes]) => {
+    const bytes = await readFile(new URL("../" + url.split("?")[0], import.meta.url));
+    return [createHash("sha256").update(bytes).digest("base64"), scenes];
+  }));
+  const releaseMedia = entries.filter(([file]) => !/\.(css|js)$/.test(file)).map(([, digest, scenes]) => [digest, scenes]);
+  assert.deepEqual(developmentMedia, releaseMedia, "development and release media have the same content, ownership and order");
   assert.ok(!explicit.files.some(name => name.includes("stationery-cherrywood-box")));
   assert.ok(!explicit.files.some(name => /CharaStudio.*\.png$/i.test(name)));
 
@@ -172,4 +206,25 @@ test("a large scanned catalogue is available in the game and excluded from the i
     'import theme from "../../ref/来信/信笺/config.json"; document.body.textContent = theme.default.title;');
   await assert.rejects(run(true), /default\.title 需要填写主题名/);
   assert.doesNotMatch(await run(false), /config\.json|信笺/);
+});
+
+test("dev discovers only used star sprites, and a build rejects an unmapped game texture", async t => {
+  const root = await mkdtemp(join(tmpdir(), "fufu-media-coverage-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const configFile = fileURLToPath(new URL("../vite.config.ts", import.meta.url));
+  const launch = join(root, "src", "launch"), stars = join(root, "ref", "花海星星");
+  await Promise.all([mkdir(launch, { recursive: true }), mkdir(stars, { recursive: true }), mkdir(join(root, "src", "assets"), { recursive: true })]);
+  const fixture = new URL("../src/assets/fufu-cursor-arrow.png", import.meta.url);
+  await Promise.all(["used.png", "unused.png"].map(name => copyFile(fixture, join(stars, name))));
+  await writeFile(join(launch, "full.ts"), 'document.body.dataset.star = new URL("../../ref/花海星星/used.png?no-inline", import.meta.url).href;');
+  const previous = process.env.FULL_BUILD;
+  t.after(() => { if (previous === undefined) delete process.env.FULL_BUILD; else process.env.FULL_BUILD = previous; });
+  process.env.FULL_BUILD = "true";
+  const resources = await devEntries({ root, configFile, cacheDir: join(root, "cache") });
+  assert.deepEqual(resources, [["ref/花海星星/used.png?no-inline", "", ["meadow"]]]);
+
+  await copyFile(fixture, join(root, "src", "assets", "unregistered.png"));
+  await writeFile(join(root, "index.html"), '<script type="module" src="/src/launch/lite.ts"></script>');
+  await writeFile(join(launch, "full.ts"), 'import art from "../assets/unregistered.png?no-inline"; document.body.dataset.art = art;');
+  await assert.rejects(build({ root, configFile, logLevel: "silent", build: { write: false } }), /资源清单归属：src\/assets\/unregistered.png/);
 });

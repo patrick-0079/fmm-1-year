@@ -13,6 +13,7 @@ import { StarBottleView } from "./star-bottle";
 import { showQuietStarEffect } from "./quiet-star-effect";
 import { creditStarTexture } from "./credit-star-art";
 import { CampGuest } from "./camp-guest";
+import { requestSceneImage } from "./texture-cache";
 import { MeadowJellies } from "./meadow-jellies";
 import { drawJelly, drawKettleSteam, prepareJellyBells } from "./meadow-jelly-art";
 import { sceneArt } from "./scene-art";
@@ -86,9 +87,8 @@ export class NightMeadow {
 
   private loadedStarSprite(url: string) {
     let image = this.starSprites.get(url);
-    if (!image) {
-      image = new Image();
-      image.src = url;
+    if (!image?.naturalWidth) {
+      image = requestSceneImage(url);
       this.starSprites.set(url, image);
     }
     return image.complete && image.naturalWidth > 0 ? image : undefined;

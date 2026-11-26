@@ -14,12 +14,16 @@ const bytes = new Map([["a.webp", "abcd"], ["b.webp", "efg"], ["c.webp", "hijk"]
 const files: Resource[] = [...bytes].map(([name, body]) =>
   [name, createHash("sha256").update(body).digest("base64"), [name === "town.webp" ? "town" : "room"]]);
 const build = () => makeGamePacks(files, (path: string) => bytes.get(path), "preview");
+function inScenes([path, digest]: Resource, ...scenes: string[]): Resource {
+  return [path, digest, scenes];
+}
 function setup() {
   const base = new URL("https://game.test/");
   const hits = new Map<string, Response>();
   const cache = { match: async (url: string) => hits.get(url)?.clone(),
     put: async (url: string, res: Response) => { hits.set(url, res); }, delete: async (url: string) => hits.delete(url) };
-  const open = () => new PackResources(build().index, files, base, cache as unknown as Cache);
+  const open = (index = build().index, manifest: readonly Resource[] = files) =>
+    new PackResources(index, manifest, base, cache as unknown as Cache);
   return { hits, open, base };
 }
 
@@ -34,6 +38,36 @@ test("pack identities are independent of code, branch prefixes and unrelated map
   assert.notEqual(c.index.version, a.index.version);
   assert.equal([...a.bodies.keys()].filter(name => !c.bodies.has(name)).length, 1);
   assert.notEqual(packBranch("feature/map"), packBranch("feature-map"));
+});
+
+test("pack requests and their member bytes follow the first appearance in the manifest", async t => {
+  const [a, b, c, town] = files;
+  const manifest = [town, inScenes(a, "*"), inScenes(c, "town", "room"), inScenes(b, "room", "town")];
+  const { index, bodies } = makeGamePacks(manifest, (path: string) => bytes.get(path), "preview");
+  assert.deepEqual(index.packs.map(pack => pack.group), ["town", "common", "shared-room-town"]);
+  const [townPack, commonPack, sharedPack] = index.packs;
+  assert.deepEqual(sharedPack.entries, [["c.webp", 0, 4], ["b.webp", 4, 3]]);
+  assert.equal(bodies.get(sharedPack.file).toString(), "hijkefg");
+
+  const requested: string[] = [];
+  t.mock.method(globalThis, "fetch", async (url: URL) => {
+    const name = url.pathname.split("/").at(-1)!;
+    requested.push(name);
+    return new Response(bodies.get(name));
+  });
+  const resources = setup().open(index, manifest);
+  await resources.prepare("town");
+  assert.deepEqual(new Set(requested.slice(0, 2)), new Set([townPack.file, commonPack.file]));
+  assert.deepEqual(requested.slice(2), [sharedPack.file]);
+  for (const [path] of manifest) assert.equal(await resources.wait(path, new AbortController().signal), true);
+});
+
+test("a mixed-scene pack is rejected before scene loading can wait for an unscheduled member", () => {
+  const { open } = setup();
+  const [a, b, c, town] = files;
+  for (const scenes of [["town"], ["room", "town"], ["*"]]) {
+    assert.throws(() => open(build().index, [a, inScenes(b, ...scenes), c, town]), /成员所属场景不一致/);
+  }
 });
 
 test("an interrupted pack commits complete members immediately and resumes at the first missing byte", async t => {

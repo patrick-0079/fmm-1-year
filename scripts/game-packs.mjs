@@ -30,7 +30,8 @@ export function makeGamePacks(files, bytesFor, branch) {
     groups.get(group).push(path);
   }
   const bodies = new Map(), packs = [];
-  for (const [group, paths] of [...groups].sort(([a],[b]) => a < b ? -1 : 1)) {
+  // Map insertion order gives each pack the priority of its first manifest entry.
+  for (const [group, paths] of groups) {
     let size = 0;
     const parts = [], entries = [];
     for (const path of paths) {

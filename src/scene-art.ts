@@ -48,8 +48,8 @@ export function prepareSceneArt(scene: SceneId) {
   if (scene === "town-baker" || scene === "town-florist")
     return Promise.all([loadSceneImage(townNpcsUrl), prepareProp("smallMapProps")]);
   if (scene === "town-hall") return Promise.all([loadSceneImage(townNpcsUrl), prepareTownKeepsakeArt(), prepareShelfKeepsakes()]);
-  if (isTownInterior(scene))
-    return scene === "town-radio" ? Promise.all([loadSceneImage(townNpcsUrl), prepareProp("yeshenhua")]) : loadSceneImage(townNpcsUrl);
+  if (scene === "town-radio") return prepareProp("yeshenhua");
+  if (isTownInterior(scene)) return loadSceneImage(townNpcsUrl);
   const idle = idleArtByScene[scene];
   const props = propsByScene[scene].map(key => prepareProp(key));
   if (idle) props.push(prepareProp(idle));

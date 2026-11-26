@@ -9,25 +9,13 @@ import mines from "./assets/echo-mines.webp";
 import miner from "./assets/echo-miner.webp";
 import propUrl from "./assets/arcade-props-v14.webp";
 import type { Backdrop } from "./arcade-pixels";
+import { requestSceneImage } from "./texture-cache";
 export { default as postcard } from "./assets/arcade-postcard-v14.webp";
 
 const backgrounds = { snake, blocks, hop, flight, link, mines, miner };
 export const chamberPrints = { snake, mines, miner };
-const gallery = new Map<GameId, HTMLImageElement>();
-let props: HTMLImageElement | undefined;
 export function arcadeBackdrop(id: GameId): Backdrop {
-  if (!props) {
-    props = new Image();
-    props.src = propUrl;
-  }
-  let image = gallery.get(id);
-  if (!image) {
-    image = new Image();
-    image.decoding = "async";
-    image.src = backgrounds[id];
-    gallery.set(id, image);
-  }
-  return { background: image, props };
+  return { background: requestSceneImage(backgrounds[id]), props: requestSceneImage(propUrl) };
 }
 export const booths = {
   snake:  { number: "01", line: "唤醒苔石间的叶芽。", stamp: "西廊 · 蛇纹苔庭", motif: "sprout" },

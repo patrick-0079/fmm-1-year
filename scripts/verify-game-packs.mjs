@@ -55,14 +55,20 @@ let browser;
 try {
   browser = await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL ?? (process.platform === "win32" ? "msedge" : undefined)});
   const base = live || site.resolvedUrls.local[0];
-  for (const [fault, worker] of (live ? [[false,"allow"]] : [[false,"allow"],[true,"block"]])) {
+  const cases = [[false,"allow","room"]];
+  if (!live) cases.push([true,"block","room"], [false,"block","garden"]);
+  const packedPaths = new Set(index.packs.flatMap(p => p.entries.map(entry => entry[0])));
+  for (const [fault, worker, scene] of cases) {
     const run = scenario = {fault, transfers:[], files:[]};
     const ctx = await browser.newContext({serviceWorkers:worker, viewport:{width:390,height:844}});
     try {
-      const page = await ctx.newPage(), errors=[];
+      const page = await ctx.newPage(), errors=[], looseImages = new Set();
       page.on("pageerror", e=>errors.push(e.message));
       page.setDefaultTimeout(live ? 180000 : 30000);
       await page.clock.setFixedTime(new Date("2026-12-03T12:00:00+08:00"));
+      if (scene === "garden") await page.addInitScript(() => {
+        localStorage.setItem("fufu-journey-v1", JSON.stringify({scene:"garden", x:0, y:0, savedAt:Date.now()}));
+      });
       await page.addInitScript(() => {
         window.packReadings=[];
         new MutationObserver(() => {
@@ -72,9 +78,16 @@ try {
         }).observe(document,{attributes:true, childList:true, subtree:true});
       });
       const requests=[];
-      page.on("request", r=>{if (r.url().endsWith(".pack")) requests.push(r.url());});
+      page.on("request", r=>{
+        if (r.url().endsWith(".pack")) requests.push(r.url());
+        if (r.resourceType() === "image" && r.url().startsWith(base)) {
+          const path = decodeURIComponent(new URL(r.url()).pathname.slice(1));
+          if (packedPaths.has(path)) looseImages.add(path);
+        }
+      });
       await page.goto(base,{waitUntil:"domcontentloaded"});
-      await page.getByRole("button",{name:/开始小冒险/}).waitFor();
+      const enter = page.getByRole("button",{name:/开始小冒险|继续上次的冒险/});
+      await enter.waitFor();
       const result=await page.evaluate(async first => {
         const cache = await caches.open("fufu-game-textures-v1:/");
         return { readings:window.packReadings, saved:!!(await cache.match(new URL(first,location.href))) };
@@ -89,11 +102,15 @@ try {
         assert.ok(!run.files.includes(first),"a fully received member should never be fetched from the site again");
         if (fault) assert.ok(run.files.includes(common.entries[1][0]),"only the missing tail falls back");
       }
-      await page.getByRole("button",{name:/开始小冒险/}).click();
-      await page.locator('.scene-wrap[data-current-map="room"]').waitFor();
+      await enter.click();
+      await page.locator(`.scene-wrap[data-current-map="${scene}"]`).waitFor();
+      if (scene === "garden") {
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        assert.deepEqual([...looseImages], [], "uncontrolled garden must reuse unpacked sprites and leave the bedroom note unloaded");
+      }
       assert.deepEqual(errors,[]);
-      console.log(fault ? "断流后复用已收齐文件，站内百分比完成并进入小屋" : "对象存储字节进度完成并进入小屋",
-        {packRequests:requests.length, intermediate:result.readings.find(v=>parseFloat(v)>0 && parseFloat(v)<99.9),
+      console.log(fault ? "断流后复用已收齐文件，站内补载完成" : "对象存储字节进度完成",
+        {scene, worker, packRequests:requests.length, intermediate:result.readings.find(v=>parseFloat(v)>0 && parseFloat(v)<99.9),
           final:result.readings.at(-1)});
     } finally { await ctx.close(); }
   }

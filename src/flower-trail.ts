@@ -58,7 +58,6 @@ export class FlowerTrail {
     }
     const button = document.querySelector<HTMLButtonElement>('[data-scene="meadow"]');
     if (button) button.hidden = !unlocked;
-    if (unlocked) void this.world.prepareScene("meadow").catch(() => {});
   }
   interact(id: string) {
     if (rainbowIds.includes(id)) {

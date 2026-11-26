@@ -4,6 +4,7 @@ import workshopUrl from "./assets/town-interiors/workbench.webp";
 import frames from "./town-workbench-frames.json";
 import { drawFinishedKeepsake, prepareTownKeepsakeArt } from "./town-keepsake-art";
 import { workbenchSize, type WorkbenchStep } from "./town-workbench-steps";
+import { loadSceneImage } from "./texture-cache";
 
 type Ink = CanvasRenderingContext2D;
 interface WorkbenchView {
@@ -24,9 +25,7 @@ let loading: Promise<void> | undefined;
 
 export function prepareWorkbenchArt() {
   if (!loading) {
-    const image = new Image();
-    image.src = workshopUrl;
-    loading = image.decode().then(() => { sheet = image; }).catch(() => { loading = undefined; });
+    loading = loadSceneImage(workshopUrl).then(image => { sheet = image; }).catch(() => { loading = undefined; });
   }
   return Promise.all([loading, prepareTownKeepsakeArt()]);
 }
