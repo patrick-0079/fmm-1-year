@@ -2,6 +2,7 @@ import body from "./body.webp?inline";
 import head from "./head.webp?inline";
 import eyes from "./eyes.webp?inline";
 import rig from "./rig.json";
+import "./visibility.css";
 
 export class FufuPet extends HTMLElement {
   private cleanup?: () => void;
@@ -9,7 +10,8 @@ export class FufuPet extends HTMLElement {
     const root = this.shadowRoot ?? this.attachShadow({ mode: "open" });
     root.innerHTML = `<style>
       :host{position:fixed;left:12px;bottom:12px;z-index:1000;width:min(calc(clamp(64px,9vw,92px) * var(--pet-scale,1)),calc(100vw - 12px),calc(80dvh - 10px));line-height:1;color:#633d50;font:14px system-ui}
-      button{display:block;position:relative;width:100%;aspect-ratio:4/5;overflow:clip;border:0;background:transparent;cursor:grab;touch-action:none;padding:0}button:active{cursor:grabbing}
+      :host([hidden]){display:none}
+      .pet-handle{display:block;position:relative;width:100%;aspect-ratio:4/5;overflow:clip;border:0;background:transparent;cursor:grab;touch-action:none;padding:0}.pet-handle:active{cursor:grabbing}
       img,span{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;user-select:none}
       .stance,.breath{transform-origin:50% 96%}.stance{transition:transform 260ms ease-out}
       .breath{animation:fufu-breathe 3.8s ease-in-out infinite alternate}
@@ -18,10 +20,12 @@ export class FufuPet extends HTMLElement {
       @media(prefers-reduced-motion:reduce){.stance,.breath,.face,.pupils{animation:none;transition:none;transform:none!important}}
       section{position:fixed;box-sizing:border-box;width:min(180px,100vw);max-height:100dvh;overflow:auto;padding:10px 12px;border-radius:12px;background:#fff4f8;box-shadow:0 2px 10px #72475955}
       label{display:block}label+label{margin-top:6px}output{float:right}input{width:100%;margin:4px 0 0;accent-color:#ba6484}
-    </style><button aria-label="小小芙，点击调节大小和透明度，拖动换位置" title="拖动小小芙 · 点击调节大小和透明度" aria-expanded="false"><span class="stance"><span class="breath"><img class="torso" alt="" src="${body}"><span class="face"><img class="pupils" alt="" src="${eyes}"><img alt="" src="${head}"></span></span></span></button>
+      .pet-hide{width:100%;margin-top:8px;padding:6px;border:1px solid #d8b6c5;border-radius:8px;background:#fffafc;color:inherit;cursor:pointer}small{display:block;text-align:center;margin-top:4px}
+    </style><button class="pet-handle" aria-label="小小芙，点击设置或隐藏，拖动换位置" title="拖动小小芙 · 点击设置或隐藏" aria-expanded="false"><span class="stance"><span class="breath"><img class="torso" alt="" src="${body}"><span class="face"><img class="pupils" alt="" src="${eyes}"><img alt="" src="${head}"></span></span></span></button>
     <section hidden aria-label="小小芙设置"><label for="size">大小 <output for="size"></output></label><input id="size" type="range" min="50" max="500" step="5" value="100">
-    <label for="opacity">透明度</label><input id="opacity" type="range" min="25" max="100" value="100"></section>`;
-    const button = root.querySelector("button")!,
+    <label for="opacity">透明度</label><input id="opacity" type="range" min="25" max="100" value="100">
+    <button class="pet-hide" type="button">隐藏小小芙</button><small>可在页底重新打开</small></section>`;
+    const button = root.querySelector<HTMLButtonElement>(".pet-handle")!,
       panel = root.querySelector("section")!,
       size = root.querySelector<HTMLInputElement>("#size")!,
       sizeText = root.querySelector("output")!,
@@ -46,17 +50,18 @@ export class FufuPet extends HTMLElement {
       }
       if (Number.isFinite(saved.opacity)) range.value = String(saved.opacity);
       if (Number.isFinite(saved.size)) size.value = String(saved.size);
+      this.hidden = saved.hidden === true;
     } catch {}
     const save = () => {
       try {
         localStorage.setItem(
           key,
-          JSON.stringify({ left, top, opacity: Number(range.value), size: size.valueAsNumber }),
+          JSON.stringify({ left, top, opacity: Number(range.value), size: size.valueAsNumber, hidden: this.hidden }),
         );
       } catch {}
     };
     const layout = () => {
-      if (left !== undefined && top !== undefined) {
+      if (!this.hidden && left !== undefined && top !== undefined) {
         left = Math.max(0, Math.min(left, innerWidth - this.offsetWidth));
         top = Math.max(0, Math.min(top, innerHeight - this.offsetHeight));
         Object.assign(this.style, {
@@ -101,6 +106,19 @@ export class FufuPet extends HTMLElement {
         size.focus();
       }
     };
+    root.querySelector<HTMLButtonElement>(".pet-hide")!.addEventListener("click", event => {
+      show(false);
+      this.hidden = true;
+      save();
+      if (!event.detail) document.querySelector<HTMLButtonElement>("[data-pet-restore]")?.focus();
+    }, options);
+    document.addEventListener("click", event => {
+      if (!this.hidden || !(event.target instanceof Element) || !event.target.closest("[data-pet-restore]")) return;
+      this.hidden = false;
+      layout();
+      save();
+      button.focus({ preventScroll: true });
+    }, options);
     button.addEventListener(
       "click",
       (event) => {
@@ -156,6 +174,7 @@ export class FufuPet extends HTMLElement {
     window.addEventListener(
       "pointermove",
       (event) => {
+        if (this.hidden) return;
         if (drag && event.pointerId === drag.id) {
           const dx = event.clientX - drag.x,
             dy = event.clientY - drag.y;

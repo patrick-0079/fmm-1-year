@@ -88,6 +88,17 @@ mod tests {
         }
     }
     #[test]
+    fn inner_knees_keep_a_clear_background_gap() {
+        for row in 530..569 {
+            let alpha = |col: i32| BODY[((row * ART_WIDTH + col) * 4 + 3) as usize];
+            assert!(alpha(285) > 240 && alpha(311) > 240);
+            assert!(
+                (297..303).all(|col| alpha(col) == 0),
+                "knee matte at row {row}"
+            );
+        }
+    }
+    #[test]
     fn both_irises_center_at_rest_and_track_across_covered_eye_windows() {
         let travel_x = (ART_WIDTH as f32 * EYE_TRAVEL_X).ceil() as i32;
         let travel_y = (ART_HEIGHT as f32 * EYE_TRAVEL_Y).ceil() as i32;

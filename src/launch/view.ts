@@ -73,6 +73,7 @@ export function createCountdownView(root: HTMLElement) {
         <span class="launch-signature"><i aria-hidden="true">♡</i> 芙眠眠</span>
         <img class="launch-keepsake launch-player" src="${player}" alt="">
       </footer>
+      <button type="button" class="launch-restore-pet" data-pet-restore>打开小小芙</button>
     </article>
     <div class="launch-debug-host"></div>`;
 
