@@ -109,8 +109,8 @@ unsafe fn draw(hwnd: HWND) {
             blend(
                 out,
                 EYES,
-                (sx - 2.4 * hx).round() as i32,
-                (sy - 1.5 * hy).round() as i32,
+                (sx - 1.38 * hx).round() as i32,
+                (sy - 0.75 * hy).round() as i32,
             );
         }
     }

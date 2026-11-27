@@ -1,6 +1,6 @@
-import body from "./body.svg?inline";
-import head from "./head.svg?inline";
-import eyes from "./eyes.svg?inline";
+import body from "./body.webp?inline";
+import head from "./head.webp?inline";
+import eyes from "./eyes.webp?inline";
 
 export class FufuPet extends HTMLElement {
   private cleanup?: () => void;
@@ -148,7 +148,7 @@ export class FufuPet extends HTMLElement {
           dy = event.clientY - rect.top - rect.height * 0.42,
           scale = Math.max(75, Math.hypot(dx, dy));
         face.style.transform = `translate(${(dx / scale) * 3}%,${(dy / scale) * 2}%) rotate(${(dx / scale) * 5}deg)`;
-        pupils.style.transform = `translate(${(dx / scale) * 2}%,${dy / scale}%)`;
+        pupils.style.transform = `translate(${(dx / scale) * 1.15}%,${(dy / scale) * 0.5}%)`;
       },
       options,
     );

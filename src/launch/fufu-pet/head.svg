@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 150"><defs><linearGradient id="hair" x2=".3" y2="1"><stop stop-color="#ffe1e6"/><stop offset="1" stop-color="#eba7bd"/></linearGradient></defs><g stroke="#825467" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
-<path fill="none" d="M60 23C54 2 37 9 40 17c4-8 13-5 18 6"/><path fill="url(#hair)" d="M20 48C25 8 89 5 99 44l7 39-9-6 2 29q-8-2-13-12l2 12q-8-5-10-18H42q-4 15-12 20l1-14q-4 8-12 10l4-30-10 7z"/>
-<path fill="#ffe8de" d="M26 53q4-24 34-23 33 0 35 25l-3 11q-3 18-33 21-25-2-31-20z"/>
-<path fill="#fffaf7" d="M34 60q5-10 16-4 5 6 1 12-12 5-17-4zm35-3q11-7 17 2l-1 7q-8 7-17 1z"/>
-<path fill="url(#hair)" d="M21 56q-2-35 33-37 37-6 46 34l-8 15-5-21-6 7-2-12q-5 10-18 16l3-14q-6 13-18 15l3-13q-9 9-16 9l-6 15z"/>
-<path fill="#ffcbd5" stroke="#c86687" d="M78 32q-8-11-10-4-2 5 9 12 12-9 9-13-4-5-8 5z"/><path fill="none" stroke="#fff3f4" d="m82 43 6 1m-63 5q3-16 15-22"/><path fill="none" stroke="#bd7483" d="M56 74q4 4 8 0"/></g><g fill="#ed9fae" opacity=".65"><ellipse cx="37" cy="72" rx="6" ry="2.5"/><ellipse cx="82" cy="72" rx="6" ry="2.5"/></g></svg>
