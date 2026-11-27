@@ -273,6 +273,7 @@ export class GardenCinema {
       update();
     });
     v.addEventListener("waiting", () => {
+      if (v.paused || v.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) return;
       this.session.waiting();
       duckMusic(false);
       update();
@@ -287,6 +288,8 @@ export class GardenCinema {
       update();
     });
     v.addEventListener("error", () => {
+      if (!v.error) return;
+      if (v.error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED && this.useStreamFallback(v)) return;
       this.session.fail();
       duckMusic(false);
       update();
@@ -300,6 +303,13 @@ export class GardenCinema {
     ])
       v.addEventListener(event, update);
     this.player.prepend(v);
+  }
+  private useStreamFallback(video: HTMLVideoElement) {
+    if (!video.src.startsWith("blob:")) return false;
+    URL.revokeObjectURL(video.src);
+    video.crossOrigin = "anonymous";
+    video.src = gardenFilm.src;
+    return true;
   }
   private preload(replaceUnplayable = false) {
     void this.download
@@ -362,11 +372,13 @@ export class GardenCinema {
     }
     if (v.ended) v.currentTime = 0;
     this.render();
+    const source = v.src;
     void v.play().catch((error: unknown) => {
-      if (!this.active || !this.session.wanted) return;
-      if (error instanceof DOMException && error.name === "NotSupportedError")
+      if (v.src !== source || !this.active || !this.session.wanted) return;
+      if (error instanceof DOMException && error.name === "NotSupportedError") {
+        if (this.useStreamFallback(v)) return;
         this.session.fail();
-      else this.session.pause();
+      } else this.session.pause();
       duckMusic(false);
       this.render();
     });
@@ -400,12 +412,13 @@ export class GardenCinema {
     }
     if (!this.active) return;
     const v = this.video,
-      s = this.session.stage;
+      s = this.session.displayStage();
     const messages: Record<typeof s, string> = {
       idle: "正在准备花园小电视…",
       loading: "放映机正在加载周年录像，可以先去花园逛逛，稍后回来再看。",
       ready:
         "画面准备好了 · 按播放开始观看。离开后再回来，缓冲和观看位置都会保留。",
+      starting: "正在开始播放…",
       playing: "正在播放 · 离开时会暂停，回来继续看。",
       paused: "已暂停 · 已保留观看位置，按播放继续。",
       buffering: "LOADING… 正在缓冲下一段画面，也可以先去花园逛逛。",
@@ -470,7 +483,7 @@ export class GardenCinema {
     }
     const box = gardenScreen,
       v = this.video,
-      s = this.session.stage;
+      s = this.session.displayStage();
     drawGardenScreen(c, (c) => {
       c.fillStyle = "#25263d";
       c.fillRect(box.x, box.y, box.w, box.h);
@@ -494,7 +507,7 @@ export class GardenCinema {
         c.fillStyle = "#f8dfb0";
         c.font = '7px "Microsoft YaHei","PingFang SC",sans-serif';
         c.fillText(
-          s === "error" ? "画面还在路上" : "正在加载周年录像…",
+          s === "error" ? "画面还在路上" : s === "buffering" ? "正在缓冲播放画面…" : "正在加载周年录像…",
           box.x + box.w / 2,
           box.y + 21,
         );

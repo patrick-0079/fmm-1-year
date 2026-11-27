@@ -41,6 +41,36 @@ test("late readiness after leaving never authorizes background playback", () => 
   assert.equal(film.playing(), true);
 });
 
+test("starting and resuming a ready film never display the buffering overlay", () => {
+  const film = new CinemaSession();
+  film.open("inserted");
+  film.request();
+  assert.equal(film.displayStage(), "loading");
+  film.ready();
+  assert.equal(film.displayStage(), "starting");
+  film.playing();
+  film.pause();
+  film.request();
+  assert.equal(film.displayStage(), "starting");
+  film.waiting(100);
+  film.waiting(200);
+  assert.equal(film.displayStage(449), "starting");
+  assert.equal(film.displayStage(450), "buffering");
+  film.ready();
+  assert.equal(film.displayStage(500), "starting");
+  film.playing();
+  film.waiting(1000);
+  film.playing();
+  assert.equal(film.displayStage(1400), "playing");
+  film.pause();
+  film.waiting(2000);
+  assert.equal(film.displayStage(2500), "paused");
+  film.request();
+  film.leave();
+  film.waiting(3000);
+  assert.equal(film.displayStage(3500), "paused");
+});
+
 test("leaving during playback retains readiness and cancels playback intent", () => {
   const film = new CinemaSession();
   film.open("inserted");

@@ -4,6 +4,7 @@ export type CinemaStage =
   | "idle"
   | "loading"
   | "ready"
+  | "starting"
   | "playing"
   | "paused"
   | "buffering"
@@ -15,6 +16,10 @@ export class CinemaSession {
   wanted = false;
   hasFrame = false;
   stage: CinemaStage = "idle";
+  private waitingSince = 0;
+  displayStage(now = performance.now()): CinemaStage {
+    return this.stage === "buffering" && now - this.waitingSince < 350 ? "starting" : this.stage;
+  }
   open(tape: GardenTape) {
     if (tape !== "inserted") return false;
     this.active = true;
@@ -25,19 +30,19 @@ export class CinemaSession {
   leave() {
     this.active = false;
     this.wanted = false;
-    if (["playing", "buffering"].includes(this.stage))
+    if (["starting", "playing", "buffering"].includes(this.stage))
       this.stage = this.hasFrame ? "paused" : "loading";
   }
   request() {
     if (!this.active || this.stage === "error") return false;
     this.wanted = true;
-    this.stage = this.hasFrame ? "buffering" : "loading";
+    this.stage = this.hasFrame ? "starting" : "loading";
     return true;
   }
   ready() {
     this.hasFrame = true;
     if (this.stage !== "playing" && this.stage !== "ended")
-      this.stage = this.active && this.wanted ? "buffering" : "ready";
+      this.stage = this.active && this.wanted ? "starting" : "ready";
   }
   playing() {
     if (!this.active || !this.wanted) return false;
@@ -50,9 +55,10 @@ export class CinemaSession {
     if (!["idle", "error", "ended"].includes(this.stage))
       this.stage = this.hasFrame ? "paused" : "loading";
   }
-  waiting() {
-    if (this.stage !== "error" && this.stage !== "ended")
-      this.stage = this.hasFrame ? "buffering" : "loading";
+  waiting(now = performance.now()) {
+    if (!this.active || !this.wanted || this.stage === "buffering") return;
+    this.waitingSince = now;
+    this.stage = this.hasFrame ? "buffering" : "loading";
   }
   end() {
     this.wanted = false;
