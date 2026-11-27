@@ -15,8 +15,10 @@ use windows_sys::Win32::{
 
 const WIDTH: i32 = 120;
 const HEIGHT: i32 = 150;
-const ART_WIDTH: i32 = WIDTH * 2;
-const ART_HEIGHT: i32 = HEIGHT * 2;
+const ART_DENSITY: i32 = 3;
+const ART_WIDTH: i32 = WIDTH * ART_DENSITY;
+const ART_HEIGHT: i32 = HEIGHT * ART_DENSITY;
+include!("../target/art/rig.rs");
 const SIZES: [i32; 7] = [50, 75, 100, 125, 150, 175, 200];
 const SIZE_COMMAND: usize = 10;
 type Sprite = [u8; (ART_WIDTH * ART_HEIGHT * 4) as usize];
@@ -87,7 +89,8 @@ mod tests {
     fn sizes_cover_half_to_double_without_upscaling_the_art() {
         assert_eq!(dimensions(50), (60, 75));
         assert_eq!(dimensions(100), (WIDTH, HEIGHT));
-        assert_eq!(dimensions(200), (ART_WIDTH, ART_HEIGHT));
+        assert_eq!(dimensions(200), (240, 300));
+        assert!(240. * BODY_SCALE <= ART_WIDTH as f32 && 300. * BODY_SCALE <= ART_HEIGHT as f32);
         for size in SIZES {
             let (width, height) = dimensions(size);
             assert!((width * HEIGHT - height * WIDTH).abs() <= WIDTH / 2);
@@ -102,7 +105,8 @@ unsafe fn draw(hwnd: HWND) {
     let (width, height) = dimensions(STATE.with(|state| state.borrow().size));
     let pixel_scale = WIDTH as f32 / width as f32;
     let dx = (pos.x - rect.left) as f32 * pixel_scale - 60.;
-    let dy = (pos.y - rect.top) as f32 * pixel_scale - 62.;
+    let dy =
+        (pos.y - rect.top) as f32 * pixel_scale - HEIGHT as f32 * (HEAD_TOP + HEAD_SCALE * 0.455);
     let scale = dx.hypot(dy).max(75.);
     let frame = STATE.with(|state| {
         let mut state = state.borrow_mut();
@@ -148,8 +152,15 @@ unsafe fn draw(hwnd: HWND) {
             let px = (col as f32 + 0.5) * pixel_scale;
             let py = (row as f32 + 0.5) * HEIGHT as f32 / height as f32;
             let (px, py) = stance.local(px, py);
-            let sample = |coord: f32| (coord * 2.).floor() as i32;
-            blend(out, BODY, sample(px), sample(py));
+            let sample = |coord: f32| (coord * ART_DENSITY as f32).floor() as i32;
+            blend(
+                out,
+                BODY,
+                sample(60. + (px - 60.) / BODY_SCALE),
+                sample(144. + (py - 144.) / BODY_SCALE),
+            );
+            let px = 60. + (px - 60.) / HEAD_SCALE;
+            let py = (py - HEIGHT as f32 * HEAD_TOP) / HEAD_SCALE;
             let x = px - 60. - 0.96 * hx;
             let y = py - 84. - 1.125 * hy;
             let sx = 60. + cos * x + sin * y;
