@@ -607,7 +607,8 @@ export function townResidentLayers(
         : 0;
   const layers: DepthLayer[] = [
     {
-      y: foot.y + 0.05,
+      // She stands beside the console, leaning over its right edge.
+      y: npc.id === "radio-host" && page === "studio" && foot.x < 225 ? 183.06 : foot.y + 0.05,
       draw(c) {
         const sheet = guest ? sceneArt.townGuests : npc.appearance === "yeshenhua" ? sceneArt.yeshenhua : sprites;
         if (!sheet.naturalWidth) return;
@@ -708,6 +709,7 @@ export function townResidentLayers(
       rect(c,"#f7d78d",x-1.8,cap-.6,3.6,.9);
       if (approach === 1 && Math.abs(foot.x-radioFader.foot.x)<1) {
         stroke(c,ink,[foot.x-5,foot.y-15,foot.x-8,cap+2,x+1,cap+.8],3.1);
+        stroke(c,"#edd5c3",[foot.x-5,foot.y-15,foot.x-8,cap+2],2.2);
         stroke(c,"#f1c4a7",[foot.x-8,cap+2,x+1,cap+.8],1.8);
       }
     }});

@@ -51,7 +51,7 @@ const indoorStations = new Map([...interiorForResident].map(([id, room]) => [
     phase, { ...stop, scene: townInteriorId(room.key) },
   ])) as Partial<Record<Phase, Station>>,
 ]));
-const radioStreet: Station = {scene:"town", foot:p(1356,828), approach:p(1345,831)};
+const radioStreet: Station = {scene:"town", foot:p(1356,828), approach:p(1327,833)};
 function station(id: TownResidentId, shift: TownShift) {
   if (id === "radio-host") {
     if (shift === "night") return indoorStations.get(id)?.night;

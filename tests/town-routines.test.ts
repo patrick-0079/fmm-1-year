@@ -25,6 +25,10 @@ test("the public shifts and the post-midnight radio return assign all 18 residen
   assert.equal(seen.size,18);
   assert.equal(residentTownScene("radio-host", townShift("night",23.99)), "town-radio");
   assert.equal(residentTownScene("radio-host", townShift("night",0)), "town");
+  const host = new TownRoutines("after-midnight").people.get("radio-host")!;
+  const approach = host.approach!;
+  assert.ok(Math.abs(approach.x-host.x) >= 25, "the player leaves the waving hand visible");
+  assert.ok(canTravelBetween(approach,{x:1337,y:829},fixed), "the greeting position is reachable from the radio door");
 });
 test("working residents and strangers use accessible streets and thresholds in both directions",()=>{
   let walking=0;
