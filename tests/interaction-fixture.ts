@@ -80,6 +80,34 @@ async function check(name: string, run: () => void | Promise<void>) {
   document.querySelector("#results")!.append(li);
 }
 
+await check("纪念物只展示已取得的收藏，地图可回看，小镇小物逐件出现", () => {
+  inventory.open();
+  bagButton('[data-tab="keepsakes"]').click();
+  assert(bag.querySelector(".bag-keepsakes-empty") && !bag.querySelector(".bag-keepsake"), "空背包展示了未取得的收藏");
+  inventory.collectFlowerMap();
+  inventory.collectFlowerMap();
+  assert(bag.querySelectorAll(".bag-keepsake").length === 1 && JSON.parse(saves.get(INVENTORY_KEY)!).flowerMap === true, "重复打听线索没有保存唯一的地图");
+  bagButton("[data-flower-map]").click();
+  assert(bag.querySelector(".xiaoye-map-paper") && world.suspended, "展开地图时无法专心阅读");
+  const chart = bag.querySelector<HTMLCanvasElement>(".xiaoye-treasure-chart")!;
+  const ink = chart.getContext("2d")!.getImageData(0, 0, chart.width, chart.height).data;
+  let crossPixels = 0;
+  for (let i = Math.floor(chart.height / 2) * chart.width * 4; i < ink.length; i += 4)
+    if (ink[i] === 187 && ink[i + 1] === 81 && ink[i + 2] === 77 && ink[i + 3] > 200) crossPixels++;
+  assert(crossPixels > 80, "地图下半部的营地旁没有画出宝藏红叉");
+  const places = bag.querySelector<HTMLDetailsElement>(".xiaoye-map-key")!;
+  assert(!places.open, "文字清单遮住了藏宝路线");
+  places.querySelector("summary")!.click();
+  assert(places.open && places.querySelectorAll("li").length === 7, "展开对照清单没有七朵花");
+  bagButton("[data-keepsakes]").click();
+  assert(document.activeElement === bagButton("[data-flower-map]") && !world.suspended, "收起地图后未返回地图卡片");
+  inventory.townKeepsakes = () => ({items:["books"]});
+  inventory.refreshTownKeepsakes();
+  bagButton("[data-town-keepsakes]").click();
+  assert(bag.querySelectorAll("[data-town-item]").length === 1 && bag.querySelector('[data-town-item="books"]'), "小镇小物展示了尚未领取的纪念品");
+  inventory.townKeepsakes = () => ({items:[]});
+});
+
 await check("默认展示真实收藏，手动试穿后可以恢复真实搭配并保存试玩时领取的奖励", () => {
   const switchMode = () => inventory.setFitting(!inventory.fitting);
   inventory.open();

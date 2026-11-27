@@ -73,11 +73,19 @@ export async function verifyGardenDiscovery(world: World) {
     close();
   }
   await enter("garden", "xiaoye-plush");
+  const answer = (text:string) => {
+    const button=[...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")].find(b=>b.textContent===text);
+    if(!button)throw Error("小叶子缺少选项 "+text);
+    button.click();
+  };
+  answer("宝宝你这是玩偶服嘛？");
   close();
   assert(!state().achievements.facts.includes("xiaoye-plush"), "拥抱中断时过早计入小叶子会面");
   await enter("garden", "xiaoye-plush");
+  answer("宝宝你这是玩偶服嘛？");
+  answer("好温暖的拥抱");
   await waitForVisit(() => state().achievements.facts.includes("xiaoye-plush"), "完整拥抱后没有计入小叶子会面");
-  assert([...document.querySelectorAll(".activity-actions button")].some(button => button.textContent === "收下信"),
+  await waitForVisit(()=>[...document.querySelectorAll(".activity-actions button")].some(button => button.textContent === "（收下信封）"),
     "看完拥抱后应该仍可领取未收的信");
   close();
   for (const [egg,phase] of [["sunset","dusk"],["firefly","night"],["dew","dawn"]] as const) {

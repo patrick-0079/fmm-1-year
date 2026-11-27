@@ -104,7 +104,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     const { label, unread } = mailSummary(progress.residents);
     mailCount.textContent = label;
     mailCard.classList.toggle("has-unread", unread > 0);
-    inventory.refreshMailCount();
+    inventory.refreshStoryKeepsakes();
   }
   function refreshMailboxViews() {
     updateMailCount();
@@ -385,7 +385,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     if (world.scene === "town" || isTownInterior(world.scene)) town.syncShift();
     world.cancelUnavailableTarget();
   };
-  const xiaoye = new Xiaoye(world, activities, mail, () => world.currentPhase);
+  const xiaoye = new Xiaoye(world, activities, mail, () => world.currentPhase, () => inventory.collectFlowerMap());
   const suyan = new Suyan(world, activities, mail, gardenLife.residents);
   const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);
   const campLetterButton = document.querySelector<HTMLButtonElement>(".camp-letter")!;

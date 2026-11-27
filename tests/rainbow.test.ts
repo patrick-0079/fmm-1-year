@@ -4,8 +4,9 @@ import { canStand, canTravelBetween, findPath, readProgress } from "../src/core.
 import { scenes } from "../src/maps.ts";
 import { rainbowFlowers, rainbowIds, meadowOpen, meadowGate, pickRainbow, rainbowReminderStrength } from "../src/rainbow-flowers.ts";
 import { producers } from "../src/content.ts";
-import { campfire, enteredTravelCircle, meadowExit, tentTapeSpot } from "../src/meadow-map.ts";
+import { campfire, enteredTravelCircle, meadowExit, campTapeSpot } from "../src/meadow-map.ts";
 import { clickedInteraction, nearbyInteraction } from "../src/interaction.ts";
+import { xiaoyeSpot } from "../src/xiaoye-data.ts";
 
 test("unpicked flower reminders fade in every 30 seconds and hold steady in reduced motion", () => {
   for (const start of [30, 60, 90]) {
@@ -65,20 +66,23 @@ test("the former orange flower migrates once and a complete old flower book stil
   assert.ok(meadowOpen(p.rainbowFlowers));
   assert.equal(pickRainbow(p.rainbowFlowers,"garden","prism-calendula"),undefined);
 });
-test("the rainbow circle follows its ground artwork and the former gateposts are walkable", () => {
+test("the rainbow circle beside Xiaoye follows its artwork and leaves her approach clear", () => {
   const map = scenes.garden;
-  for (const point of [{x:141,y:337}, {x:155,y:346}, {x:205,y:311}, {x:173,y:349}, {x:236,y:349}])
+  assert.ok(Math.hypot(meadowGate.x-xiaoyeSpot.x,meadowGate.y-xiaoyeSpot.y)<65);
+  assert.equal(nearbyInteraction(xiaoyeSpot.approach,map.spots)?.id,xiaoyeSpot.id);
+  for (const point of [{x:205,y:378}, xiaoyeSpot, xiaoyeSpot.approach])
     assert.notEqual(clickedInteraction(point,map.spots)?.id,meadowGate.id);
-  for (const point of [{x:205,y:378}, {x:179,y:378}, {x:231,y:378}, {x:205,y:365}, {x:205,y:391}])
-    assert.equal(clickedInteraction(point,map.spots)?.id,meadowGate.id);
+  for (const [dx,dy] of [[0,0],[-26,0],[26,0],[0,-13],[0,13]])
+    assert.equal(clickedInteraction({x:meadowGate.x+dx,y:meadowGate.y+dy},map.spots)?.id,meadowGate.id);
   assert.ok(canTravelBetween({x:170,y:375},{x:240,y:375},map));
   for (const s of map.spots)
     assert.deepEqual(findPath(map.spawn,s.approach,map)?.at(-1),s.approach,s.id);
 });
 
-test("the tape inside the tent can be picked up from its walkable doorway", () => {
-  const map = scenes.meadow, tape = tentTapeSpot;
-  assert.ok(!canStand(tape, map.walls, map.bounds, map.floor));
+test("the tape on the grass beside the campfire is reachable without sitting or picking up the camp letter", () => {
+  const map = scenes.meadow, tape = campTapeSpot;
+  assert.ok(tape.x < campfire.x && Math.hypot(tape.x-campfire.x,tape.y-campfire.y)<36);
+  assert.ok(canStand(tape, map.walls, map.bounds, map.floor));
   assert.deepEqual(findPath(map.spawn, tape.approach, map)?.at(-1), tape.approach);
   assert.equal(nearbyInteraction(tape.approach, map.spots), tape);
   assert.equal(clickedInteraction({ x: tape.x, y: tape.y - 5 }, map.spots), tape);

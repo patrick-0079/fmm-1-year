@@ -1,7 +1,7 @@
 import type { World } from "../src/world";
 import { SAVE_KEY, readProgress } from "../src/core";
 import { rainbowFlowers } from "../src/rainbow-flowers";
-import { tentTapeSpot } from "../src/meadow-map";
+import { campTapeSpot } from "../src/meadow-map";
 import { renderGameMailDesk } from "../src/game-mail-desk";
 import { checkTapSurface } from "./hotspot-pointer-cases";
 
@@ -259,9 +259,9 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
       world.onInteract(flower.id);
     }
     await world.prepareScene("meadow");
-    world.switchScene("meadow", tentTapeSpot.approach);
+    world.switchScene("meadow", campTapeSpot.approach);
     key("e");
-    expect(tape() === "carried", "在帐篷门口按 E 没有拿到录像带");
+    expect(tape() === "carried", "在篝火左边按 E 没有拿到录像带");
   }
   await world.prepareScene("garden");
   world.switchScene("garden", {x:710,y:347});

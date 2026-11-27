@@ -4,6 +4,36 @@ import { canStand, canTravelBetween, findPath } from "../src/core.ts";
 import { scenes } from "../src/maps.ts";
 import { XiaoyeHug, XIAOYE_HUG_SECONDS, xiaoyeFootprint, xiaoyeFrame, xiaoyeLanternOn,
   xiaoyeFrames, xiaoyeLanternPoint, xiaoyeScale, xiaoyeSpot } from "../src/xiaoye-data.ts";
+import { ResidentChats, readChatMemory } from "../src/resident-chats.ts";
+import { xiaoyeDailyPage, xiaoyePages } from "../src/xiaoye-dialogue.ts";
+
+test("the first hug follows the costume question and both answers lead to the same letter",()=>{
+  assert.deepEqual(xiaoyePages.hello.choices,[["宝宝你这是玩偶服嘛？","costume"]]);
+  assert.equal(xiaoyePages.hello.hug,undefined);
+  assert.equal(xiaoyePages.costume.hug,true);
+  assert.deepEqual(xiaoyePages.costume.choices,[["好热的拥抱","hot"],["好温暖的拥抱","warm"]]);
+  assert.match(xiaoyePages.hot.text,/热也得抱/);
+  assert.match(xiaoyePages.warm.text,/多抱会吧/);
+});
+
+test("a previously met plush gives both evening stories once across midnight and then rotates A, B, C",()=>{
+  const id=xiaoyeSpot.id;
+  let memory=readChatMemory({[id]:{introduced:true,phases:{night:{count:3,turn:6}}}});
+  const chats = new ResidentChats(()=>memory);
+  const speak=(phase:"dawn"|"day"|"dusk"|"night", day:number, hours:number)=>
+    xiaoyeDailyPage(phase,chats.visitShift(id,phase,day,hours));
+  assert.equal(speak("night",2,23),"night");
+  memory=readChatMemory(JSON.parse(JSON.stringify(memory)));
+  assert.deepEqual([0,1,2,3,4].map(hour=>speak("night",3,hour)),["lantern","miss","fluffy","again","miss"]);
+  for (const [phase, hours] of [["dawn",6],["day",9],["dusk",17]] as const) {
+    const opening=speak(phase,3,hours);
+    assert.equal(opening,phase);
+    const [[label,hug]]=xiaoyePages[opening].choices!;
+    assert.equal(label,"（抱抱）");assert.equal(xiaoyePages[hug].hug,true);
+    assert.equal(speak(phase,3,hours),"miss");
+  }
+  assert.equal(speak("night",3,20),"night");
+});
 
 test("Xiaoye's hug approach remains accessible without blocking existing garden activities", () => {
   const garden = scenes.garden;

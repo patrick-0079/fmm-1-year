@@ -6,6 +6,7 @@ import { gardenChatTopics, senderIntroductions, introduceSender } from "../src/g
 import { townDialogues } from "../src/town-dialogue.ts";
 import { gardenVisitorScripts } from "../src/garden-visitor-dialogue.ts";
 import { guestDialogues } from "../src/town-guest-dialogues.ts";
+import { flowerClueChoice, flowerClueText, xiaoyePages } from "../src/xiaoye-dialogue.ts";
 import { elderLines } from "../src/elders-data.ts";
 import { allLetters } from "../src/letters.ts";
 import { worksInTown } from "../src/town-routines.ts";
@@ -15,9 +16,10 @@ import { type ChatBook } from "../src/resident-chats.ts";
 
 const phases: Phase[] = ["dawn","day","dusk","night"];
 const transcript = readFileSync(new URL("../doc/conversation.md", import.meta.url), "utf8");
-test("all 29 residents are represented and the 21 rotating chat books match their schedules and transcript", () => {
+test("all 29 residents are represented and the 20 rotating chat books match their schedules and transcript", () => {
   const books: Record<string, ChatBook> = {...townChatTopics, ...gardenChatTopics};
-  assert.equal(Object.keys(books).length + Object.keys(gardenVisitorScripts).length + Object.keys(guestDialogues).length, 29);
+  const residents = [...Object.keys(books), ...Object.keys(gardenVisitorScripts), ...Object.keys(guestDialogues), "xiaoye-plush"];
+  assert.equal(new Set(residents).size, 29);
   let count = 0, shifts = 0;
   for (const [id, book] of Object.entries(books)) {
     const duty = phases.filter(phase => {
@@ -46,8 +48,16 @@ test("all 29 residents are represented and the 21 rotating chat books match thei
     assert.equal(forks.size, 1, id);
     count += topics.size;
   }
-  assert.equal(shifts, 54);
-  assert.equal(count, 96);
+  assert.equal(shifts, 50);
+  assert.equal(count, 90);
+});
+
+test("Xiaoye's original options, hug responses and full flower clue are transcribed", () => {
+  for (const page of Object.values(xiaoyePages)) {
+    assert.ok(transcript.includes(page.text), page.text);
+    for (const [label] of page.choices ?? []) assert.ok(transcript.includes(label),label);
+  }
+  assert.ok(transcript.includes(flowerClueChoice) && transcript.includes(flowerClueText));
 });
 
 test("each side of a sender introduction is playable and transcribed in full", () => {

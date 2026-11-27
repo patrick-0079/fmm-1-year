@@ -179,12 +179,14 @@ export const starterItems: readonly ItemId[] = [
 export interface InventoryState {
   owned: ItemId[];
   bouquet: boolean;
+  flowerMap: boolean;
   equipped: Record<EquipSlot, ItemId | null>;
 }
 export const INVENTORY_KEY = "fufu-souvenirs-v1";
 export const emptyInventory = (): InventoryState => ({
   owned: [...starterItems],
   bouquet: false,
+  flowerMap: false,
   equipped: {
     wreath: null,
     head: null,
@@ -205,6 +207,7 @@ export function readInventory(
     const p = JSON.parse(raw || "null");
     if (p && typeof p === "object") {
       state.bouquet = p.bouquet === true;
+      state.flowerMap = p.flowerMap === true;
       if (Array.isArray(p.owned)) {
         for (const id of p.owned)
           if (typeof id === "string" && Object.hasOwn(ITEMS, id)) grantItem(state, id as ItemId);
@@ -246,10 +249,11 @@ export function grantItem(state: InventoryState, id: ItemId): boolean {
   return true;
 }
 export function mergeInventoryReceipts(into: InventoryState, from: InventoryState) {
-  const count = into.owned.length, bouquet = into.bouquet;
+  const count = into.owned.length, bouquet = into.bouquet, flowerMap = into.flowerMap;
   for (const id of from.owned) grantItem(into, id);
   into.bouquet ||= from.bouquet;
-  return count !== into.owned.length || bouquet !== into.bouquet;
+  into.flowerMap ||= from.flowerMap;
+  return count !== into.owned.length || bouquet !== into.bouquet || flowerMap !== into.flowerMap;
 }
 export function equipItem(state: InventoryState, id: ItemId): boolean {
   if (!state.owned.includes(id)) return false;

@@ -84,18 +84,23 @@ export class ResidentChats {
     record.introduced = true;
     this.save();
   }
-  /** -1 opens this shift's scene; other indices select the author's additional lines. */
-  daily(id: string, phase: Phase, day: number, hours: number, hasOpening: boolean, familiarCount: number,
-    pendingOpening = false) {
+  /** Zero-based visit in this game day's shift. An outstanding delivery can replay visit zero. */
+  visitShift(id: string, phase: Phase, day: number, hours: number, repeatFirst = false) {
     const record = this.memory()[id] ??= fresh();
     const shifts = record.shifts ??= {};
     // The night from 20:00 to 05:00 belongs to the day on which it started.
     const shiftDay = phase === "night" && hours < 5 ? day - 1 : day;
     const previous = shifts[phase];
     const visits = previous?.day === shiftDay ? previous.count : 0;
-    if (visits && hasOpening && pendingOpening) return -1;
+    if (visits && repeatFirst) return 0;
     shifts[phase] = {day: shiftDay, count: visits + 1};
     this.save();
+    return visits;
+  }
+  /** -1 opens this shift's scene; other indices select the author's additional lines. */
+  daily(id: string, phase: Phase, day: number, hours: number, hasOpening: boolean, familiarCount: number,
+    pendingOpening = false) {
+    const visits = this.visitShift(id, phase, day, hours, hasOpening && pendingOpening);
     if (!familiarCount || (hasOpening && visits === 0)) return -1;
     return (visits - (hasOpening ? 1 : 0)) % familiarCount;
   }

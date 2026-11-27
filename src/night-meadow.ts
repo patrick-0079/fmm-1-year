@@ -1,6 +1,6 @@
 import { producers } from "./content";
 import type { Point, Progress } from "./core";
-import { campfire, campLetterSpot, campSeat, meadowExit, starJar, tentRoof, tentTapeSpot } from "./meadow-map";
+import { campfire, campLetterSpot, campSeat, meadowExit, starJar, tentRoof, campTapeSpot } from "./meadow-map";
 import { meadowFlock as flock } from "./meadow-ground";
 import { sfx } from "./sound";
 import { drawWildSprite } from "./wild-art";
@@ -49,8 +49,8 @@ function glint(c: CanvasRenderingContext2D, x: number, y: number, size: number, 
   c.fillRect(Math.round(x), Math.round(y - size), 1, size * 2 + 1);
 }
 
-function drawTentTape(c: CanvasRenderingContext2D) {
-  const { x, y } = tentTapeSpot;
+function drawCampTape(c: CanvasRenderingContext2D) {
+  const { x, y } = campTapeSpot;
   c.fillStyle = "#372c3c70";
   c.fillRect(x - 8, y - 1, 19, 2);
   c.fillStyle = "#262534";
@@ -115,7 +115,7 @@ export class NightMeadow {
     };
     world.available = spot => {
       if (!available(spot)) return false;
-      if (spot.id === tentTapeSpot.id) return this.getTape() === "missing";
+      if (spot.id === campTapeSpot.id) return this.getTape() === "missing";
       if (spot.id === campLetterSpot.id) return this.campGuest.letterOnGround;
       return !(world.scene === "meadow" && this.found().includes(spot.id));
     };
@@ -157,7 +157,7 @@ export class NightMeadow {
   closeBottle() { this.bottle.close(); }
   interact(id: string) {
     if (this.world.scene !== "meadow") return false;
-    if (id === tentTapeSpot.id) {
+    if (id === campTapeSpot.id) {
       if (this.getTape() === "missing") this.collectTape();
       return true;
     }
@@ -241,7 +241,7 @@ export class NightMeadow {
       ...this.campGuest.layers(sceneArt.patrickCamp, this.reduced.matches),
       ...visibleMapCovers(this.world, sceneryCovers),
     ];
-    if (this.getTape() === "missing") layers.push({ y: tentTapeSpot.y, draw: drawTentTape });
+    if (this.getTape() === "missing") layers.push({ y: campTapeSpot.y, draw: drawCampTape });
     const view = this.world.visibleArea;
     this.jellies?.animals.forEach((animal, index) => {
       if (!animal.visible) return;

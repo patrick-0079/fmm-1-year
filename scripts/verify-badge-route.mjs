@@ -183,10 +183,15 @@ try {
   };
   await arrive("garden", "xiaoye-plush");
   await interact();
-  const clue = walk.getByRole("button", { name: "周年录像带在哪里？", exact: true });
+  const clue = walk.getByRole("button", { name: "打听一下花海的线索", exact: true });
   await clue.click();
-  assert.match(await walk.locator(".activity-status").innerText(), /七色花[\s\S]*帐篷/);
+  assert.match(await walk.locator(".activity-status").innerText(), /周年花园两朵[\s\S]*篝火的旁边[\s\S]*大屏幕/);
   await press(".activity-close");
+  await press(".bag-toggle");
+  await press('.bag-tabs [data-tab="keepsakes"]');
+  await press("[data-flower-map]");
+  await walk.getByRole("button",{name:"返回纪念物"}).click();
+  await press(".bag-close");
   const flowers = await walk.evaluate(async () => (await import("/src/rainbow-flowers.ts")).rainbowFlowers);
   for (const { scene, id } of flowers) {
     await arrive(scene, id);
@@ -218,7 +223,7 @@ try {
   await press(".enter-button");
   await checkTapeKeepsake("已放入放映机");
   assert.deepEqual(errors, []);
-  console.log("相册、周年海报、小叶子线索、七色传送阵、帐篷取带、放映与勋章均通过。背包纪念卡在拾取和插带后分别刷新仍显示对应状态。");
+  console.log("相册、周年海报、小叶子赠图、七色传送阵、篝火拾带、放映与勋章均通过。背包纪念卡在拾取和插带后分别刷新仍显示对应状态。");
 } finally {
   await browser?.close();
   await server.close();

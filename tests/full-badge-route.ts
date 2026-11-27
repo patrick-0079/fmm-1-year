@@ -152,7 +152,7 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   await verifyLetterAndMeadowStamps(world, log);
   closeActivity();
   await interactAt("meadow", "meadow-garden-tape");
-  expect(state().gardenTape === "carried" && earned("garden-tape"), "帐篷拾取录像带未立即盖章");
+  expect(state().gardenTape === "carried" && earned("garden-tape"), "篝火旁拾取录像带未立即盖章");
   await interactAt("garden", "danmaku");
   await choose("先去逛逛");
   expect(state().gardenTape === "carried" && !earned("memories"), "离开放映机时意外插带");
@@ -161,7 +161,7 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   expect(state().gardenTape === "inserted" && !el(".cinema-hud").hidden && earned("memories"),
     "插带打开放映时没有保存到访或补齐回忆徽章");
   el(".cinema-leave").click();
-  log("花海帐篷拾带获章，插带前可以离开，真正放映时补齐回忆徽章");
+  log("花海篝火旁拾带获章，插带前可以离开，真正放映时补齐回忆徽章");
   await collectStars();
   log(`${producers.length} 颗落星逐一按键拾起，署名与寄语核对，重复互动未增加收藏`);
   for (const npc of TOWN_NPCS) {

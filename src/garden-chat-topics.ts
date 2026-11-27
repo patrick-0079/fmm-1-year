@@ -32,27 +32,7 @@ export function showGardenChat(topic: ChatTopic, say: Speech, actions: Choice[] 
   say(topic.text, [...actions, ...replies]);
 }
 
-const lampShadowReplies = [
-  ["和它挥挥手", "大绒爪慢半拍跟着挥了一下。芙芙放下手，它还多挥了一下。"],
-  ["靠着它再看一会儿", "小叶子把提灯提稳。两团影子安静地靠在草叶上。"],
-] as const;
-
 export const gardenChatTopics = {
-  "xiaoye-plush": {
-    phases: {
-      dawn: "（晨光把小叶子两只绒耳朵的边缘照得透亮。它松开爪子时，你肩头也暖了一小块。）",
-      day: "（你的肩头沾了一根猫毛。小叶子低头看看自己的爪子，又悄悄把脸埋了进去。）",
-      dusk: {text: "（小叶子提起脚边的小灯。日头渐渐低下去，草地上两团长长的影子慢慢靠到一块。）", replies: lampShadowReplies},
-      night: {
-        text: "（小叶子提起小灯。芙芙和大猫猫的影子挨在草地上，一高一矮。）",
-        replies: lampShadowReplies,
-      },
-    },
-    familiar: [
-      "（刚松开一点，你的袖口就被绒爪轻轻碰了碰。小叶子像是还有半个抱抱没抱完。）",
-      "（小叶子已经记得你会从哪边凑过来。你抬起脸，刚好碰到它软乎乎的脸颊。）",
-    ],
-  },
   "visitor-dianziyang": {
     phases: {
       dawn: "露水都挂在耳朵这边的卷毛上。我轻轻一抖……咩，你往后退半步！",

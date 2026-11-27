@@ -485,7 +485,7 @@ q("#check-astrolabe").addEventListener("click",()=>void run(async()=>{
   expect(q(".activity-status").textContent?.includes("西廊"),"南阶手记没有方位线索");
   q(".activity-close").click();
   openKeepsakes();
-  expect(q<HTMLButtonElement>("[data-notebook]").disabled && !state().residents.guardianInvited,"看过南阶线索就提前获得了手记");
+  expect(!document.querySelector("[data-notebook]") && !state().residents.guardianInvited,"看过南阶线索就提前获得了手记");
   q(".bag-close").click();
   const firstRing = ringSpots[1];
   world.visit(firstRing.id); await wait(()=>!world.available(firstRing));

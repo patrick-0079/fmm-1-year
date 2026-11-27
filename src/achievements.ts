@@ -58,7 +58,7 @@ function letter(key: string, letterId: string, name: string, difficulty: Difficu
   return { id: "letter-" + key, chapter: "letters", letterId, name, difficulty, description, hint };
 }
 const letters = [
-  letter("xiaoye", deliveryIds.xiaoye, "小叶子 · 绒爪递来的信", "普通", "在周年花园抱抱小叶子，选择「收下信」。"),
+  letter("xiaoye", deliveryIds.xiaoye, "小叶子 · 绒爪递来的信", "普通", "问小叶子是不是穿了玩偶服，抱过它，等它拿出信后选择「（收下信封）」。"),
   letter("yeshenhua", deliveryIds["radio-host"], "夜神华 · 夹在节目单里", "普通", "问问夜神华为什么当电台主持，听她讲完后收下信。"),
   letter("kerry", "kerry-anniversary-letter", "Kerry · 灵验的祝福", "简单", "拆开 Kerry 的周年来信，让正文在眼前展开。"),
   letter("suyan", deliveryIds.suyan, "苏颜 · 很多很多颗心", "简单", "和苏颜聊聊帽子，在大巴掌之后收下她递来的信。"),
@@ -92,7 +92,7 @@ const explore: Definition[] = [
   { id: "day-secrets", chapter: "explore", name: "一天里的三个秘密", difficulty: "探索", description: "清晨采晨露花，黄昏拾金色纸船，星夜触发萤火心愿。可以跨天完成。", hint: "同一条溪流，一天会捎来几种小礼物？" },
   { id: "star-bottle", chapter: "explore", name: "瓶里住着一片星空", difficulty: "挑战", description: "拾齐花海草地上的全部署名星。", hint: "草叶之间藏着一片可以捧在手里的夜空。" },
   { id: "camp", chapter: "explore", name: "火边多了一个座位", difficulty: "探索", description: "在花海营火旁连续坐满 30 秒，等到派大星来陪你。", hint: "这里的火，好像够两个人烤。" },
-  { id: "garden-tape", chapter: "explore", name: "藏在花海的这一年", difficulty: "探索", description: "在花海的帐篷里找到并收下周年录像带。", hint: "小叶子记得，芙芙这一年的影像收在了哪里。" },
+  { id: "garden-tape", chapter: "explore", name: "藏在花海的这一年", difficulty: "探索", description: "在花海篝火左边找到并收下周年录像带。", hint: "小叶子记得，芙芙这一年的影像收在了哪里。" },
   ...seals.map(({ id, name, hint }): Definition => ({
     id: "ruin-" + id, chapter: "explore", name,
     description: hint + "。", difficulty: id === "first" ? "简单" : id === "light" ? "挑战" : id === "radio" ? "探索" : "普通",

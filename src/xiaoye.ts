@@ -3,13 +3,14 @@ import type { Phase } from "./day";
 import type { World, DepthLayer } from "./world";
 import { canTravelBetween, type Point } from "./core";
 import { sceneArt } from "./scene-art";
-import { lampLift, plushIdleFrame, plushIdleMotion } from "./plush-idle";
-import { XiaoyeHug, xiaoyeFrame, xiaoyeFrames, xiaoyeHugText, xiaoyeLanternOn,
+import { lampLift, plushIdleFrame, plushIdleMotion, plushWaveFrame } from "./plush-idle";
+import { XiaoyeHug, xiaoyeFrame, xiaoyeFrames, xiaoyeLanternOn,
   xiaoyeLanternPoint, xiaoyeScale, xiaoyeSpot } from "./xiaoye-data";
 import { embracePose, boundedEmbraceFoot, isEmbraceApproach, EMBRACE_BODY_GAP, EMBRACE_SHOULDER_Y } from "./xiaoye-embrace";
 import { embraceFrames, EMBRACE_ART_SCALE } from "./xiaoye-embrace-art";
 import { handedLetters, letterChoice, type LetterHandoff } from "./resident-story";
-import { gardenChatTopics, showGardenChat } from "./garden-chat-topics";
+import { flowerClueChoice, flowerClueText, letterPauseSeconds, xiaoyeDailyPage, xiaoyePages, type XiaoyePage } from "./xiaoye-dialogue";
+import { drawEnvelope } from "./visitor-gesture-art";
 
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
 const HEIGHT = 60;
@@ -19,7 +20,12 @@ export class Xiaoye {
   private hug = new XiaoyeHug();
   private time = 0;
   private ownsDialogue = false;
-  private offeredDuringHug = false;
+  private page: XiaoyePage = "hello";
+  private clueOpen = false;
+  private clueStarted = 0;
+  private pageStarted = 0;
+  private replySeconds = 0;
+  private origin: Point = {...xiaoyeSpot.approach};
   private lastHugTime = 0;
   private idleMirrored = false;
   private lampStart: Point = {x:0,y:0};
@@ -27,7 +33,7 @@ export class Xiaoye {
   private panels: HTMLElement[];
 
   constructor(private world: World, private activities: Activities,
-    private mail: LetterHandoff, private phase: () => Phase) {
+    private mail: LetterHandoff, private phase: () => Phase, private collectFlowerMap: () => void) {
     this.panels = Array.from(document.querySelectorAll<HTMLElement>(
       ".inventory-panel,.map-reader,.game-letter-reader",
     ));
@@ -39,23 +45,19 @@ export class Xiaoye {
     world.onTick = (dt, time) => {
       tick(dt, time);
       this.time = world.ambientTime;
-      const wasHugging=this.hug.active, mirrored=this.hug.mirrored;
       // Movement caps dt on slow frames. The hug uses actual foreground seconds.
       const elapsed = dt > 0 ? time - this.lastHugTime : 0;
       this.lastHugTime = time;
-      const finished = this.hug.tick(elapsed, world.player, this.available() && this.ownsDialogue);
-      if (wasHugging && !this.hug.active) {
-        this.idleMirrored = mirrored;
-        if (!finished) this.activities.dismissDialogue(xiaoyeSpot);
-        else {
-          if (!this.offeredDuringHug) {
-            const topic = world.chats.next(xiaoyeSpot.id, gardenChatTopics["xiaoye-plush"], this.phase());
-            showGardenChat(topic, this.dialogueWithTapeClue.bind(this));
-          }
-          world.onAchievementEvent("xiaoye-plush");
-        }
+      if (!this.ownsDialogue) return;
+      if (!this.available() || Math.hypot(world.player.x-this.origin.x,world.player.y-this.origin.y)>7) {
+        this.activities.dismissDialogue(xiaoyeSpot);
+        return;
       }
-      if (world.scene !== "garden") this.reset();
+      if (this.hug.tick(elapsed,world.player,true)) world.onAchievementEvent("xiaoye-plush");
+      if (!this.clueOpen && (this.page === "hot" || this.page === "warm")) {
+        this.replySeconds += Math.max(0,elapsed);
+        if (this.replySeconds >= letterPauseSeconds && !this.hug.active) this.show("offer");
+      }
     };
     world.getActorPresentation = () => {
       if (!this.hug.active || !this.available()) return presentation();
@@ -76,58 +78,87 @@ export class Xiaoye {
     if(this.hug.active)this.idleMirrored=this.hug.mirrored;
     this.hug.cancel();
     this.ownsDialogue = false;
+    this.clueOpen = false;
+    this.replySeconds = 0;
     this.contactFoot = { x:xiaoyeSpot.x, y:xiaoyeSpot.y };
   }
 
   interact(id: string) {
     if (id !== xiaoyeSpot.id || this.world.scene !== "garden") return false;
     if (!this.available() || this.ownsDialogue || this.hug.active) return true;
-    // Above/below or pressed against the plush, the profile poses cannot safely
-    // embrace. Walk to the existing side approach; manual movement can cancel it.
-    if(!isEmbraceApproach(this.world.player,xiaoyeSpot)) {
+    if(!this.prepareApproach()) {
       this.world.visit(xiaoyeSpot.id);
       return true;
     }
-    const player=this.world.player, side=player.x<xiaoyeSpot.x ? -1 : 1;
-    const contact=boundedEmbraceFoot(xiaoyeSpot,{x:player.x-side*EMBRACE_BODY_GAP,y:player.y-4});
-    const map=this.world.config, space={...map,walls:map.walls.filter(w=>w.label!=="来宾 · 小叶子")};
-    if(!canTravelBetween(xiaoyeSpot,contact,space) || Math.abs(player.x-contact.x)<EMBRACE_BODY_GAP-.1) {
-      this.world.visit(xiaoyeSpot.id);
-      return true;
-    }
-    const lampStart=this.lampPoint();
-    if (!this.hug.begin(this.world.player)) return true;
+    this.origin = {...this.world.player};
     this.lastHugTime = performance.now() / 1000;
-    this.lampStart=lampStart;
-    // The plush takes a small, validated step. Never move the player's real feet.
-    this.contactFoot=contact;
-    this.offeredDuringHug = !this.mail.received(handedLetters.xiaoye);
-    if (this.offeredDuringHug) this.offerLetter();
-    else this.dialogue(xiaoyeHugText, []);
+    this.idleMirrored = this.origin.x < xiaoyeSpot.x;
+    if (this.mail.received(handedLetters.xiaoye)) {
+      const phase = this.phase();
+      const visit = this.world.chats.visitShift(id,phase,this.world.currentDay,this.world.currentHours);
+      this.show(xiaoyeDailyPage(phase,visit));
+    } else this.show("hello");
     return true;
   }
 
-  private offerLetter(received = false) {
-    this.dialogueWithTapeClue(received ? "（小叶子等你把信收好，才轻轻放下爪子。）" : "（软乎乎的大猫猫轻轻抱住了你，用绒爪递来一封盖着红色爱心蜡封的信。）", [
-      letterChoice(this.mail, handedLetters.xiaoye, () => this.offerLetter(true)),
-    ]);
+  private prepareApproach() {
+    // The plush takes a short collision-checked step. Fufu keeps her actual footing,
+    // including when she shuffles closer while reading the question.
+    const player=this.world.player;
+    if(!isEmbraceApproach(player,xiaoyeSpot) || Math.hypot(player.x-xiaoyeSpot.x,player.y-xiaoyeSpot.y)>xiaoyeSpot.radius!)return false;
+    const side=player.x<xiaoyeSpot.x ? -1 : 1;
+    const contact=boundedEmbraceFoot(xiaoyeSpot,{x:player.x-side*EMBRACE_BODY_GAP,y:player.y-4});
+    const map=this.world.config, space={...map,walls:map.walls.filter(w=>w.label!=="来宾 · 小叶子")};
+    if(!canTravelBetween(xiaoyeSpot,contact,space) || Math.abs(player.x-contact.x)<EMBRACE_BODY_GAP-.1)return false;
+    this.contactFoot=contact;
+    return true;
   }
 
-  private dialogueWithTapeClue(text: string, options: { title: string; run: () => void }[]) {
-    this.dialogue(text, [...options, {
-      title: "周年录像带在哪里？",
-      run: () => this.dialogue(
-        "（小叶子用绒爪递来一张手绘地图。）在周年花园、勇气花园和周年小镇集齐七色花，周年花园西边、气球摊南侧的草地上就会亮起七色传送阵。\n走进阵心就能到花海，再往西北走就能看见营火。录像带就在营火左边的帐篷里，带回周年花园放进放映机就能看啦。",
-        [{ title: "我记住啦", run: () => this.dialogueWithTapeClue(text, options) }],
-      ),
-    }]);
+  private show(page: XiaoyePage) {
+    if (xiaoyePages[page].hug) {
+      if (!this.prepareApproach()) {
+        this.activities.dismissDialogue(xiaoyeSpot);
+        this.world.visit(xiaoyeSpot.id);
+        return;
+      }
+      this.lampStart = this.lampPoint();
+      this.hug.begin(this.world.player);
+    }
+    this.page = page;
+    this.pageStarted = this.time;
+    this.replySeconds = 0;
+    this.lastHugTime = performance.now() / 1000;
+    this.present();
+  }
+
+  private present() {
+    if (this.clueOpen) {
+      this.dialogue(flowerClueText,[{title:"继续刚才的话题",run:()=>{
+        this.clueOpen = false;
+        this.lastHugTime = performance.now() / 1000;
+        this.present();
+      }}]);
+      return;
+    }
+    const page = xiaoyePages[this.page];
+    const choices = this.page === "offer" || this.page === "received"
+      ? [letterChoice(this.mail,handedLetters.xiaoye,()=>this.show("received"),"（收下信封）")]
+      : (page.choices ?? []).map(([title,destination])=>({title,run:()=>this.show(destination)}));
+    choices.push({title:flowerClueChoice,run:()=>{
+      this.clueOpen = true;
+      this.clueStarted = this.time;
+      this.collectFlowerMap();
+      this.present();
+    }});
+    this.dialogue(page.text,choices);
   }
 
   private dialogue(text: string, options: { title: string; run: () => void }[]) {
     // Replacing our own page invokes its close callback before installing the next.
     this.ownsDialogue = false;
     this.activities.dialogue(xiaoyeSpot.title, text, options, c => {
-      this.drawEmbrace(c,2,{x:24,y:53},false,0,false,54/HEIGHT);
+      if (!this.clueOpen && this.hug.active) this.drawEmbrace(c,2,{x:24,y:53},false,0,false,54/HEIGHT);
+      else this.drawPlush(c,24,53,53,false,true);
     }, xiaoyeSpot, () => { if (this.ownsDialogue) this.reset(); });
     this.ownsDialogue = true;
   }
@@ -141,12 +172,26 @@ export class Xiaoye {
         y:xiaoyeSpot.y+(this.contactFoot.y-xiaoyeSpot.y)*contact}};
   }
 
-  private drawIdle(c: CanvasRenderingContext2D) {
+  private showPaws() {
+    return this.clueOpen || this.page === "hello" || this.page === "offer" ||
+      this.page === "fluffy" || this.page === "received";
+  }
+
+  private drawPlush(c: CanvasRenderingContext2D, x:number, y:number, height:number, mirror:boolean, talking:boolean) {
     if (!sceneArt.xiaoye.naturalWidth) return;
-    const frame=xiaoyeFrame(this.phase(),false),f=xiaoyeFrames[frame],s=xiaoyeScale(frame,HEIGHT);
-    c.save();c.translate(xiaoyeSpot.x,xiaoyeSpot.y);if(this.idleMirrored)c.scale(-1,1);
-    const posed=plushIdleFrame(sceneArt.xiaoye,frame===2,
-      plushIdleMotion(this.time,frame===2,motion.matches || this.ownsDialogue));
+    const raised = talking && this.showPaws();
+    const frame=xiaoyeFrame(this.phase(),raised),f=xiaoyeFrames[frame],s=xiaoyeScale(frame,height);
+    c.save();c.translate(x,y);if(mirror)c.scale(-1,1);
+    const age = Math.max(0,this.time-this.pageStarted);
+    let posed: HTMLCanvasElement | undefined;
+    if (raised) {
+      if (!this.clueOpen && this.page === "hello") {
+        const step = motion.matches ? 3 : age < 1.4 ? Math.round(3*(1-Math.cos(age*Math.PI*3))) : 0;
+        posed=plushWaveFrame(sceneArt.xiaoye,xiaoyeLanternOn(this.phase()),step);
+        // After waving, open both paws and turn slightly to show the plush coat.
+        if (!motion.matches && age>1.4 && age<2.7) c.rotate(.06*Math.sin((age-1.4)*Math.PI*2/1.3));
+      }
+    } else posed=plushIdleFrame(sceneArt.xiaoye,frame===2,plushIdleMotion(this.time,frame===2,motion.matches || talking));
     if(posed)c.drawImage(posed,(f.x-f.footX)*s,(f.y-f.footY)*s,f.w*s,f.h*s);
     else c.drawImage(sceneArt.xiaoye,f.x,f.y,f.w,f.h,(f.x-f.footX)*s,(f.y-f.footY)*s,f.w*s,f.h*s);
     c.restore();
@@ -175,7 +220,7 @@ export class Xiaoye {
       c.save();c.fillStyle="#554c4530";c.beginPath();
       c.ellipse(v.foot.x,v.foot.y+1,15,3.8,0,0,Math.PI*2);c.fill();
       if(v.active)this.drawEmbrace(c,v.pose.frame,v.foot,v.mirror,v.pose.lean);
-      else this.drawIdle(c);
+      else this.drawPlush(c,xiaoyeSpot.x,xiaoyeSpot.y,HEIGHT,this.idleMirrored,this.ownsDialogue);
       c.restore();
     }}];
     // The forearm alone wraps over Fufu's shoulder. Neither head/body is pasted
@@ -193,11 +238,30 @@ export class Xiaoye {
       const lamp=this.lampPoint();
       layers.push({y:xiaoyeSpot.y+3,draw:c=>this.drawParkedLantern(c,lamp)});
     }
+    if(this.ownsDialogue && (this.clueOpen || this.page==="offer" || this.page==="received")) {
+      const age = this.time - (this.clueOpen ? this.clueStarted : this.pageStarted);
+      const collected = !this.clueOpen && this.page === "received";
+      if (!collected || age < .6) {
+        const direction = this.idleMirrored ? -1 : 1;
+        const reach = collected ? ease(age/.6) : this.clueOpen ? .45*(motion.matches ? 1 : ease(age/.5)) : 0;
+        const pawX=v.foot.x+direction*22, pawY=v.foot.y-(v.active ? 19 : 27);
+        const x=pawX+(this.world.player.x-pawX)*reach, y=pawY+(this.world.player.y-18-pawY)*reach;
+        layers.push({y:Math.max(v.foot.y,this.world.player.y)+.2,draw:c=>{
+          if(!this.clueOpen) {drawEnvelope(c,x,y,-direction*.15); return;}
+          c.save(); c.translate(x,y); c.rotate(-direction*.17);
+          c.fillStyle="#fff0c9"; c.strokeStyle="#926a51"; c.lineWidth=.7;
+          c.fillRect(-5,-3.8,10,7.6); c.strokeRect(-5,-3.8,10,7.6);
+          c.strokeStyle="#c2a578"; c.beginPath(); c.moveTo(-1.6,-3.4);c.lineTo(-1.6,3.4);c.stroke();
+          c.strokeStyle="#798a61";c.setLineDash([1,.7]);c.beginPath();c.moveTo(-4,2);c.quadraticCurveTo(-2,-1,.1,1);c.lineTo(2.3,-1.3);c.stroke();
+          c.setLineDash([]);c.strokeStyle="#bd584e";c.lineWidth=1;c.beginPath();c.moveTo(1.5,-2.8);c.lineTo(3.6,-.7);c.moveTo(3.6,-2.7);c.lineTo(1.5,-.6);c.stroke();c.restore();
+        }});
+      }
+    }
     return layers;
   }
 
   private lampPoint(): Point {
-    const idle=xiaoyeLanternPoint(2,HEIGHT,this.idleMirrored,0)!;
+    const idle=xiaoyeLanternPoint(this.ownsDialogue && this.showPaws() ? 3 : 2,HEIGHT,this.idleMirrored,0)!;
     if(!this.hug.active){
       const lift=lampLift(plushIdleMotion(this.time,true,motion.matches || this.ownsDialogue),HEIGHT,this.idleMirrored);
       return {x:xiaoyeSpot.x+idle.x+lift.x,y:xiaoyeSpot.y+idle.y+lift.y};

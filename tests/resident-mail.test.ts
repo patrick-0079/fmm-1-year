@@ -1,12 +1,24 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readProgress } from "../src/core.ts";
-import { starterItems, readInventory } from "../src/items.ts";
+import { starterItems, readInventory, mergeInventoryReceipts } from "../src/items.ts";
 import { readResidentStory, mailboxLetters, postLetter, postUnread, POST_LETTER_REVISION,
   collectHandedLetter, grantDebugLetters, handedLetters, letterChoice, markLetterRead, patrickLetter, unreadLetterIds } from "../src/resident-story.ts";
 import { allLetters } from "../src/letters.ts";
 
 const starterLetters = ["kerry-anniversary-letter", "xiaoaimen-anniversary-letter"];
+
+test("the hand-drawn map is earned separately from the letter and survives old or simultaneous inventory saves", () => {
+  const legacy = readInventory('{"bouquet":true}');
+  assert.equal(legacy.flowerMap, false);
+  assert.equal(readInventory('{"flowerMap":"true"}').flowerMap, false);
+  const received = readInventory('{"flowerMap":true}');
+  assert.equal(mergeInventoryReceipts(legacy, received), true);
+  assert.equal(mergeInventoryReceipts(legacy, received), false);
+  assert.equal(mergeInventoryReceipts(received, legacy), true);
+  assert.equal(readInventory(JSON.stringify(received)).flowerMap, true);
+  assert.equal(received.bouquet, true);
+});
 
 test("debug receipt grants a chosen letter or fills the mailbox while preserving existing read receipts", () => {
   const story = readResidentStory();
