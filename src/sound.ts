@@ -11,6 +11,7 @@ let effects: GainNode | undefined;
 let enabled = true,
   bgm = true,
   volume = 0.45;
+let cinemaMuted = false;
 const quietFor = new Set<"cinema" | "bass" | "town-radio">();
 let scene: BaseSceneId = "room",
   nextNote = 0,
@@ -43,7 +44,7 @@ function tone(
 }
 // A soft rising bell flourish, voiced directly on the interaction-effects bus.
 export function playAchievementSound() {
-  if (!context || !effects || !enabled || !volume || document.hidden || context.state !== "running") return;
+  if (!context || !effects || !canPlayEffects() || !volume || context.state !== "running") return;
   const at = context.currentTime + .015;
   tone(74, at, .23, .15, effects, "triangle");
   tone(78, at + .075, .28, .13, effects);
@@ -51,9 +52,13 @@ export function playAchievementSound() {
   tone(86, at + .24, .50, .17, effects);
   tone(93, at + .24, .23, .035, effects);
 }
+function canPlayEffects() {
+  return enabled && !cinemaMuted && !document.hidden;
+}
 function levels() {
   if (!context || !master || !music || !effects) return;
-  master.gain.setTargetAtTime(volume, context.currentTime, 0.06);
+  if (cinemaMuted) master.gain.setValueAtTime(0, context.currentTime);
+  else master.gain.setTargetAtTime(volume, context.currentTime, 0.06);
   music.gain.setTargetAtTime(
     bgm && !document.hidden ? (quietFor.size ? 0.04 : 0.28) : 0,
     context.currentTime,
@@ -77,6 +82,7 @@ export function unlockAudio() {
       if (
         !context ||
         !music ||
+        cinemaMuted ||
         document.hidden ||
         context.state !== "running" ||
         !bgm
@@ -107,6 +113,11 @@ export function setVolume(value: number) {
   volume = Math.max(0, Math.min(1, value));
   levels();
 }
+export function setCinemaMuted(value: boolean) {
+  if (cinemaMuted === value) return;
+  cinemaMuted = value;
+  levels();
+}
 export function setMusicScene(value: SceneId) {
   scene = isTownInterior(value) ? "room" : value;
 }
@@ -117,7 +128,7 @@ export function duckMusic(value: boolean, source: "cinema" | "bass" | "town-radi
 
 export const townRadioDuration = 2.2;
 export function playTownRadio(track?: RadioTrack) {
-  if (!context || !effects || !enabled || !volume || document.hidden || context.state !== "running") return;
+  if (!context || !effects || !canPlayEffects() || !volume || context.state !== "running") return;
   const bus = context.createGain();
   bus.connect(effects);
   const start = context.currentTime + .035;
@@ -166,7 +177,7 @@ const foxPhrases: Record<FoxCall, number[][]> = {
   cross: [[0,.16,590,810,490],[.22,.18,565,735,455]],
 };
 export function foxCry(call: FoxCall) {
-  if (!context || !effects || !enabled || !volume || document.hidden || context.state !== "running") return;
+  if (!context || !effects || !canPlayEffects() || !volume || context.state !== "running") return;
   for (const [delay, duration, start, peak, end] of foxPhrases[call]) {
     const at = context.currentTime + delay, voice = context.createOscillator();
     const throat = context.createBiquadFilter(), envelope = context.createGain();
@@ -184,7 +195,7 @@ export function foxCry(call: FoxCall) {
   }
 }
 export function sfx(name: string) {
-  if (!enabled || !context || !effects || document.hidden) return;
+  if (!context || !effects || !canPlayEffects()) return;
   if (Object.hasOwn(echoNotes, name)) {
     echoNotes[name].forEach((pitch, i) => tone(pitch, context!.currentTime + i * .32, .82, .085, effects!, "sine"));
     return;

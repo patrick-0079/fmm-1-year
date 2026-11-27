@@ -4,7 +4,7 @@ import { gardenFilm, gardenScreen, televisionSilhouette } from "./cinema-config"
 import { anniversaryPoster } from "./cinema-poster";
 import { drawGardenScreen } from "./cinema-screen";
 import { CinemaSession, mediaTime, containVideo } from "./cinema-state";
-import { duckMusic } from "./sound";
+import { setCinemaMuted } from "./sound";
 import { FilmPreloader, downloadLabel, filmDownloadAmount } from "./film-preloader";
 import { traffic } from "./network-debug";
 import { reservedShortcut, readingTarget } from "./input";
@@ -41,7 +41,6 @@ export class GardenCinema {
       if (world.suspended && this.active) {
         this.video?.pause();
         this.session.pause();
-        duckMusic(false);
         this.render();
       }
     };
@@ -103,7 +102,6 @@ export class GardenCinema {
       if (document.hidden && this.active) {
         this.video?.pause();
         this.session.pause();
-        duckMusic(false);
         this.render();
       }
     });
@@ -211,7 +209,7 @@ export class GardenCinema {
     this.shrink();
     this.session.leave();
     this.video?.pause();
-    duckMusic(false);
+    this.render();
     this.hud.hidden = true;
     this.world.canvas.parentElement!.classList.remove("cinema-active");
     this.world.setFocus(null);
@@ -264,18 +262,15 @@ export class GardenCinema {
       }
       this.world.onAchievementEvent("cinema-opened");
       this.slow = false;
-      duckMusic(true);
       update();
     });
     v.addEventListener("pause", () => {
       this.session.pause();
-      duckMusic(false);
       update();
     });
     v.addEventListener("waiting", () => {
       if (v.paused || v.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) return;
       this.session.waiting();
-      duckMusic(false);
       update();
     });
     v.addEventListener("stalled", () => {
@@ -284,14 +279,12 @@ export class GardenCinema {
     });
     v.addEventListener("ended", () => {
       this.session.end();
-      duckMusic(false);
       update();
     });
     v.addEventListener("error", () => {
       if (!v.error) return;
       if (v.error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED && this.useStreamFallback(v)) return;
       this.session.fail();
-      duckMusic(false);
       update();
     });
     for (const event of [
@@ -348,6 +341,7 @@ export class GardenCinema {
       void document.exitFullscreen().catch(() => {});
     this.player.hidden = true;
     this.video!.controls = false;
+    this.render();
     this.world.canvas.focus({ preventScroll: true });
   }
   private toggle() {
@@ -359,7 +353,6 @@ export class GardenCinema {
     if (this.session.wanted || this.session.stage === "playing") {
       this.video?.pause();
       this.session.pause();
-      duckMusic(false);
       this.render();
     } else this.play();
   }
@@ -379,7 +372,6 @@ export class GardenCinema {
         if (this.useStreamFallback(v)) return;
         this.session.fail();
       } else this.session.pause();
-      duckMusic(false);
       this.render();
     });
   }
@@ -401,6 +393,7 @@ export class GardenCinema {
     this.render();
   }
   private render() {
+    setCinemaMuted(this.active && (this.expanded || this.session.wanted));
     const progress = this.resourcesFailed ? "游戏资源未载齐，进入放映可重试" : downloadLabel(this.download.progress);
     if (traffic) traffic.filmStatus = this.download.progress.source ? "使用本机缓存" : this.resourcesFailed ? "等待资源重试" :
       ({ queued: "等待游戏资源", checking: "核对本机版本", loading: "下载中", ready: "已完成", error: "下载失败" })[this.download.progress.state];
