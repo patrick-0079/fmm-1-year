@@ -104,6 +104,7 @@ test("switching full → invitation → full cleans the deployed directory", asy
     assert.ok(entries.some(([path, , scenes]) => path.startsWith("assets/" + prefix + "-") && scenes.includes("*")), prefix);
   }
   assert.deepEqual(entries.find(([file]) => file.startsWith("assets/arcade-postcard-"))?.[2], ["town"]);
+  assert.deepEqual(entries.find(([file]) => file.startsWith("assets/meadow-campfire-frames-"))?.[2], ["meadow"]);
   for (const prefix of ["apple-tree", "garden-bench"])
     assert.deepEqual(entries.find(([file]) => file.startsWith("assets/" + prefix + "-"))?.[2], ["challenge"]);
   const npcScenes = entries.find(([file]) => file.startsWith("assets/town-npcs-"))?.[2];

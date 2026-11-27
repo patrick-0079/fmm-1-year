@@ -21,6 +21,7 @@ import yeshenhuaUrl from "./assets/yeshenhua.webp";
 import suyanUrl from "./assets/suyan.webp";
 import townGuestsUrl from "./assets/town-guests.webp";
 import patrickCampUrl from "./assets/patrick-camp.webp";
+import campfireFramesUrl from "./assets/meadow-campfire-frames.webp?no-inline";
 import visitorsUrl from "./assets/anniversary-visitors.webp";
 import townNpcsUrl from "./assets/town-npcs.webp";
 import type { BaseSceneId, SceneId } from "./maps";
@@ -30,13 +31,13 @@ import { drawItem } from "./item-art";
 import { loadSceneImage, sceneImage } from "./texture-cache";
 export { skiesUrl, relicsUrl };
 
-const urls = {astrolabeMap:astrolabeMapUrl, balloonMap:balloonMapUrl, foxRest:foxRestUrl, balloonGuest:balloonGuestUrl, gardenerWork:gardenerWorkUrl, playgroundAnimations:playgroundAnimationsUrl, smallMapProps:smallMapPropsUrl, skies:skiesUrl, bass:bassUrl, relics:relicsUrl, astrolabeProps:astrolabePropsUrl, fox:foxUrl, picnic:picnicUrl, peachWalk:peachWalkUrl, quarry:townQuarryUrl, elders:elderResidentsUrl, xiaoye:xiaoyeUrl, xiaoyeEmbrace:xiaoyeEmbraceUrl, yeshenhua:yeshenhuaUrl, suyan:suyanUrl, townGuests:townGuestsUrl, patrickCamp:patrickCampUrl, anniversaryVisitors:visitorsUrl};
+const urls = {astrolabeMap:astrolabeMapUrl, balloonMap:balloonMapUrl, foxRest:foxRestUrl, balloonGuest:balloonGuestUrl, gardenerWork:gardenerWorkUrl, playgroundAnimations:playgroundAnimationsUrl, smallMapProps:smallMapPropsUrl, skies:skiesUrl, bass:bassUrl, relics:relicsUrl, astrolabeProps:astrolabePropsUrl, fox:foxUrl, picnic:picnicUrl, peachWalk:peachWalkUrl, quarry:townQuarryUrl, elders:elderResidentsUrl, xiaoye:xiaoyeUrl, xiaoyeEmbrace:xiaoyeEmbraceUrl, yeshenhua:yeshenhuaUrl, suyan:suyanUrl, townGuests:townGuestsUrl, patrickCamp:patrickCampUrl, campfireFrames:campfireFramesUrl, anniversaryVisitors:visitorsUrl};
 type Prop = keyof typeof urls;
 export const sceneArt = Object.fromEntries(Object.entries(urls).map(([key, url]) => [key, sceneImage(url)])) as Record<Prop, HTMLImageElement>;
 export const townNpcSheet = sceneImage(townNpcsUrl);
 const propsByScene: Record<BaseSceneId,Prop[]> = {
   room:["smallMapProps","skies","bass","fox"], garden:["balloonMap","smallMapProps","picnic","peachWalk","xiaoye","xiaoyeEmbrace","suyan","anniversaryVisitors"], challenge:["smallMapProps","elders","anniversaryVisitors"],
-  town:["smallMapProps","balloonMap","quarry","yeshenhua","townGuests","anniversaryVisitors"], meadow:["patrickCamp","smallMapProps"], ruins:["astrolabeMap","relics","astrolabeProps","elders"],
+  town:["smallMapProps","balloonMap","quarry","yeshenhua","townGuests","anniversaryVisitors"], meadow:["patrickCamp","campfireFrames","smallMapProps"], ruins:["astrolabeMap","relics","astrolabeProps","elders"],
 };
 const idleArtByScene: Partial<Record<SceneId, Prop>> = {
   room: "foxRest", garden: "balloonGuest", challenge: "gardenerWork", town: "playgroundAnimations",

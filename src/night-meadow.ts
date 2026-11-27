@@ -49,6 +49,13 @@ function glint(c: CanvasRenderingContext2D, x: number, y: number, size: number, 
   c.fillRect(Math.round(x), Math.round(y - size), 1, size * 2 + 1);
 }
 
+function drawCampfire(c: CanvasRenderingContext2D, seconds: number) {
+  const sheet = sceneArt.campfireFrames;
+  if (!sheet.naturalWidth) return;
+  const frame = Math.floor(seconds / .115) % 8;
+  c.drawImage(sheet, frame * 32, 0, 32, 42, campfire.x - 17, campfire.y - 40, 32, 42);
+}
+
 function drawCampTape(c: CanvasRenderingContext2D) {
   const { x, y } = campTapeSpot;
   c.fillStyle = "#372c3c70";
@@ -240,6 +247,7 @@ export class NightMeadow {
       {y: starJar.y, draw: c => drawMapProp(c, sceneArt.smallMapProps, "starJar", starJar.x - 8.5, starJar.y - 17, 17, 17)},
       ...this.campGuest.layers(sceneArt.patrickCamp, this.reduced.matches),
       ...visibleMapCovers(this.world, sceneryCovers),
+      {y: 170, draw: c => drawCampfire(c, still ? 0 : sceneryTime)},
     ];
     if (this.getTape() === "missing") layers.push({ y: campTapeSpot.y, draw: drawCampTape });
     const view = this.world.visibleArea;

@@ -43,6 +43,8 @@ interface DepthCase {
   // Suspended cloth must also cover an actor in front of both supports.
   overhead?:boolean;
   solid:Point[];
+  // Checked in the composed scene only, for sprites drawn over a painted base.
+  spriteSolid?:Point[];
   clear:Point[];
   // Pixel centres on a separately drawn prop in front of the painted scenery.
   frontProp?:Point[];
@@ -170,7 +172,8 @@ const cases:DepthCase[]=[
   {id:"wheat-stair-solitary-post",scene:"town",depth:740,solid:[{x:156,y:725}],clear:[{x:146,y:721},{x:165,y:725}]},
   {id:"blocks-pine",scene:"town",depth:607,solid:[{x:1124,y:544}],clear:[{x:1109,y:523},{x:1136,y:520}],existingOutline:workshopCanopies[0].points,fragments:[workshopCanopies[0].points]},
   {id:"camp-kettle",scene:"meadow",depth:145,solid:[{x:250,y:117.5},{x:253,y:135}],clear:[{x:251,y:123},{x:238,y:141}]},
-  {id:"campfire",scene:"meadow",depth:170,solid:[{x:231,y:146},{x:221,y:162}],clear:[{x:207,y:146}]},
+  {id:"campfire",scene:"meadow",depth:170,solid:[{x:232,y:165},{x:221,y:162}],
+    spriteSolid:[{x:231,y:146}],clear:[{x:207,y:146},{x:219,y:140}]},
   {id:"south-rose-arch",scene:"garden",depth:976*gardenScale,solid:[gp(750,830)],clear:[gp(750,900),gp(750,984)],actor:{x:750*gardenScale,positions:[860,950,980].map(y=>y*gardenScale)},edges:{
     solid:[[753,820],[751,829],[735,833],[747,849],[769,851],[764,845]].map(([x,y])=>pixel(x,y)),
     clear:[[736,816],[738,815],[741,816],[745,816],[725,822],[735,820],[728,820],[799,871],[807,884],[805,893],[802,935],[798,866]].map(([x,y])=>pixel(x,y)),
@@ -339,10 +342,11 @@ async function verify(test:DepthCase){
     light:world.onLighting,effects:world.onEffects,overlay:world.onOverlay,draw:world.onDraw,player:{...world.player},facing:world.facing,equipment:world.equipment};
   const section=document.createElement("section"),heading=document.createElement("h2"),images=document.createElement("div");
   heading.textContent=test.scene+" · "+test.id;images.className="depth-images";section.append(heading,images);gallery.append(section);
-  const bounds=[...target!.points,...test.solid,...test.clear,{x:center.x,y:test.depth+15}];
+  const solid=[...test.solid,...(test.spriteSolid ?? [])];
+  const points=[...solid,...test.clear], maskPoints=[...test.solid,...test.clear];
+  const bounds=[...target!.points,...points,{x:center.x,y:test.depth+15}];
   if(test.actorOverlap) bounds.push(test.actorOverlap.visible,{x:test.actorOverlap.feet.x,y:test.actorOverlap.feet.y-50});
   const photo=(title:string)=>{const figure=document.createElement("figure"),img=document.createElement("img"),caption=document.createElement("figcaption");img.src=capture(bounds);img.alt=title;caption.textContent=title;figure.append(img,caption);images.append(figure);};
-  const points=[...test.solid,...test.clear];
   const probe=(depth:number):DepthLayer=>({y:depth,draw(c){c.fillStyle="#ff00ff";for(const p of points)c.fillRect(p.x-4,p.y-4,8,8);}});
   const record:Evidence={id:test.id,scene:test.scene,depth:test.depth,behind:[],front:[],status:"检查中"};evidence.push(record);
   try{
@@ -393,11 +397,11 @@ async function verify(test:DepthCase){
     if(baked){
       const shape=new Path2D(baked.path);
       world.getDepthLayers=()=>[{y:baked.depth,draw:c=>world.drawMapCover(c,baked,shape)},probe(test.depth-1)];
-      drawNow();record.mask=points.map(sample);
+      drawNow();record.mask=maskPoints.map(sample);
     } else if(!test.existingOutline || test.fragments){
       // Isolate the actual map fragment separately from neighbouring scenery.
       world.getDepthLayers=()=>[{y:target!.y,draw:c=>{for(const outline of test.fragments??[target!.points])world.drawMapFragment(c,outline);}},probe(test.depth-1)];
-      drawNow();record.mask=points.map(sample);
+      drawNow();record.mask=maskPoints.map(sample);
     }
     if(test.edges){
       const edge=sampleEdges(test.fragments??[target!.points],test.edges);record.edges={solid:edge.solid,clear:edge.clear};
@@ -425,11 +429,11 @@ async function verify(test:DepthCase){
       world.setFocus({x:world.player.x,y:test.solid[0].y+12},2.8);
       drawNow();photo("固定脚点近看：人物在花冠后方，检查花叶间是否混入地砖/草地");
     }
-    assert(record.behind.slice(0,test.solid.length).every(p=>!pink(p)),"柱后人物压在实体拱顶上");
-    assert(record.behind.slice(test.solid.length).every((p,i)=>pink(p,test.subpixelClear?.includes(i)?40:3)),"完整场景门洞/地面遮挡不符合实景");
+    assert(record.behind.slice(0,solid.length).every(p=>!pink(p)),"柱后人物压在实体拱顶上");
+    assert(record.behind.slice(solid.length).every((p,i)=>pink(p,test.subpixelClear?.includes(i)?40:3)),"完整场景门洞/地面遮挡不符合实景");
     if(test.overhead){
-      assert(record.front.slice(0,test.solid.length).every(p=>!pink(p)),"高挂的彩带被人物盖住");
-      assert(record.front.slice(test.solid.length).every(p=>pink(p)),"彩带前景填住了旗间的空隙或立柱");
+      assert(record.front.slice(0,solid.length).every(p=>!pink(p)),"高挂的彩带被人物盖住");
+      assert(record.front.slice(solid.length).every(p=>pink(p)),"彩带前景填住了旗间的空隙或立柱");
     }else{
       assert(record.front.every(p=>pink(p)),"柱前人物遮挡不符合实景");
     }

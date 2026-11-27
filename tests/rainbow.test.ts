@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 import { canStand, canTravelBetween, findPath, readProgress } from "../src/core.ts";
 import { scenes } from "../src/maps.ts";
 import { rainbowFlowers, rainbowIds, meadowOpen, meadowGate, pickRainbow, rainbowReminderStrength } from "../src/rainbow-flowers.ts";
@@ -66,14 +68,27 @@ test("the former orange flower migrates once and a complete old flower book stil
   assert.ok(meadowOpen(p.rainbowFlowers));
   assert.equal(pickRainbow(p.rainbowFlowers,"garden","prism-calendula"),undefined);
 });
-test("the rainbow circle beside Xiaoye follows its artwork and leaves her approach clear", () => {
+test("the rainbow circle and return landing sit on the lawn beside Xiaoye", async () => {
   const map = scenes.garden;
-  assert.ok(Math.hypot(meadowGate.x-xiaoyeSpot.x,meadowGate.y-xiaoyeSpot.y)<65);
+  const painting = fileURLToPath(new URL("../src/assets/anniversary-garden-tree-free.webp", import.meta.url));
+  const {data, info} = await sharp(painting).resize(map.width, map.height).removeAlpha().raw().toBuffer({resolveWithObject:true});
+  const grass = (x: number, y: number) => {
+    const i = (y * info.width + x) * info.channels;
+    return data[i+1] > data[i] && data[i+1] > data[i+2];
+  };
+  for (const [dx,dy] of [[0,0],[-27,0],[27,0],[0,-14],[0,14],[-19,-10],[19,-10],[-19,10],[19,10]]) {
+    const point = {x:meadowGate.x+dx, y:meadowGate.y+dy};
+    assert.ok(grass(point.x,point.y), `stonework under the circle at ${dx},${dy}`);
+    assert.equal(clickedInteraction(point,map.spots)?.id,meadowGate.id);
+  }
+  assert.ok(grass(meadowGate.approach.x, meadowGate.approach.y));
+  assert.ok(Math.hypot(meadowGate.x-xiaoyeSpot.x,meadowGate.y-xiaoyeSpot.y)<75);
   assert.equal(nearbyInteraction(xiaoyeSpot.approach,map.spots)?.id,xiaoyeSpot.id);
-  for (const point of [{x:205,y:378}, xiaoyeSpot, xiaoyeSpot.approach])
+  for (const point of [{x:205,y:378}, {x:353,y:368}, xiaoyeSpot, xiaoyeSpot.approach])
     assert.notEqual(clickedInteraction(point,map.spots)?.id,meadowGate.id);
-  for (const [dx,dy] of [[0,0],[-26,0],[26,0],[0,-13],[0,13]])
-    assert.equal(clickedInteraction({x:meadowGate.x+dx,y:meadowGate.y+dy},map.spots)?.id,meadowGate.id);
+  const balloonGuest = map.spots.find(s => s.id === "garden-guest-balloon-friend")!;
+  assert.equal(nearbyInteraction(balloonGuest.approach,map.spots)?.id,balloonGuest.id);
+  assert.equal(enteredTravelCircle(meadowGate,xiaoyeSpot.approach,balloonGuest.approach),false);
   assert.ok(canTravelBetween({x:170,y:375},{x:240,y:375},map));
   for (const s of map.spots)
     assert.deepEqual(findPath(map.spawn,s.approach,map)?.at(-1),s.approach,s.id);

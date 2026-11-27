@@ -37,6 +37,11 @@ for (const [kind, x, y, size] of patches) {
   const input = await sharp(raw, {raw: {width: side, height: side, channels: 4}}).png().toBuffer();
   layers.push({input, left: at(x - size / 2), top: at(y - size / 2)});
 }
-await sharp(map).composite(layers).webp({quality: 93, smartSubsample: true, effort: 6})
-  .toFile(dir + "night-meadow-v16.webp");
-await sharp(dir + "night-meadow-v16.webp").resize({width: 640}).webp({quality: 76}).toFile(dir + "meadow-postcard.webp");
+const webp = {quality: 93, smartSubsample: true, effort: 6};
+// The postcard keeps the painted fire. The playable map exposes the grass and
+// coals beneath it so transparent gaps between the animated flames stay clear.
+const postcard = await sharp(map).composite(layers).webp(webp).toBuffer();
+await sharp(postcard).resize({width: 640}).webp({quality: 76}).toFile(dir + "meadow-postcard.webp");
+layers.push({input: dir + "meadow-firepit-ground.png", left: 372, top: 206});
+await sharp(map).composite(layers).webp(webp).toFile(dir + "night-meadow-v16.webp");
+await import("./build-meadow-campfire.mjs");
