@@ -1,4 +1,6 @@
 #![windows_subsystem = "windows"]
+mod motion;
+use motion::{Aim, Motion, Pose};
 use std::{
     cell::RefCell,
     mem::{size_of, zeroed},
@@ -26,7 +28,9 @@ struct State {
     drag: Option<(i32, i32)>,
     opacity: u8,
     size: i32,
-    last: Option<(i32, i32, u8)>,
+    motion: Motion,
+    animate: bool,
+    last: Option<([i16; 7], u8)>,
 }
 thread_local! {static STATE: RefCell<State> = RefCell::new(State {opacity:255,size:100,..Default::default()});}
 fn size_file() -> Option<std::path::PathBuf> {
@@ -52,6 +56,13 @@ fn blend(out: &mut [u8], layer: &Sprite, x: i32, y: i32) {
     }
     let pixel = &layer[((y * ART_WIDTH + x) * 4) as usize..];
     let alpha = pixel[3] as u32;
+    if alpha == 0 {
+        return;
+    }
+    if alpha == 255 {
+        out[..4].copy_from_slice(&[pixel[2], pixel[1], pixel[0], 255]);
+        return;
+    }
     for (channel, source) in [2, 1, 0].iter().enumerate() {
         out[channel] = ((pixel[*source] as u32 * alpha + out[channel] as u32 * (255 - alpha) + 127)
             / 255) as u8;
@@ -93,21 +104,18 @@ unsafe fn draw(hwnd: HWND) {
     let dx = (pos.x - rect.left) as f32 * pixel_scale - 60.;
     let dy = (pos.y - rect.top) as f32 * pixel_scale - 62.;
     let scale = dx.hypot(dy).max(75.);
-    let (hx, hy) = (dx / scale, dy / scale);
-    let opacity = STATE.with(|state| {
+    let frame = STATE.with(|state| {
         let mut state = state.borrow_mut();
-        let key = (
-            (hx * 30.).round() as i32,
-            (hy * 30.).round() as i32,
-            state.opacity,
-        );
+        let animate = state.animate;
+        let pose = state.motion.update(Aim(dx / scale, dy / scale), animate);
+        let key = (pose.key(), state.opacity);
         if state.last == Some(key) {
             return None;
         }
         state.last = Some(key);
-        Some(state.opacity)
+        Some((state.opacity, pose))
     });
-    let Some(opacity) = opacity else { return };
+    let Some((opacity, pose)) = frame else { return };
     let dc = CreateCompatibleDC(null_mut());
     if dc.is_null() {
         return;
@@ -127,20 +135,27 @@ unsafe fn draw(hwnd: HWND) {
     let old = SelectObject(dc, bitmap);
     let pixels = std::slice::from_raw_parts_mut(bits as *mut u8, (width * height * 4) as usize);
     pixels.fill(0);
-    let (sin, cos) = (hx * 5f32.to_radians()).sin_cos();
+    let stance = pose.stance();
+    let Pose {
+        face: Aim(hx, hy),
+        eyes: Aim(ex, ey),
+        ..
+    } = pose;
+    let (sin, cos) = (hx * 2.5f32.to_radians()).sin_cos();
     for row in 0..height {
         for col in 0..width {
             let out = &mut pixels[((row * width + col) * 4) as usize..];
             let px = (col as f32 + 0.5) * pixel_scale;
             let py = (row as f32 + 0.5) * HEIGHT as f32 / height as f32;
+            let (px, py) = stance.local(px, py);
             let sample = |coord: f32| (coord * 2.).floor() as i32;
             blend(out, BODY, sample(px), sample(py));
-            let x = px - 60. - 3.6 * hx;
-            let y = py - 81. - 3. * hy;
+            let x = px - 60. - 0.96 * hx;
+            let y = py - 84. - 1.125 * hy;
             let sx = 60. + cos * x + sin * y;
-            let sy = 81. - sin * x + cos * y;
+            let sy = 84. - sin * x + cos * y;
             blend(out, HEAD, sample(sx), sample(sy));
-            blend(out, EYES, sample(sx - 1.38 * hx), sample(sy - 0.75 * hy));
+            blend(out, EYES, sample(sx - 1.38 * ex), sample(sy - 0.75 * ey));
         }
     }
     let blend_fn = BLENDFUNCTION {
@@ -205,10 +220,21 @@ unsafe fn resize_pet(hwnd: HWND, percent: i32) {
         }
     }
 }
+unsafe fn refresh_motion_setting() {
+    let mut enabled: BOOL = 1;
+    SystemParametersInfoW(
+        SPI_GETCLIENTAREAANIMATION,
+        0,
+        (&mut enabled as *mut BOOL).cast(),
+        0,
+    );
+    STATE.with(|state| state.borrow_mut().animate = enabled != 0);
+}
 unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
     let mut pos: POINT = zeroed();
     match msg {
         WM_TIMER => draw(hwnd),
+        WM_SETTINGCHANGE => refresh_motion_setting(),
         WM_LBUTTONDOWN => {
             GetCursorPos(&mut pos);
             let mut rect = zeroed();
@@ -288,6 +314,7 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM
 fn main() {
     unsafe {
         SetProcessDPIAware();
+        refresh_motion_setting();
         let instance = GetModuleHandleW(null());
         let name = wide("FufuDesktopPet");
         let mut class: WNDCLASSW = zeroed();
