@@ -111,13 +111,13 @@ test("showing a choice does not collect or read its letter", () => {
     read: letter => { reads++; markLetterRead(story, letter); },
   }, id, () => { refreshes++; });
   const take = showChoice();
-  assert.equal(take.title, "收下信");
+  assert.equal(take.title, "⌈收下信⌋");
   assert.deepEqual(unreadLetterIds(story), []);
   take.run(); take.run();
   assert.deepEqual(unreadLetterIds(story), [id]);
   assert.equal(refreshes, 1);
   const read = showChoice();
-  assert.equal(read.title, "现在读信");
+  assert.equal(read.title, "⌈现在读信⌋");
   assert.equal(reads, 0);
   read.run();
   assert.equal(reads, 1);
@@ -138,7 +138,7 @@ test("a pending offer switches to reading when a second window has already deliv
   offer.run();
   offer.run();
   assert.equal(refreshes, 1);
-  assert.equal(letterChoice(mail, id, () => {}).title, "现在读信");
+  assert.equal(letterChoice(mail, id, () => {}).title, "⌈现在读信⌋");
   assert.equal(story.npcLetters[id], "unread");
 });
 

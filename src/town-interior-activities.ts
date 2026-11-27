@@ -1,3 +1,4 @@
+import { actionOption } from "./dialogue-options.ts";
 import type { Activities } from "./activities";
 import type { Hotspot } from "./maps";
 import { playTownRadio, sfx, townRadioDuration } from "./sound";
@@ -110,8 +111,8 @@ export class TownInteriorActivities {
         collect: choice => {
           const first = this.collect(key, choice);
           this.activities.dialogue(spot.title, first ? "收下了" + name + "。" + note : note, [
-            { title: "查看纪念物", run: () => { this.activities.close(); this.openBag(key); } },
-            { title: "再做一次", run: () => this.workbench(spot, key) },
+            { title: actionOption("查看纪念物"), run: () => { this.activities.close(); this.openBag(key); } },
+            { title: actionOption(spot.title), run: () => this.workbench(spot, key) },
           ], this.portrait(key), spot.approach);
         },
       });
@@ -166,33 +167,33 @@ export class TownInteriorActivities {
       case "town-florist":
         sfx("echo-bell");
         show("气窗抬起来了。吊铃碰了一下，叶影慢慢扫过花桶。",
-          [{ title: "放回窗把", run: () => this.activities.close() }], { kind: "window" });
+          [{ title: actionOption("放回窗把"), run: () => this.activities.close() }], { kind: "window" });
         break;
       case "town-baker":
-        show(phaseBoard[phase], [{ title: "翻到背面", run: () => {
+        show(phaseBoard[phase], [{ title: actionOption("翻到背面"), run: () => {
           sfx("flip");
-          show(phase === "dawn" ? phaseBoard.dusk : phaseBoard.dawn, [{ title: "放回白板", run: () => this.activities.close() }], { kind: "board" });
+          show(phase === "dawn" ? phaseBoard.dusk : phaseBoard.dawn, [{ title: actionOption("放回白板"), run: () => this.activities.close() }], { kind: "board" });
         } }]);
         break;
       case "town-maker":
         sfx("flip");
         show("左边的黄铜保留一圈圈锤纹，右边那一片磨得平整，能映出灯罩的边。",
-          [{ title: "合上抽屉", run: () => this.activities.close() }], { kind: "drawer" });
+          [{ title: actionOption("合上抽屉"), run: () => this.activities.close() }], { kind: "drawer" });
         break;
       case "town-post":
         sfx("flip");
-        show("木牌翻到这一班。" + mailRoutes[phase], [{ title: "把木牌放回去", run: () => this.activities.close() }], { kind: "sort" });
+        show("木牌翻到这一班。" + mailRoutes[phase], [{ title: actionOption("把木牌放回去"), run: () => this.activities.close() }], { kind: "sort" });
         break;
       case "town-books": {
         sfx("flip");
         const view = { dawn: "对街的青瓦上闪着晨露。", day: "树梢在青瓦前轻轻摇晃。", dusk: "斜阳给屋檐描了一条金边。", night: "树影后面，街灯已经亮了。" };
-        const compare = { title: "展开折页对照", run: () => show("折页里池岸边的屋顶，和窗外的青瓦是同一种颜色。" + view[phase], [], { kind: "blind" }, undefined, true) };
+        const compare = { title: actionOption("展开折页对照"), run: () => show("折页里池岸边的屋顶，和窗外的青瓦是同一种颜色。" + view[phase], [], { kind: "blind" }, undefined, true) };
         show("竹帘卷起来了。" + view[phase], items.includes("books") ? [compare] : [], { kind: "blind" });
         break;
       }
       case "town-radio": {
         const title = radioTrack ? `重听${radioTrackName[radioTrack]}片头` : "试听电台台呼";
-        const play = { title, run: () => listen(radioTrack ? `正在重听。声轨一为${radioTrackName[radioTrack]}，声轨二为晚安片头。` : "耳机里响起台呼。『晚安小镇，现在是试音时间。』",
+        const play = { title: actionOption(title), run: () => listen(radioTrack ? `正在重听。声轨一为${radioTrackName[radioTrack]}，声轨二为晚安片头。` : "耳机里响起台呼。『晚安小镇，现在是试音时间。』",
           radioTrack, () => show("耳机里的余音淡了下去。", [play])) };
         const status = phase === "night" && this.world.currentHours < 5 ? "已收播" : radioStatus[phase];
         show(`现在的台标是『${status}』。戴上耳机，可以试听。`, [play]);

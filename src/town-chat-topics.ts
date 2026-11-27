@@ -1,3 +1,4 @@
+import { actionOption } from "./dialogue-options.ts";
 import type { GuestId } from "./town-guest-dialogues.ts";
 import type { ChatBook } from "./resident-chats.ts";
 import { townDialogues, type TownResidentId } from "./town-dialogue.ts";
@@ -11,7 +12,7 @@ export const townChatTopics: Record<Exclude<TownResidentId, GuestId>, ChatBook> 
         text: "黄昏，红笺把台阶让出半边：乖乖，你猜哪边的街灯先亮齐？",
         replies: [
           ["我数左边，你数右边", "两人数到最后差了一盏。红笺往旁边挪了挪：哎，原来刚才那盏让我挡住了。"],
-          ["我想闭眼听听街上", "两人安静下来。红笺轻声说：听出来了吗？刚才那串急脚步，走到台阶这儿突然就慢了。"],
+          [actionOption("闭上眼，听一听街上的声音"), "两人安静下来。红笺轻声说：听出来了吗？刚才那串急脚步，走到台阶这儿突然就慢了。"],
         ],
       },
       night: "乖乖，石板路上最晚回家的数那只猫。它走路没响，偏偏爱蹭门口的小铃。",
@@ -29,8 +30,8 @@ export const townChatTopics: Record<Exclude<TownResidentId, GuestId>, ChatBook> 
     familiar: [{
       text: "芙眠眠大人，来玩一次吧。就算我闭起眼，也能听脚步声认出你。你要不要试试？",
       replies: [
-        ["我正常走过来", "银铃在第三步就喊出芙芙的名字，还悄悄为自己数得准而高兴。"],
-        ["我故意踮脚", "银铃等了半天才睁眼。芙芙已经站在面前，这次换芙芙先说欢迎回来。"],
+        [actionOption("照平常的步子走向银铃"), "银铃在第三步就喊出芙芙的名字，还悄悄为自己数得准而高兴。"],
+        [actionOption("踮起脚尖走向银铃"), "银铃等了半天才睁眼。芙芙已经站在面前，这次换芙芙先说欢迎回来。"],
       ],
     }, townDialogues.welcome.return.text],
   },
@@ -42,7 +43,7 @@ export const townChatTopics: Record<Exclude<TownResidentId, GuestId>, ChatBook> 
     familiar: [{
       text: "你帮我看看，这朵洋桔梗开了吗？我从早上就等着它松开最外头的花瓣呢。",
       replies: [
-        ["我从正面看", "看起来还合着。青芽转动花茎，藏在后面的那片花瓣才露出来。"],
+        [actionOption("从正面细看花瓣"), "看起来还合着。青芽转动花茎，藏在后面的那片花瓣才露出来。"],
         ["我想从侧面看看", "芙芙先看见花瓣间的一条细缝。青芽轻声说：你比我今天早上发现得还早。"],
       ],
     }, townDialogues.florist.return.text],
@@ -68,7 +69,7 @@ export const townChatTopics: Record<Exclude<TownResidentId, GuestId>, ChatBook> 
     familiar: [{
       text: "我刚做好枚小扣子，想看看它配什么好看。芙芙，你来帮我挑挑？",
       replies: [
-        ["放在黑绒上看看", "银边清清楚楚。紫凌让芙芙转一下，看那圈亮光怎么沿着扣子跑。"],
+        ["咱们把它放在黑绒上看看吧？", "银边清清楚楚。紫凌让芙芙转一下，看那圈亮光怎么沿着扣子跑。"],
         ["借我的袖口试试", "紫凌比好位置，又把扣子移低一点：这里。你抬手打招呼的时候刚好看得见。"],
       ],
     }, "打蝴蝶结也挑方向。我刚才试了半天，把配饰整个倒过来，它就对称了。"],
@@ -81,7 +82,7 @@ export const townChatTopics: Record<Exclude<TownResidentId, GuestId>, ChatBook> 
     familiar: [{
       text: "风筝还在等风呢。咱们猜猜看，第一阵风会从哪边来？",
       replies: [
-        ["看尾带猜方向", "尾带先动，风才到脸上。柚星把这阵风的起飞口令交给芙芙。"],
+        [actionOption("看尾带猜方向"), "尾带先动，风才到脸上。柚星把这阵风的起飞口令交给芙芙。"],
         ["我想等它自己抬头", "两人静静等了一会儿。风筝一扬脸，柚星轻轻应它：好，知道你准备好了。"],
       ],
     }, "我站在这儿久了，闭上眼也听得出尾带擦过星环的声音。轻轻的一声，眨眼就过去啦。"],
@@ -94,8 +95,8 @@ export const townChatTopics: Record<Exclude<TownResidentId, GuestId>, ChatBook> 
     familiar: [{
       text: "最后这一格怎么补？我把板子转了半天，越看越像少了个角。你来帮帮忙？",
       replies: [
-        ["把手里这块转一下", "还是差一点。桃汽把板子让出来，两人一起找到了卡住的那个角。"],
-        ["先挪开旁边那一块", "两块恰好咬合。桃汽盯着空出来的形状：等一下，怎么还拼出一颗歪草莓？"],
+        [actionOption("把手里这块转一下"), "还是差一点。桃汽把板子让出来，两人一起找到了卡住的那个角。"],
+        [actionOption("先挪开旁边那一块"), "两块恰好咬合。桃汽盯着空出来的形状：等一下，怎么还拼出一颗歪草莓？"],
       ],
     }, "我喜欢最后一块落下去的声音。嗒的一下，手就知道这一排拼整齐了。"],
   },
@@ -120,8 +121,8 @@ export const townChatTopics: Record<Exclude<TownResidentId, GuestId>, ChatBook> 
     familiar: [{
       text: "（暖光里空着一小块位置。奶糖把尾巴往旁边挪了挪，静静看着你。）",
       replies: [
-        ["伸手等它靠过来", "奶糖先用胡须碰一下指尖，才把下巴搁上去。"],
-        ["陪它一起晒一会儿", "一开始隔着一爪宽。过了一会儿，它把暖得正好的前爪搭到了芙芙鞋边。"],
+        [actionOption("伸手等它靠过来"), "奶糖先用胡须碰一下指尖，才把下巴搁上去。"],
+        [actionOption("陪它一起晒一会儿"), "一开始隔着一爪宽。过了一会儿，它把暖得正好的前爪搭到了芙芙鞋边。"],
       ],
     }, "（它的胡须上粘着一小片草叶。它端坐着洗了两次脸，草叶终于从左边换到了右边。）"],
   },
@@ -133,8 +134,8 @@ export const townChatTopics: Record<Exclude<TownResidentId, GuestId>, ChatBook> 
     familiar: [{
       text: "今天想怎样抱抱？你说了算，我这两只爪子都准备好啦。",
       replies: [
-        ["就轻轻碰一下", "绒月小心碰一下肩膀，再退开半步，两只耳朵还高高竖着。"],
-        ["多抱一小会儿", "它把怀抱放松，让芙芙靠稳，等她先松手才轻轻放开。"],
+        [actionOption("就轻轻碰一下"), "绒月小心碰一下肩膀，再退开半步，两只耳朵还高高竖着。"],
+        [actionOption("多抱一小会儿"), "它把怀抱放松，让芙芙靠稳，等她先松手才轻轻放开。"],
       ],
     }, "我练出新本领了，抱抱的时候两只耳朵都不会戳到你的脸。要不要验收一下？"],
   },
@@ -147,7 +148,7 @@ export const townChatTopics: Record<Exclude<TownResidentId, GuestId>, ChatBook> 
       text: "月兔台真安静。咱们猜猜哪只兔子先跳？",
       replies: [
         ["我押云台上的紫兔", "紫耳尖动了两下，兔子翻身继续睡。阿澈压低声音宣布：它赢了赖床组。"],
-        ["看木墩上那只白兔", "白兔把爪子往前挪了挪。阿澈和芙芙都屏住气，它却只是换了个舒服姿势。"],
+        ["我猜是木墩上那只白兔！", "白兔把爪子往前挪了挪。阿澈和芙芙都屏住气，它却只是换了个舒服姿势。"],
       ],
     }, "你瞧月牙台边上那个小凹，是兔爪常落的地方。我每天擦台子，偏偏舍不得把那儿磨平。"],
   },
@@ -172,8 +173,8 @@ export const townChatTopics: Record<Exclude<TownResidentId, GuestId>, ChatBook> 
     familiar: [{
       text: "你看，这石阶上怎么有一条小蛇？走近点——原来是苔纹！",
       replies: [
-        ["我来找蛇脑袋", "芙芙指到苔纹最宽的一头，青团又找到一颗刚好能当眼睛的小石子。"],
-        ["我给它画一条路", "两人用手指隔空各画半条路，接起来时，那条小蛇已经绕过了三道弯。"],
+        [actionOption("找出像蛇头的苔纹，指给青团看"), "芙芙指到苔纹最宽的一头，青团又找到一颗刚好能当眼睛的小石子。"],
+        [actionOption("用手指给小蛇画一条路"), "两人用手指隔空各画半条路，接起来时，那条小蛇已经绕过了三道弯。"],
       ],
     }, "走迷路时我爱把拐过的弯记在手心。今天弯太多，最后把自己的手指绕成了一团。"],
   },

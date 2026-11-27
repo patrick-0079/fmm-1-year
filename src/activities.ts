@@ -1,4 +1,5 @@
 import type { Point } from "./core";
+import { actionOption } from "./dialogue-options";
 import type { World } from "./world";
 import { sfx } from "./sound";
 import { reservedShortcut, readingTarget } from "./input";
@@ -513,7 +514,7 @@ export class Activities {
   }
   menu(text: string, options: { title: string; run: () => void }[], point?: Point, zoom = 1) {
     this.begin("nature", text, point, zoom);
-    for (const option of options) this.action(option.title, option.run);
+    for (const option of options) this.action(actionOption(option.title), option.run);
   }
   openQianxiaoDuel() {
     this.begin("qianxiao-duel", "");

@@ -1,3 +1,4 @@
+import { actionOption } from "./dialogue-options.ts";
 import type { World, DepthLayer } from "./world";
 import type { Activities } from "./activities";
 import type { Progress } from "./core";
@@ -100,10 +101,10 @@ export class Elders {
       const gardener = scene === "challenge";
       const key = gardener ? "elder-gardener" : "elder-guardian";
       const options: Choice[] = gardener ? [
-        {title: "再聊聊勇气花园", run: () => this.say(scene, "gardenWelcome")},
+        {title: "爷爷，能再给我讲讲勇气花园吗？", run: () => this.say(scene, "gardenWelcome")},
       ] : [
-        {title: "翻开遗迹手记", run: this.openNotebook},
-        {title: page === "solved" ? "聊聊星纹砖" : "问问遗迹的线索", run: () => this.say(scene, page)},
+        {title: actionOption("翻开遗迹手记"), run: this.openNotebook},
+        {title: page === "solved" ? "你也看到那块星纹砖亮了吗？" : "我该去哪里找遗迹的线索呀？", run: () => this.say(scene, page)},
       ];
       const topic = this.world.chats.next(key, gardenChatTopics[key], this.world.currentPhase);
       showGardenChat(topic, (text, choices) => this.display(scene, gardener ? "gardenWelcome" : "challenge", text, choices), options);
@@ -119,7 +120,7 @@ export class Elders {
     const text = givingBook ? line.text + " 这本《遗迹手记》送给你。路上见过的痕迹，都可以记在里面。" : line.text;
     const reply = line.reply;
     if (reply) choices.push({ title: reply.title, run: () => this.say(scene, reply.next) });
-    if (line.showNotebook) choices.push({ title: "翻开遗迹手记", run: this.openNotebook });
+    if (line.showNotebook) choices.push({ title: actionOption("翻开遗迹手记"), run: this.openNotebook });
     this.display(scene, page, text, choices, givingBook);
     if (page === "gardenWish" || page === "solved") this.world.chats.introduce(elderPlaces[scene].id);
     if (givingBook) {

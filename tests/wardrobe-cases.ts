@@ -150,7 +150,7 @@ export async function verifyJournalInput(world: World, log: (message: string) =>
   world.onInteract(elderPlaces.ruins.id);
   for (let step = 0; step < 3; step++) {
     const choices = [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")];
-    const openBook = choices.find(button => button.textContent === "翻开遗迹手记");
+    const openBook = choices.find(button => button.textContent === "⌈翻开遗迹手记⌋");
     if (openBook) { openBook.click(); break; }
     const reply = choices.find(button => ["什么尝试？", "好，我去试一下"].includes(button.textContent ?? ""));
     check(reply, "守护者缺少领取手记的选项"); reply!.click();

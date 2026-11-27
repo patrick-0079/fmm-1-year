@@ -1,3 +1,4 @@
+import { actionOption } from "./dialogue-options.ts";
 import type { World, DepthLayer } from "./world";
 import type { Activities } from "./activities";
 import type { Inventory } from "./inventory";
@@ -88,28 +89,28 @@ export class GardenLife {
   }
   private cat(n: GardenGuest) {
     const owns = this.inventory.has("petCat");
-    const pet = {title:"轻轻抚摸奶油猫",run:()=>{
+    const pet = {title:actionOption("轻轻抚摸奶油猫"),run:()=>{
         this.world.chats.introduce("garden-guest-balloon-friend");
         if (owns && this.inventory.followingPet === "petCat") {
           this.say(n,"桃桃看起来玩得很开心。要继续一起走，还是让它在我这里歇一会儿？",[
-            {title:"继续一起走",run:()=>{ this.inventory.setCompanion("petCat",true); this.say(n,"去吧，桃桃已经跟好啦。"); }},
-            {title:"让桃桃休息",run:()=>{ this.inventory.setCompanion("petCat",false); this.say(n,catRest); }},
+            {title:actionOption("继续一起走"),run:()=>{ this.inventory.setCompanion("petCat",true); this.say(n,"去吧，桃桃已经跟好啦。"); }},
+            {title:actionOption("让桃桃休息"),run:()=>{ this.inventory.setCompanion("petCat",false); this.say(n,catRest); }},
           ],"cat-pet");
           return;
         }
         this.say(n,owns ? "它还记得你呢。今天也要带它一起散步吗？" :
           "它看起来很喜欢你！听说奶油猫可以为你带来好运，你要带它一起旅行吗？",[
-          {title:"带上奶油猫",run:()=>{
+          {title:actionOption("带上奶油猫"),run:()=>{
             const first=this.inventory.setCompanion("petCat",true);
             this.companion.greet(peachSpot);
-            if (first) this.say(n,"（获得奶油猫桃桃）",[{title:"继续",run:()=>this.say(n,catNuzzle)}]);
+            if (first) this.say(n,"（获得奶油猫桃桃）",[{title:"桃桃，以后我们一起散步吧！",run:()=>this.say(n,catNuzzle)}]);
             else this.say(n,catNuzzle);
           }},
-          {title:"不带上奶油猫",run:()=>this.say(n,catRest)},
+          {title:"今天就让桃桃留在你这儿吧。",run:()=>this.say(n,catRest)},
         ],"cat-pet");
     }};
     const actions: Choice[] = [pet];
-    if (owns) actions.push({ title: "问问桃桃", run: () =>
+    if (owns) actions.push({ title: "桃桃还记得我吗？", run: () =>
       this.say(n, "桃桃认出你啦！你想再摸摸它吗？", [pet], "cat-look") });
     if (owns || this.world.chats.introduced("garden-guest-balloon-friend")) this.chat(n, actions, "cat-look");
     else this.say(n, "快看呀，那里有只可爱的奶油猫！它的肚皮看起来软乎乎的。你想摸摸它吗？", actions, "cat-look");
@@ -131,23 +132,23 @@ export class GardenLife {
     if (introduceRabbit) { this.memory().rabbitIntroduced=true; this.save(); }
     const options: Choice[] = [];
     if (this.inventory.followingPet==="petBunny") {
-      options.push({title:"让棉棉歇一会儿",run:()=>{
+      options.push({title:actionOption("让棉棉歇一会儿"),run:()=>{
         this.inventory.setCompanion("petBunny",false);
         this.say(n,"回来啦，棉棉。就在我旁边歇一会儿吧。");
       }});
     } else {
-      options.push({title:"邀请棉棉同行",run:()=>{
+      options.push({title:"棉棉，要跟我一起走吗？",run:()=>{
         const first=this.inventory.setCompanion("petBunny",true);
         this.say(n,"那就拜托你啦。棉棉，跟好芙芙哦！"+(first?"\n（获得垂耳兔棉棉）":""));
       }},{title:"先让棉棉陪你",run:()=>this.say(n,"好呀，那我们在这里等你。逛累了就回来坐坐吧。")});
     }
-    options.push({title:"再聊聊庆典",run:()=>this.intro(n)});
+    options.push({title:"庆典都准备好了吗？",run:()=>this.intro(n)});
     if (introduceRabbit) this.say(n,"你又来啦！这是棉棉，它也想看看我挂好的彩旗。",options);
     else this.chat(n, options);
   }
   private picnic(n: GardenGuest) {
     if (this.world.chats.introduced("garden-guest-picnic-friend")) {
-      this.chat(n, [{title: "一起吃蛋糕", run: () => this.offerCake(n)}]);
+      this.chat(n, [{title: "晴糖，我还想尝尝你带的蛋糕。", run: () => this.offerCake(n)}]);
       return;
     }
     this.say(n,"你…你好，芙芙大人…",[{title:"没关系，不用紧张",run:()=>{

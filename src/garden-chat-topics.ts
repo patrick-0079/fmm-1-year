@@ -1,3 +1,4 @@
+import { actionOption } from "./dialogue-options.ts";
 import type { ChatBook, ChatTopic } from "./resident-chats.ts";
 
 type Speech = (text: string, choices: { title: string; run: () => void }[]) => void;
@@ -20,7 +21,7 @@ export const senderIntroductions = {
 export function introduceSender(scene: Introduction, say: Speech, finish: () => void) {
   say(scene.text, scene.branches.map(([title, answer, followUp, lead]) => ({
     title, run: () => say(answer, [{title: followUp, run: lead
-      ? () => say(lead, [{title: "继续", run: finish}]) : finish}]),
+      ? () => say(lead, [{title: actionOption("听电子羊接着说"), run: finish}]) : finish}]),
   })));
 }
 
@@ -58,7 +59,7 @@ export const gardenChatTopics = {
       {text: "想玩个小游戏吗？风还没吹到脸上，气球就先知道它从哪边来了。",
         replies: [
           ["我看绳子，你看气球", "芙芙先发现绳结绷紧，两人一起抬头，正好看见气球转身。"],
-          ["闭上眼，用脸猜", "星星刚说还没风，气球已经轻轻碰了她一下。她笑着改口：它先猜中了。"],
+          ["我们都闭上眼，用脸猜风从哪边来吧！", "星星刚说还没风，气球已经轻轻碰了她一下。她笑着改口：它先猜中了。"],
         ]},
       "你来帮我拿一下线，我想打个喷嚏。上回没交给别人，吓得桃桃和气球一起跳起来了。",
     ],

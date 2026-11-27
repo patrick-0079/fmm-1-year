@@ -12,6 +12,8 @@ test("the first hug follows the costume question and both answers lead to the sa
   assert.equal(xiaoyePages.hello.hug,undefined);
   assert.equal(xiaoyePages.costume.hug,true);
   assert.deepEqual(xiaoyePages.costume.choices,[["好热的拥抱","hot"],["好温暖的拥抱","warm"]]);
+  assert.match(xiaoyePages.hot.letterOffer ?? "", /小叶子写了好久好久/);
+  assert.equal(xiaoyePages.warm.letterOffer, xiaoyePages.hot.letterOffer);
   assert.match(xiaoyePages.hot.text,/热也得抱/);
   assert.match(xiaoyePages.warm.text,/多抱会吧/);
 });
@@ -29,7 +31,7 @@ test("a previously met plush gives both evening stories once across midnight and
     const opening=speak(phase,3,hours);
     assert.equal(opening,phase);
     const [[label,hug]]=xiaoyePages[opening].choices!;
-    assert.equal(label,"（抱抱）");assert.equal(xiaoyePages[hug].hug,true);
+    assert.equal(label,"⌈抱抱⌋");assert.equal(xiaoyePages[hug].hug,true);
     assert.equal(speak(phase,3,hours),"miss");
   }
   assert.equal(speak("night",3,20),"night");

@@ -154,7 +154,7 @@ try {
   await Promise.all([approach(first, "garden", "apple"), approach(second, "garden", "apple")]);
   await use(first);
   await Promise.all([apples(first, 1), apples(second, 1)]);
-  await Promise.all([first.getByRole("button", { name: "再拿一颗" }).click(), use(second)]);
+  await Promise.all([first.getByRole("button", { name: "⌈再拿一颗⌋", exact: true }).click(), use(second)]);
   await Promise.all([apples(first, 3), apples(second, 3)]);
   await context.clock.setFixedTime(epoch + 959_999);
   await clock(second, "night", "23:59");
@@ -180,7 +180,7 @@ try {
   await approach(second, "town-radio", "town-radio-extra");
   await approach(first, "challenge", "rest");
   await use(first);
-  await first.getByRole("button", { name: "坐着等到下一时段" }).evaluate(button => { button.click(); button.click(); });
+  await first.getByRole("button", { name: /^⌈坐在长椅上等到(?:白昼|黄昏|星夜|清晨)⌋$/ }).evaluate(button => { button.click(); button.click(); });
   await Promise.all([clock(first, "dawn", "05:00"), clock(second, "dawn", "05:00")]);
   await use(second);
   await second.locator(".activity-status").filter({ hasText: "已收播" }).waitFor();
@@ -192,7 +192,7 @@ try {
   await Promise.all([clock(first, "dawn", "05:01"), clock(second, "dawn", "05:01")]);
   await Promise.all([approach(first, "challenge", "rest"), approach(second, "challenge", "rest")]);
   await Promise.all([use(first), use(second)]);
-  const waitOnBench = page => page.getByRole("button", { name: "坐着等到下一时段" }).click();
+  const waitOnBench = page => page.getByRole("button", { name: /^⌈坐在长椅上等到(?:白昼|黄昏|星夜|清晨)⌋$/ }).click();
   await simultaneousGardenActions(first, [() => waitOnBench(first), () => waitOnBench(second)]);
   for (const page of [first, second]) {
     await page.locator(".activity-status").filter({ hasText: "伸个懒腰" }).waitFor();
@@ -203,7 +203,7 @@ try {
   await use(first);
   await Promise.all([apples(first, 6), apples(second, 6)]);
   await simultaneousGardenActions(first, [
-    () => first.getByRole("button", { name: "再拿一颗" }).click(), () => use(second),
+    () => first.getByRole("button", { name: "⌈再拿一颗⌋", exact: true }).click(), () => use(second),
   ]);
   const receipts = await Promise.all([first, second].map(async page => {
     const status = page.locator(".activity-status").filter({ hasText: /还剩 0 颗|苹果拿完啦/ });

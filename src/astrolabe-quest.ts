@@ -10,7 +10,6 @@ import type { Inventory } from "./inventory";
 import type { Point } from "./core";
 
 type Choice = {title:string; run:()=>void};
-const leave = "继续探索";
 
 export class AstrolabeQuest {
   private flash = document.querySelector<HTMLElement>(".ruin-stamp-flash")!;
@@ -69,7 +68,7 @@ export class AstrolabeQuest {
     this.menu("南阶的寻环线索 · "+hint+(hasBook ? "" : "　南阶上方的守护者珍藏着一本《遗迹手记》。"),[
       hasBook ? {title:"翻开随身的遗迹手记",run:()=>this.openNotebook()} :
         {title:"去见守护者",run:()=>{this.exit();this.world.visit(elderPlaces.ruins.id);}},
-      {title:leave,run:this.exit},
+      {title:"离开南阶的书托",run:this.exit},
     ]);
   }
   interact(id:string) {
@@ -93,40 +92,40 @@ export class AstrolabeQuest {
     if(plateAligned(state)) {
       this.menu("三道缺口向北相连。月牙满了，地上的光纹一路流向东边的铜镜。",[
         {title:"沿光纹去铜镜",run:()=>{this.exit();this.world.visit(mirrorSpots[0].id);}},
-        {title:leave,run:this.exit},
+        {title:"离开月相星盘",run:this.exit},
       ],0,view);return;
     }
     if(!state.installed) {
       const full=state.found.length===3;
       this.menu(full?"三枚环的刻纹与盘心的凹槽吻合。":"残缺的星盘留着三圈凹槽。你已找到 "+state.found.length+" / 3 枚环。",[
         full ? {title:"装入三枚星盘环",run:()=>{if(installRings(state)) this.commit();this.plate();}} :
-          {title:"读寻物线索",run:()=>this.notebook()},
-        {title:leave,run:this.exit},
+          {title:"读读南阶手记里的寻环线索",run:()=>this.notebook()},
+        {title:"离开月相星盘",run:this.exit},
       ],0,view);return;
     }
     this.menu("盘沿刻着「让月光从盘心流向北面的月牙」。每拨一次，缺口顺时针转动四分之一圈。",[
-      ...rings.map((r,i)=>({title:"转"+r.band+" · 朝"+directions[state.turns[i]],run:()=>{
+      ...rings.map((r,i)=>({title:"转"+r.band+"，让缺口朝"+directions[(state.turns[i]+1)%4],run:()=>{
         if(turnRing(state,r.id)) {this.commit();sfx(plateAligned(state)?"echo-star":"flip");}
         this.plate(i);
-      }})), {title:leave,run:this.exit},
+      }})), {title:"离开月相星盘",run:this.exit},
     ],focusIndex,view);
   }
   private mirrors(focusIndex:0|1) {
     const state=this.memory(), view={x:556,y:343};
     if(!plateAligned(state)) {
-      this.menu("两面旧铜镜映着天光，月灯却是暗的。先去西边的月相星盘看看。",[{title:leave,run:this.exit}],0,view);return;
+      this.menu("两面旧铜镜映着天光，月灯却是暗的。先去西边的月相星盘看看。",[{title:"离开铜镜",run:this.exit}],0,view);return;
     }
     if(starLit(state)) {
       this.menu("星纹砖亮起，一弯铜月托着粉色的小星浮出石面。晚安回声胸针已收进你的背包。",[
-        {title:"查看胸针",run:()=>{this.exit();this.inventory.open();}}, {title:leave,run:this.exit},
+        {title:"打开背包看看胸针",run:()=>{this.exit();this.inventory.open();}}, {title:"离开月光机关",run:this.exit},
       ],0,view);return;
     }
     const end=traceMoonlight(state.mirrors).points.at(-1)!;
     this.menu(end.y<0?"月灯向右照进上镜，光从北边射出了。目标在左下角。":"光经过两面镜子，落在右边。左下角的星纹砖还没有亮。",[
-      ...([0,1] as const).map(i=>({title:"转"+(i===0?"上镜":"下镜")+" · 右端"+(state.mirrors[i]==="/"?"高":"低"),run:()=>{
+      ...([0,1] as const).map(i=>({title:"转"+(i===0?"上镜":"下镜")+"，让右端"+(state.mirrors[i]==="/"?"降下来":"抬起来"),run:()=>{
         if(tiltMirror(state,i)) {this.commit();sfx(starLit(state)?"complete":"echo-bell");}
         this.mirrors(i);
-      }})), {title:leave,run:this.exit},
+      }})), {title:"离开铜镜",run:this.exit},
     ],focusIndex,view);
   }
   private layers(): DepthLayer[] {

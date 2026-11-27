@@ -58,7 +58,7 @@ function letter(key: string, letterId: string, name: string, difficulty: Difficu
   return { id: "letter-" + key, chapter: "letters", letterId, name, difficulty, description, hint };
 }
 const letters = [
-  letter("xiaoye", deliveryIds.xiaoye, "小叶子 · 绒爪递来的信", "普通", "问小叶子是不是穿了玩偶服，抱过它，等它拿出信后选择「（收下信封）」。"),
+  letter("xiaoye", deliveryIds.xiaoye, "小叶子 · 绒爪递来的信", "普通", "问小叶子是不是穿了玩偶服，回应它的拥抱，再点「⌈收下信封⌋」。"),
   letter("yeshenhua", deliveryIds["radio-host"], "夜神华 · 夹在节目单里", "普通", "问问夜神华为什么当电台主持，听她讲完后收下信。"),
   letter("kerry", "kerry-anniversary-letter", "Kerry · 灵验的祝福", "简单", "拆开 Kerry 的周年来信，让正文在眼前展开。"),
   letter("suyan", deliveryIds.suyan, "苏颜 · 很多很多颗心", "简单", "和苏颜聊聊帽子，在大巴掌之后收下她递来的信。"),

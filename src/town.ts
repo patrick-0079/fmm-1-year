@@ -1,3 +1,4 @@
+import { actionOption } from "./dialogue-options.ts";
 import type { World, DepthLayer } from "./world";
 import { townCollectionReward } from "./items";
 import type { Inventory } from "./inventory";
@@ -177,15 +178,15 @@ export class Town {
     const at = {...npc,x:person.x,y:person.y};
     if (this.canOfferCollectionReward(npc)) {
       this.present(at, "miko-offer", { text: "七件小物都齐了！芙芙，我给你留了一套巫女服。换好后，要不要在展柜前一起拍张照？" }, [
-        {title:"收下巫女服", run:() => {
+        {title:actionOption("收下巫女服"), run:() => {
           if (!this.hooks.canSave() || !this.canOfferCollectionReward(npc)) return;
           this.inventory.grant(townCollectionReward, false);
           this.hooks.save();
           this.present(at, "miko-received", {text:"暖栗捧来叠好的白衣和绯袴。「腰带在前面打个结就好。你慢慢换，我去架相机。」"}, [
-            {title:"打开衣橱",run:() => this.answer(at,"@bag")},
+            {title:actionOption("打开衣橱"),run:() => this.answer(at,"@bag")},
           ]);
         }},
-        {title:"先聊聊拍照", run:() => this.greet(at)},
+        {title:"暖栗，你今天想拍什么呀？", run:() => this.greet(at)},
       ]);
     } else this.greet(at);
     return true;

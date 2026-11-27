@@ -269,7 +269,7 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
   key("e");
   if (tape() === "carried") {
     const insert = [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")]
-      .find(button => button.textContent === "放入录像带");
+      .find(button => button.textContent === "⌈放入录像带⌋");
     expect(!!insert, "在大屏前没有插带选项");
     insert!.click();
   }

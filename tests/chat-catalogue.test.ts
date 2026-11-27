@@ -13,6 +13,7 @@ import { worksInTown } from "../src/town-routines.ts";
 import { gardenWorking } from "../src/garden-residents.ts";
 import { type Phase } from "../src/day.ts";
 import { type ChatBook } from "../src/resident-chats.ts";
+import { actionOption } from "../src/dialogue-options.ts";
 
 const phases: Phase[] = ["dawn","day","dusk","night"];
 const transcript = readFileSync(new URL("../doc/conversation.md", import.meta.url), "utf8");
@@ -55,6 +56,7 @@ test("all 29 residents are represented and the 20 rotating chat books match thei
 test("Xiaoye's original options, hug responses and full flower clue are transcribed", () => {
   for (const page of Object.values(xiaoyePages)) {
     assert.ok(transcript.includes(page.text), page.text);
+    if (page.letterOffer) assert.ok(transcript.includes(page.letterOffer), page.letterOffer);
     for (const [label] of page.choices ?? []) assert.ok(transcript.includes(label),label);
   }
   assert.ok(transcript.includes(flowerClueChoice) && transcript.includes(flowerClueText));
@@ -114,19 +116,19 @@ test("the transcript includes the elders' original lines and each signed letter 
 });
 
 test("the revised manuscript's 46 player choices appear on their intended pages", () => {
-  const stroke = "（摸摸正号猫）", play = "（与浅笑开一局牌局）", take = "（收下信封）";
+  const stroke = "⌈摸摸正号猫⌋", play = "⌈与浅笑开一局牌局⌋", take = "⌈收下信封⌋";
   const expected = {
-    suyan: {intro:["对哦超超可爱的"], cute:["？？","（奖励一个小巴掌）"], tap:["（奖励一个大巴掌）"], offer:[take],
-      dawn:["（抽一巴掌）","（不要）"], day:["（抽一巴掌）","（不要）"], night:["（给一巴掌）","（不要）"]},
-    qianxiao: {start:["很不错呢。（又看见了底下的一张卡），这张是什么呀？"], dawn:[play], day:[play], night:[play,"（工作累了，想休息）"]},
-    xiaoyou: {dawn:["谢谢宝宝～"], "offer-letter":["收下信封"], day:["（收下橘子）"], night:["（抱抱小佑）"]},
-    guli: {start:["因为故里喜欢吃甜品？","不知道哦"], "offer-letter":["收下信封"], dawn:["好哦，让我尝尝"],
+    suyan: {intro:["对哦超超可爱的"], cute:["咦？","⌈奖励一个小巴掌⌋"], tap:["⌈奖励一个大巴掌⌋"], offer:[take],
+      dawn:["⌈抽一巴掌⌋","不要"], day:["⌈抽一巴掌⌋","不要"], night:["⌈给一巴掌⌋","不要"]},
+    qianxiao: {start:["很不错呢！咦，底下这张是什么呀？"], dawn:[play], day:[play], night:[play,"工作累了，想休息"]},
+    xiaoyou: {dawn:["谢谢宝宝～"], "offer-letter":[take], day:["⌈收下橘子⌋"], night:["⌈抱抱小佑⌋"]},
+    guli: {start:["因为故里喜欢吃甜品？","不知道哦"], "offer-letter":[take], dawn:["好哦，让我尝尝"],
       day:["辛苦啦宝宝，注意休息"], night:["来直播间休息休息吧宝宝"]},
-    pigeon: {intro:["咕？"], again:["？？"], offer:[take]},
+    pigeon: {intro:["咕？"], again:["咕？你说什么？"], offer:[take]},
     "radio-host": {start:["因为你梦想成为主持？","因为你喜欢？"], "offer-letter":[take], dawn:["好哦，宝宝也是"],
       day:["是的哦","今天应该是要咕咕咕了"], night:["宝宝你也是"]},
     zhenghao: {intro:[stroke,"我也想你了哦小正号"], dawn:[stroke], day:[stroke], night:[stroke], again:[stroke]},
-    rabe: {intro:["没事哦"], offer:[take], night:["好哦，我会注意休息的"], play:["（和它们握握“手”）"]},
+    rabe: {intro:["没事哦"], offer:[take], night:["好哦，我会注意休息的"], play:["⌈和它们握握“手”⌋"]},
   };
   interface Page {choices?: readonly (readonly [string,string])[]; letter?: string; offer?: boolean; collectLabel?: string}
   const scripts: Record<string,Record<string,Page>> = {...guestDialogues,
@@ -134,7 +136,7 @@ test("the revised manuscript's 46 player choices appear on their intended pages"
   let total = 0;
   for (const [id, pages] of Object.entries(expected)) for (const [key, labels] of Object.entries(pages)) {
     const page = scripts[id][key];
-    const actual = page.offer || page.letter ? [page.collectLabel ?? take] : page.choices?.map(([label]) => label);
+    const actual = page.offer || page.letter ? [actionOption(page.collectLabel ?? "收下信封")] : page.choices?.map(([label]) => label);
     assert.deepEqual(actual, labels, id + "/" + key);
     total += labels.length;
   }

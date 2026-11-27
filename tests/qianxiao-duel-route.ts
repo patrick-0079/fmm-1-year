@@ -36,7 +36,7 @@ export async function verifyDuelStamp(world:World) {
   }
   if(!invitation)throw Error("没有从浅笑的时段对话进入牌局");
   knownDeal(()=>invitation!.click());
-  const night=label("开始牌局");if(night)knownDeal(()=>night.click());
+  const night=label("⌈拿起自己的手牌⌋");if(night)knownDeal(()=>night.click());
   const guide=label("发牌，开始对局");if(guide)knownDeal(()=>guide.click());
   const g=startDuel(deckSeed());
   while(!g.winner) {

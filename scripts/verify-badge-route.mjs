@@ -183,7 +183,7 @@ try {
   };
   await arrive("garden", "xiaoye-plush");
   await interact();
-  const clue = walk.getByRole("button", { name: "打听一下花海的线索", exact: true });
+  const clue = walk.getByRole("button", { name: "小叶子，你知道去花海的路怎么走吗？", exact: true });
   await clue.click();
   assert.match(await walk.locator(".activity-status").innerText(), /周年花园两朵[\s\S]*篝火的旁边[\s\S]*大屏幕/);
   await press(".activity-close");
@@ -212,7 +212,7 @@ try {
   await checkTapeKeepsake("已拾取");
   await arrive("garden", "danmaku");
   await chooseProp("danmaku");
-  const insert = walk.getByRole("button", { name: "放入录像带", exact: true });
+  const insert = walk.getByRole("button", { name: "⌈放入录像带⌋", exact: true });
   if (device.hasTouch) await insert.tap();
   else await insert.click();
   await walk.locator(".cinema-hud").waitFor({ state: "visible" });

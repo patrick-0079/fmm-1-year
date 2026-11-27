@@ -1,4 +1,5 @@
 import type { Memory } from "./content.ts";
+import { actionOption } from "./dialogue-options.ts";
 import { mergeChatMemory, readChatMemory, type ChatMemory } from "./resident-chats.ts";
 import { allLetters, handedLetters, letterById, patrickLetter, postLetter, postRevision, publicLetterIds } from "./letters.ts";
 
@@ -138,9 +139,9 @@ export interface LetterHandoff {
 }
 
 export function letterChoice(mail: LetterHandoff, id: HandedLetterId, refresh: () => void, collectLabel = "收下信") {
-  if (mail.received(id)) return { title: "现在读信", run: () => mail.read(id) };
+  if (mail.received(id)) return { title: actionOption("现在读信"), run: () => mail.read(id) };
   let finished = false;
-  return { title: collectLabel, run: () => {
+  return { title: actionOption(collectLabel), run: () => {
     // Another tab may have delivered the letter after this choice appeared.
     if (finished || (!mail.received(id) && !mail.collect(id))) return;
     finished = true;

@@ -154,10 +154,10 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   await interactAt("meadow", "meadow-garden-tape");
   expect(state().gardenTape === "carried" && earned("garden-tape"), "篝火旁拾取录像带未立即盖章");
   await interactAt("garden", "danmaku");
-  await choose("先去逛逛");
+  await choose("⌈先去逛逛⌋");
   expect(state().gardenTape === "carried" && !earned("memories"), "离开放映机时意外插带");
   await interactAt("garden", "danmaku");
-  await choose("放入录像带");
+  await choose("⌈放入录像带⌋");
   expect(state().gardenTape === "inserted" && !el(".cinema-hud").hidden && earned("memories"),
     "插带打开放映时没有保存到访或补齐回忆徽章");
   el(".cinema-leave").click();
@@ -175,16 +175,16 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   log("通过浅笑的邀约入场，按牌面逐回合出牌，赢下星牌首胜章");
   for (const spot of ringSpots) await interactAt("ruins", spot.id);
   await interactAt("ruins", moonPlate.id);
-  await choose("装入");
+  await choose("⌈装入");
   for (const [name, count] of [["内",3],["中",2],["外",1]] as const) {
-    for (let i = 0; i < count; i++) await choose("转" + name);
+    for (let i = 0; i < count; i++) await choose("⌈转" + name);
   }
   await interactAt("ruins", mirrorSpots[0].id);
-  await choose("转上镜");
-  await choose("转下镜");
+  await choose("⌈转上镜");
+  await choose("⌈转下镜");
   expect(earned("ruin-light"), "星纹砖已亮却未盖章");
   await interactAt("ruins", echoAltar.id);
-  for (const name of ["叶","铃","星"]) await choose("轻敲「" + name + "」");
+  for (const name of ["叶","铃","星"]) await choose("⌈轻敲「" + name + "」");
   await interactAt("ruins", echoPool.id);
   closeActivity();
 
@@ -222,7 +222,7 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
 
   expect(!earned("town-miko"), "集齐小物时提前颁发了绯袴留影徽章");
   await interactAt("town-hall","npc-photo-visitor");
-  await choose("收下巫女服");
+  await choose("⌈收下巫女服⌋");
   expect(earned("town-miko"), "从暖栗手中收下巫女服后未颁发绯袴留影徽章");
   closeActivity();
 

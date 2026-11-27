@@ -114,14 +114,14 @@ export class EchoRuins {
     const prompt = ready ? "按碑文提示敲响三枚符号。" : "西、北、东三间石室各有一道铭文，触碰室里的石座即可抄录。";
     this.menu([feedback, "中央祭坛 · 石刻 "+state.found.length+"/3。", prompt, prefix && "已经奏响："+prefix+"。"].filter(Boolean).join(" "), [
       ...(ready ? optionsForNotes : []), {title:"翻阅石刻拓本",run:notebook},
-      {title:"继续探索",run:()=>this.activities.close()},
+      {title:"离开祭坛",run:()=>this.activities.close()},
     ]);
   }
   private listen() {
     this.broadcastAt = this.time; sfx("echo-broadcast");
     this.nextDripAfter = this.world.ambientTime + 6;
     if (!this.memory().listened) { this.memory().listened = true; this.save(); }
-    this.menu(letter, [{title:"再听一遍",run:()=>this.listen()},{title:"把晚安收好",run:()=>this.activities.close()}]);
+    this.menu(letter, [{title:"再听一遍收音机里的晚安",run:()=>this.listen()},{title:"离开水边的收音机",run:()=>this.activities.close()}]);
   }
   private layers(): DepthLayer[] {
     if (this.world.scene === "town") {

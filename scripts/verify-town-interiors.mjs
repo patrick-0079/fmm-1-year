@@ -109,12 +109,12 @@ try {
     const beam = [90,32,37,6], rail = [93,60,28,2];
     const [closedBeam, closedRail] = await Promise.all([pixels(...beam), pixels(...rail)]);
     await hit(await page.evaluate(() => window.contentQA.pointAt(107,55)));
-    await page.getByRole("button", { name: "放回窗把" }).waitFor();
+    await page.getByRole("button", { name: "⌈放回窗把⌋", exact: true }).waitFor();
     await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
     assert.ok(difference(closedBeam, await pixels(...beam)) < 3, time + " open sash clears the lintel");
     assert.ok(difference(closedRail, await pixels(...rail)) > 9, time + " raised rail is visible inside the jamb");
     await picture("florist-vent-" + time);
-    await page.getByRole("button", { name: "放回窗把" }).click();
+    await page.getByRole("button", { name: "⌈放回窗把⌋", exact: true }).click();
     await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
     assert.ok(difference(closedRail, await pixels(...rail)) < 3, time + " sash returned to its closed position");
   }
@@ -318,7 +318,7 @@ florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
     if (secondary[key]) {
       await activity(key, "extra", secondary[key]);
       assert.ok((await page.locator(".activity-status").innerText()).length > 6, key + " secondary action");
-      if (key === "books") assert.equal(await page.getByRole("button", { name: "展开折页对照" }).count(), 0);
+      if (key === "books") assert.equal(await page.getByRole("button", { name: "⌈展开折页对照⌋", exact: true }).count(), 0);
       await close();
     }
     await activity(key, "main", main[key]);
@@ -353,13 +353,13 @@ florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
     if (key === "florist" || key === "post") assert.equal(earned.townKeepsakes.designs[key].choice, choiceFor(key, touch));
     received[key] = await iconPixels(".dialogue-portrait");
     if (choiceFor(key, touch)) sameIcon(received[key], await expectedVariant(key, choiceFor(key, touch)), key + " first selected variant");
-    await page.getByRole("button", { name: "查看纪念物" }).click();
+    await page.getByRole("button", { name: "⌈查看纪念物⌋", exact: true }).click();
     sameIcon(await iconPixels(".bag-town-detail canvas"), received[key], key + " receipt and bag use identical pixels");
     if (choiceFor(key, touch)) await picture(key + "-" + choiceFor(key, touch), ".bag-town-detail");
     await page.locator(".bag-close").click();
     if (key === "books") {
       await activity(key, "extra", secondary.books);
-      await page.getByRole("button", { name: "展开折页对照" }).click();
+      await page.getByRole("button", { name: "⌈展开折页对照⌋", exact: true }).click();
       assert.match(await page.locator(".activity-status").innerText(), /青瓦/);
       await close();
     }
@@ -437,7 +437,7 @@ florist: [107, 55], baker: [478, 114], maker: [89, 126], post: [79, 100],
     assert.ok(difference(expected, received[key]) > 1, key + " variants are visually distinct");
     received[key] = expected;
     sameIcon(await iconPixels(".dialogue-portrait"), expected, key + " replay receipt");
-    await page.getByRole("button", { name: "查看纪念物" }).click();
+    await page.getByRole("button", { name: "⌈查看纪念物⌋", exact: true }).click();
     sameIcon(await iconPixels(".bag-town-detail canvas"), expected, key + " remade bag detail");
     await picture(key + "-" + choice, ".bag-town-detail");
     await sibling.waitForFunction(([key, expected]) => {

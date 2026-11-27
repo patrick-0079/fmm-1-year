@@ -410,7 +410,7 @@ try {
     assert.ok(sticky, "debug close stays at the top of the scrolling panel");
     await panel.getByText("庆典互动与复活", { exact: true }).click();
     await panel.locator('[data-debug="event:garden:danmaku"]').click();
-    await page.getByRole("button", { name: "放入录像带", exact: true }).click();
+    await page.getByRole("button", { name: "⌈放入录像带⌋", exact: true }).click();
     await page.locator(".cinema-hud:visible").waitFor();
     assert.ok(await panel.isVisible());
     await page.waitForFunction(() => parseFloat(document.querySelector('[data-speed="film"]')?.textContent) > 0);
@@ -484,7 +484,7 @@ try {
     await ready.locator(".debug-trigger").click();
     await ready.getByText("庆典互动与复活", { exact: true }).click();
     await ready.locator('[data-debug="event:garden:danmaku"]').click();
-    const insert = ready.getByRole("button", { name: "放入录像带", exact: true });
+    const insert = ready.getByRole("button", { name: "⌈放入录像带⌋", exact: true });
     await insert.waitFor();
     await ready.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     assert.equal(await ready.evaluate(() => window.gardenFrames), 0, "a decoded frame must stay behind the poster until insertion");

@@ -204,19 +204,19 @@ await check("试穿的猫仍需正式领取，邀请会保存真实伙伴位，�
   world.switchScene("garden",{x:304,y:318});
   const select=(title:string)=>Array.from(document.querySelectorAll<HTMLButtonElement>(".activity-actions button")).find(b=>b.textContent===title)!.click();
   const talk=()=>guests.interact("garden-guest-balloon-friend");
-  talk();select("轻轻抚摸奶油猫");select("不带上奶油猫");activities.close();
+  talk();select("⌈轻轻抚摸奶油猫⌋");select("今天就让桃桃留在你这儿吧。");activities.close();
   assert(inventory.followingPet==="petBunny" && !inventory.has("petCat"),"拒绝覆盖了真实搭配");
   assert(actions.includes("garden-guest-balloon-friend") && !actions.includes("petCat"),"来宾与同行徽章把试穿或拒绝算作邀请");
-  talk();select("轻轻抚摸奶油猫");select("带上奶油猫");
+  talk();select("⌈轻轻抚摸奶油猫⌋");select("⌈带上奶油猫⌋");
   const stored=JSON.parse(saves.get(INVENTORY_KEY)!);
   assert(stored.equipped.pet==="petCat" && stored.owned.includes("petBunny"),"邀请没有进入真实存档");
   assert(actions.includes("petCat") && actions.includes("petBunny"), "正式同行没有登记");
   inventory.setFitting(false);
   assert(world.equipment.pet==="petCat","关闭试穿后没有继续同行");
-  activities.close(); talk(); select("问问桃桃");
+  activities.close(); talk(); select("桃桃还记得我吗？");
   assert(document.querySelector(".activity-status")?.textContent === "桃桃认出你啦！你想再摸摸它吗？", "星星没有认出已获得的桃桃");
-  select("轻轻抚摸奶油猫"); select("让桃桃休息");
-  activities.close(); talk(); select("问问桃桃"); select("轻轻抚摸奶油猫"); select("带上奶油猫");
+  select("⌈轻轻抚摸奶油猫⌋"); select("⌈让桃桃休息⌋");
+  activities.close(); talk(); select("桃桃还记得我吗？"); select("⌈轻轻抚摸奶油猫⌋"); select("⌈带上奶油猫⌋");
   assert(inventory.followingPet === "petCat", "休息后不能通过星星的问候再次邀请桃桃");
   activities.close();inventory.reset();
 });
@@ -671,7 +671,7 @@ await check("气球客邀请／送别桃桃后可读完回应并收起，衣橱�
   for (const worn of [true, false]) {
     guests.interact(id);
     const choose=(title:string)=>Array.from(document.querySelectorAll<HTMLButtonElement>(".activity-actions button")).find(b=>b.textContent===title)!.click();
-    choose("轻轻抚摸奶油猫"); choose(worn ? "带上奶油猫" : "让桃桃休息");
+    choose("⌈轻轻抚摸奶油猫⌋"); choose(worn ? "⌈带上奶油猫⌋" : "⌈让桃桃休息⌋");
     document.querySelector<HTMLButtonElement>(".activity-close")!.click();
     assert(!activities.active && !world.suspended, "伙伴选择后旧对话仍截获右键和 E");
     assert((world.equipment.pet === "petCat") === worn, "伙伴选择未生效");

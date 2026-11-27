@@ -114,8 +114,8 @@ try {
           Math.floor(window.qaDressedFrame[1]/height)===row;
       },[scene,kind,col*cellWidth,outfits.indexOf(id),cellHeight],{timeout:10000});
       assert.equal((await snapshot()).equipment.hair,hair);
-      if (scene==="room") await actual.getByRole("button",{name:"起床继续冒险",exact:true}).click();
-      if (scene==="challenge") await actual.getByRole("button",{name:"起身继续走",exact:true}).click();
+      if (scene==="room") await actual.getByRole("button",{name:"⌈起床继续冒险⌋",exact:true}).click();
+      if (scene==="challenge") await actual.getByRole("button",{name:"⌈起身继续走⌋",exact:true}).click();
       if (scene==="meadow") await actual.locator("#world").press("d",{delay:120});
     }
     console.log((id ? ITEMS[id].name : "默认淡紫睡衣")+"通过床、长椅和花海的实景绘制检查。");
@@ -167,7 +167,7 @@ try {
     await actual.locator("#world").press("e");
     await actual.locator(".activity-hud:not([hidden])").waitFor();
   };
-  const reward=actual.getByRole("button",{name:"收下巫女服",exact:true});
+  const reward=actual.getByRole("button",{name:"⌈收下巫女服⌋",exact:true});
   const stamp=async()=> (await snapshot()).progress.achievements.earned.includes("town-miko");
   const inventory=()=>actual.evaluate(key=>JSON.parse(localStorage.getItem(key)),INVENTORY_KEY);
   await setKeepsakes(townInteriorKeys.slice(0,6));
@@ -187,7 +187,7 @@ try {
   await toggleTrial(); assert.equal((await snapshot()).equipment.clothes,"cloudPajamas");
   await talk("town"); assert.equal(await reward.count(),0);
   await actual.locator(".activity-close").click();
-  await talk("town-hall"); await actual.getByRole("button",{name:"先聊聊拍照"}).click();
+  await talk("town-hall"); await actual.getByRole("button",{name:"暖栗，你今天想拍什么呀？"}).click();
   assert.equal(await stamp(),false); assert.ok(!(await inventory()).owned.includes("mikoOutfit"));
   await actual.locator(".activity-close").click();
   await talk("town-hall"); await reward.click();
@@ -195,7 +195,7 @@ try {
   const claimed=await inventory();
   assert.equal(claimed.owned.filter(item=>item==="mikoOutfit").length,1);
   assert.equal(claimed.equipped.clothes,"cloudPajamas");
-  await actual.getByRole("button",{name:"打开衣橱",exact:true}).click();
+  await actual.getByRole("button",{name:"⌈打开衣橱⌋",exact:true}).click();
   await actual.locator(".bag-close").click();
   await equip("mikoOutfit"); await equip("witchHat");
   await actual.reload(); await start();

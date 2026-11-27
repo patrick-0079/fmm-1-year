@@ -1,3 +1,4 @@
+import { actionOption } from "../src/dialogue-options";
 import { arriveOnShift, scheduledResident } from "./resident-visits";
 import { World, scenes, type SceneId } from "../src/world";
 import { SAVE_KEY, canStand, readProgress, type Point } from "../src/core";
@@ -496,7 +497,7 @@ q("#check-astrolabe").addEventListener("click",()=>void run(async()=>{
   world.visit(guardian.id); await wait(()=>q(".activity-actions").textContent?.includes("什么尝试") === true);
   chooseActivity("什么尝试"); chooseActivity("好，我去试一下");
   expect(state().residents.guardianInvited,"接受守护者邀请没有存下赠书记录");
-  chooseActivity("翻开遗迹手记");
+  chooseActivity(actionOption("翻开遗迹手记"));
   expect(q('.ruin-journal [data-ring="star"]').dataset.found==="true","领书前拾到的星纹环没有补入拓印");
   const readingAt = { ...world.player };
   const forwardPage = () => {
@@ -518,7 +519,7 @@ q("#check-astrolabe").addEventListener("click",()=>void run(async()=>{
   expect(readJournal(1).querySelectorAll('[data-seal][data-earned="true"]').length===2,"寻物的两枚印章不正确");
   q(".bag-close").click();
   log("南阶指路、守护者赠书与中途退出正常，先拾的星纹环也出现在背包的拓印页");
-  const action=chooseActivity;
+  const action=(prefix: string) => chooseActivity("⌈" + prefix);
   world.visit(moonPlate.id);await wait(()=>q(".activity-actions").textContent?.includes("装入三枚")===true);
   action("装入"); action("转内环"); expect(state().astrolabe.turns[0]===2,"转环没有立即存下");
   q(".activity-close").click();world.interact();
@@ -548,11 +549,11 @@ q("#check-ruins").addEventListener("click",()=>void run(async()=>{
   expect(!world.available(echoPool) && q("#location-name").textContent?.includes("回声遗迹"),"回声遗迹入口或秘密初始状态有误");
   log("步行穿过东北旧矿场的山洞，安全落在遗迹南阶");
   const action=(title:string)=>{
-    const button=[...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")].find(b=>b.textContent===title);
+    const button=[...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")].find(b=>b.textContent===actionOption(title));
     expect(button,"缺少祭坛操作："+title);button!.click();
   };
   world.visit(echoAltar.id); await wait(()=>q(".activity-status").textContent?.includes("石刻 0/3")===true);
-  expect(!q(".activity-actions").textContent?.includes("轻敲"),"空拓本提前开放解谜"); action("继续探索");
+  expect(!q(".activity-actions").textContent?.includes("轻敲"),"空拓本提前开放解谜"); action("离开祭坛");
   for(const id of ["snake","mines","miner"]) {
     world.visit("arcade-"+id); await wait(()=>!q(".arcade-hud").hidden);
     expect(q(".arcade-hud").dataset.setting==="ruins" && !!q(".echo-inscription").textContent,"石室试炼没有对应拓本");
@@ -569,7 +570,7 @@ q("#check-ruins").addEventListener("click",()=>void run(async()=>{
   expect(world.available(echoPool) && state().echoes.played===3,"正确旋律没有唤醒听月泉");
   action("去水边看看"); await wait(()=>state().echoes.listened);
   expect(q(".activity-status").textContent?.includes("365"),"彩蛋内容未显示");
-  action("再听一遍"); action("把晚安收好");
+  action("再听一遍收音机里的晚安"); action("离开水边的收音机");
   world.visit(elderPlaces.ruins.id); await wait(()=>q(".activity-actions").textContent?.includes("什么尝试")===true);
   chooseActivity("什么尝试"); chooseActivity("好，我去试一下"); q(".activity-close").click();
   log("祭坛保留错音前的进度，三音唤醒水中电台，周年彩蛋可重听");

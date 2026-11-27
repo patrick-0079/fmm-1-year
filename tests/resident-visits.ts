@@ -15,7 +15,7 @@ export async function waitOnBench(world: World) {
   world.switchScene("challenge", bench.approach);
   world.interact();
   const next = [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")]
-    .find(b => b.textContent === "坐着等到下一时段");
+    .find(b => /^⌈坐在长椅上等到(?:白昼|黄昏|星夜|清晨)⌋$/.test(b.textContent ?? ""));
   if (!next) throw Error("勇气花园长椅未提供等到下一时段");
   next.click();
   await waitForVisit(() => !next.isConnected, "长椅休息后未切换时段");

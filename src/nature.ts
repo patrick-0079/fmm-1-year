@@ -217,6 +217,8 @@ export class Nature {
       if (!bench) return false;
       this.world.sit(bench, bench.approach);
       let seat = this.world.restState;
+      const elapsed = this.elapsed;
+      const target = Math.round(elapsed + untilNextPhase(elapsed, this.previewPhase ?? undefined));
       this.activities.menu(
         `在长椅上坐下了 · 现在是${phaseNames[this.clock.phase]}，歇一会再走吧`,
         [
@@ -227,9 +229,7 @@ export class Nature {
               this.activities.close();
             },
           },
-          { title: "坐着等到下一时段", run: () => {
-            const elapsed = this.elapsed;
-            const target = Math.round(elapsed + untilNextPhase(elapsed, this.previewPhase ?? undefined));
+          { title: "坐在长椅上等到" + phaseNames[worldTime(target).phase], run: () => {
             this.changeGarden(() => {
               if (!seat || this.world.restState !== seat) return;
               seat = null;
@@ -237,7 +237,7 @@ export class Nature {
             });
           } },
           {
-            title: "看看时段彩蛋",
+            title: "回想晨露花、小纸船和萤火出现的时间",
             run: () =>
               this.activities.note(
                 "清晨 05–08 点找晨露花 · 黄昏 17–20 点找小纸船 · 夜晚 20–05 点找萤火心愿",

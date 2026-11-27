@@ -9,7 +9,7 @@ import { XiaoyeHug, xiaoyeFrame, xiaoyeFrames, xiaoyeLanternOn,
 import { embracePose, boundedEmbraceFoot, isEmbraceApproach, EMBRACE_BODY_GAP, EMBRACE_SHOULDER_Y } from "./xiaoye-embrace";
 import { embraceFrames, EMBRACE_ART_SCALE } from "./xiaoye-embrace-art";
 import { handedLetters, letterChoice, type LetterHandoff } from "./resident-story";
-import { flowerClueChoice, flowerClueText, letterPauseSeconds, xiaoyeDailyPage, xiaoyePages, type XiaoyePage } from "./xiaoye-dialogue";
+import { flowerClueChoice, flowerClueText, xiaoyeDailyPage, xiaoyePages, type XiaoyePage } from "./xiaoye-dialogue";
 import { drawEnvelope } from "./visitor-gesture-art";
 
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -24,7 +24,6 @@ export class Xiaoye {
   private clueOpen = false;
   private clueStarted = 0;
   private pageStarted = 0;
-  private replySeconds = 0;
   private origin: Point = {...xiaoyeSpot.approach};
   private lastHugTime = 0;
   private idleMirrored = false;
@@ -54,10 +53,6 @@ export class Xiaoye {
         return;
       }
       if (this.hug.tick(elapsed,world.player,true)) world.onAchievementEvent("xiaoye-plush");
-      if (this.page === "hot" || this.page === "warm") {
-        this.replySeconds += Math.max(0,elapsed);
-        if (this.replySeconds >= letterPauseSeconds && !this.hug.active) this.show("offer");
-      }
     };
     world.getActorPresentation = () => {
       if (!this.hug.active || !this.available()) return presentation();
@@ -79,7 +74,6 @@ export class Xiaoye {
     this.hug.cancel();
     this.ownsDialogue = false;
     this.clueOpen = false;
-    this.replySeconds = 0;
     this.contactFoot = { x:xiaoyeSpot.x, y:xiaoyeSpot.y };
   }
 
@@ -128,14 +122,13 @@ export class Xiaoye {
     }
     this.page = page;
     this.pageStarted = this.time;
-    this.replySeconds = 0;
     this.lastHugTime = performance.now() / 1000;
     this.present(offerFlowerClue);
   }
 
   private present(offerFlowerClue = false) {
     if (this.clueOpen) {
-      this.dialogue(flowerClueText,[{title:"继续刚才的话题",run:()=>{
+      this.dialogue(flowerClueText,[{title:"我们接着聊吧！",run:()=>{
         this.clueOpen = false;
         this.lastHugTime = performance.now() / 1000;
         this.present();
@@ -143,8 +136,8 @@ export class Xiaoye {
       return;
     }
     const page = xiaoyePages[this.page];
-    const choices = this.page === "offer" || this.page === "received"
-      ? [letterChoice(this.mail,handedLetters.xiaoye,()=>this.show("received"),"（收下信封）")]
+    const choices = page.letterOffer || this.page === "received"
+      ? [letterChoice(this.mail,handedLetters.xiaoye,()=>this.show("received"),"收下信封")]
       : (page.choices ?? []).map(([title,destination])=>({title,run:()=>this.show(destination)}));
     if (offerFlowerClue) choices.push({title:flowerClueChoice,run:()=>{
       this.clueOpen = true;
@@ -152,7 +145,7 @@ export class Xiaoye {
       this.collectFlowerMap();
       this.present();
     }});
-    this.dialogue(page.text,choices);
+    this.dialogue(page.letterOffer ? page.text + "\n" + page.letterOffer : page.text, choices);
   }
 
   private dialogue(text: string, options: { title: string; run: () => void }[]) {
@@ -175,7 +168,7 @@ export class Xiaoye {
   }
 
   private showPaws() {
-    return this.clueOpen || this.page === "hello" || this.page === "offer" ||
+    return this.clueOpen || this.page === "hello" || !!xiaoyePages[this.page].letterOffer ||
       this.page === "fluffy" || this.page === "received";
   }
 
@@ -240,7 +233,7 @@ export class Xiaoye {
       const lamp=this.lampPoint();
       layers.push({y:xiaoyeSpot.y+3,draw:c=>this.drawParkedLantern(c,lamp)});
     }
-    if(this.ownsDialogue && (this.clueOpen || this.page==="offer" || this.page==="received")) {
+    if(this.ownsDialogue && (this.clueOpen || xiaoyePages[this.page].letterOffer || this.page==="received")) {
       const age = this.time - (this.clueOpen ? this.clueStarted : this.pageStarted);
       const collected = !this.clueOpen && this.page === "received";
       if (!collected || age < .6) {

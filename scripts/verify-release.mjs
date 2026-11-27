@@ -379,8 +379,8 @@ try {
   await collector.getByRole("button",{name:/继续上次的冒险/}).click();
   await collector.locator('.scene-wrap[data-current-map="town-hall"]').waitFor();
   await collector.locator("#world").press("e");
-  await collector.getByRole("button",{name:"收下巫女服",exact:true}).click();
-  await collector.getByRole("button",{name:"打开衣橱",exact:true}).click();
+  await collector.getByRole("button",{name:"⌈收下巫女服⌋",exact:true}).click();
+  await collector.getByRole("button",{name:"⌈打开衣橱⌋",exact:true}).click();
   assert.equal(await collector.locator(".debug-trigger").count(),0);
   assert.ok(await collector.evaluate(()=>{
     const bag=JSON.parse(localStorage.getItem("fufu-souvenirs-v1"));
