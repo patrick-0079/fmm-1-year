@@ -45,7 +45,7 @@ export class FlowerTrail {
     const count = document.querySelector<HTMLElement>(".prism-count");
     if (count) count.textContent = found.length + " / 7";
     const hint = document.querySelector<HTMLElement>(".prism-hint");
-    if (hint) hint.textContent = this.preview && !meadowOpen(found) ? "七色传送阵已临时点亮，可在小叶子身旁体验。" : unlocked ? "七色已齐。去周年庭院西边，在小叶子身旁踏入七色传送阵，就能到达花海。" : "留意草丛里的七色小花。每隔 30 秒，未采过的花会短暂亮起。";
+    if (hint) hint.textContent = this.preview && !meadowOpen(found) ? "七色传送阵已临时点亮，就在小叶子左下方的草坪上。" : unlocked ? "七色已齐。去周年庭院西边，在小叶子左下方的草坪上踏入七色传送阵，就能到达花海。" : "留意草丛里的七色小花。每隔 30 秒，未采过的花会短暂亮起。";
     const list = document.querySelector<HTMLElement>(".prism-list");
     if (list) {
       list.replaceChildren(...rainbowFlowers.map(f => {
@@ -64,7 +64,7 @@ export class FlowerTrail {
       const found = this.found(), flower = pickRainbow(found,this.world.scene,id);
       if (flower) {
         this.save(); this.refresh(); sfx(found.length === 7 ? "complete" : "match");
-        this.toast(found.length === 7 ? "七色花谱集齐了！小叶子身旁的七色传送阵亮起来了，走进阵心就能到花海。" : `拾得${flower.name} · 七色花谱 ${found.length} / 7`);
+        this.toast(found.length === 7 ? "七色花谱集齐了！小叶子左下方的草坪上亮起了七色传送阵，走进阵心就能到花海。" : `拾得${flower.name} · 七色花谱 ${found.length} / 7`);
       }
       return true;
     }

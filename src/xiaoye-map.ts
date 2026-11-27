@@ -25,8 +25,8 @@ export function renderXiaoyeMap() {
   return `<article class="xiaoye-map-paper" tabindex="0" aria-label="小叶子的手绘地图">
     <header class="xiaoye-map-heading"><div><h4>小叶子的花海藏宝图</h4><p>芙芙，把这七朵花的颜色都带回来吧！</p></div>
       <button type="button" data-keepsakes data-map-back data-focus="map-back">返回纪念物</button></header>
-    <canvas class="xiaoye-treasure-chart" role="img" aria-label="小叶子用彩笔画了周年花园的两朵花、勇气花园的两朵花和周年小镇的三朵花。七色花集齐后，身旁的传送阵会送你去花海。篝火左边，红叉旁是周年录像带。"></canvas>
-    <p class="xiaoye-map-itinerary">集齐七色花，回到我身旁的传送阵。去花海的篝火左边捡起录像带，再从月芽传送阵回花园，把它放进东边大屏前的放映机。</p>
+    <canvas class="xiaoye-treasure-chart" role="img" aria-label="小叶子用彩笔画了周年花园的两朵花、勇气花园的两朵花和周年小镇的三朵花。七色花集齐后，小叶子左下方草坪上的传送阵会送你去花海。篝火左边，红叉旁是周年录像带。"></canvas>
+    <p class="xiaoye-map-itinerary">集齐七色花，去我左下方的草坪找传送阵。去花海的篝火左边捡起录像带，再从月芽传送阵回花园，把它放进东边大屏前的放映机。</p>
     <details class="xiaoye-map-key"><summary>对照地图找七朵花</summary><div class="xiaoye-map-folds">${pages}</div></details>
   </article>`;
 }

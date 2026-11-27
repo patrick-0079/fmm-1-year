@@ -30,8 +30,8 @@ export function rainbowSpot(flower: typeof rainbowFlowers[number]): Hotspot {
   // The blossom is its own marker; keep the generous reach for touch and keyboard.
   return { ...flower, title: "采下" + flower.name, markerOffset: 8, radius: 37, selfMarked: true };
 }
-// Open grass southwest of Xiaoye, clear of the stones along the plaza's western edge.
-const circleCenter = { x: 261, y: 329 };
+// The open lawn between the balloon stand and the check-in sign, southwest of Xiaoye.
+const circleCenter = { x: 220, y: 365 };
 export const meadowGate: Hotspot = {
   id:"prism-arch", title:"七色传送阵 · 去花海", portal:"meadow", portalExit:"meadow-exit",
   ...circleCenter, approach: {x:circleCenter.x,y:circleCenter.y+20}, color:"#b28cc9", radius:38, markerOffset:0, selfMarked:true,
