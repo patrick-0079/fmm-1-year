@@ -24,7 +24,7 @@ function setup() {
     put: async (url: string, res: Response) => { hits.set(url, res); }, delete: async (url: string) => hits.delete(url) };
   const open = (index = build().index, manifest: readonly Resource[] = files) =>
     new PackResources(index, manifest, base, cache as unknown as Cache);
-  return { hits, open, base };
+  return { hits, open, base, cache };
 }
 
 test("pack identities are independent of code, branch prefixes and unrelated maps", () => {
@@ -113,7 +113,67 @@ test("a wrong digest, missing object or invalid Range response only releases mis
   }
 });
 
-test("object storage has distinct first-byte and idle timeouts", async t => {
+test("a pack whose first byte arrives after nine seconds still caches every member", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const { open, hits, base } = setup();
+  const packs = open();
+  const started = Promise.withResolvers<AbortSignal>();
+  let stream!: ReadableStreamDefaultController<Uint8Array>;
+  const net = t.mock.method(globalThis, "fetch", async (_url: URL, init: RequestInit) => {
+    const signal = init.signal!;
+    return new Response(new ReadableStream({
+      start(controller) {
+        stream = controller;
+        signal.addEventListener("abort", () => controller.error(signal.reason));
+        started.resolve(signal);
+      },
+    }));
+  });
+  const run = packs.prepare("room");
+  const signal = await started.promise;
+  t.mock.timers.tick(9000);
+  assert.equal(signal.aborted, false);
+  stream.enqueue(new TextEncoder().encode("abcdefghijk"));
+  stream.close();
+  await run;
+  assert.equal(net.mock.callCount(), 1);
+  const room = files.filter(([, , scenes]) => scenes.includes("room"));
+  assert.deepEqual(packs.progress(room), { received: 11, total: 11, fallback: false });
+  for (const [path] of room) {
+    assert.equal(await hits.get(new URL(path, base).href)?.text(), bytes.get(path));
+  }
+});
+
+test("the network idle timeout excludes time spent writing verified members to the cache", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const { open, hits, base, cache } = setup();
+  const startedWrite = Promise.withResolvers<void>();
+  const releaseWrite = Promise.withResolvers<void>();
+  const put = cache.put;
+  t.mock.method(cache, "put", async (url: string, response: Response) => {
+    startedWrite.resolve();
+    await releaseWrite.promise;
+    await put(url, response);
+  }, { times: 1 });
+  let signal!: AbortSignal;
+  t.mock.method(globalThis, "fetch", async (_url: URL, init: RequestInit) => {
+    signal = init.signal!;
+    return new Response("abcdefghijk");
+  });
+  const packs = open();
+  const run = packs.prepare("room");
+  await startedWrite.promise;
+  t.mock.timers.tick(16000);
+  const abortedDuringWrite = signal.aborted;
+  releaseWrite.resolve();
+  await run;
+  assert.equal(abortedDuringWrite, false);
+  assert.equal(hits.size, 3);
+  assert.equal(await hits.get(new URL("c.webp", base).href)?.text(), "hijk");
+  assert.equal(packs.progress(files).fallback, false);
+});
+
+test("object storage falls back after 30 seconds without a first byte or 15 seconds without more data", async t => {
   t.mock.timers.enable({apis:["setTimeout"]});
   const net = t.mock.method(globalThis, "fetch");
   for (const firstByte of [false, true]) {
@@ -132,11 +192,13 @@ test("object storage has distinct first-byte and idle timeouts", async t => {
     });
     const run = packs.prepare("room");
     await called.promise; await setImmediate();
-    t.mock.timers.tick((firstByte ? 15000 : 8000) - 1);
+    t.mock.timers.tick((firstByte ? 15000 : 30000) - 1);
     assert.equal(signal.aborted, false);
     t.mock.timers.tick(1);
     await run;
+    assert.equal(signal.aborted, true);
     assert.equal(packs.progress(files).fallback, true);
+    assert.equal(await packs.wait("a.webp", new AbortController().signal), false);
   }
 });
 

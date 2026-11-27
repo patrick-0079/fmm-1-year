@@ -1,7 +1,7 @@
 import { ResourceQueue, type LoadProgress, type Resource } from "./resource-queue";
 import { traffic, recordTransfer } from "./network-debug";
 import { fetchVerifiedAsset } from "./resource-stream.js";
-import { PackResources, type PackIndex } from "./pack-resources";
+import { PACK_START_TIMEOUT_MS, PackResources, type PackIndex } from "./pack-resources";
 
 const base = new URL(import.meta.env.BASE_URL, document.baseURI);
 const version = document.querySelector<HTMLMetaElement>('meta[name="fufu-release"]')?.dataset.version ??
@@ -15,7 +15,7 @@ async function loadPackIndex() {
   if (!import.meta.env.PROD || !globalThis.caches || !globalThis.crypto?.subtle) return;
   try {
     const [response, cache] = await Promise.all([
-      fetch(new URL(`game-packs-${version}.json`, base), { mode: "same-origin", signal: AbortSignal.timeout(8000) }),
+      fetch(new URL(`game-packs-${version}.json`, base), { mode: "same-origin", signal: AbortSignal.timeout(PACK_START_TIMEOUT_MS) }),
       caches.open("fufu-game-textures-v1:" + base.pathname),
     ]);
     if (!response.ok) return;

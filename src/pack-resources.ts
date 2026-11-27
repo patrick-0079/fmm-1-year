@@ -1,5 +1,8 @@
 import { ResourceQueue, type Resource } from "./resource-queue.ts";
 
+export const PACK_START_TIMEOUT_MS = 30_000;
+const PACK_IDLE_TIMEOUT_MS = 15_000;
+
 type Pack = { group: string; file: string; hash: string; size: number; entries: [string, number, number][] };
 export type PackIndex = { format: number; base: string; release: string; packs: Pack[] };
 type Member = {
@@ -136,8 +139,7 @@ export class PackResources {
     const abort = () => controller.abort(signal.reason);
     signal.throwIfAborted();
     signal.addEventListener("abort", abort, { once: true });
-    const timeout = () => controller.abort(new Error("资源包传输超时"));
-    let timer = setTimeout(timeout, 8000);
+    let timer = setTimeout(() => controller.abort(new Error("等待资源包首字节超时")), PACK_START_TIMEOUT_MS);
     let current = 0, filled = 0, buffer = new Uint8Array(batch[0].size);
     try {
       const response = await fetch(url, { mode: "cors", credentials: "omit", priority, signal: controller.signal,
@@ -154,7 +156,6 @@ export class PackResources {
           if (done) break;
           if (!value.byteLength) continue;
           clearTimeout(timer);
-          timer = setTimeout(timeout, 15000);
           this.onBytes?.(value.byteLength);
           for (let pos = 0; pos < value.length;) {
             const item = batch[current];
@@ -177,6 +178,8 @@ export class PackResources {
             }
           }
           this.changed();
+          // Local verification and cache writes can take time on a busy device.
+          timer = setTimeout(() => controller.abort(new Error("资源包连续无数据超时")), PACK_IDLE_TIMEOUT_MS);
         }
       } finally { reader.releaseLock(); }
       if (current !== batch.length) throw Error("资源包未传完");
