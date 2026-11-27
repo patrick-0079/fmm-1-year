@@ -16,7 +16,7 @@ test("letter discovery preserves file and record order, punctuation in names, an
   const first = { id: "starter-letter", author: "小邮差", title: "一封信", text: "见字安！" };
   const second = { id: "guest-letter", author: '客人<>:"/\\|?*', title: "🍊 的来信", text: "晚安～\n\n下次见！" };
   const third = { id: "script-letter", author: "客人", title: "灯下", text: "这是一封手递信。", delivery: "xiaoye" };
-  const fourth = { id: "other-letter", author: "客人", title: "门外", text: "第二封。" };
+  const fourth = { id: "other-letter", author: "正号", title: "门外", text: "第二封。", delivery: "zhenghao" };
   await add("letters.json", [first]);
   await add("03.json", [third, fourth]);
   await add("02.json", second);
@@ -24,6 +24,7 @@ test("letter discovery preserves file and record order, punctuation in names, an
   const {letterRecords, deliveryIds} = await import(pathToFileURL(manifest).href);
   assert.deepEqual(letterRecords, [first, second, third, fourth]);
   assert.equal(deliveryIds.xiaoye, third.id);
+  assert.equal(deliveryIds.zhenghao, fourth.id);
 
   const before = await readFile(manifest);
   await scanLetters(sources, manifest);

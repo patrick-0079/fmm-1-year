@@ -165,7 +165,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 `src/main.ts`、`src/page-journal.css` 与 `src/game-viewport.ts` 管理游戏外布局。地图以 3:2 适配可用宽高，导航和触控键随视口排列在下方或右侧。`src/game-control-menu.ts` 管理地图图标及「地图」「徽章」两个页签。徽章册直接在导航区内展开，首张地图加载期间也可翻阅。自动保存的地图和时间显示在游戏状态栏中。右栏按可用高度排列目的地卡片。卡面的六张风景图取自对应的地图原画，合在 `src/assets/map-postcards.webp` 中随样式表加载。更新时按 `--print-y` 核对六个位置，花海在第五格。
 
-`src/achievements.ts` 定义五章与 57 枚徽章，由实际收信、互动、收集和单局成绩判定。新徽章在页面右上角排队展示。新徽章的提示音由 `src/sound.ts` 使用 Web Audio 实时合成，通过游戏的音效通道播放，沿用交互音效开关和总音量，不加载外部音频。小镇手作徽章依据 `townKeepsakes.items` 盖章。修改目录时同时核对徽章、隐藏线索及章节数测试。独立的活动时长计时从开局手势开始，读档时只补登有游戏记录佐证的徽章。
+`src/achievements.ts` 定义五章与 58 枚徽章，由实际收信、互动、收集和单局成绩判定。新徽章在页面右上角排队展示。新徽章的提示音由 `src/sound.ts` 使用 Web Audio 实时合成，通过游戏的音效通道播放，沿用交互音效开关和总音量，不加载外部音频。小镇手作徽章依据 `townKeepsakes.items` 盖章。修改目录时同时核对徽章、隐藏线索及章节数测试。独立的活动时长计时从开局手势开始，读档时只补登有游戏记录佐证的徽章。
 
 画面角落只保留当前位置、时间等标签，不再放快捷切图、花环穿脱或复活点条幅。地图切换使用地图导航和实际出口；花环穿脱使用背包或 H 键。添加界面或事件时不要重新绑定已移除的角落按钮，复活仍回到小屋床上。
 
@@ -381,14 +381,14 @@ R2 CORS 完整示例在 [README](README.md#花园小电视cdn-周年放映)。`C
 
 ### 剧情来信与已读记录
 
-四位彩蛋来宾的落点、靠近点和脚宽在 `src/anniversary-visitor-spots.ts`，`src/maps.ts` 据此注册脚底碰撞。地图精灵图集为 `src/assets/anniversary-visitors.webp`，每格 96×96，脚底中心为 (48,90)，从上到下是正号、Rabe、电子羊、鸽子。角色和随身物件按脚底排序，Rabe 的地面符文单独绘制，沿南门灯尖和花坛轮廓做裁切。三位递信来宾沿用实际领取与首次拆读的独立记录。彩蛋来宾与原常驻居民徽章分开计算。
+四位彩蛋来宾的落点、靠近点和脚宽在 `src/anniversary-visitor-spots.ts`，`src/maps.ts` 据此注册脚底碰撞。地图精灵图集为 `src/assets/anniversary-visitors.webp`，每格 96×96，脚底中心为 (48,90)，从上到下是正号、Rabe、电子羊、鸽子。角色和随身物件按脚底排序，Rabe 的地面符文单独绘制，沿南门灯尖和花坛轮廓做裁切。四位递信来宾沿用实际领取与首次拆读的独立记录。彩蛋来宾与原常驻居民徽章分开计算。
 
-[ref/来信/letters.json](ref/来信/letters.json) 收录十二封现有来信。同目录的其他 JSON 文件可以是一条记录或一个数组。扫描先读 `letters.json`，再按文件名排序读取其他文件，组内按数组顺序展示。维护者编辑 `id`、`title`、`author` 和 `text`。ID 一经发布应保持稳定；展示名和标题可以使用文件名不支持的标点。扫描器会报告重复 ID、重复的剧情投递环节、缺少的必填字段及未识别的字段，校验后生成静态导入清单 `src/letters.generated.ts`。
+[ref/来信/letters.json](ref/来信/letters.json) 收录十三封现有来信。同目录的其他 JSON 文件可以是一条记录或一个数组。扫描先读 `letters.json`，再按文件名排序读取其他文件，组内按数组顺序展示。维护者编辑 `id`、`title`、`author` 和 `text`。ID 一经发布应保持稳定；展示名和标题可以使用文件名不支持的标点。扫描器会报告重复 ID、重复的剧情投递环节、缺少的必填字段及未识别的字段，校验后生成静态导入清单 `src/letters.generated.ts`。
 
 | JSON 的 `delivery` | 游戏中的获取与记录 |
 | --- | --- |
 | 省略或 `public` | 进入信箱即可阅读，在 `publicLettersRead` 中记录拆封。新存档的 Kerry 和小艾门均从未读开始 |
-| `xiaoye`、`suyan`、`radio-host`、`xiaoyou`、`guli` | 分别对应小叶子、苏颜、夜神华、一橙橘小佑、故里。Rabe、电子羊和鸽子用 `rabe`、`dianziyang` 和 `pigeon`。在对白中亲手收信后写入 `residents.npcLetters` |
+| `xiaoye`、`suyan`、`radio-host`、`xiaoyou`、`guli` | 分别对应小叶子、苏颜、夜神华、一橙橘小佑、故里。正号、Rabe、电子羊和鸽子用 `zhenghao`、`rabe`、`dianziyang` 和 `pigeon`。在对白中亲手收信后写入 `residents.npcLetters` |
 | `post` | 红笺完成邮局投递后开放。用正整数 `revision` 标记正文版本，换文后提高版本即可让旧读者再收到一次未读提醒 |
 | `patrick` | 营火旁拾起派大星放下的信后进入信箱 |
 

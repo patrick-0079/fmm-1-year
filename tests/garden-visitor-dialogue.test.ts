@@ -5,15 +5,11 @@ import { ResidentChats } from "../src/resident-chats.ts";
 import { collectHandedLetter, handedLetters, hasHandedLetter, markLetterRead, readResidentStory } from "../src/resident-story.ts";
 import type { Phase } from "../src/day.ts";
 
-function fixture(key:GardenSpeaker,known=false){
+function fixture(key:GardenSpeaker){
   const story=readResidentStory();
   const chats=new ResidentChats(()=>story.chats);
   const world={chats,currentPhase:"dawn" as Phase,currentDay:5,currentHours:6};
   const id=key==="suyan"?"garden-guest-suyan":"visitor-"+key;
-  if(known){
-    if(key==="zhenghao")chats.introduce(id);
-    else collectHandedLetter(story,handedLetters[key]);
-  }
   const page={text:"",title:"",gesture:"idle" as VisitorGesture,options:[] as {title:string;run:()=>void}[]};
   const greet=()=>greetGardenVisitor(key,id,world,{
     received:letter=>hasHandedLetter(story,letter),
@@ -24,7 +20,7 @@ function fixture(key:GardenSpeaker,known=false){
   const choose=(label:string)=>{
     const button=page.options.find(o=>o.title===label);assert.ok(button,label);button.run();
   };
-  return {world,story,page,greet,choose,id};
+  return {world,story,page,greet,choose};
 }
 
 test("Suyan's question leads back to a player click; only the chosen slap moves Fufu and only collecting delivers",()=>{
@@ -42,15 +38,31 @@ test("Suyan's question leads back to a player click; only the chosen slap moves 
   }
 });
 
-test("both cat endings unlock repeat visits, including older introduced saves, without new mail",()=>{
-  for(const button of ["⌈摸摸正号猫⌋","我也想你了哦小正号"]){
-    const f=fixture("zhenghao");f.greet();f.choose(button);
-    assert.equal(f.page.gesture,button.startsWith("⌈")?"nuzzle":"rub");assert.equal(f.page.options.length,0);
-    assert.equal(f.world.chats.introduced(f.id),true);f.greet();f.choose("⌈摸摸正号猫⌋");assert.equal(f.page.gesture,"stroke");
-    assert.deepEqual(f.story.npcLetters,{});
+test("Zhenghao offers his letter on either reply at any hour and starts daily chats only after collection",()=>{
+  const letter = handedLetters.zhenghao;
+  for(const phase of ["dawn","day","dusk","night"] as const) {
+    for(const [button, gesture] of [["⌈摸摸正号猫⌋","nuzzle"],["我也想你了哦小正号","rub"]] as const) {
+      const f = fixture("zhenghao");
+      f.world.currentPhase = phase;
+      f.greet();
+      f.choose(button);
+      assert.equal(f.page.gesture, gesture);
+      assert.match(f.page.text, /\n对了老大，我还给你写了一封信。平时说不出口的话，都放在里面啦。$/);
+      assert.deepEqual(f.page.options.map(option => option.title), ["⌈收下信封⌋"]);
+      assert.deepEqual(f.story.npcLetters, {});
+      f.greet();
+      assert.equal(f.page.text, "你来啦芙芙，我终于等到你了");
+      f.choose(button);
+      f.choose("⌈收下信封⌋");
+      assert.equal(f.page.text, "（芙芙收好信封，正号又贴过来蹭了蹭。）");
+      assert.equal(f.story.npcLetters[letter], "unread");
+      assert.deepEqual(f.page.options.map(option => option.title), ["⌈现在读信⌋"]);
+      f.greet();
+      f.choose("⌈摸摸正号猫⌋");
+      assert.equal(f.page.gesture, "stroke");
+      assert.equal(f.story.npcLetters[letter], "unread");
+    }
   }
-  const old=fixture("zhenghao",true);old.greet();assert.match(old.page.text,/这么早/);
-  old.greet();assert.equal(old.page.gesture,"bow");old.choose("⌈摸摸正号猫⌋");assert.equal(old.page.gesture,"stroke");
 });
 
 test("the pigeon's two head tilts and envelope push are distinct; repeats have only coos under their own title",()=>{

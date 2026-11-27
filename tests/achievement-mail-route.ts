@@ -98,6 +98,7 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
     ["town","npc-xiaoyou","xiaoyou",["⌈收下橘子⌋","⌈尝一瓣⌋"]],
     ["town","npc-guli","guli",["因为故里喜欢吃甜品？"]],
     ["town","npc-post","post",["不是哦"]],
+    ["town","visitor-zhenghao","zhenghao",[]],
     ["challenge","visitor-rabe","rabe",["没事哦"]],
     ["town","visitor-dianziyang","dianziyang",[]],
     ["garden","visitor-pigeon","pigeon",["咕？","咕？你说什么？"]],
@@ -105,6 +106,20 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
   for (const [scene,id,author,steps] of routes) {
     const count = letterCount();
     await visit(scene,id);
+    if (author === "zhenghao") {
+      const promise = "对了老大，我还给你写了一封信。平时说不出口的话，都放在里面啦。";
+      choose("⌈摸摸正号猫⌋");
+      assert(q(".activity-status").textContent === "呜～舒服…（手松开后）（正号猫赶紧又继续贴上去）\n" + promise, "摸猫后没有接上递信台词");
+      const oldOffer = actions().find(button => button.textContent === "⌈收下信封⌋");
+      if (!oldOffer) throw Error("摸猫后没有收信入口");
+      world.player = { x: world.player.x - 90, y: world.player.y };
+      await wait(() => q(".activity-hud").hidden, "离开正号后递信对白没有收起");
+      oldOffer.click();
+      assert(letterCount() === count && !has("letter-zhenghao"), "走开后的旧选项仍可领取正号的信");
+      await visit(scene, id);
+      choose("我也想你了哦小正号");
+      assert(q(".activity-status").textContent === "（蹭蹭芙芙的脚边）想我了记得多来看看我，好么老大qwq。\n" + promise, "回应想念后没有接上递信台词");
+    }
     if (author === "dianziyang") {
       const first = followSheepIntroduction(0);
       const stale = actions().find(b => b.textContent === "⌈收下信⌋")!;
@@ -163,7 +178,19 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
       actions().find(b => /^⌈收下信(?:封)?⌋$/.test(b.textContent ?? ""))?.textContent;
     if (!final) throw Error(author + " 没有收信入口");
     assert(letterCount()===count && !has("letter-"+author),author+" 在实际领取前提前盖章");
+    const takeAgain = author === "zhenghao" && actions().find(button => button.textContent === final);
     choose(final);
+    if (takeAgain) {
+      takeAgain.click();
+      assert(letterCount() === count + 1 && has("letter-zhenghao"), "正号的递信重复入箱或尚未盖章");
+      assert(q(".activity-status").textContent === "（芙芙收好信封，正号又贴过来蹭了蹭。）" &&
+        actions().some(button => button.textContent === "⌈现在读信⌋"), "正号收信后没有当场读信入口");
+      await visit(scene, id);
+      assert(actions().some(button => button.textContent === "⌈摸摸正号猫⌋") &&
+        !actions().some(button => button.textContent === "我也想你了哦小正号"), "正号的信还未拆开，重逢却再次进入初遇");
+      choose("⌈摸摸正号猫⌋");
+      assert(!actions().length && letterCount() === count + 1, "日常摸猫又触发了递信");
+    }
     if (author === "xiaoye") {
       assert(world.getActorPresentation(), "即时收信时拥抱应继续播放");
       assert(actions().some(button => button.textContent === "⌈现在读信⌋"), "收信后读信入口消失");
@@ -203,10 +230,10 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
   world.onTick(.016,t+30.05);
   assert(has("camp") && !has("letter-patrick") && !world.available(campLetterSpot),"到访、落信与拾信应为三个独立时刻");
   for (let i=1;i<=23;i++) world.onTick(.1,t+30.05+i*.1);
-  assert(world.available(campLetterSpot) && !has("letter-patrick") && letterCount()===11,"放下信时已有拾信章或信件消失");
+  assert(world.available(campLetterSpot) && !has("letter-patrick") && letterCount()===12,"放下信时已有拾信章或信件消失");
   world.standUp();
   await visit("meadow",campLetterSpot.id);
-  assert(has("letter-patrick") && letterCount()===12 && !world.available(campLetterSpot),"拾起派大星的信没有收录");
-  assert(state().achievements.earned.filter(id=>id.startsWith("letter-")).length===12,"十二封信与十二枚来信章没有对应");
-  log("营火满 30 秒只盖到访章，落在草地时仍有 11 封，亲手拾起后 12 封来信、12 枚印章");
+  assert(has("letter-patrick") && letterCount()===13 && !world.available(campLetterSpot),"拾起派大星的信没有收录");
+  assert(state().achievements.earned.filter(id=>id.startsWith("letter-")).length===13,"十三封信与十三枚来信章没有对应");
+  log("营火满 30 秒只盖到访章，落在草地时仍有 12 封，亲手拾起后 13 封来信、13 枚印章");
 }

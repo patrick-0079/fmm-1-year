@@ -111,11 +111,14 @@ test("the transcript includes the elders' original lines and each signed letter 
     assert.ok(transcript.includes(line.text), line.text);
     if (line.reply) assert.ok(transcript.includes(line.reply.title), line.reply.title);
   }
-  for (const letter of allLetters)
-    assert.ok(transcript.includes(letter.text), letter.title);
+  for (const letter of allLetters) {
+    // Markdown leaves blank lines empty; the in-game letter preserves the sender's spacing.
+    const paragraphs = letter.text.replace(/^[ \t\u00a0]+$/gm, "");
+    assert.ok(transcript.includes(paragraphs), letter.title);
+  }
 });
 
-test("the revised manuscript's 46 player choices appear on their intended pages", () => {
+test("the revised manuscript's 48 player choices appear on their intended pages", () => {
   const stroke = "⌈摸摸正号猫⌋", play = "⌈与浅笑开一局牌局⌋", take = "⌈收下信封⌋";
   const expected = {
     suyan: {intro:["对哦超超可爱的"], cute:["咦？","⌈奖励一个小巴掌⌋"], tap:["⌈奖励一个大巴掌⌋"], offer:[take],
@@ -127,7 +130,7 @@ test("the revised manuscript's 46 player choices appear on their intended pages"
     pigeon: {intro:["咕？"], again:["咕？你说什么？"], offer:[take]},
     "radio-host": {start:["因为你梦想成为主持？","因为你喜欢？"], "offer-letter":[take], dawn:["好哦，宝宝也是"],
       day:["是的哦","今天应该是要咕咕咕了"], night:["宝宝你也是"]},
-    zhenghao: {intro:[stroke,"我也想你了哦小正号"], dawn:[stroke], day:[stroke], night:[stroke], again:[stroke]},
+    zhenghao: {intro:[stroke,"我也想你了哦小正号"], pet:[take], miss:[take], dawn:[stroke], day:[stroke], night:[stroke], again:[stroke]},
     rabe: {intro:["没事哦"], offer:[take], night:["好哦，我会注意休息的"], play:["⌈和它们握握“手”⌋"]},
   };
   interface Page {choices?: readonly (readonly [string,string])[]; letter?: string; offer?: boolean; collectLabel?: string}
@@ -140,5 +143,5 @@ test("the revised manuscript's 46 player choices appear on their intended pages"
     assert.deepEqual(actual, labels, id + "/" + key);
     total += labels.length;
   }
-  assert.equal(total, 46);
+  assert.equal(total, 48);
 });

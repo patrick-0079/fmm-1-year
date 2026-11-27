@@ -78,7 +78,8 @@ test("each NPC letter is added once, remains unread until opened, and survives a
   const originalIds = mailboxLetters(state).map(({id}) => id);
   for (const id of originalIds) markLetterRead(state, id);
   const npcIds = [handedLetters.xiaoye, handedLetters["radio-host"], handedLetters.suyan,
-    handedLetters.xiaoyou, handedLetters.guli, handedLetters.rabe, handedLetters.dianziyang, handedLetters.pigeon];
+    handedLetters.xiaoyou, handedLetters.guli, handedLetters.rabe, handedLetters.dianziyang,
+    handedLetters.pigeon, handedLetters.zhenghao];
   for (const id of [...npcIds].reverse()) {
     assert.equal(markLetterRead(state, id), false);
     assert.equal(collectHandedLetter(state, id)?.id, id);

@@ -12,7 +12,6 @@ interface Page {
   gesture?: VisitorGesture;
   choices?: readonly (readonly [label: string, next: string])[];
   offer?: boolean;
-  completesIntro?: boolean;
 }
 interface Script {
   phases: Partial<Record<Phase, string>>;
@@ -21,6 +20,7 @@ interface Script {
 }
 const takeLetter = "收下信封";
 const stroke = actionOption("摸摸正号猫");
+const catLetterOffer = "对了老大，我还给你写了一封信。平时说不出口的话，都放在里面啦。";
 const lightTap = actionOption("奖励一个小巴掌");
 
 export const gardenVisitorScripts: Record<GardenSpeaker, Script> = {
@@ -60,8 +60,9 @@ export const gardenVisitorScripts: Record<GardenSpeaker, Script> = {
     phases:{dawn:"dawn",day:"day",night:"night"}, other:["again"],
     pages: {
       intro: {text:"你来啦芙芙，我终于等到你了", choices:[[stroke,"pet"],["我也想你了哦小正号","miss"]]},
-      pet: {text:"呜～舒服…（手松开后）（正号猫赶紧又继续贴上去）", gesture:"nuzzle", completesIntro:true},
-      miss: {text:"（蹭蹭芙芙的脚边）想我了记得多来看看我，好么老大qwq。", gesture:"rub", completesIntro:true},
+      pet: {text:"呜～舒服…（手松开后）（正号猫赶紧又继续贴上去）\n" + catLetterOffer, gesture:"nuzzle", offer:true},
+      miss: {text:"（蹭蹭芙芙的脚边）想我了记得多来看看我，好么老大qwq。\n" + catLetterOffer, gesture:"rub", offer:true},
+      received: {text:"（芙芙收好信封，正号又贴过来蹭了蹭。）", gesture:"rub", offer:true},
       dawn: {text:"老大这么早就来看我嘛？", choices:[[stroke,"dawn-pet"]]},
       "dawn-pet": {text:"以后…每天早上都来看我好呢qwq", gesture:"stroke"},
       day: {text:"老大准备开播了么？工作辛苦啦", choices:[[stroke,"day-pet"]]},
@@ -93,17 +94,16 @@ type Say = (text:string, choices:{title:string;run:()=>void}[], gesture:VisitorG
 export function greetGardenVisitor(key:GardenSpeaker, id:string, world:Pick<World,"chats"|"currentPhase"|"currentDay"|"currentHours">,
   mail:LetterHandoff, say:Say, close:()=>void) {
   const script=gardenVisitorScripts[key];
-  const letter=key==="zhenghao" ? undefined : handedLetters[key];
+  const letter=handedLetters[key];
   function show(pageId:string) {
     if(pageId==="close"){ close(); return; }
     const page=script.pages[pageId];
-    const choices=page.offer && letter
+    const choices=page.offer
       ? [letterChoice(mail,letter,()=>show("received"),takeLetter)]
       : (page.choices??[]).map(([title,next])=>({title,run:()=>show(next)}));
     say(page.text,choices,page.gesture??"idle",page.title);
-    if(page.completesIntro)world.chats.introduce(id);
   }
-  if(letter ? !mail.received(letter) : !world.chats.introduced(id)) {
+  if(!mail.received(letter)) {
     show("intro"); return;
   }
   const opening=script.phases[world.currentPhase];

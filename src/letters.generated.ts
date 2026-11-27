@@ -12,5 +12,6 @@ export const deliveryIds = {
   "post": "post-anniversary-letter",
   "patrick": "patrick-anniversary-letter",
   "dianziyang": "dianziyang-anniversary-letter",
-  "pigeon": "pigeon-anniversary-letter"
+  "pigeon": "pigeon-anniversary-letter",
+  "zhenghao": "zhenghao-anniversary-letter"
 } as const;

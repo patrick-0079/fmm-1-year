@@ -156,7 +156,7 @@ try {
     assert.equal(await page.locator(":modal").count(), 0);
     // Legacy saves also retain the original public letter from Kerry as already read.
     const historical = ["day-secrets", "gifts", "letter-kerry", "wreath"];
-    assert.equal(await page.locator(".achievement-count strong").textContent(), restored ? `${historical.length} / 57` : "0 / 57");
+    assert.equal(await page.locator(".achievement-count strong").textContent(), restored ? `${historical.length} / 58` : "0 / 58");
     await page.getByRole("tab", { name: "地图", exact: true }).click();
     cover.release();
     await Promise.all([starting.seen, page.waitForFunction(() => {
@@ -216,7 +216,7 @@ try {
     assert.equal(await current.getAttribute("data-current-map"), restored ? "town-radio" : "room");
     if (restored) {
       await badges.click();
-      assert.equal(await page.locator(".achievement-count strong").textContent(), `${historical.length} / 57`);
+      assert.equal(await page.locator(".achievement-count strong").textContent(), `${historical.length} / 58`);
       assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem("nemu-anniversary-v1")).achievements.earned.sort()), historical);
       await page.getByRole("tab", { name: "地图", exact: true }).click();
       assert.ok(await page.locator(".achievement-flash").isHidden(), "loading legacy achievements must stay silent");
