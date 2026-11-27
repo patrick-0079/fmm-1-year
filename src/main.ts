@@ -134,7 +134,7 @@ document.querySelector<HTMLDivElement>("#app")!.innerHTML = `
       </section>
       <section class="credits page-meadow-note" aria-labelledby="credits-title"><img src="${meadowCover}" width="640" height="427" alt="" loading="eager" decoding="async" fetchpriority="high"/><div class="credits-heading"><span class="eyebrow">还有一些喜欢，藏在星星里</span><h2 id="credits-title">草地上的署名</h2><p>集齐七色花，去夜里的花海走走。<br>拾起一颗落星，就能遇见一位制作人。</p><span class="meadow-note-sign" aria-hidden="true">✧ 愿每一份晚安，都被温柔珍藏</span></div></section>
     </main>
-    <footer data-page-ui><span>${icon("heart")} 献给芙眠眠的第一年</span><p>粉丝制作的一周年纪念礼物 · 愿下一个晚安，依然有你。</p><div class="footer-actions"><button type="button" class="text-button" data-pet-restore>打开小小芙</button><button class="text-button reset-button">重新探索</button></div><span class="reset-confirmation" hidden>清除本机进度？<button class="reset-confirm map-action">重新开始</button><button class="reset-cancel map-action">保留进度</button></span></footer>
+    <footer data-page-ui><span>${icon("heart")} 献给芙眠眠的第一年</span><p>粉丝制作的一周年纪念礼物 · 愿下一个晚安，依然有你。</p><div class="footer-actions"><button type="button" class="text-button" title="重新显示桌宠" data-pet-restore>小小芙</button><button class="text-button reset-button">重新探索</button></div><span class="reset-confirmation" hidden>清除本机进度？<button class="reset-confirm map-action">重新开始</button><button class="reset-cancel map-action">保留进度</button></span></footer>
   </div><div class="toast" role="status" aria-live="polite"></div><div class="confetti-layer" aria-hidden="true"></div>`;
 
 mountJournalStarlight();
