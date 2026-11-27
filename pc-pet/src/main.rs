@@ -19,7 +19,9 @@ const ART_DENSITY: i32 = 3;
 const ART_WIDTH: i32 = WIDTH * ART_DENSITY;
 const ART_HEIGHT: i32 = HEIGHT * ART_DENSITY;
 include!("../target/art/rig.rs");
-const SIZES: [i32; 7] = [50, 75, 100, 125, 150, 175, 200];
+const SIZES: [i32; 13] = [
+    50, 75, 100, 125, 150, 175, 200, 250, 300, 350, 400, 450, 500,
+];
 const SIZE_COMMAND: usize = 10;
 type Sprite = [u8; (ART_WIDTH * ART_HEIGHT * 4) as usize];
 const BODY: &Sprite = include_bytes!("../target/art/body.rgba");
@@ -86,10 +88,13 @@ mod tests {
         }
     }
     #[test]
-    fn sizes_cover_half_to_double_without_upscaling_the_art() {
+    fn size_menu_covers_half_to_five_times_the_default() {
+        assert_eq!(SIZES.first(), Some(&50));
+        assert_eq!(SIZES.last(), Some(&500));
         assert_eq!(dimensions(50), (60, 75));
         assert_eq!(dimensions(100), (WIDTH, HEIGHT));
         assert_eq!(dimensions(200), (240, 300));
+        assert_eq!(dimensions(500), (600, 750));
         assert!(240. * BODY_SCALE <= ART_WIDTH as f32 && 300. * BODY_SCALE <= ART_HEIGHT as f32);
         for size in SIZES {
             let (width, height) = dimensions(size);

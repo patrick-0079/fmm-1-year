@@ -21,7 +21,7 @@ export class FufuPet extends HTMLElement {
       section{position:fixed;box-sizing:border-box;width:min(180px,100vw);max-height:100dvh;overflow:auto;padding:10px 12px;border-radius:12px;background:#fff4f8;box-shadow:0 2px 10px #72475955}
       label{display:block}label+label{margin-top:6px}output{float:right}input{width:100%;margin:4px 0 0;accent-color:#ba6484}
     </style><button aria-label="小小芙，点击调节大小和透明度，拖动换位置" title="拖动小小芙 · 点击调节大小和透明度" aria-expanded="false"><span class="stance"><span class="breath"><img class="torso" alt="" src="${body}"><span class="head-frame"><span class="face"><img alt="" src="${head}"><img class="pupils" alt="" src="${eyes}"></span></span></span></span></button>
-    <section hidden aria-label="小小芙设置"><label for="size">大小 <output for="size"></output></label><input id="size" type="range" min="50" max="200" step="5" value="100">
+    <section hidden aria-label="小小芙设置"><label for="size">大小 <output for="size"></output></label><input id="size" type="range" min="50" max="500" step="5" value="100">
     <label for="opacity">透明度</label><input id="opacity" type="range" min="25" max="100" value="100"></section>`;
     const button = root.querySelector("button")!,
       panel = root.querySelector("section")!,
