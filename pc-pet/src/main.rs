@@ -88,18 +88,43 @@ mod tests {
         }
     }
     #[test]
-    fn both_eye_windows_stay_filled_at_maximum_gaze() {
+    fn both_irises_center_at_rest_and_track_across_covered_eye_windows() {
         let travel_x = (ART_WIDTH as f32 * EYE_TRAVEL_X).ceil() as i32;
         let travel_y = (ART_HEIGHT as f32 * EYE_TRAVEL_Y).ceil() as i32;
-        for (center_x, center_y) in [(270, 216), (335, 216)] {
-            let alpha =
-                |sprite: &Sprite, x: i32, y: i32| sprite[((y * ART_WIDTH + x) * 4 + 3) as usize];
-            assert_eq!(alpha(HEAD, center_x, center_y), 0);
-            for dx in [-travel_x, travel_x] {
-                for dy in [-travel_y, travel_y] {
-                    assert_eq!(alpha(EYES, center_x + dx, center_y + dy), 255);
+        let pixel = |x: i32, y: i32| ((y * ART_WIDTH + x) * 4) as usize;
+        for (bounds, mint) in [(241..300, true), (304..365, false)] {
+            let mut window = Vec::new();
+            for row in 199..231 {
+                for col in bounds.clone() {
+                    if HEAD[pixel(col, row) + 3] < 12 {
+                        window.push((col, row));
+                    }
                 }
             }
+            assert!(!window.is_empty());
+            let center =
+                window.iter().map(|&(col, _)| col).sum::<i32>() as f32 / window.len() as f32;
+            let iris_center = |shift| {
+                let mut sum = 0;
+                let mut count = 0;
+                for &(col, row) in &window {
+                    for offset in [-travel_y, 0, travel_y] {
+                        assert_eq!(EYES[pixel(col - shift, row - offset) + 3], 255);
+                    }
+                    let index = pixel(col - shift, row);
+                    let contrast = EYES[index + 1] as i16 - EYES[index] as i16;
+                    if (if mint { contrast } else { -contrast }) > 48 {
+                        sum += col;
+                        count += 1;
+                    }
+                }
+                assert!(count > 0);
+                sum as f32 / count as f32
+            };
+            let neutral = iris_center(0);
+            assert!((neutral - center).abs() < 1.5);
+            assert!(iris_center(travel_x) - neutral > 4.0);
+            assert!(neutral - iris_center(-travel_x) > 4.0);
         }
     }
     #[test]
