@@ -6,7 +6,7 @@ await mkdir(target, { recursive: true });
 for (const layer of ["body", "head", "eyes"]) {
   const source = new URL(`../src/launch/fufu-pet/${layer}.webp`, import.meta.url);
   const pixels = await sharp(fileURLToPath(source))
-    .resize(120, 150)
+    .resize(240, 300)
     .ensureAlpha()
     .raw()
     .toBuffer();

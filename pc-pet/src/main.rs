@@ -13,7 +13,11 @@ use windows_sys::Win32::{
 
 const WIDTH: i32 = 120;
 const HEIGHT: i32 = 150;
-type Sprite = [u8; 120 * 150 * 4];
+const ART_WIDTH: i32 = WIDTH * 2;
+const ART_HEIGHT: i32 = HEIGHT * 2;
+const SIZES: [i32; 7] = [50, 75, 100, 125, 150, 175, 200];
+const SIZE_COMMAND: usize = 10;
+type Sprite = [u8; (ART_WIDTH * ART_HEIGHT * 4) as usize];
 const BODY: &Sprite = include_bytes!("../target/art/body.rgba");
 const HEAD: &Sprite = include_bytes!("../target/art/head.rgba");
 const EYES: &Sprite = include_bytes!("../target/art/eyes.rgba");
@@ -21,17 +25,32 @@ const EYES: &Sprite = include_bytes!("../target/art/eyes.rgba");
 struct State {
     drag: Option<(i32, i32)>,
     opacity: u8,
+    size: i32,
     last: Option<(i32, i32, u8)>,
 }
-thread_local! {static STATE: RefCell<State> = RefCell::new(State {opacity:255,..Default::default()});}
+thread_local! {static STATE: RefCell<State> = RefCell::new(State {opacity:255,size:100,..Default::default()});}
+fn size_file() -> Option<std::path::PathBuf> {
+    std::env::var_os("LOCALAPPDATA")
+        .map(|base| std::path::PathBuf::from(base).join("FufuPet").join("size"))
+}
+fn read_size() -> i32 {
+    size_file()
+        .and_then(|path| std::fs::read_to_string(path).ok())
+        .and_then(|text| text.trim().parse().ok())
+        .filter(|value| SIZES.contains(value))
+        .unwrap_or(100)
+}
+fn dimensions(percent: i32) -> (i32, i32) {
+    (WIDTH * percent / 100, (HEIGHT * percent + 50) / 100)
+}
 fn wide(text: &str) -> Vec<u16> {
     text.encode_utf16().chain(Some(0)).collect()
 }
 fn blend(out: &mut [u8], layer: &Sprite, x: i32, y: i32) {
-    if !(0..WIDTH).contains(&x) || !(0..HEIGHT).contains(&y) {
+    if !(0..ART_WIDTH).contains(&x) || !(0..ART_HEIGHT).contains(&y) {
         return;
     }
-    let pixel = &layer[((y * WIDTH + x) * 4) as usize..];
+    let pixel = &layer[((y * ART_WIDTH + x) * 4) as usize..];
     let alpha = pixel[3] as u32;
     for (channel, source) in [2, 1, 0].iter().enumerate() {
         out[channel] = ((pixel[*source] as u32 * alpha + out[channel] as u32 * (255 - alpha) + 127)
@@ -46,11 +65,21 @@ mod tests {
     fn sprite_edges_are_transparent_and_sampling_is_bounded() {
         for sprite in [BODY, HEAD, EYES] {
             let mut pixel = [9, 12, 21, 30];
-            for (x, y) in [(-1, 0), (0, -1), (WIDTH, 0), (0, HEIGHT), (0, 0)] {
+            for (x, y) in [(-1, 0), (0, -1), (ART_WIDTH, 0), (0, ART_HEIGHT), (0, 0)] {
                 blend(&mut pixel, sprite, x, y);
             }
             assert_eq!(pixel, [9, 12, 21, 30]);
             assert!(sprite.chunks_exact(4).any(|pixel| pixel[3] == 255));
+        }
+    }
+    #[test]
+    fn sizes_cover_half_to_double_without_upscaling_the_art() {
+        assert_eq!(dimensions(50), (60, 75));
+        assert_eq!(dimensions(100), (WIDTH, HEIGHT));
+        assert_eq!(dimensions(200), (ART_WIDTH, ART_HEIGHT));
+        for size in SIZES {
+            let (width, height) = dimensions(size);
+            assert!((width * HEIGHT - height * WIDTH).abs() <= WIDTH / 2);
         }
     }
 }
@@ -59,8 +88,10 @@ unsafe fn draw(hwnd: HWND) {
     GetWindowRect(hwnd, &mut rect);
     let mut pos: POINT = zeroed();
     GetCursorPos(&mut pos);
-    let dx = (pos.x - rect.left - 60) as f32;
-    let dy = (pos.y - rect.top - 62) as f32;
+    let (width, height) = dimensions(STATE.with(|state| state.borrow().size));
+    let pixel_scale = WIDTH as f32 / width as f32;
+    let dx = (pos.x - rect.left) as f32 * pixel_scale - 60.;
+    let dy = (pos.y - rect.top) as f32 * pixel_scale - 62.;
     let scale = dx.hypot(dy).max(75.);
     let (hx, hy) = (dx / scale, dy / scale);
     let opacity = STATE.with(|state| {
@@ -83,8 +114,8 @@ unsafe fn draw(hwnd: HWND) {
     }
     let mut info: BITMAPINFO = zeroed();
     info.bmiHeader.biSize = size_of::<BITMAPINFOHEADER>() as u32;
-    info.bmiHeader.biWidth = WIDTH;
-    info.bmiHeader.biHeight = -HEIGHT;
+    info.bmiHeader.biWidth = width;
+    info.bmiHeader.biHeight = -height;
     info.bmiHeader.biPlanes = 1;
     info.bmiHeader.biBitCount = 32;
     let mut bits = null_mut();
@@ -94,24 +125,22 @@ unsafe fn draw(hwnd: HWND) {
         return;
     }
     let old = SelectObject(dc, bitmap);
-    let pixels = std::slice::from_raw_parts_mut(bits as *mut u8, (WIDTH * HEIGHT * 4) as usize);
+    let pixels = std::slice::from_raw_parts_mut(bits as *mut u8, (width * height * 4) as usize);
     pixels.fill(0);
     let (sin, cos) = (hx * 5f32.to_radians()).sin_cos();
-    for row in 0..HEIGHT {
-        for col in 0..WIDTH {
-            let out = &mut pixels[((row * WIDTH + col) * 4) as usize..];
-            blend(out, BODY, col, row);
-            let x = col as f32 - 60. - 3.6 * hx;
-            let y = row as f32 - 81. - 3. * hy;
+    for row in 0..height {
+        for col in 0..width {
+            let out = &mut pixels[((row * width + col) * 4) as usize..];
+            let px = (col as f32 + 0.5) * pixel_scale;
+            let py = (row as f32 + 0.5) * HEIGHT as f32 / height as f32;
+            let sample = |coord: f32| (coord * 2.).floor() as i32;
+            blend(out, BODY, sample(px), sample(py));
+            let x = px - 60. - 3.6 * hx;
+            let y = py - 81. - 3. * hy;
             let sx = 60. + cos * x + sin * y;
             let sy = 81. - sin * x + cos * y;
-            blend(out, HEAD, sx.round() as i32, sy.round() as i32);
-            blend(
-                out,
-                EYES,
-                (sx - 1.38 * hx).round() as i32,
-                (sy - 0.75 * hy).round() as i32,
-            );
+            blend(out, HEAD, sample(sx), sample(sy));
+            blend(out, EYES, sample(sx - 1.38 * hx), sample(sy - 0.75 * hy));
         }
     }
     let blend_fn = BLENDFUNCTION {
@@ -125,8 +154,8 @@ unsafe fn draw(hwnd: HWND) {
         null_mut(),
         null(),
         &SIZE {
-            cx: WIDTH,
-            cy: HEIGHT,
+            cx: width,
+            cy: height,
         },
         dc,
         &POINT { x: 0, y: 0 },
@@ -137,6 +166,44 @@ unsafe fn draw(hwnd: HWND) {
     SelectObject(dc, old);
     DeleteObject(bitmap);
     DeleteDC(dc);
+}
+unsafe fn resize_pet(hwnd: HWND, percent: i32) {
+    let mut rect = zeroed();
+    GetWindowRect(hwnd, &mut rect);
+    let (width, height) = dimensions(percent);
+    let mut left = rect.left;
+    let mut top = rect.bottom - height;
+    let mut monitor: MONITORINFO = zeroed();
+    monitor.cbSize = size_of::<MONITORINFO>() as u32;
+    if GetMonitorInfoW(
+        MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST),
+        &mut monitor,
+    ) != 0
+    {
+        let area = monitor.rcWork;
+        left = left.clamp(area.left, (area.right - width).max(area.left));
+        top = top.clamp(area.top, (area.bottom - height).max(area.top));
+    }
+    SetWindowPos(
+        hwnd,
+        null_mut(),
+        left,
+        top,
+        0,
+        0,
+        SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE,
+    );
+    STATE.with(|state| {
+        let mut state = state.borrow_mut();
+        state.size = percent;
+        state.last = None;
+    });
+    draw(hwnd);
+    if let Some(path) = size_file() {
+        if std::fs::create_dir_all(path.parent().unwrap()).is_ok() {
+            let _ = std::fs::write(path, percent.to_string());
+        }
+    }
 }
 unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM) -> LRESULT {
     let mut pos: POINT = zeroed();
@@ -172,6 +239,18 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM
         WM_RBUTTONUP => {
             GetCursorPos(&mut pos);
             let menu = CreatePopupMenu();
+            let sizes = CreatePopupMenu();
+            let current = STATE.with(|state| state.borrow().size);
+            for (index, percent) in SIZES.iter().enumerate() {
+                let flags = if *percent == current { MF_CHECKED } else { 0 };
+                AppendMenuW(
+                    sizes,
+                    MF_STRING | flags,
+                    SIZE_COMMAND + index,
+                    wide(&format!("{percent}%")).as_ptr(),
+                );
+            }
+            AppendMenuW(menu, MF_POPUP, sizes as usize, wide("大小").as_ptr());
             for (id, text) in [
                 (1, "透明度 25%"),
                 (2, "透明度 50%"),
@@ -182,21 +261,21 @@ unsafe extern "system" fn procedure(hwnd: HWND, msg: u32, wp: WPARAM, lp: LPARAM
                 AppendMenuW(menu, MF_STRING, id, wide(text).as_ptr());
             }
             SetForegroundWindow(hwnd);
-            let id = TrackPopupMenu(
-                menu,
-                TPM_RETURNCMD | TPM_RIGHTBUTTON,
-                pos.x,
-                pos.y,
-                0,
-                hwnd,
-                null(),
-            );
+            TrackPopupMenu(menu, TPM_RIGHTBUTTON, pos.x, pos.y, 0, hwnd, null());
             DestroyMenu(menu);
+        }
+        WM_COMMAND => {
+            let id = wp & 0xffff;
             if id == 5 {
                 DestroyWindow(hwnd);
             } else if (1..=4).contains(&id) {
                 STATE.with(|state| state.borrow_mut().opacity = (id * 255 / 4) as u8);
                 draw(hwnd);
+            } else if let Some(percent) = id
+                .checked_sub(SIZE_COMMAND)
+                .and_then(|index| SIZES.get(index))
+            {
+                resize_pet(hwnd, *percent);
             }
         }
         WM_DESTROY => {
@@ -219,15 +298,18 @@ fn main() {
         assert_ne!(RegisterClassW(&class), 0);
         let mut area: RECT = zeroed();
         SystemParametersInfoW(SPI_GETWORKAREA, 0, (&mut area as *mut RECT).cast(), 0);
+        let percent = read_size();
+        STATE.with(|state| state.borrow_mut().size = percent);
+        let (width, height) = dimensions(percent);
         let window = CreateWindowExW(
             WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
             name.as_ptr(),
             wide("小小芙").as_ptr(),
             WS_POPUP,
             area.left + 12,
-            area.bottom - HEIGHT - 12,
-            WIDTH,
-            HEIGHT,
+            area.bottom - height - 12,
+            width,
+            height,
             null_mut(),
             null_mut(),
             instance,
