@@ -317,7 +317,7 @@ npm run check
 | 发布阶段 | 生产构建变量 | 同一网址的行为 |
 | --- | --- | --- |
 | 11 月 30 日之前 | `FULL_BUILD=false`、`VITE_WARDROBE_DEBUG=false` | 只发布独立的淡粉色周年邀请函，包中没有游戏和视频地址。 |
-| 11 月 30 日提前发布 | 改为 `FULL_BUILD=true`，保留 `VITE_WARDROBE_DEBUG=false`，重新构建并部署 | 倒计时页在后台预载游戏资源。到点后打开游戏，复用已缓存的素材，并优先补齐起始地图。 |
+| 11 月 30 日提前发布 | 改为 `FULL_BUILD=true`，保留 `VITE_WARDROBE_DEBUG=false`，重新构建并部署 | 倒计时页先加载并显示邀请函，再在后台预载游戏资源。到点后打开游戏，复用已缓存的素材，并优先补齐起始地图。 |
 | 12 月 1 日 22:10 | 使用前一天已部署的全量版本 | 浏览器按设备时钟自动进入游戏首页。 |
 
 在 Cloudflare **Settings → Build** 中填写**构建变量**。修改后需要重新构建。省略 `FULL_BUILD` 或留空会构建全量版，其他非空值仅接受小写 `true` 和 `false`。查看站点的 `/release.json` 可核对上线的是 `lite` 还是 `full`。

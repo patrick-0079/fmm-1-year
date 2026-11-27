@@ -104,6 +104,13 @@ try {
     channel: process.env.PLAYWRIGHT_CHANNEL ?? (process.platform === "win32" ? "msedge" : undefined),
   });
   const errors = [];
+  const gameAsset = /\/(?:game-(?:packs|assets)-|main-|application-|room-interactive-|fufu-garments-|journal-celestial-paper-|texture-cache[.-])|\.pack$/;
+  function recordGameRequests(page, paths) {
+    page.on("request", request => {
+      const path = new URL(request.url()).pathname;
+      if (gameAsset.test(path)) paths.push(path);
+    });
+  }
   const beforeOpening = async (width, mode, setup) => {
     const context = await browser.newContext({ viewport: { width, height: 820 }, hasTouch: width < 600,
       reducedMotion: "reduce", timezoneId: "America/New_York" });
@@ -122,23 +129,17 @@ try {
       await page.unroute(chunk);
       await Promise.all([page.waitForEvent("domcontentloaded"), retry.click()]);
     } else {
-      await page.goto(base);
+      await page.goto(base, { waitUntil: "domcontentloaded" });
     }
     await page.locator(".launch-clock").waitFor();
     assert.equal(await page.locator(".launch-date time").getAttribute("datetime"), new Date(OPEN_AT).toISOString());
     assert.equal(await page.locator('[data-unit="seconds"]').innerText(), "02");
     assert.equal(await page.locator(".launch-debug-trigger, .entry-progress, #world").count(), 0);
-    await page.locator(".launch-invitation img").evaluateAll(images => Promise.all(images.map(image => image.decode())));
     return page;
   };
   const liteGameRequests = [];
-  const waiting = await beforeOpening(320, "lite", page => {
-    page.on("request", request => {
-      const path = new URL(request.url()).pathname;
-      if (/\/(?:game-(?:packs|assets)-|main-|application-|room-interactive-|fufu-garments-|journal-celestial-paper-|texture-cache\.js)|\.pack$/.test(path))
-        liteGameRequests.push(path);
-    });
-  });
+  const waiting = await beforeOpening(320, "lite", page => recordGameRequests(page, liteGameRequests));
+  await waiting.locator(".launch-invitation img").evaluateAll(images => Promise.all(images.map(image => image.decode())));
   await Promise.all([
     waiting.waitForResponse(response => response.url() === base + "release.json"),
     waiting.clock.setFixedTime(new Date(OPEN_AT)),
@@ -156,7 +157,12 @@ try {
   const initialRequests = [];
   const blocked = Promise.withResolvers();
   const releasePack = Promise.withResolvers();
+  const portraitUrl = /\/assets\/launch-fufu-[^/]+\.webp$/;
+  const portrait = Promise.withResolvers();
+  const earlyGameRequests = [];
   const game = await beforeOpening(1280, "full", async page => {
+    recordGameRequests(page, earlyGameRequests);
+    await page.route(portraitUrl, route => portrait.resolve(route));
     await page.route(index.base + "*", async route => {
       const file = route.request().url().slice(index.base.length);
       const pack = index.packs.find(item => item.file === file);
@@ -178,6 +184,13 @@ try {
       } });
     });
   });
+  const portraitRoute = await portrait.promise;
+  await game.clock.setFixedTime(new Date(OPEN_AT - 500));
+  await game.waitForFunction(() => document.querySelector('[data-unit="seconds"]')?.textContent === "01");
+  assert.equal(await game.locator(".launch-hostess").evaluate(img => img.complete), false);
+  assert.deepEqual(earlyGameRequests, [], "倒计时插画尚未载齐时不应发出游戏预载请求");
+  await portraitRoute.continue();
+  await game.locator(".launch-invitation img").evaluateAll(images => Promise.all(images.map(image => image.decode())));
   await Promise.race([blocked.promise, delay(10000, null, { ref: false }).then(() => {
     throw Error("完整倒计时未开始下载公共资源和小屋包");
   })]);
@@ -194,11 +207,18 @@ try {
   await enter.waitFor();
   assert.deepEqual(initialRequests.toSorted(), initialPacks.map(pack => pack.file).sort(),
     "到点进入游戏应复用倒计时期间已缓存和正在下载的包");
+  const lastPortrait = Promise.withResolvers();
+  const opening = await beforeOpening(390, "full", page => page.route(portraitUrl, route => lastPortrait.resolve(route)));
+  const pendingPortrait = await lastPortrait.promise;
+  await opening.clock.setFixedTime(new Date(OPEN_AT));
+  await opening.locator(".entry-progress").waitFor();
+  await pendingPortrait.abort();
+  await opening.context().close();
   await waiting.evaluate(() => window.dispatchEvent(new Event("online")));
   await waiting.getByRole("button", { name: /开始小冒险/ }).waitFor();
   assert.equal(await waiting.locator('meta[name="fufu-release"]').getAttribute("data-version"), full.version);
   await waiting.context().close();
-  console.log("全量包：倒计时预载资源，到点复用已缓存与在途资源包，旧邀请函自动更新");
+  console.log("全量包：插画载齐后启动预载，到点复用已缓存与在途资源包；插画慢加载时也能按时开门，旧邀请函自动更新");
 
   const badges = game.getByRole("tab", { name: "徽章", exact: true });
   const maps = game.getByRole("tab", { name: "地图", exact: true });

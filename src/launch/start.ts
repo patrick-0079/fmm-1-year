@@ -6,6 +6,24 @@ const debug = import.meta.env.VITE_WARDROBE_DEBUG === "true";
 const gameTitle = "芙眠眠一周年 · 晚安小屋";
 const retryInterval = 30_000;
 
+async function waitForCountdownPaint(root: HTMLElement) {
+  const pet = document.querySelector("fufu-pet:not([hidden])")?.shadowRoot;
+  const images = [...root.querySelectorAll("img"), ...(pet?.querySelectorAll("img") ?? [])];
+  const pageLoad = document.readyState === "complete" ? undefined :
+    new Promise<void>(resolve => window.addEventListener("load", () => resolve(), { once: true }));
+  await Promise.allSettled([pageLoad, document.fonts.ready, ...images.map(image => image.decode())]);
+
+  if (!document.hidden) await new Promise<void>(resolve => {
+    const ready = () => {
+      document.removeEventListener("visibilitychange", ready);
+      resolve();
+    };
+    document.addEventListener("visibilitychange", ready, { once: true });
+    // The second frame leaves a paint opportunity for the decoded invitation.
+    requestAnimationFrame(() => requestAnimationFrame(ready));
+  });
+}
+
 export async function startLaunch(game?: { open: () => Promise<unknown>; preload: () => Promise<void> }) {
   const root = document.querySelector<HTMLElement>("#app")!;
   let deadline = getDeadline(debug);
@@ -128,14 +146,10 @@ export async function startLaunch(game?: { open: () => Promise<unknown>; preload
   window.addEventListener("pageshow", wake);
   document.addEventListener("visibilitychange", wake);
   tick();
-  if (game && !stopped) {
-    // Opening takes priority even if maps are still downloading in the background.
-    void game.preload().catch(() => { /* The opening map retries through the same resource queue. */ });
-  }
   if (debug && !stopped) {
-    const { mountCountdownDebug } = await import("./debug");
+    const panel = await import("./debug").catch(() => undefined);
     if (stopped) return;
-    disposeDebug = mountCountdownDebug(view.debugHost, {
+    disposeDebug = panel?.mountCountdownDebug(view.debugHost, {
       mode: "countdown",
       getDeadline: () => deadline,
       changeDeadline: value => {
@@ -147,5 +161,11 @@ export async function startLaunch(game?: { open: () => Promise<unknown>; preload
         tick();
       },
     });
+  }
+  if (game && !stopped) {
+    await waitForCountdownPaint(root);
+    if (!stopped && Date.now() < deadline) {
+      void game.preload().catch(() => { /* The opening map retries through the same resource queue. */ });
+    }
   }
 }
