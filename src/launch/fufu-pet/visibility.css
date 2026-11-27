@@ -1,0 +1,3 @@
+body:not(:has(fufu-pet[hidden])) [data-pet-restore] {
+  display: none;
+}

@@ -15,7 +15,7 @@ use windows_sys::Win32::{
 
 const WIDTH: i32 = 120;
 const HEIGHT: i32 = 150;
-const ART_DENSITY: i32 = 3;
+const ART_DENSITY: i32 = 5;
 const ART_WIDTH: i32 = WIDTH * ART_DENSITY;
 const ART_HEIGHT: i32 = HEIGHT * ART_DENSITY;
 include!("../target/art/rig.rs");
@@ -38,8 +38,11 @@ struct State {
 }
 thread_local! {static STATE: RefCell<State> = RefCell::new(State {opacity:255,size:100,..Default::default()});}
 fn size_file() -> Option<std::path::PathBuf> {
-    std::env::var_os("LOCALAPPDATA")
-        .map(|base| std::path::PathBuf::from(base).join("FufuPet").join("size"))
+    std::env::var_os("LOCALAPPDATA").map(|base| {
+        std::path::PathBuf::from(base)
+            .join("FufuPet")
+            .join("size-v2")
+    })
 }
 fn read_size() -> i32 {
     size_file()
@@ -49,7 +52,21 @@ fn read_size() -> i32 {
         .unwrap_or(100)
 }
 fn dimensions(percent: i32) -> (i32, i32) {
-    (WIDTH * percent / 100, (HEIGHT * percent + 50) / 100)
+    (WIDTH * 2 * percent / 100, (HEIGHT * 2 * percent + 50) / 100)
+}
+fn visible_rect(width: i32, height: i32) -> RECT {
+    let [left, top, visible_width, visible_height] = VISIBLE_BOUNDS;
+    RECT {
+        left: left * width / ART_WIDTH,
+        top: top * height / ART_HEIGHT,
+        right: (left + visible_width) * width / ART_WIDTH,
+        bottom: (top + visible_height) * height / ART_HEIGHT,
+    }
+}
+fn clamp_visible(origin: i32, start: i32, end: i32, work_start: i32, work_end: i32) -> i32 {
+    let first = work_start - start;
+    let last = work_end - end;
+    origin.clamp(first.min(last), first.max(last))
 }
 fn wide(text: &str) -> Vec<u16> {
     text.encode_utf16().chain(Some(0)).collect()
@@ -88,18 +105,88 @@ mod tests {
         }
     }
     #[test]
+    fn inner_knees_keep_a_clear_background_gap() {
+        for row in 530..569 {
+            let alpha = |col: i32| BODY[((row * ART_WIDTH + col) * 4 + 3) as usize];
+            assert!(alpha(285) > 240 && alpha(311) > 240);
+            assert!(
+                (297..303).all(|col| alpha(col) == 0),
+                "knee matte at row {row}"
+            );
+        }
+    }
+    #[test]
+    fn both_irises_center_at_rest_and_track_across_covered_eye_windows() {
+        let travel_x = (ART_WIDTH as f32 * EYE_TRAVEL_X).ceil() as i32;
+        let travel_y = (ART_HEIGHT as f32 * EYE_TRAVEL_Y).ceil() as i32;
+        let pixel = |x: i32, y: i32| ((y * ART_WIDTH + x) * 4) as usize;
+        for (bounds, mint) in [(241..300, true), (304..365, false)] {
+            let mut window = Vec::new();
+            for row in 199..231 {
+                for col in bounds.clone() {
+                    if HEAD[pixel(col, row) + 3] < 12 {
+                        window.push((col, row));
+                    }
+                }
+            }
+            assert!(!window.is_empty());
+            let center =
+                window.iter().map(|&(col, _)| col).sum::<i32>() as f32 / window.len() as f32;
+            let iris_center = |shift| {
+                let mut sum = 0;
+                let mut count = 0;
+                for &(col, row) in &window {
+                    for offset in [-travel_y, 0, travel_y] {
+                        assert_eq!(EYES[pixel(col - shift, row - offset) + 3], 255);
+                    }
+                    let index = pixel(col - shift, row);
+                    let contrast = EYES[index + 1] as i16 - EYES[index] as i16;
+                    if (if mint { contrast } else { -contrast }) > 48 {
+                        sum += col;
+                        count += 1;
+                    }
+                }
+                assert!(count > 0);
+                sum as f32 / count as f32
+            };
+            let neutral = iris_center(0);
+            assert!((neutral - center).abs() < 1.5);
+            assert!(iris_center(travel_x) - neutral > 4.0);
+            assert!(neutral - iris_center(-travel_x) > 4.0);
+        }
+    }
+    #[test]
     fn size_menu_covers_half_to_five_times_the_default() {
         assert_eq!(SIZES.first(), Some(&50));
         assert_eq!(SIZES.last(), Some(&500));
-        assert_eq!(dimensions(50), (60, 75));
-        assert_eq!(dimensions(100), (WIDTH, HEIGHT));
-        assert_eq!(dimensions(200), (240, 300));
-        assert_eq!(dimensions(500), (600, 750));
-        assert!(240. * BODY_SCALE <= ART_WIDTH as f32 && 300. * BODY_SCALE <= ART_HEIGHT as f32);
+        assert_eq!(dimensions(50), (WIDTH, HEIGHT));
+        assert_eq!(dimensions(100), (240, 300));
+        assert_eq!(dimensions(250), (ART_WIDTH, ART_HEIGHT));
+        assert_eq!(dimensions(500), (1200, 1500));
         for size in SIZES {
             let (width, height) = dimensions(size);
             assert!((width * HEIGHT - height * WIDTH).abs() <= WIDTH / 2);
         }
+    }
+    #[test]
+    fn oversized_pet_can_align_either_visible_edge_on_a_secondary_monitor() {
+        let rect = visible_rect(1200, 1500);
+        assert_eq!(
+            clamp_visible(-3000, rect.left, rect.right, -1920, 0) + rect.left,
+            -1920
+        );
+        assert_eq!(
+            clamp_visible(0, rect.left, rect.right, -1920, 0) + rect.right,
+            0
+        );
+        assert_eq!(
+            clamp_visible(100, rect.top, rect.bottom, 0, 900) + rect.top,
+            0
+        );
+        assert_eq!(
+            clamp_visible(-2000, rect.top, rect.bottom, 0, 900) + rect.bottom,
+            900
+        );
     }
 }
 unsafe fn draw(hwnd: HWND) {
@@ -110,8 +197,7 @@ unsafe fn draw(hwnd: HWND) {
     let (width, height) = dimensions(STATE.with(|state| state.borrow().size));
     let pixel_scale = WIDTH as f32 / width as f32;
     let dx = (pos.x - rect.left) as f32 * pixel_scale - 60.;
-    let dy =
-        (pos.y - rect.top) as f32 * pixel_scale - HEIGHT as f32 * (HEAD_TOP + HEAD_SCALE * 0.455);
+    let dy = (pos.y - rect.top) as f32 * pixel_scale - HEIGHT as f32 * EYE_Y;
     let scale = dx.hypot(dy).max(75.);
     let frame = STATE.with(|state| {
         let mut state = state.borrow_mut();
@@ -158,20 +244,18 @@ unsafe fn draw(hwnd: HWND) {
             let py = (row as f32 + 0.5) * HEIGHT as f32 / height as f32;
             let (px, py) = stance.local(px, py);
             let sample = |coord: f32| (coord * ART_DENSITY as f32).floor() as i32;
+            blend(out, BODY, sample(px), sample(py));
+            let x = px - 60. - 0.54 * hx;
+            let y = py - HEIGHT as f32 * NECK_Y - 0.525 * hy;
+            let sx = 60. + cos * x + sin * y;
+            let sy = HEIGHT as f32 * NECK_Y - sin * x + cos * y;
             blend(
                 out,
-                BODY,
-                sample(60. + (px - 60.) / BODY_SCALE),
-                sample(144. + (py - 144.) / BODY_SCALE),
+                EYES,
+                sample(sx - WIDTH as f32 * EYE_TRAVEL_X * ex),
+                sample(sy - HEIGHT as f32 * EYE_TRAVEL_Y * ey),
             );
-            let px = 60. + (px - 60.) / HEAD_SCALE;
-            let py = (py - HEIGHT as f32 * HEAD_TOP) / HEAD_SCALE;
-            let x = px - 60. - 0.96 * hx;
-            let y = py - 84. - 1.125 * hy;
-            let sx = 60. + cos * x + sin * y;
-            let sy = 84. - sin * x + cos * y;
             blend(out, HEAD, sample(sx), sample(sy));
-            blend(out, EYES, sample(sx - 1.38 * ex), sample(sy - 0.75 * ey));
         }
     }
     let blend_fn = BLENDFUNCTION {
@@ -202,8 +286,10 @@ unsafe fn resize_pet(hwnd: HWND, percent: i32) {
     let mut rect = zeroed();
     GetWindowRect(hwnd, &mut rect);
     let (width, height) = dimensions(percent);
-    let mut left = rect.left;
-    let mut top = rect.bottom - height;
+    let before = visible_rect(rect.right - rect.left, rect.bottom - rect.top);
+    let after = visible_rect(width, height);
+    let mut left = rect.left + before.left - after.left;
+    let mut top = rect.top + before.bottom - after.bottom;
     let mut monitor: MONITORINFO = zeroed();
     monitor.cbSize = size_of::<MONITORINFO>() as u32;
     if GetMonitorInfoW(
@@ -212,8 +298,8 @@ unsafe fn resize_pet(hwnd: HWND, percent: i32) {
     ) != 0
     {
         let area = monitor.rcWork;
-        left = left.clamp(area.left, (area.right - width).max(area.left));
-        top = top.clamp(area.top, (area.bottom - height).max(area.top));
+        left = clamp_visible(left, after.left, after.right, area.left, area.right);
+        top = clamp_visible(top, after.top, after.bottom, area.top, area.bottom);
     }
     SetWindowPos(
         hwnd,
@@ -344,13 +430,14 @@ fn main() {
         let percent = read_size();
         STATE.with(|state| state.borrow_mut().size = percent);
         let (width, height) = dimensions(percent);
+        let visible = visible_rect(width, height);
         let window = CreateWindowExW(
             WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
             name.as_ptr(),
             wide("小小芙").as_ptr(),
             WS_POPUP,
-            area.left + 12,
-            area.bottom - height - 12,
+            area.left + 12 - visible.left,
+            area.bottom - visible.bottom - 12,
             width,
             height,
             null_mut(),

@@ -464,6 +464,7 @@ html.launch-present body {
   transform: rotate(-4deg);
 }
 .launch-signature i { color: #b95f7b; font: 18px Georgia, serif; }
+.launch-restore-pet { display: block; margin: 0 auto 8px; padding: 8px 14px; border: 1px solid #d8b6c5; border-radius: 12px; background: #fff4f8; color: #925468; cursor: pointer; }
 .launch-debug-host {
   position: fixed;
   right: max(12px, env(safe-area-inset-right));
