@@ -71,14 +71,14 @@ export function mergeTownKeepsakes(into: TownKeepsakes, from: TownKeepsakes) {
 
 export const townKeepsakeBadge = (key: TownInteriorKey) => `town-keepsake-${key}`;
 
-export const townKeepsakeInfo: Record<TownInteriorKey, { name: string; note: string }> = {
-  florist: { name: "窗光花签", note: "举到光里，透光纸下细细的花脉像一条条小路。" },
-  baker: { name: "草莓饼干铁盒", note: "盖上一排小草莓，打开还有刚出炉的甜香。" },
-  maker: { name: "透星铜片", note: "把铜片转向灯，星尖便落到月牙中央。" },
-  post: { name: "月牙邮戳明信片", note: "月牙刚好贴在邮票一角。寄件人的一栏留给了芙芙。" },
-  books: { name: "池畔风琴折页", note: "把池边的晨光、午影、灯下三折拉开，水岸会连成一条线。" },
-  radio: { name: "晚安试播带", note: "带壳上留着手写的节目名。带去电台的试听椅，可以再听一遍。" },
-  hall: { name: "亮灯夜票根", note: "票根上的第三格，画着周年夜第一盏亮起的街灯。" },
+export const townKeepsakeInfo: Record<TownInteriorKey, { name: string; note: string; activity: string }> = {
+  florist: { name: "窗光花签", activity: "在青芽花店任选一片花瓣，压成花签", note: "举到光里，透光纸下细细的花脉像一条条小路。" },
+  baker: { name: "草莓饼干铁盒", activity: "在栗栗烘焙屋烤好草莓小饼，装进铁盒", note: "盖上一排小草莓，打开还有刚出炉的甜香。" },
+  maker: { name: "透星铜片", activity: "在星饰工坊的试光台转动铜片，让星影对准月牙里的刻线", note: "把铜片转向灯，星尖便落到月牙中央。" },
+  post: { name: "月牙邮戳明信片", activity: "在周年邮局任选一张风景片，盖上月牙邮戳", note: "月牙刚好贴在邮票一角。寄件人的一栏留给了芙芙。" },
+  books: { name: "池畔风琴折页", activity: "在相册书屋折好书页，再拉开折页，让池岸连成一线", note: "把池边的晨光、午影、灯下三折拉开，水岸会连成一条线。" },
+  radio: { name: "晚安试播带", activity: "在晚安电台任选溪水声或檐铃声，录完一段晚安片头", note: "带壳上留着手写的节目名。带去电台的试听椅，可以再听一遍。" },
+  hall: { name: "亮灯夜票根", activity: "在周年纪念馆转动手摇影箱，抽出票根", note: "票根上的第三格，画着周年夜第一盏亮起的街灯。" },
 };
 
 export const radioTrackName = { creek: "溪水", bells: "檐铃" } as const;
