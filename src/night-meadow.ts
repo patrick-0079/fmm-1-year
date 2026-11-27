@@ -13,6 +13,11 @@ import { StarBottleView } from "./star-bottle";
 import { showQuietStarEffect } from "./quiet-star-effect";
 import { creditStarTexture } from "./credit-star-art";
 import { CampGuest } from "./camp-guest";
+import { CampEncounters, type CampEncounterId } from "./camp-encounters";
+import { CampEncounterControls } from "./camp-encounter-controls";
+import { campEncounterLayers, campEncounterHit, drawCampHeldProp } from "./camp-encounter-art";
+import { outfitIndex } from "./costume-frames";
+import type { RestState } from "./rest";
 import { requestSceneImage } from "./texture-cache";
 import { MeadowJellies } from "./meadow-jellies";
 import { drawJelly, drawKettleSteam, prepareJellyBells } from "./meadow-jelly-art";
@@ -88,6 +93,8 @@ export class NightMeadow {
   private reader: MeadowStarReader;
   private bottle: StarBottleView;
   private campGuest: CampGuest;
+  private encounters = new CampEncounters();
+  private campControls: CampEncounterControls;
   private jellies?: MeadowJellies;
   private jellyArtRequested = false;
   private starSprites = new Map<string, HTMLImageElement>();
@@ -107,6 +114,15 @@ export class NightMeadow {
     this.reader = new MeadowStarReader(world);
     this.bottle = new StarBottleView(world, found);
     this.campGuest = new CampGuest(world, campStory, save);
+    this.campControls = new CampEncounterControls(world, this.encounters, (point, event, frame, pointerType) =>
+      campEncounterHit(point, event, frame, this.reduced.matches, outfitIndex(world.equipment.clothes), pointerType));
+    world.getCampPose = () => {
+      const event = this.campControls.visibleEncounter;
+      if (!event) return;
+      const still = this.reduced.matches, frame = this.encounters.frame(still);
+      return {id: event.id, frame, drawHeld: event.id === "marshmallow" ? c =>
+        drawCampHeldProp(c, event, frame, still, outfitIndex(world.equipment.clothes)) : undefined};
+    };
     this.caption.className = "star-whisper";
     this.caption.hidden = true;
     this.caption.setAttribute("role", "status");
@@ -130,6 +146,7 @@ export class NightMeadow {
       tick(dt, t);
       if (world.scene !== "meadow") return;
       this.campGuest.tick(dt, t);
+      this.campControls.tick(dt, this.campGuest.reservesCamp());
       this.time += dt;
       if (!this.jellyArtRequested) {
         prepareJellyBells();
@@ -150,7 +167,17 @@ export class NightMeadow {
       if (world.scene === "meadow") this.drawLights(c);
     };
   }
+  setCampSeat(seat: RestState | null) { this.campControls.setSeat(seat); }
+  previewCampEncounter(id: CampEncounterId) {
+    if (this.world.scene !== "meadow") return;
+    if (!this.world.restState) this.interact("meadow-camp");
+    const seat = this.world.restState;
+    if (seat?.kind !== "sitting") return;
+    this.encounters.preview(id, seat, this.campGuest.reservesCamp());
+    this.campControls.tick(0, this.campGuest.reservesCamp());
+  }
   leave() {
+    this.campControls.reset();
     this.campGuest.reset();
     this.jellies?.interrupt();
     this.jellyArtRequested = false;
@@ -249,6 +276,9 @@ export class NightMeadow {
       ...visibleMapCovers(this.world, sceneryCovers),
       {y: 170, draw: c => drawCampfire(c, still ? 0 : sceneryTime)},
     ];
+    const encounter = this.campControls.visibleEncounter;
+    if (encounter) layers.push(...campEncounterLayers(encounter, this.encounters.frame(still), still,
+      outfitIndex(this.world.equipment.clothes)));
     if (this.getTape() === "missing") layers.push({ y: campTapeSpot.y, draw: drawCampTape });
     const view = this.world.visibleArea;
     this.jellies?.animals.forEach((animal, index) => {

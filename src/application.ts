@@ -574,6 +574,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     dismissRevive();
   };
   world.onRestChange = (state) => {
+    meadow.setCampSeat(state);
     if (state) saveLocation();
     const tools = document.querySelector<HTMLElement>(".rest-tools")!;
     tools.hidden = !state;
@@ -1018,10 +1019,18 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
   document.querySelector(".reset-confirm")!.addEventListener("click", () => resetAdventure());
   update();
   updateMailCount();
-  mountDebugPanel(world,inventory,nature,flowerTrail,async(scene,id,mode)=>{
-    if(!worldReady || world.busy || transitioning || !world.canEnter(scene)) return false;
+  mountDebugPanel(world,inventory,nature,flowerTrail,async(scene,id,mode,encounter)=>{
+    if(!worldReady || world.busy || transitioning) return false;
+    if (encounter && !world.canEnter("meadow")) flowerTrail.setPreviewOpen(true);
+    if (!world.canEnter(scene)) return false;
     begin();
     closePanels(); cinema.close(); arcade.close(); activities.close(); reader.close(); dismissRevive();
+    if (encounter && world.scene === "meadow") {
+      meadow.previewCampEncounter(encounter);
+      world.canvas.focus({preventScroll:true});
+      revealMapIfOffscreen();
+      return true;
+    }
     // Debug travel shares the normal crossing lock: a slow image must not move
     // the player after a reset or overwrite a newer navigation request.
     transitioning = true;
@@ -1047,7 +1056,8 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
       if (next) next();
       else if (arrived) {
         world.canvas.focus({preventScroll:true});
-        if(mode === "open" && spot) world.onInteract(spot.id);
+        if (encounter) meadow.previewCampEncounter(encounter);
+        else if(mode === "open" && spot) world.onInteract(spot.id);
         revealMapIfOffscreen();
       }
     }

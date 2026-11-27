@@ -3,6 +3,7 @@ import type { Inventory } from "./inventory";
 import type { Nature } from "./nature";
 import type { FlowerTrail } from "./flower-trail";
 import { rainbowFlowers } from "./rainbow-flowers";
+import { campEncounterIds, type CampEncounterId } from "./camp-encounters";
 import { ARCADES } from "./town-data";
 import { townInteriors } from "./town-interiors";
 import { phaseNames, type Phase } from "./day";
@@ -23,10 +24,14 @@ const maps = {
 } as const;
 const button = (cmd: string, label: string) =>
   `<button type="button" data-debug="${cmd}">${label}</button>`;
+const campNames: Record<CampEncounterId, string> = {
+  bird: "小鸟", butterfly: "火蝴蝶", jelly: "水母", marshmallow: "烤棉花糖",
+};
 type Travel = (
   scene: SceneId,
   id?: string,
   mode?: "open" | "near" | "trap",
+  encounter?: CampEncounterId,
 ) => Promise<boolean>;
 /** The launch preview persists for this tab. Game preview switches are ephemeral. */
 export function mountDebugPanel(
@@ -68,6 +73,8 @@ export function mountDebugPanel(
           .join("")}</div>
       </details>
       <details class="debug-flowers"><summary>七色花与花海</summary><div>${button("flower-door", "临时点亮传送阵")}</div><p>点花名到达花旁，是否采下由你决定。</p><div>${rainbowFlowers.map((f, i) => button("flower:" + i, f.name)).join("")}</div></details>
+      <details><summary>花海营火奇遇</summary><p>选择奇遇，芙芙会到营火边坐下。再次选择可重播或切换。</p>
+        <div>${campEncounterIds.map(id => button("camp:" + id, campNames[id])).join("")}</div></details>
       <details><summary>小镇与遗迹小游戏</summary><div>${Object.entries(ARCADES)
         .map(([id, g]) => button("game:" + id, g.title))
         .join("")}</div></details>
@@ -191,15 +198,11 @@ export function mountDebugPanel(
     },
     { capture: true },
   );
-  const travel = async (
-    scene: SceneId,
-    id?: string,
-    mode?: "open" | "near" | "trap",
-  ) => {
+  const travel = async (...destination: Parameters<Travel>) => {
     if (travelling) return;
     travelling = true;
     try {
-      if (!(await go(scene, id, mode))) toast("请等地图准备好，再试一次。");
+      if (!(await go(...destination))) toast("请等地图准备好，再试一次。");
     } catch {
       toast("这处场景还没载入，请稍后再试。");
     } finally {
@@ -241,6 +244,9 @@ export function mountDebugPanel(
     } else if (type === "flower") {
       const f = rainbowFlowers[Number(key)];
       void travel(f.scene, f.id, "near");
+    } else if (type === "camp") {
+      const encounter = campEncounterIds.find(id => id === key);
+      if (encounter) await travel("meadow", "meadow-camp", "open", encounter);
     } else if (type === "map") void travel(key as SceneId);
     else if (type === "game" && Object.hasOwn(ARCADES,key)) void travel(ARCADES[key as keyof typeof ARCADES].scene, "arcade-" + key, "open");
     else if (type === "event") void travel(key as SceneId, id, "open");

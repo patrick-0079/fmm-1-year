@@ -99,6 +99,8 @@ export class CampGuest {
       (this.visit?.arrivalAge ?? placedAt) >= placedAt;
   }
 
+  reservesCamp() { return this.visit?.arrivalAge !== undefined; }
+
   reset() {
     this.visit = undefined;
   }

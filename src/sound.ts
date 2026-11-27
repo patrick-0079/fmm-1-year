@@ -41,6 +41,7 @@ function tone(
     oscillator.disconnect();
     gain.disconnect();
   };
+  return oscillator;
 }
 // A soft rising bell flourish, voiced directly on the interaction-effects bus.
 export function playAchievementSound() {
@@ -196,6 +197,16 @@ export function foxCry(call: FoxCall) {
 }
 export function sfx(name: string) {
   if (!context || !effects || !canPlayEffects()) return;
+  if (name === "camp-bird") {
+    for (const [delay, pitch] of [[0, 92], [.12, 94]]) {
+      const at = context.currentTime + delay;
+      const chirp = tone(pitch, at, .095, .052, effects);
+      chirp?.frequency.setValueAtTime(midi(pitch), at);
+      chirp?.frequency.exponentialRampToValueAtTime(midi(pitch + 6), at + .045);
+      chirp?.frequency.exponentialRampToValueAtTime(midi(pitch + 2), at + .09);
+    }
+    return;
+  }
   if (Object.hasOwn(echoNotes, name)) {
     echoNotes[name].forEach((pitch, i) => tone(pitch, context!.currentTime + i * .32, .82, .085, effects!, "sine"));
     return;

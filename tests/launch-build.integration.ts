@@ -105,6 +105,17 @@ test("switching full → invitation → full cleans the deployed directory", asy
   }
   assert.deepEqual(entries.find(([file]) => file.startsWith("assets/arcade-postcard-"))?.[2], ["town"]);
   assert.deepEqual(entries.find(([file]) => file.startsWith("assets/meadow-campfire-frames-"))?.[2], ["meadow"]);
+  const campSheets = (await readdir(new URL("../src/assets/", import.meta.url)))
+    .filter(name => name.startsWith("meadow-camp-") && name.endsWith(".webp"));
+  const packIndex = JSON.parse(await readFile(join(outDir, `game-packs-${explicit.marker.version}.json`), "utf8"));
+  for (const sheet of campSheets) {
+    const digest = createHash("sha256").update(await readFile(new URL("../src/assets/" + sheet, import.meta.url))).digest("base64");
+    const asset = entries.find(([, hash]) => hash === digest);
+    assert.deepEqual(asset?.[2], ["meadow"], sheet);
+    const groups = packIndex.packs.filter((pack: {entries: [string, number, number][]}) =>
+      pack.entries.some(([file]) => file === asset![0])).map((pack: {group:string}) => pack.group);
+    assert.deepEqual(groups, ["meadow"], sheet);
+  }
   for (const prefix of ["apple-tree", "garden-bench"])
     assert.deepEqual(entries.find(([file]) => file.startsWith("assets/" + prefix + "-"))?.[2], ["challenge"]);
   const npcScenes = entries.find(([file]) => file.startsWith("assets/town-npcs-"))?.[2];

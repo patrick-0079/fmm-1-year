@@ -33,6 +33,9 @@ try {
   for (const row of shapes) assert.equal(new Set(row).size,15);
   const wornViews=await page.evaluate(async ()=>(await import("/tests/equipment-fixture.ts")).verifyWornViews());
   assert.equal(wornViews,outfits.length*15);
+  const campFrames = await page.evaluate(async () => (await import("/tests/camp-costume-cases.ts")).verifyCampCostumes());
+  assert.equal(campFrames, outfits.length*4*16);
+  console.log(`花海营火 ${campFrames} 格均通过衣装、鞋底及袖手遮挡检查。`);
   console.log(`${wornViews} 个角色姿势核对了各双鞋、胸针、发夹与尖帽，以及花环等比覆盖各款头饰的画面。`);
   const fits = await page.evaluate(async () => (await import("/tests/bag-fitting-cases.ts")).verifyBagFits());
   const bagCount = Object.values(ITEMS).filter(item => item.slot === "backpack").length;
@@ -66,6 +69,25 @@ try {
     const page=await browser.newPage(options);
     await page.route(/^https:\/\//,route=>route.abort());
     await page.goto(base+"exploration-fixture.html");
+    await page.waitForFunction(()=>window.contentQA?.ready());
+    await page.getByRole("button",{name:"⚙ 调试"}).click();
+    await page.locator("summary").filter({hasText:"花海营火奇遇"}).click();
+    for (const [id,verb] of [["bird","伸出手指"],["butterfly","摊开双手"],["jelly","碰一碰"],["marshmallow","尝一口"],["marshmallow","尝一口"]]) {
+      await page.locator('[data-debug="camp:'+id+'"]').click();
+      await page.waitForFunction(verb => {
+        const b=document.querySelector(".camp-respond");
+        return !b.hidden && b.textContent.includes(verb);
+      },verb);
+      await page.locator(".camp-respond").click();
+    }
+    const camp=await page.evaluate(()=>window.contentQA.snapshot());
+    assert.equal(camp.scene,"meadow");
+    assert.equal(camp.rest?.kind,"sitting");
+    assert.deepEqual(camp.progress.rainbowFlowers,[]);
+    await page.locator(".debug-close").click();
+    await page.locator("#world").press("e");
+    assert.equal(await page.evaluate(()=>window.contentQA.snapshot().rest),null);
+    await page.reload();
     await page.waitForFunction(()=>window.contentQA?.ready());
     await page.locator("#check-wardrobe").click();
     await page.waitForFunction(()=>/失败|全部通过/.test(document.querySelector("#report").textContent),undefined,{timeout:90000});

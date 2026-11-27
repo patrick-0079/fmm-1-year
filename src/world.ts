@@ -25,6 +25,7 @@ import { emptyInventory, type Equipped } from "./items";
 import { bedRest, benchRest, type RestState } from "./rest";
 import { avatarPose } from "./costume-frames";
 import { avatarUrls, drawAvatar } from "./avatar";
+import type { CampAvatarPose } from "./camp-costumes";
 import type { Facing } from "./equipment";
 import { clickedInteraction, nearbyInteraction } from "./interaction";
 import { drawInteractionGlints } from "./interaction-glints";
@@ -213,6 +214,7 @@ export class World {
   onOverlay: (context: CanvasRenderingContext2D) => void = () => {};
   getDepthLayers: () => DepthLayer[] = () => [];
   getActorPresentation: () => ActorPresentation | null = () => null;
+  getCampPose: () => CampAvatarPose | undefined = () => undefined;
   available: (spot: Hotspot) => boolean = () => true;
   canEnter: (scene: SceneId) => boolean = scene => scene !== "meadow";
   equipment: Equipped = emptyInventory().equipped;
@@ -244,6 +246,7 @@ export class World {
       presentation?.facing ?? this.facing,
       this.walking ? avatarWalkCycle[Math.floor(this.stepDistance * 4 / avatarStride)] : 0,
       this.equipment,
+      this.restState?.scene === "meadow" ? this.getCampPose() : undefined,
     );
     c.restore();
   }
