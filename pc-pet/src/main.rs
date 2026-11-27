@@ -15,7 +15,7 @@ use windows_sys::Win32::{
 
 const WIDTH: i32 = 120;
 const HEIGHT: i32 = 150;
-const ART_DENSITY: i32 = 3;
+const ART_DENSITY: i32 = 5;
 const ART_WIDTH: i32 = WIDTH * ART_DENSITY;
 const ART_HEIGHT: i32 = HEIGHT * ART_DENSITY;
 include!("../target/art/rig.rs");
@@ -88,6 +88,21 @@ mod tests {
         }
     }
     #[test]
+    fn both_eye_windows_stay_filled_at_maximum_gaze() {
+        let travel_x = (ART_WIDTH as f32 * EYE_TRAVEL_X).ceil() as i32;
+        let travel_y = (ART_HEIGHT as f32 * EYE_TRAVEL_Y).ceil() as i32;
+        for (center_x, center_y) in [(270, 216), (335, 216)] {
+            let alpha =
+                |sprite: &Sprite, x: i32, y: i32| sprite[((y * ART_WIDTH + x) * 4 + 3) as usize];
+            assert_eq!(alpha(HEAD, center_x, center_y), 0);
+            for dx in [-travel_x, travel_x] {
+                for dy in [-travel_y, travel_y] {
+                    assert_eq!(alpha(EYES, center_x + dx, center_y + dy), 255);
+                }
+            }
+        }
+    }
+    #[test]
     fn size_menu_covers_half_to_five_times_the_default() {
         assert_eq!(SIZES.first(), Some(&50));
         assert_eq!(SIZES.last(), Some(&500));
@@ -95,7 +110,7 @@ mod tests {
         assert_eq!(dimensions(100), (WIDTH, HEIGHT));
         assert_eq!(dimensions(200), (240, 300));
         assert_eq!(dimensions(500), (600, 750));
-        assert!(240. * BODY_SCALE <= ART_WIDTH as f32 && 300. * BODY_SCALE <= ART_HEIGHT as f32);
+        assert_eq!(dimensions(500), (ART_WIDTH, ART_HEIGHT));
         for size in SIZES {
             let (width, height) = dimensions(size);
             assert!((width * HEIGHT - height * WIDTH).abs() <= WIDTH / 2);
@@ -110,8 +125,7 @@ unsafe fn draw(hwnd: HWND) {
     let (width, height) = dimensions(STATE.with(|state| state.borrow().size));
     let pixel_scale = WIDTH as f32 / width as f32;
     let dx = (pos.x - rect.left) as f32 * pixel_scale - 60.;
-    let dy =
-        (pos.y - rect.top) as f32 * pixel_scale - HEIGHT as f32 * (HEAD_TOP + HEAD_SCALE * 0.455);
+    let dy = (pos.y - rect.top) as f32 * pixel_scale - HEIGHT as f32 * EYE_Y;
     let scale = dx.hypot(dy).max(75.);
     let frame = STATE.with(|state| {
         let mut state = state.borrow_mut();
@@ -158,20 +172,18 @@ unsafe fn draw(hwnd: HWND) {
             let py = (row as f32 + 0.5) * HEIGHT as f32 / height as f32;
             let (px, py) = stance.local(px, py);
             let sample = |coord: f32| (coord * ART_DENSITY as f32).floor() as i32;
+            blend(out, BODY, sample(px), sample(py));
+            let x = px - 60. - 0.54 * hx;
+            let y = py - HEIGHT as f32 * NECK_Y - 0.525 * hy;
+            let sx = 60. + cos * x + sin * y;
+            let sy = HEIGHT as f32 * NECK_Y - sin * x + cos * y;
             blend(
                 out,
-                BODY,
-                sample(60. + (px - 60.) / BODY_SCALE),
-                sample(144. + (py - 144.) / BODY_SCALE),
+                EYES,
+                sample(sx - WIDTH as f32 * EYE_TRAVEL_X * ex),
+                sample(sy - HEIGHT as f32 * EYE_TRAVEL_Y * ey),
             );
-            let px = 60. + (px - 60.) / HEAD_SCALE;
-            let py = (py - HEIGHT as f32 * HEAD_TOP) / HEAD_SCALE;
-            let x = px - 60. - 0.96 * hx;
-            let y = py - 84. - 1.125 * hy;
-            let sx = 60. + cos * x + sin * y;
-            let sy = 84. - sin * x + cos * y;
             blend(out, HEAD, sample(sx), sample(sy));
-            blend(out, EYES, sample(sx - 1.38 * ex), sample(sy - 0.75 * ey));
         }
     }
     let blend_fn = BLENDFUNCTION {

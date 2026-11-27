@@ -1,5 +1,6 @@
 {
-  "headScale": 0.72,
-  "bodyScale": 1.35,
-  "headTop": 0.025
+  "neckY": 0.357,
+  "eyeY": 0.288,
+  "eyeTravelX": 0.0045,
+  "eyeTravelY": 0.0017
 }
