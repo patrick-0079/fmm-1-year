@@ -182,8 +182,9 @@ try {
     throw Error("完整倒计时未开始下载公共资源和小屋包");
   })]);
   const firstPack = initialPacks.find(pack => pack.file === initialRequests[0]);
-  await game.waitForFunction(async path =>
-    !!await (await caches.open("fufu-game-textures-v1:/")).match(new URL(path, location.href)), firstPack.entries.at(-1)[0]);
+  assert.ok(await game.evaluate(async path =>
+    !!await (await caches.open("fufu-game-textures-v1:/")).match(new URL(path, location.href)), firstPack.entries.at(-1)[0]),
+    "倒计时内首个资源包的最后一个文件应已写入缓存");
   assert.ok(await game.locator(".launch-clock").isVisible());
   assert.equal(await game.locator(".entry-progress, #world").count(), 0);
   await game.clock.setFixedTime(new Date(OPEN_AT));
