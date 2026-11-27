@@ -357,7 +357,7 @@ await check("掀盖时收起立即恢复探索，旧动画不会覆盖新对话�
   assert(!world.paused&&!world.actorHidden&&!world.onAction(true),"退出掀盖后地图仍被锁住");
   activities.menu("新的周年对话", [{ title: "继续看花", run() {} }]);
   world.onTick(1, 1);
-  assert(document.querySelector(".activity-actions")!.textContent === "继续看花", "旧礼盒动画覆盖了新对话");
+  assert(document.querySelector(".activity-actions")!.textContent === "⌈继续看花⌋", "旧礼盒动画覆盖了新对话");
   assert(giftCompletions===0&&giftRewards.length===0,"中途退出礼盒却完成任务");
 });
 
