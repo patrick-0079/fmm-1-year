@@ -333,6 +333,8 @@ export class Nature {
   private tick() {
     const clock = this.clock;
     this.world.currentPhase = clock.phase;
+    this.world.currentDay = clock.day;
+    this.world.currentHours = clock.hours;
     this.world.lightMix = daylightMix(clock.hours);
     const meadow = this.world.scene === "meadow";
     const ruins = this.world.scene === "ruins";

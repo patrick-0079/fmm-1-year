@@ -15,8 +15,8 @@ test("the garden moves feet, hit boxes and stands along traversable routes",()=>
     cast.leave();
     let map=cast.mapFor(base,phase);
     const visit=guests.filter(n=>cast.interactable(n));
-    assert.equal(visit.length,2);
-    assert.equal(map.spots.filter(s=>guests.some(k=>s.id===office(k))).length,2);
+    assert.equal(visit.length,phase==="day"?3:2);
+    assert.equal(map.spots.filter(s=>guests.some(k=>s.id===office(k))).length,visit.length);
     const terrain={...base,walls:base.walls.filter(w=>!w.label.startsWith("庭院来宾") && w.label!=="来宾 · 苏颜")};
     const originals=visit.map(k=>({...cast.get(k).foot}));
     const walked=new Set<string>();
@@ -58,7 +58,7 @@ test("a clicked walker waits; a talking picnic guest finishes before shift chang
     for(const k of guests)if(cast.get(k).mode==="leaving" || cast.get(k).mode==="arriving")visited.add(k);
     assert.ok(guests.filter(k=>cast.get(k).moving).length<=2);
   }
-  assert.equal(visited.size,4);
+  assert.deepEqual([...visited].sort(),["balloon-friend","decorator","picnic-friend"]);
   assert.deepEqual(guests.filter(k=>cast.interactable(k)),["decorator","suyan"]);
   assert.ok(cast.mapFor(base,"night").walls.every(w=>w.label!=="庭院来宾 · 晴糖"));
 });
@@ -79,21 +79,22 @@ test("all four manual shifts immediately update feet, walls and interaction anch
   cast.leave();
   cast.mapFor(base,"night");
   for (const [phase,expected] of [
-    ["dawn",["balloon-friend","decorator"]],["day",["balloon-friend","picnic-friend"]],
+    ["dawn",["balloon-friend","decorator","suyan"]],["day",["balloon-friend","picnic-friend","suyan"]],
     ["dusk",["picnic-friend","suyan"]],["night",["decorator","suyan"]],
   ] as const) {
     cast.syncShift(phase,far);
     const map=cast.mapFor(base,phase);
     assert.deepEqual(guests.filter(k=>cast.interactable(k)),expected);
     assert.deepEqual(guests.filter(k=>map.spots.includes(cast.anchor(k))),expected);
-    assert.equal(map.walls.filter(w=>w.label.startsWith("庭院来宾") || w.label==="来宾 · 苏颜").length,2);
+    assert.equal(map.walls.filter(w=>w.label.startsWith("庭院来宾") || w.label==="来宾 · 苏颜").length,expected.length);
   }
-  cast.talking("suyan",true);
-  const foot={...cast.get("suyan").foot};
+  cast.talking("decorator",true);
+  const foot={...cast.get("decorator").foot};
   cast.syncShift("day",far);cast.tick(0,"day",far,null,false,()=>true);
-  assert.ok(cast.mapFor(base,"day").spots.includes(cast.anchor("suyan")));
-  assert.deepEqual(cast.get("suyan").foot,foot);
-  cast.talking("suyan",false);
+  assert.ok(cast.mapFor(base,"day").spots.includes(cast.anchor("decorator")));
+  assert.deepEqual(cast.get("decorator").foot,foot);
+  cast.talking("decorator",false);
   cast.tick(.016,"day",far,null,false,()=>true);
-  assert.equal(cast.mapFor(base,"day").spots.includes(cast.anchor("suyan")),false);
+  assert.equal(cast.mapFor(base,"day").spots.includes(cast.anchor("decorator")),false);
+  assert.ok(cast.mapFor(base,"day").spots.includes(cast.anchor("suyan")));
 });

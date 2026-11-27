@@ -16,6 +16,7 @@ import { drawPartyProp } from "./party-art";
 import type { ItemId } from "./items";
 import { GiftUnwrapping, drawUnwrappingGift } from "./gift-unwrapping";
 import "./gift-unwrapping.css";
+import { mountQianxiaoDuel } from "./qianxiao-duel-ui";
 
 interface Hooks {
   complete: (id: string) => void;
@@ -53,6 +54,8 @@ export class Activities {
   private dialogueEnd?: () => void;
   private dialogueAt?: { scene: World["scene"]; point: Point };
   private workbenchHandle?: WorkbenchHandle;
+  private duelHandle?: ReturnType<typeof mountQianxiaoDuel>;
+  private duelExplained = false;
   private hud: HTMLElement;
   private status: HTMLElement;
   private controls: HTMLElement;
@@ -134,7 +137,7 @@ export class Activities {
     world.onAction = (pressed) => {
       if (!this.active) return previousAction(pressed);
       if (world.suspended) return true;
-      if (this.mode === "workbench") return true;
+      if (this.mode === "workbench" || this.mode === "qianxiao-duel") return true;
       if (this.mode === "cake" && this.cakeStage === 0) {
         this.blowing = pressed;
         if (pressed) sfx("blow");
@@ -188,6 +191,8 @@ export class Activities {
     const returnFocus = this.hud.contains(document.activeElement);
     this.workbenchHandle?.dispose();
     this.workbenchHandle = undefined;
+    this.duelHandle?.dispose();
+    this.duelHandle = undefined;
     this.dialogueEnd?.();
     this.dialogueEnd = undefined;
     this.dialogueAt = undefined;
@@ -509,6 +514,17 @@ export class Activities {
   menu(text: string, options: { title: string; run: () => void }[], point?: Point, zoom = 1) {
     this.begin("nature", text, point, zoom);
     for (const option of options) this.action(option.title, option.run);
+  }
+  openQianxiaoDuel() {
+    this.begin("qianxiao-duel", "");
+    this.world.paused = true;
+    this.duelHandle = mountQianxiaoDuel(this.controls, this.status, {
+      guide: !this.duelExplained,
+      started: () => { this.duelExplained = true; },
+      win: () => this.world.onAchievementEvent("qianxiao-duel-win"),
+      close: () => this.close(),
+      suspended: () => this.world.suspended,
+    });
   }
   workbench(title: string, mount: (root: HTMLElement, status: HTMLElement) => WorkbenchHandle) {
     this.begin("workbench", "");

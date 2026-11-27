@@ -5,7 +5,22 @@ export const yeshenhuaFrames = [
 ] as const;
 
 export const yeshenhuaPose = (page:string) =>
-  ["start","cow-horns","cow-stroll"].includes(page) ? 1 : 0;
+  ["start", "offer-letter", "dawn", "night", "studio", "again"].includes(page) ? 1 : 0;
+
+/** The existing work atlas has twelve poses derived from her raised palm. */
+export function radioWaveFrame(elapsed: number, still: boolean) {
+  if (still || elapsed >= 2) return 4;
+  return Math.round(4 * (1 - Math.cos(elapsed * Math.PI * 2.5)) / 2);
+}
+
+// The rightmost physical fader on the studio mixing desk, in room coordinates.
+export const radioFader = {x:199.5, top:141.7, bottom:148.5, foot:{x:214,y:165}};
+export function radioFaderPosition(elapsed: number, still: boolean) {
+  const step = (n: number) => { const t = Math.min(1, Math.max(0,n)); return t*t*(3-2*t); };
+  const approach = still ? 1 : step(elapsed/.55);
+  const level = still ? .68 : step((elapsed-.55)/.62) - .32*step((elapsed-1.25)/.45);
+  return {approach, cap:radioFader.bottom - level*(radioFader.bottom-radioFader.top)};
+}
 
 export function yeshenhuaPlacement(pose:number, x:number, y:number, height:number) {
   const frame = yeshenhuaFrames[pose === 1 ? 1 : 0];

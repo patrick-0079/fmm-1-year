@@ -2,7 +2,7 @@ const cell = 128;
 const baseline = 126;
 
 export function townGuestPose(page: string) {
-  return page === "receive-orange" || page === "show-fish" || page === "show-star-card";
+  return page === "receive-orange" || page === "orange-letter" || page === "show-card";
 }
 
 /** Both rows share the same scale and foot anchor. The apple is shorter within its cell. */

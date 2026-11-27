@@ -135,6 +135,13 @@ function ticket(c: Ink, x: number, y: number, w: number, h: number) {
   rect(c, x + 3, y + 3, w - 6, h - 6, "#fff0c4");
 }
 const art: Record<string, (c: Ink, choice?: string) => void> = {
+  "qianxiao-duel-win"(c) {
+    polygon(c, ink, [3,6],[15,3],[21,23],[9,27]);
+    polygon(c, lilac, [5,7],[14,5],[19,22],[10,25]);
+    rect(c,12,7,16,22,ink); rect(c,13,8,14,20,gold); rect(c,15,10,10,16,"#615575");
+    polygon(c,cream,[20,12],[22,16],[25,17],[22,20],[22,23],[19,21],[16,22],[17,18],[15,16],[19,16]);
+    spark(c,26,5,gold);
+  },
   "town-miko"(c) {
     polygon(c, ink, [2,14],[7,7],[12,4],[20,4],[25,7],[30,14],[26,19],[22,17],[26,28],[6,28],[10,17],[6,19]);
     polygon(c, "#fffbef", [4,14],[8,8],[13,5],[19,5],[24,8],[28,14],[26,17],[21,14],[11,14],[6,17]);

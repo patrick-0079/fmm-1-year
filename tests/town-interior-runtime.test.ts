@@ -469,6 +469,7 @@ test("simultaneous claims converge even if the two tabs receive the writes in op
 
 test("indoors the daily chat order and the meeting record survive being reloaded separately", () => {
   for (const room of Object.values(townInteriors)) {
+    if (room.key === "radio") continue; // This host uses separate daily openings on each side of midnight.
     const base = "npc-" + room.resident, atWork = base + "-inside";
     const [a, b] = Object.keys(room.shifts) as Phase[];
     const progress = readProgress(null);

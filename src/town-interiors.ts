@@ -150,7 +150,7 @@ function room(key: TownInteriorKey): TownInterior {
     insideId, doorFaces[key], doorColors[key], plan.street.halfWidth ? { sign: -1, halfWidth: plan.street.halfWidth } : undefined);
   const exit = portal(insideId, "前往小镇街道", point(plan.exit), point(plan.spawn), "town", outsideId,
     [plan.exit[0] - 27, 344, 54, 18], doorColors[key], { sign: 1, halfWidth: 22 });
-  const shifts = Object.fromEntries(Object.entries(plan.shifts).map(([phase, station]) =>
+  const shifts = Object.fromEntries(Object.entries(plan.shifts).filter(([phase]) => key !== "radio" || phase === "night").map(([phase, station]) =>
     [phase, { foot: point(station.foot), approach: point(station.approach) }]));
   const scene: Scene = {
     title, width: 600, height: 400, bounds: { x: 0, y: 0, w: 600, h: 400 },

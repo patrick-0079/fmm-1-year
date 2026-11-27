@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { TOWN_NPCS } from "../src/town-data.ts";
 import { townDialogues } from "../src/town-dialogue.ts";
 import { scenes } from "../src/maps.ts";
-import { yeshenhuaFrames, yeshenhuaPlacement } from "../src/yeshenhua-art.ts";
+import { radioFader, radioFaderPosition, radioWaveFrame, yeshenhuaFrames, yeshenhuaPlacement, yeshenhuaPose } from "../src/yeshenhua-art.ts";
+import { canTravelBetween } from "../src/core.ts";
+import { townInteriors } from "../src/town-interiors.ts";
 
 test("Yeshinhua retains the radio host's stable identity, authored choices and existing meeting record",()=>{
   const npc=TOWN_NPCS.find(n=>n.id==="radio-host")!;
@@ -14,24 +16,30 @@ test("Yeshinhua retains the radio host's stable identity, authored choices and e
   const oldMeetings=["radio-host","post","walker"];
   assert.ok(oldMeetings.every(id=>TOWN_NPCS.some(n=>n.id===id)));
   const host=townDialogues["radio-host"];
-  assert.deepEqual(host.start.choices?.slice(0,2),[
-    ["用很多的真心和爱去认真对待听众就好啦","notes"],
-    ["其实我没有什么经验，我很幸运遇到了一群爱我的人。","author"],
+  assert.deepEqual(host.start.choices, [
+    ["因为你梦想成为主持？", "offer-letter"], ["因为你喜欢？", "offer-letter"],
   ]);
-  assert.equal(host.notes.text,"我记下了，我会努力的！");
-  assert.equal(host.author.speaker,"作者的话");
-  assert.ok(host.author.text.endsWith("而是因为芙芙值得被爱。"));
-  assert.deepEqual(host.start.choices?.slice(2),[
-    ["你的小牛角好可爱","cow-horns"],
-    ["电台开播前会做什么？","cow-stroll"],
-  ]);
-  assert.equal(host["cow-horns"].text,"嘿嘿，谢谢！我给它们系了紫色的小丝带。走路时会先看看树枝，免得把丝带挂住。");
-  assert.equal(host["cow-stroll"].text,"去草地上散一小会儿步，听听风吹过叶子的声音。再把麦克风摆正，给大家送一声软软的晚安。");
-  for (const id of ["cow-horns", "cow-stroll"]) {
-    assert.deepEqual(host[id].choices, [["看看节目单", "offer-letter"], ["再聊聊电台", "start"]]);
-  }
+  assert.match(host["offer-letter"].text, /第一时间转播/);
+  assert.match(host.studio.text, /调试设备/);
+  assert.match(host.night.text, /早点回去休息/);
   assert.ok(scenes.town.spots.find(s=>s.id==="npc-radio-host")?.title.startsWith("夜神华"));
   assert.ok(scenes.town.walls.some(w=>w.label==="镇民 · 夜神华"));
+});
+
+test("the night farewell waves the painted palm twice, and reduced motion holds it raised",()=>{
+  assert.equal(yeshenhuaPose("night"), 1);
+  assert.deepEqual([0,.4,.8,1.2,1.6,2].map(t => radioWaveFrame(t,false)), [0,4,0,4,0,4]);
+  assert.deepEqual([0,.4,2].map(t => radioWaveFrame(t,true)), [4,4,4]);
+});
+
+test("the studio host reaches the real rightmost mixer fader before pushing it",()=>{
+  const room=townInteriors["town-radio"];
+  assert.ok(canTravelBetween(room.shifts.night!.foot,radioFader.foot,room.scene));
+  assert.ok(Math.hypot(radioFader.foot.x-radioFader.x, radioFader.foot.y-16-radioFader.bottom)<16);
+  assert.deepEqual(radioFaderPosition(0,false),{approach:0,cap:radioFader.bottom});
+  assert.deepEqual(radioFaderPosition(.55,false),{approach:1,cap:radioFader.bottom});
+  assert.equal(radioFaderPosition(1.2,false).cap,radioFader.top);
+  assert.deepEqual(radioFaderPosition(2,false),radioFaderPosition(0,true));
 });
 
 test("the cow girl's two poses keep both shoes at the same foot anchor without stretching or crossing atlas cells",()=>{

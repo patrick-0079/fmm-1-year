@@ -194,7 +194,8 @@ export class TownInteriorActivities {
         const title = radioTrack ? `重听${radioTrackName[radioTrack]}片头` : "试听电台台呼";
         const play = { title, run: () => listen(radioTrack ? `正在重听。声轨一为${radioTrackName[radioTrack]}，声轨二为晚安片头。` : "耳机里响起台呼。『晚安小镇，现在是试音时间。』",
           radioTrack, () => show("耳机里的余音淡了下去。", [play])) };
-        show(`现在的台标是『${radioStatus[phase]}』。戴上耳机，可以试听。`, [play]);
+        const status = phase === "night" && this.world.currentHours < 5 ? "已收播" : radioStatus[phase];
+        show(`现在的台标是『${status}』。戴上耳机，可以试听。`, [play]);
         break;
       }
     }

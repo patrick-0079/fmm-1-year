@@ -137,10 +137,10 @@ export interface LetterHandoff {
   read: (id: HandedLetterId) => void;
 }
 
-export function letterChoice(mail: LetterHandoff, id: HandedLetterId, refresh: () => void) {
+export function letterChoice(mail: LetterHandoff, id: HandedLetterId, refresh: () => void, collectLabel = "收下信") {
   if (mail.received(id)) return { title: "现在读信", run: () => mail.read(id) };
   let finished = false;
-  return { title: "收下信", run: () => {
+  return { title: collectLabel, run: () => {
     // Another tab may have delivered the letter after this choice appeared.
     if (finished || (!mail.received(id) && !mail.collect(id))) return;
     finished = true;

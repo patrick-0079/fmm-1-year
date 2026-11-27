@@ -5,24 +5,26 @@ import { canTravelBetween, canStand, findPath } from "../src/core.ts";
 import { clickedInteraction } from "../src/interaction.ts";
 import { TOWN_NPCS } from "../src/town-data.ts";
 import { TownResidentMap } from "../src/town-resident-map.ts";
-import { residentTownScene, TownRoutines, townLives } from "../src/town-routines.ts";
+import { residentTownScene, TownRoutines, townLives, townShift } from "../src/town-routines.ts";
 
 const street=scenes.town, empty={x:-5000,y:-5000};
 const view={x:0,y:0,w:1800,h:1200};
 const fixed={...street,walls:street.walls.filter(w=>!w.label?.startsWith("镇民 · "))};
-test("the four stable shifts assign all 18 residents between street, interiors and rest",()=>{
+test("the public shifts and the post-midnight radio return assign all 18 residents between street, interiors and rest",()=>{
   const seen=new Set<string>();
-  for(const [phase, outdoors, indoors] of [["dawn",8,3],["day",8,3],["dusk",10,5],["night",7,3]] as const){
+  for(const [phase, outdoors, indoors] of [["dawn",12,2],["day",11,3],["dusk",10,5],["night",8,3],["after-midnight",9,2]] as const){
     const roster=TOWN_NPCS.map(n=>({ id:n.id, scene:residentTownScene(n.id,phase) }));
     roster.filter(n=>n.scene).forEach(n=>seen.add(n.id));
     const onStreet=roster.filter(n=>n.scene==="town").map(n=>n.id);
     assert.equal(onStreet.length,outdoors);
     assert.equal(new Set(roster.filter(n=>n.scene && n.scene!=="town").map(n=>n.scene)).size,indoors);
     assert.ok(onStreet.includes("welcome"));
-    for(const [a,b] of [["flight-keeper","bunny"],["baker","guli"],["maker","qianxiao"]] as const)
-      assert.ok(Number(onStreet.includes(a))+Number(onStreet.includes(b))<=1);
+    for (const id of ["xiaoyou","guli","qianxiao"] as const) assert.ok(onStreet.includes(id));
+    assert.equal(onStreet.includes("radio-host"), phase !== "night");
   }
   assert.equal(seen.size,18);
+  assert.equal(residentTownScene("radio-host", townShift("night",23.99)), "town-radio");
+  assert.equal(residentTownScene("radio-host", townShift("night",0)), "town");
 });
 test("working residents and strangers use accessible streets and thresholds in both directions",()=>{
   let walking=0;
@@ -79,20 +81,20 @@ test("crowded camera allows at most two walking residents, spectators keep their
 });
 test("manual changes settle all commutes while keeping an off-duty letter author at their current foot",()=>{
   const cast=new TownRoutines("day"), map=new TownResidentMap(street);
-  cast.tick(.05,"dusk",empty,view,null,"xiaoyou",false);
-  const author=cast.people.get("xiaoyou")!;
+  cast.tick(.05,"dusk",empty,view,null,"walker",false);
+  const author=cast.people.get("walker")!;
   const foot={x:author.x,y:author.y};
   for (const phase of ["night","dawn","night"] as const) {
-    cast.syncShift(phase,"xiaoyou");
-    cast.tick(0,phase,empty,view,null,"xiaoyou",false);
+    cast.syncShift(phase,"walker");
+    cast.tick(0,phase,empty,view,null,"walker",false);
     map.update(empty,undefined,undefined,cast.people);
-    assert.equal(map.scene.spots.filter(s=>s.id.startsWith("npc-")).length,phase === "night" ? 8 : 9);
-    assert.ok(map.scene.spots.includes(map.anchor("xiaoyou")));
+    assert.equal(map.scene.spots.filter(s=>s.id.startsWith("npc-")).length,phase === "night" ? 9 : 13);
+    assert.ok(map.scene.spots.includes(map.anchor("walker")));
     assert.deepEqual({x:author.x,y:author.y},foot);
     assert.ok([...cast.people.values()].every(a=>a.status==="present" || a.status==="absent"));
   }
   cast.tick(0,"night",empty,view,null,undefined,false);
   map.update(empty,undefined,undefined,cast.people);
-  assert.equal(map.scene.spots.filter(s=>s.id.startsWith("npc-")).length,7);
-  assert.equal(map.scene.spots.includes(map.anchor("xiaoyou")),false);
+  assert.equal(map.scene.spots.filter(s=>s.id.startsWith("npc-")).length,8);
+  assert.equal(map.scene.spots.includes(map.anchor("walker")),false);
 });

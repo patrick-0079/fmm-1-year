@@ -59,12 +59,12 @@ function letter(key: string, letterId: string, name: string, difficulty: Difficu
 }
 const letters = [
   letter("xiaoye", deliveryIds.xiaoye, "小叶子 · 绒爪递来的信", "普通", "在周年花园抱抱小叶子，选择「收下信」。"),
-  letter("yeshenhua", deliveryIds["radio-host"], "夜神华 · 夹在节目单里", "普通", "和夜神华聊完一个话题，查看节目单并收下信。"),
+  letter("yeshenhua", deliveryIds["radio-host"], "夜神华 · 夹在节目单里", "普通", "问问夜神华为什么当电台主持，听她讲完后收下信。"),
   letter("kerry", "kerry-anniversary-letter", "Kerry · 灵验的祝福", "简单", "拆开 Kerry 的周年来信，让正文在眼前展开。"),
-  letter("suyan", deliveryIds.suyan, "苏颜 · 很多很多颗心", "简单", "和苏颜聊到小花封口，收下她手里的信。"),
+  letter("suyan", deliveryIds.suyan, "苏颜 · 很多很多颗心", "简单", "和苏颜聊聊帽子，在大巴掌之后收下她递来的信。"),
   letter("rabe", deliveryIds.rabe, "Rabe · 深夜有了去处", "简单", "向 Rabe 收下信，再拆开读到正文。"),
-  letter("xiaoyou", deliveryIds.xiaoyou, "一橙橘小佑 · 果篮底的心意", "普通", "尝过橘子，查看果篮，收下小佑包好的信。"),
-  letter("guli", deliveryIds.guli, "故里 · 从鱼尾拆开", "普通", "看过鱼别针，问起故里手里的东西并收下信。"),
+  letter("xiaoyou", deliveryIds.xiaoyou, "一橙橘小佑 · 果篮底的心意", "普通", "初次见面尝过橘子后，清晨再去找小佑，收下留给你的信。"),
+  letter("guli", deliveryIds.guli, "故里 · 从鱼尾拆开", "普通", "和故里聊聊做烘焙跑腿员的原因，收下带着蛋糕香味的信。"),
   letter("post", deliveryIds.post, "红笺 · 晚安寄到了", "普通", "在小镇邮局和红笺聊到她把信投出去。"),
   letter("patrick", deliveryIds.patrick, "派大星 · 火边留下的信", "探索", "在花海的营火旁亲手拾起派大星留下的信。", "草地上有些心意，要等人走近才看得见。"),
   letter("dianziyang", deliveryIds.dianziyang, "电子羊 · 新一年的存档点", "普通", "和电子羊相遇，收下它递来的周年信。"),
@@ -85,6 +85,8 @@ const games = gameRows.map(({ id, name, difficulty, verb, unit, goal }): Definit
   id: "game-" + id, chapter: "games", name, difficulty,
   description: `在「${ARCADES[id].title}」中单局${verb} ${goal} ${unit}。`,
 }));
+games.push({ id: "qianxiao-duel-win", chapter: "games", name: "浅笑 · 赢下这一局",
+  difficulty: "普通", description: "找浅笑打一局星牌，第一次把她的生命降到 0。" });
 const explore: Definition[] = [
   { id: "rainbow", chapter: "explore", name: "种下一圈彩虹", difficulty: "普通", description: "在周年花园、勇气花园和小镇亲手采齐七种特殊花。" },
   { id: "day-secrets", chapter: "explore", name: "一天里的三个秘密", difficulty: "探索", description: "清晨采晨露花，黄昏拾金色纸船，星夜触发萤火心愿。可以跨天完成。", hint: "同一条溪流，一天会捎来几种小礼物？" },
@@ -272,6 +274,7 @@ export function reconcileAchievements(progress: Progress, context: AchievementCo
     meters.set(letter.id, yesNo(got));
   }
   let clearedGames = 0;
+  meters.set("qianxiao-duel-win", yesNo(facts.has("qianxiao-duel-win")));
   for (const g of gameRows) {
     const best = progress.arcadeBests[g.id] ?? 0;
     const score = meter(best, g.goal, g.unit);

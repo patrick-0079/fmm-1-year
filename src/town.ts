@@ -4,11 +4,12 @@ import type { Inventory } from "./inventory";
 import type { Activities } from "./activities";
 import { TOWN_NPCS, TOWN_TALKED_KEY, readTownVisits, type TownNpc } from "./town-data";
 import { residentOpening, townDailyActions, townDialogues, type TownPage } from "./town-dialogue";
+import { guestDailyPage, isGuestDialogue } from "./town-guest-dialogues";
 import { townChatTopics } from "./town-chat-topics";
 import { handedLetters, letterChoice, postUnread, type LetterHandoff, type ResidentStory } from "./resident-story";
 import { townResidentLayers, residentPlacement, drawResidentPortrait, type TownAct } from "./town-acting";
 import { TownResidentMap } from "./town-resident-map";
-import { TownRoutines, residentTownScene } from "./town-routines";
+import { TownRoutines, residentTownScene, townShift } from "./town-routines";
 import { prepareResidentWalk } from "./resident-walk";
 import type { Hotspot, SceneId } from "./maps";
 import type { Phase } from "./day";
@@ -51,7 +52,7 @@ const shiftNotes: Record<TownInteriorKey, Partial<Record<Phase, string>>> = {
   maker: { dawn: "在工坊外", day: "在试光台打样", dusk: "在东侧试灯" },
   post: { dawn: "正在街上送信", day: "在局里分信", dusk: "正在街上收信", night: "在局里封晚邮" },
   books: { dawn: "在书屋外", dusk: "在装帧桌边", night: "在阅读角夜读" },
-  radio: { dawn: "在电台收播", dusk: "在溪边听水声", night: "在电台播音" },
+  radio: { dawn: "在电台外的街上", day: "在电台外的街上", dusk: "在溪边听水声", night: "在电台播音" },
   hall: { dawn: "在街上晨拍", day: "在馆里选片", dusk: "在馆里挂照片", night: "在街上拍夜景" },
 };
 interface StoryHooks {
@@ -77,6 +78,7 @@ export class Town {
     return this.area && this.area !== "town" ? this.interiors.get(this.area)! : this.street;
   }
   private lives = new TownRoutines();
+  private get shift() { return townShift(this.world.currentPhase, this.world.currentHours); }
   private placement?: ReturnType<typeof residentPlacement>;
   private act?: TownAct & { npc: TownNpc; after?: TownPage["after"] };
   constructor(
@@ -99,6 +101,16 @@ export class Town {
     const layers = world.getDepthLayers,
       environment = world.onEnvironment,
       tick = world.onTick;
+    const previousPose = world.getActorPresentation;
+    world.getActorPresentation = () => {
+      const act = this.act;
+      if (act?.npc.id === "xiaoyou" && act.pageId === "orange-hug" && act.elapsed < 1.6) {
+        const side = act.npc.x < world.player.x ? -1 : 1;
+        const lean = this.reducedMotion.matches ? .05 : .105 * Math.min(1, act.elapsed / .35, (1.6 - act.elapsed) / .45);
+        return {facing:side < 0 ? 1 : 2, lean:lean * side};
+      }
+      return previousPose();
+    };
     world.getDepthLayers = () => [...layers(), ...this.layers()];
     world.onEnvironment = (c, t) => {
       environment(c, t);
@@ -109,7 +121,7 @@ export class Town {
       if (this.area) {
         this.time = world.ambientTime;
         if (!world.paused) this.updateAct(dt);
-        this.lives.tick(world.paused ? 0 : dt,world.currentPhase,world.player,world.visibleArea,
+        this.lives.tick(world.paused ? 0 : dt,this.shift,world.player,world.visibleArea,
           world.pendingInteractionId,this.act?.npcId,this.reducedMotion.matches,this.area);
         const performer = this.act?.npc;
         this.placement = performer && residentPlacement(performer, world.player, this.act);
@@ -124,22 +136,23 @@ export class Town {
     if (!spot.portal || !isTownInterior(spot.portal)) return;
     const room = townInteriors[spot.portal];
     const resident = TOWN_NPCS.find(npc => npc.id === room.resident)!;
+    if (room.key === "radio" && this.shift === "after-midnight") return resident.name + "已收播，在电台外的街上";
     return resident.name + (shiftNotes[room.key][this.world.currentPhase] ?? "在休息");
   }
   syncShift() {
-    this.lives.syncShift(this.world.currentPhase,this.act?.npc.id);
+    this.lives.syncShift(this.shift,this.act?.npc.id);
     this.residents.update(this.world.player,this.act?.npc.id,this.placement?.foot,this.lives.people);
   }
   enterScene(scene:SceneId) {
     this.act=undefined;
     this.placement=undefined;
     const area = scene === "town" || isTownInterior(scene) ? scene : undefined;
-    if (area && !this.area) this.lives.enter(this.world.currentPhase);
+    if (area && !this.area) this.lives.enter(this.shift);
     this.area = area;
     if (area) this.residents.update(this.world.player, undefined, undefined, this.lives.people);
     if (scene === "town") {
       for (const npc of TOWN_NPCS) {
-        if (residentTownScene(npc.id, this.world.currentPhase) === "town") prepareResidentWalk(npc.id);
+        if (residentTownScene(npc.id, this.shift) === "town") prepareResidentWalk(npc.id);
       }
     } else if (isTownInterior(scene)) prepareResidentWalk(townInteriors[scene].resident);
   }
@@ -156,7 +169,7 @@ export class Town {
     // A second tap on the same actor leaves their current page and shift intact.
     if (this.act?.npcId === npc.id && this.activities.dialogueOpen) return true;
     const person=this.lives.people.get(npc.id)!;
-    if (residentTownScene(npc.id, this.world.currentPhase) !== this.area) return false;
+    if (residentTownScene(npc.id, this.shift) !== this.area) return false;
     if (!this.visited.has(npc.id)) {
       this.visited.add(npc.id);
       this.save();
@@ -205,7 +218,15 @@ export class Town {
   private showDaily(npc: TownNpc) {
     const interior = this.area && this.area !== "town" ? townInteriors[this.area] : undefined;
     const memory = "npc-" + npc.id + (interior ? "-inside" : "");
-    const topic = this.world.chats.next(memory, interior?.chat ?? townChatTopics[npc.id], this.world.currentPhase);
+    const phase = this.world.currentPhase;
+    if (isGuestDialogue(npc.id)) {
+      const pendingMorningLetter = npc.id === "xiaoyou" && phase === "dawn" && !this.hooks.mail.received(handedLetters.xiaoyou);
+      const pick = this.world.chats.daily(memory, phase, this.world.currentDay, this.world.currentHours,
+        phase !== "dusk", npc.id === "radio-host" ? 1 : 2, pendingMorningLetter);
+      this.showPage(npc, guestDailyPage(npc.id, phase, !!interior, pick));
+      return;
+    }
+    const topic = this.world.chats.next(memory, interior?.chat ?? townChatTopics[npc.id], phase);
     const actions = (townDailyActions[npc.id] ?? []).map(([title, target]) => ({
       title, run: () => this.answer(npc, target),
     }));
@@ -221,13 +242,14 @@ export class Town {
   private showPage(npc: TownNpc, pageId: string) {
     const pages = townDialogues[npc.id], page = pages[pageId];
     const options = page.letter
-      ? [letterChoice(this.hooks.mail, page.letter, () => this.showPage(npc, pageId))]
+      ? [letterChoice(this.hooks.mail, page.letter, () => this.showPage(npc, pageId), page.collectLabel)]
       : (page.choices ?? []).flatMap(([title, target]) => {
         const letter = pages[target]?.letter;
         if (letter && this.hooks.mail.received(letter)) return [];
         return [{ title, run: () => this.answer(npc, target) }];
       });
-    this.present(npc, page.pose ?? pageId, page, options);
+    const delivered = page.letter && this.hooks.mail.received(page.letter);
+    this.present(npc, delivered ? "received-letter" : page.pose ?? pageId, page, options);
     if (page.effect) this.applyEffect(page.effect);
     if (!page.letter && !page.after && !page.choices?.some(([, target]) => !target.startsWith("@"))) {
       this.world.chats.introduce("npc-" + npc.id);
@@ -248,14 +270,16 @@ export class Town {
     this.act = act;
     if (npc.id === "photo-visitor" && pageId === "move") this.world.facing = this.world.facing === 2 ? 1 : 2;
     if (npc.id === "baker" && pageId === "eat") this.world.facing = 0;
-    if (npc.id === "xiaoyou" && (pageId === "receive-orange" || pageId === "taste-orange"))
+    if (npc.id === "xiaoyou" && (pageId === "receive-orange" || pageId === "orange-letter" || pageId === "taste-orange"))
       this.world.facing = 0;
   }
 
   private answer(npc: TownNpc, target: string) {
     if (!target.startsWith("@")) {
-      if (npc.id === "radio-host" && target === "start" && this.hooks.mail.received(handedLetters["radio-host"]))
-        target = "radio-again";
+      if (npc.id === "xiaoyou") {
+        if (target === "taste-orange" && this.world.currentPhase === "dawn") target = "taste-at-dawn";
+        if (target === "morning-thanks" && !this.hooks.mail.received(handedLetters.xiaoyou)) target = "offer-letter";
+      }
       this.showPage(npc, target);
       return;
     }
@@ -275,6 +299,7 @@ export class Town {
         });
         break;
       }
+      case "@duel": this.activities.openQianxiaoDuel(); break;
       case "@bag": this.inventory.openWardrobe(); break;
       case "@bouquet": this.inventory.openBouquet(); break;
       case "@game": if (npc.game) this.visitGame(npc.game); break;

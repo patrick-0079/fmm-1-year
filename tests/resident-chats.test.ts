@@ -46,3 +46,32 @@ test("tabs merge progress independently of message order; corrupt or legacy prog
   assert.deepEqual(Object.keys(invalid), []);
   assert.deepEqual(readProgress('{"residents":{"postDelivered":true}}').residents.chats, readChatMemory());
 });
+
+test("daily scenes reopen on the next shift day; nights span midnight and locations have separate progress", () => {
+  const memory = readChatMemory(), chats = new ResidentChats(() => memory);
+  const read = (id: string, day: number, hour: number) => chats.daily(id, "night", day, hour, true, 2);
+  assert.equal(read("radio-inside", 1, 22), -1);
+  assert.equal(read("radio-inside", 2, 1), 0);
+  assert.equal(read("radio", 2, 1), -1);
+  assert.equal(read("radio-inside", 2, 3), 1);
+  assert.equal(read("radio-inside", 2, 22), -1);
+  assert.deepEqual([1,2,3].map(() => chats.daily("suyan", "dusk", 2, 18, false, 2)), [0,1,0]);
+  assert.equal(chats.daily("suyan", "dusk", 3, 18, false, 2), 0);
+  assert.equal(chats.daily("xiaoyou", "dawn", 2, 6, true, 2, true), -1);
+  assert.equal(chats.daily("xiaoyou", "dawn", 2, 6, true, 2, true), -1);
+  assert.equal(chats.daily("xiaoyou", "dawn", 2, 6, true, 2), 0);
+  const reloaded = readProgress(JSON.stringify({residents: {chats: memory}})).residents.chats;
+  assert.equal(new ResidentChats(() => reloaded).daily("radio-inside", "night", 3, 1, true, 2), 0);
+});
+
+test("merging parallel daily scenes favors the newer day, then its furthest visit", () => {
+  const first = readChatMemory(), second = readChatMemory();
+  const a = new ResidentChats(() => first), b = new ResidentChats(() => second);
+  for (let i = 0; i < 4; i++) a.daily("guli", "day", 1, 10, true, 2);
+  b.daily("guli", "day", 2, 10, true, 2);
+  assert.equal(mergeChatMemory(first, second), true);
+  assert.equal(a.daily("guli", "day", 2, 10, true, 2), 0);
+  assert.equal(mergeChatMemory(second, first), true);
+  assert.deepEqual(first, second);
+  assert.equal(mergeChatMemory(first, second), false);
+});

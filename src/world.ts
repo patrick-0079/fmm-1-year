@@ -102,6 +102,8 @@ export class World {
   readonly townInteriorMaps = new Map<TownInteriorId, Scene>();
   gardenMapFor: (base: Scene) => Scene = base => base;
   currentPhase: Phase = "day";
+  currentDay = 1;
+  currentHours = 8;
   townInteriorEffect: () => RoomEffect | undefined = () => undefined;
   lightMix: DaylightMix = { from: "day", to: "day", mix: 0 };
   readonly chats: ResidentChats;

@@ -18,7 +18,7 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
     return found;
   };
   const choose = (title: string) => button(title).click();
-  const daily = (id: TownResidentId) => {
+  const daily = (id: keyof typeof townChatTopics) => {
     const book = townChatTopics[id];
     return [...Object.values(book.phases), ...book.familiar].some(topic =>
       (typeof topic === "string" ? topic : topic.text) === status());
@@ -92,9 +92,9 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
   await talk("photo-visitor"); choose("（乖乖不动）"); choose("没事，能帮到你我很开心");
   assert(status() === "请你以后也常来做我的模特！", "摄影师第一条分支有误");
   await talk("photo-visitor"); choose("再拍一次"); choose("（就动就动）"); choose("好吧，那我不动了"); assert(status().startsWith("嗐，"), "摄影师第二条分支有误");
-  await talk("radio-host"); choose("用很多的真心和爱去认真对待听众就好啦"); assert(status() === "我记下了，我会努力的！", "电台回应有误");
-  await talk("radio-host"); choose("其实我没有什么经验，我很幸运遇到了一群爱我的人。");
-  assert(hud.querySelector(".dialogue-name")!.textContent === "作者的话" && status().endsWith("芙芙值得被爱。"), "署名或作者全文丢失");
+  await talk("radio-host"); choose("因为你梦想成为主持？"); assert(status().includes("第一时间转播"), "电台回应有误");
+  await talk("radio-host"); choose("因为你喜欢？");
+  assert(status().includes("这里还有你的一封信") && button("（收下信封）"), "电台另一条线路没有汇入领信页");
   await talk("books"); choose("我路过看到这间书屋，便来瞧瞧看。"); choose("是什么书呀？"); assert(status().endsWith("安然度过这一年。"), "书屋结尾丢失");
   await talk("cat"); choose("尝试着摸摸它"); assert(status().includes("主动蹭蹭你"), "巡街小猫的抚摸回应有误");
   await talk("cat"); choose("还是不要打扰它了，可能比较高冷"); assert(status() === "（看了你一会，离开了）", "巡街小猫离开分支有误");
@@ -105,7 +105,7 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
   assert(canStand(catHome,street.walls,street.bounds,street.floor,street.surfaces), "奶糖离开后原处仍挡路");
   assert(!canStand(cat,street.walls,street.bounds,street.floor,street.surfaces), "奶糖的足迹没有随它移动");
   await wait(() => Math.abs(cat.x - catHome.x) < 0.01, "奶糖没有回到原位");
-  log("蓝莓、摄影师、夜弦、墨桃、奶糖完整分支通过；走出绒月身旁后迟到的自我介绍和旧按钮均无效");
+  log("蓝莓、摄影师、夜神华、墨桃、奶糖的对话通过；走出绒月身旁后旧按钮失效");
 
   await talk("snake-keeper"); choose("谢谢你哦，我还想到处逛逛。"); assert(world.scene === "town" && hud.hidden, "谢绝青团后被送进遗迹");
   for (const [resident, game, action] of [
@@ -131,28 +131,25 @@ export async function verifyTownResidents(world: World, log: (line: string) => v
   log("四位引路人打开各自的小游戏准备画面，青团成功跨图抵达西廊，镇民计数 15 / 18");
 
   const belongings = localStorage.getItem(INVENTORY_KEY);
-  for (let attempt = 0; attempt < 2; attempt++) {
-    await talk("xiaoyou");
-    assert(status() === "芙芙姐姐！小佑挑了篮子里最甜的一颗橘子，想送给你。", "橘子来宾开场对白有误");
-    choose("收下橘子");
-    assert(status() === "（小佑把橘子递到芙芙手里。）", "缺少递橘子的旁白");
-    choose("尝一瓣");
-    assert(status() === "甜吗？我挑了好久呢！", "品尝对白有误");
-    close();
-    openBook();
-    assert(townProgress()?.startsWith("小镇 16/18 ·"), "重访同一来宾时重复计数");
-    closeBook();
-  }
+  await talk("xiaoyou");
+  assert(status().includes("最甜的一颗橘子"), "橘子来宾开场对白有误");
+  choose("收下橘子");
+  assert(status().includes("递到芙芙手里"), "缺少递橘子的旁白");
+  choose("尝一瓣");
+  assert(status().includes("甜吗？我挑了好久呢！") && status().includes("给姐姐的信忘在家里"), "品尝与清晨再访提示有误");
+  await talk("xiaoyou");
+  assert(!status().includes("最甜的一颗橘子"), "未领信也应进入再次见面"); close();
+  openBook(); assert(townProgress()?.startsWith("小镇 16/18 ·"), "重访同一来宾时重复计数"); closeBook();
   assert(localStorage.getItem(INVENTORY_KEY) === belongings, "橘子演出改变了背包");
-  await talk("guli"); choose("看看小鱼");
-  assert(status() === "花海也落着一颗这样的小鱼星。哪天去散步，看看能不能认出它呀。", "故里的小鱼线索有误");
-  await talk("qianxiao"); choose("翻开星星牌");
-  assert(status() === "这张叫『晚安星』。愿下次见面时，我们还有好多好事可以讲给彼此听。", "浅笑的晚安星对白有误");
+  await talk("guli"); choose("因为故里喜欢吃甜品？");
+  assert(status().includes("有着蛋糕香味的信") && button("收下信封"), "故里的首遇领信有误");
+  await talk("qianxiao"); choose("很不错呢。（又看见了底下的一张卡），这张是什么呀？");
+  assert(status().includes("这张是你的照片") && !status().includes("信封"), "浅笑的照片对白有误");
   await world.prepareScene("garden");
   world.switchScene("garden");
   await wait(() => hud.hidden, "切图后仍显示浅笑的对白");
   openBook();
   assert(townProgress() === "小镇 18/18 · 已见齐", "三位来宾没有记入居民计数");
   closeBook();
-  log("三位来宾的对白、重访品尝、切图清理和 18 / 18 计数通过");
+  log("小佑递橘与再访、故里递信、浅笑收起照片、切图清理和 18 / 18 计数通过");
 }

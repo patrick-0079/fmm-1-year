@@ -134,12 +134,16 @@ function prop(c:Ctx,n:TownNpc,h:Point,k:Point,work:number,stroke:number,received
     }
   }
 }
-export function drawTownWork(c:Ctx,npc:TownNpc,time:number,still:boolean,received:boolean) {
+export function drawTownWorkFrame(c:Ctx,row:number,gesture:number) {
   if (!sheet.naturalWidth) return false;
-  const row=workRows.indexOf(npc.id), period=10.2+(row*1.43)%4.7;
-  const local=time%period, gesture=still?5:local<2.65?Math.min(workFrames-1,Math.floor(local/2.65*workFrames)):0;
   c.drawImage(sheet,gesture*workCell,row*workCell,workCell,workCell,
     -workCell/4,-workFoot/2,workCell/2,workCell/2);
+  return true;
+}
+export function drawTownWork(c:Ctx,npc:TownNpc,time:number,still:boolean,received:boolean) {
+  const row=workRows.indexOf(npc.id), period=10.2+(row*1.43)%4.7;
+  const local=time%period, gesture=still?5:local<2.65?Math.min(workFrames-1,Math.floor(local/2.65*workFrames)):0;
+  if (!drawTownWorkFrame(c,row,gesture)) return false;
 
   const [left,top,w,h]=paintedBounds[npc.id], {lift,stroke}=workBeat(gesture);
   const hands=workJoints[npc.id].slice(0,2).map(([x,y,dx,dy])=>{

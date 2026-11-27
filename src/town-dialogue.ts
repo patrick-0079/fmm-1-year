@@ -1,3 +1,4 @@
+import { guestDialogues } from "./town-guest-dialogues.ts";
 import { handedLetters, type HandedLetterId, type ResidentStory } from "./resident-story.ts";
 
 type Reply = [label: string, next: string];
@@ -9,11 +10,11 @@ export interface TownPage {
   pose?: string;
   after?: { seconds: number; next: string };
   letter?: HandedLetterId;
+  collectLabel?: string;
   effect?: "deliver" | "pin" | "bouquet" | "reserve" | "taste";
 }
 const wardrobeHint = "可以打开背包查看目前拥有的饰品并进行更换";
 const cakeChoices: Reply[] = [["现在尝一口", "eat"], ["帮我留一下", "covered"]];
-const programme: Reply = ["看看节目单", "offer-letter"];
 
 // Page names double as visual cues. A destination beginning with @ leaves the
 // conversation through the corresponding existing map, game or wardrobe control.
@@ -79,18 +80,6 @@ const scripts = {
     move: { text: "啊！！怎么这样。我差一点...就差一点就抓拍到最完美的瞬间了！", choices: [["好吧，那我不动了", "reshoot"]] },
     reshoot: { text: "嗐，最美的那一瞬间已经消失了...不过无论如何都谢谢你，我很久没见到这么完美的模特了，请你以后也常来做我的模特。" },
   },
-  "radio-host": {
-    start: { text: "你是芙眠眠大人吗？欢迎你来到小镇。实不相瞒，我是小镇晚安电台的新人主持，直播和电台有一定相同点，你愿意分享一些经验给我吗？", choices: [["用很多的真心和爱去认真对待听众就好啦", "notes"], ["其实我没有什么经验，我很幸运遇到了一群爱我的人。", "author"], ["你的小牛角好可爱", "cow-horns"], ["电台开播前会做什么？", "cow-stroll"]] },
-    "radio-again": { text: "芙芙，坐近些。今晚的开场还没定，咱们聊点什么好？", choices: [
-      ["聊聊怎样陪伴听众", "notes"], ["聊聊相遇的幸运", "author"],
-      ["你的小牛角好可爱", "cow-horns"], ["电台开播前会做什么？", "cow-stroll"],
-    ] },
-    notes: { text: "我记下了，我会努力的！", choices: [programme] },
-    author: { speaker: "作者的话", text: "其实是因为芙芙本身就很好，所以才能吸引到很好的芙妮宝们！你做的比自己想象的更好更多，现在的结果并不是运气使然，而是因为芙芙值得被爱。", choices: [programme] },
-    "cow-horns": { text: "嘿嘿，谢谢！我给它们系了紫色的小丝带。走路时会先看看树枝，免得把丝带挂住。", choices: [programme, ["再聊聊电台", "start"]] },
-    "cow-stroll": { text: "去草地上散一小会儿步，听听风吹过叶子的声音。再把麦克风摆正，给大家送一声软软的晚安。", choices: [programme, ["再聊聊电台", "start"]] },
-    "offer-letter": { text: "等一下，这封信夹在我的节目单里，差点被我带上台。封口的枫叶蜡印是我自己盖的。给你！", letter: handedLetters["radio-host"] },
-  },
   books: {
     start: { text: "安好，敢问君可是来借阅书卷？", choices: [["我路过看到这间书屋，便来瞧瞧看。", "marked"]] },
     marked: { text: "原并非为借书而来，可我分明觉出，你已藏有一卷属于自己的书。", choices: [["是什么书呀？", "blessing"]] },
@@ -113,21 +102,7 @@ const scripts = {
   "snake-keeper": {
     start: { text: "回声遗迹的门终于开了，听说就在不远处。遗迹里有一条玉蛇，体长可至常人难以想象的地步，要我带你去看看吗？", choices: [["去看看，去玩苔纹贪吃蛇", "@game"], ["谢谢你哦，我还想到处逛逛。", "@decline"]] },
   },
-  xiaoyou: {
-    start: { text: "芙芙姐姐！小佑挑了篮子里最甜的一颗橘子，想送给你。", choices: [["收下橘子", "receive-orange"]] },
-    "receive-orange": { text: "（小佑把橘子递到芙芙手里。）", choices: [["尝一瓣", "taste-orange"]] },
-    "taste-orange": { text: "甜吗？我挑了好久呢！", choices: [["看看果篮", "offer-letter"]] },
-    "offer-letter": { text: "篮底还压着一个纸袋，里面那封信也是给你的。我把它包了两层，免得沾上橘子汁！", letter: handedLetters.xiaoyou },
-  },
-  guli: {
-    start: { text: "老大，苹果派刚出炉！你看，我今天还别了一条粉色小鱼。", choices: [["看看小鱼", "show-fish"]] },
-    "show-fish": { text: "花海也落着一颗这样的小鱼星。哪天去散步，看看能不能认出它呀。", choices: [["你手里的是什么？", "offer-letter"]] },
-    "offer-letter": { text: "路过烘焙屋时，我借了张包苹果派的纸，把信包好啦。封口贴了张鱼尾巴，回去从那儿拆就行。", letter: handedLetters.guli },
-  },
-  qianxiao: {
-    start: { text: "我给周年夜画了一副牌，有一张想翻给你看。", choices: [["翻开星星牌", "show-star-card"]] },
-    "show-star-card": { text: "这张叫『晚安星』。愿下次见面时，我们还有好多好事可以讲给彼此听。" },
-  },
+  ...guestDialogues,
 } satisfies Record<string, Record<string, TownPage>>;
 
 export type TownResidentId = keyof typeof scripts;
@@ -138,7 +113,8 @@ export const townDialogues: Record<TownResidentId, Record<string, TownPage>> = s
 export function residentOpening(id: TownResidentId, story: ResidentStory, hasBouquet: boolean, introduced = false) {
   switch (id) {
     case "post": return story.postDelivered ? "daily" : "start";
-    case "radio-host": case "xiaoyou": case "guli":
+    case "xiaoyou": return introduced || story.npcLetters[handedLetters.xiaoyou] ? "daily" : "start";
+    case "radio-host": case "guli":
       return story.npcLetters[handedLetters[id]] ? "daily" : "start";
     case "welcome": return story.welcomeReceived ? "daily" : "start";
     case "florist": return hasBouquet ? "daily" : "start";
@@ -160,8 +136,4 @@ export const townDailyActions: Partial<Record<TownResidentId, Reply[]>> = {
   cat: scripts.cat.start.choices,
   "photo-visitor": [["再拍一次", "start"]],
   books: [["聊聊那本书", "marked"]],
-  qianxiao: scripts.qianxiao.start.choices,
-  "radio-host": [["聊聊晚安电台", "radio-again"]],
-  xiaoyou: scripts.xiaoyou.start.choices,
-  guli: scripts.guli.start.choices,
 };

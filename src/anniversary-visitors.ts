@@ -6,13 +6,10 @@ import { sceneArt } from "./scene-art";
 import type { World } from "./world";
 import { southGatePlanting } from "./courage-south-gate";
 import { gardenChatTopics, introduceSender, senderIntroductions, showGardenChat } from "./garden-chat-topics";
+import { greetGardenVisitor, type VisitorGesture } from "./garden-visitor-dialogue";
+import { drawEnvelope, drawNurseGesture, drawPlayerReach, gesturePulse } from "./visitor-gesture-art";
 
-const greetings = {
-  rabe: "晚安，芙芙。小药箱里有绷带，也有一封想交给你的信。",
-  dianziyang: "咩。走累了就在路边歇一歇。我给你带了一封信。",
-  pigeon: "（鸽子歪了歪头，把信推到芙芙脚边。）",
-};
-type Action = "hello" | "pet" | "give";
+type Action = VisitorGesture | "hello";
 interface Encounter { visitor: AnniversaryVisitor; action: Action; start: number; }
 const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -24,12 +21,18 @@ function frameFor(visitor: AnniversaryVisitor, active: Encounter | null, time: n
     return age < .58 ? 1 : 0;
   }
   const age = time - active.start;
+  if(visitor.key==="pigeon")return active.action==="push" ? age<.75?2:1 : active.action==="tilt" ? 1 : 0;
+  if(visitor.key==="zhenghao") {
+    if(active.action==="bow")return 3;
+    if(active.action==="nuzzle")return age<.18 ? 2 : age<.82 ? 3 : age<1.12 ? 4 : age<2.0 ? 3 : 4;
+    if(active.action==="rub" || active.action==="stroke")return age<.18 ? 2 : age<1.35 ? 3 : 4;
+    return 1;
+  }
   if (active.action === "give")
     return reduced.matches ? 5 : age < .24 ? 2 : age < 1.05 ? 5 : 4;
-  if (active.action === "pet")
-    return reduced.matches ? 3 : age < .2 ? 2 : age < 1.15 ? 3 : age < 1.62 ? 4 : 0;
-  if (reduced.matches) return visitor.key === "zhenghao" ? 1 : 3;
-  return age < .32 ? 1 : visitor.key === "zhenghao" ? 1 : age < .68 ? 2 : 3;
+  if(visitor.key==="rabe")return active.action==="case" ? 5 : active.action==="idle" ? 0 : 3;
+  if (reduced.matches) return 3;
+  return age < .32 ? 1 : age < .68 ? 2 : 3;
 }
 
 // Positions are in the nurse's 96px atlas cell. Her forearms move between
@@ -123,23 +126,41 @@ export class AnniversaryVisitors {
         if (visitor.scene !== world.scene) continue;
         const foot = visitor.spot;
         const encounter = this.active?.visitor === visitor ? this.active : null;
-        const pet = encounter?.action === "pet";
+        const action=encounter?.action;
+        const pet=action==="stroke" || action==="nuzzle" || action==="rub";
         const age = encounter ? world.ambientTime - encounter.start : 0;
         const direction = world.player.x > foot.x ? 1 : -1;
         // The cat leans its whole weight into the stroke, then settles back on
         // the fish. The poses already include the bending paws and swinging bell.
         const near = Math.hypot(world.player.x - foot.x, world.player.y - foot.y) < 27;
-        const lean = pet && near && !reduced.matches && age < 1.62
-          ? Math.sin(Math.PI * age / 1.62) : 0;
-        const x = foot.x + lean * direction * 3, y = foot.y + lean;
+        const lean=pet && near ? reduced.matches ? .55 : action==="nuzzle"
+          ? gesturePulse(age,.08,.75)+gesturePulse(age,.94,1.15)
+          : gesturePulse(age,0,1.5) : 0;
+        const x=foot.x+lean*direction*(action==="rub"?10:6),y=foot.y+lean;
+        const tilt=action==="tilt" || action==="tiltBack"
+          ? (reduced.matches ? .65 : gesturePulse(age,0,.88))*.18*direction*(action==="tiltBack"?-1:1) : 0;
+        const bow=action==="bow" ? (reduced.matches ? 1 : Math.min(1,age/.36)) : 0;
         layers.push({y, draw: c => {
           c.save();
           c.fillStyle = "#4a424134";
           c.beginPath(); c.ellipse(x, y, visitor.footWidth * .75, 2.3, 0, 0, Math.PI * 2); c.fill();
-          drawVisitor(c, visitor, frameFor(visitor, this.active, world.ambientTime), x, y,
-            visitor.size, pet && near && direction > 0);
+          c.translate(x,y);c.rotate(tilt+direction*.15*bow);c.scale(1,1-.12*bow);
+          drawVisitor(c, visitor, frameFor(visitor, this.active, world.ambientTime), 0, 0,
+            visitor.size, (pet || bow>0) && near && direction > 0);
           c.restore();
         }});
+        if(!encounter || Math.hypot(world.player.x-foot.x,world.player.y-foot.y)>55)continue;
+        const front=Math.max(foot.y,world.player.y)+.5;
+        if(visitor.key==="rabe" && action && action!=="hello") {
+          layers.push({y:front,draw:c=>drawNurseGesture(c,action,age,foot,world.player,reduced.matches)});
+        } else if(visitor.key==="pigeon" && action==="push") {
+          const t=reduced.matches?1:Math.min(1,Math.max(0,(age-.15)/.8));
+          const to={x:foot.x+direction*9+(world.player.x-foot.x-direction*9)*t*.8,y:foot.y-5+(world.player.y-foot.y+5)*t*.8};
+          layers.push({y:front,draw:c=>drawEnvelope(c,to.x,to.y,-direction*.18)});
+        } else if(pet && action!=="rub" && near) {
+          const reach=reduced.matches ? age<1 ? .9 : 0 : gesturePulse(age,0,action==="nuzzle" ? .86 : 1.25);
+          layers.push({y:front,draw:c=>drawPlayerReach(c,world.player,{x:x+direction*3,y:y-18},reach)});
+        }
       }
       return layers;
     };
@@ -167,39 +188,31 @@ export class AnniversaryVisitors {
         this.world.visit(spot.id);
         return true;
       }
-      const stroke = {title: "摸摸正号", run: () => {
-        this.say(visitor, "pet", "（正号眯起眼睛，贴着你的手心蹭了蹭。小铃铛轻轻晃了两下，它又坐回小鱼旁边。）", []);
-        this.world.chats.introduce(id);
-      }};
-      if (!this.world.chats.introduced(id)) {
-        this.say(visitor, "hello", "（正号蹲得端端正正，前爪底下露出一条小鱼。）", [stroke]);
-      } else {
-        const topic = this.world.chats.next(id, gardenChatTopics["visitor-zhenghao"], this.world.currentPhase);
-        showGardenChat(topic, (text, choices) => this.say(visitor, text === topic.text ? "hello" : "pet", text, choices), [stroke]);
-      }
-    } else {
-      const key = `visitor-${visitor.key}` as const;
+    }
+    if(visitor.key==="dianziyang") {
+      const key = "visitor-dianziyang";
       const speak = (text: string, choices: {title: string; run: () => void}[]) => this.say(visitor, "hello", text, choices);
       if (this.mail.received(handedLetters[visitor.key])) {
         showGardenChat(this.world.chats.next(id, gardenChatTopics[key], this.world.currentPhase), speak);
       } else introduceSender(senderIntroductions[key], speak, () => this.offer(visitor, "hello"));
-    }
+    } else greetGardenVisitor(visitor.key,id,this.world,this.mail,
+      (text,choices,gesture,title)=>this.say(visitor,gesture,text,choices,title),()=>this.activities.close());
     return true;
   }
 
   private offer(visitor: AnniversaryVisitor, action: Action) {
-    const key = visitor.key;
-    if (key === "zhenghao") return;
-    const text = action === "give" ? "（芙芙把收到的信轻轻放进背包。）" : greetings[key];
+    const key = "dianziyang";
+    const text = action === "give" ? "（芙芙把收到的信轻轻放进背包。）" : "咩。走累了就在路边歇一歇。我给你带了一封信。";
     this.say(visitor, action, text, [
       letterChoice(this.mail, handedLetters[key], () => this.offer(visitor, "give")),
     ]);
   }
 
-  private say(visitor: AnniversaryVisitor, action: Action, text: string, options: {title: string; run: () => void}[]) {
+  private say(visitor: AnniversaryVisitor, action: Action, text: string, options: {title: string; run: () => void}[], title?:string) {
     const spot = visitor.spot;
-    this.activities.dialogue(spot.title, text, options, c => {
-      drawVisitor(c, visitor, action === "give" ? 5 : action === "pet" ? 3 : 1, 24, 53, 50);
+    this.activities.dialogue(title??spot.title, text, options, c => {
+      const pose=frameFor(visitor,{visitor,action,start:0},.55);
+      drawVisitor(c, visitor, pose, 24, 53, 50);
     }, spot, () => { this.active = null; });
     this.active = {visitor, action, start: this.world.ambientTime};
   }

@@ -64,10 +64,10 @@ test("two open books keep the highest single run and show the score that earned 
   }
 });
 
-test("the book starts with 56 unique stamps in five chapters and seals unopened public letters", () => {
+test("the book starts with 57 unique stamps in five chapters and seals unopened public letters", () => {
   const p = newGame(), { entries, fresh } = reconcileAchievements(p, empty);
-  assert.deepEqual(achievementChapters.map(c => entries.filter(e => e.chapter === c.id).length), [13, 12, 7, 18, 6]);
-  assert.equal(new Set(entries.map(e => e.id)).size, 56);
+  assert.deepEqual(achievementChapters.map(c => entries.filter(e => e.chapter === c.id).length), [13, 12, 8, 18, 6]);
+  assert.equal(new Set(entries.map(e => e.id)).size, 57);
   assert.deepEqual(fresh, []);
   assert.ok(entries.every(e => !e.earned && e.current === 0 && e.progressLabel));
   const mail = entries.filter(e => e.chapter === "letters");
@@ -233,9 +233,9 @@ test("every documented stamp can be completed and replay never duplicates receip
   for (const l of allLetters) markLetterRead(p.residents, l.id);
   for (const id of Object.keys(ARCADES) as GameId[]) p.arcadeBests[id] = 400;
   const ctx = { ...empty, owned:["mikoOutfit"], townTalked: TOWN_NPCS.map(n => n.id), playSeconds: 7 * 24 * 60 };
-  assert.equal(reconcileAchievements(p, ctx).fresh.length, 56);
+  assert.equal(reconcileAchievements(p, ctx).fresh.length, 57);
   assert.deepEqual(reconcileAchievements(p, ctx).fresh, []);
-  assert.equal(reconcileAchievements(readProgress(JSON.stringify(p)), ctx).entries.filter(e => e.earned).length, 56);
+  assert.equal(reconcileAchievements(readProgress(JSON.stringify(p)), ctx).entries.filter(e => e.earned).length, 57);
   assert.deepEqual(readAchievementMemory({ earned: ["cake","bad","cake","gifts"] }).earned, ["cake","gifts"]);
   assert.equal(achievementDefinitions.filter(d => d.id.startsWith("ruin-")).length, 5);
 });

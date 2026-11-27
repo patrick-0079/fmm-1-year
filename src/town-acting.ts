@@ -1,6 +1,7 @@
 import type { DepthLayer, World } from "./world";
 import { TOWN_FRAMES, type TownNpc } from "./town-data";
-import { drawTownWork } from "./town-work-art";
+import { drawTownWork, drawTownWorkFrame } from "./town-work-art";
+import { workRows } from "./town-work-poses";
 import { paintedBounds } from "./town-work-bounds";
 import { drawResidentWalk } from "./resident-walk";
 import type { ResidentMotion } from "./town-routines";
@@ -12,7 +13,8 @@ import { drawMapProp } from "./map-prop-frames";
 import gesturesUrl from "./assets/town-gestures.webp";
 import { sceneArt } from "./scene-art";
 import { sceneImage } from "./texture-cache";
-import { drawYeshenhua, yeshenhuaPose } from "./yeshenhua-art";
+import { drawYeshenhua, yeshenhuaPose, radioWaveFrame, radioFader, radioFaderPosition } from "./yeshenhua-art";
+import { townInteriors } from "./town-interiors";
 import { drawTownGuest, townGuestPose } from "./town-guest-art";
 import { pageTurn } from "./town-idle-motion.ts";
 
@@ -23,6 +25,7 @@ export interface TownAct {
 }
 const gestures = sceneImage(gesturesUrl);
 const motion = matchMedia("(prefers-reduced-motion: reduce)");
+const radioHostRow = workRows.indexOf("radio-host");
 const clamp = (n: number) => Math.min(1, Math.max(0, n));
 function ease(n: number) {
   const t = clamp(n);
@@ -37,7 +40,9 @@ const walkSpace = (name: string) => ({
   walls: townScene.walls.filter((w) => w.label !== "镇民 · " + name),
 });
 const catStreet = walkSpace("奶糖"),
-  rabbitStreet = walkSpace("绒月");
+  rabbitStreet = walkSpace("绒月"),
+  orangeStreet = walkSpace("一橙橘小佑"),
+  guliStreet = walkSpace("故里");
 const contactPoints = new Map<string, { target: Point; origin:Point; safe: Point }>();
 const catWalks = new WeakMap<TownAct, Point>();
 function safeGestureTarget(from: Point, target: Point, geometry: typeof catStreet) {
@@ -53,7 +58,7 @@ function alongside(n: TownNpc, player: Point, fraction: number, gap: number): Po
   let contact = contactPoints.get(n.id);
   if (!contact || Math.hypot(n.x-contact.origin.x,n.y-contact.origin.y)>1 ||
     Math.hypot(target.x - contact.target.x, target.y - contact.target.y) > 1) {
-    const geometry = n.id === "cat" ? catStreet : rabbitStreet;
+    const geometry = n.id === "xiaoyou" ? orangeStreet : n.id === "cat" ? catStreet : rabbitStreet;
     contact = { target, origin:n, safe:safeGestureTarget(n,target,geometry) };
     contactPoints.set(n.id, contact);
   }
@@ -110,15 +115,6 @@ function camera(c: Brush, x: number, y: number, flash: boolean) {
   rect(c, "#efcf93", x - 4.5, y - 2.6, 2, 1.6);
   if (flash) twinkle(c, x - 4, y - 3, 3.2);
 }
-function notebook(c: Brush, x: number, y: number, t: number) {
-  outline(c, x - 4, y - 5, 9, 10, "#a4b7ad");
-  rect(c, cream, x - 2.8, y - 3.8, 6.3, 7.6);
-  rect(c, "#b89889", x - 2, y - 2, 3.6, 0.65);
-  rect(c, "#b89889", x - 2, y, 2.8, 0.65);
-  const pen = x + 1 + Math.sin(t * 8) * 1.3;
-  stroke(c, "#615161", [pen, y + 1, pen + 3.8, y - 3.8], 1.3);
-}
-
 function book(c: Brush, x: number, y: number, closed: number, turning: number) {
   // The atlas depicts a closed green book against Motao's pinafore. Repaint
   // just that footprint inside her sleeves before drawing the open spread.
@@ -299,7 +295,7 @@ function actorProps(c: Brush, n: TownNpc, page: string, t: number, still: boolea
       );
       break;
     case "radio-host":
-      if (page === "notes") notebook(c, 4, y, t);
+      if (page === "offer-letter") envelope(c, 7, y);
       break;
     case "books": {
       const bookX = 1.8, bookY = -h * .35;
@@ -364,7 +360,7 @@ function drawBouquet(c: Brush, x: number, y: number) {
 const orangeOfferSeconds = 0.42;
 function orangeLayer(npc: TownNpc, page: string, t: number, world: World, still: boolean, reverse: boolean): DepthLayer | undefined {
   const tasting = page === "taste-orange";
-  const receiving = page === "receive-orange";
+  const receiving = page === "receive-orange" || page === "orange-letter";
   if (!tasting && !receiving) return;
   if (receiving && !still && t < orangeOfferSeconds) return;
   if (tasting && t >= 1.2) return;
@@ -415,10 +411,11 @@ function presentLayer(
   still: boolean,
 ): DepthLayer | undefined {
   const flowers = n.id === "florist" && (page === "show" || page === "receive");
-  const pastry = n.id === "baker" && ["hand", "offer", "eat", "covered"].includes(page);
+  const tastingCake = n.id === "guli" && page === "taste-cake";
+  const pastry = tastingCake || n.id === "baker" && ["hand", "offer", "eat", "covered"].includes(page);
   if (!flowers && !pastry) return;
   const receive = page === "receive" || page === "hand";
-  const mix = receive ? (still ? 1 : ease(t / 0.65)) : Number(page === "offer" || page === "eat");
+  const mix = receive || tastingCake ? (still ? 1 : ease(t / 0.65)) : Number(page === "offer" || page === "eat");
   const foot = { x: between(n.x + 2, player.x + 3, mix), y: between(n.y, player.y, mix) };
   return {
     y: foot.y + 0.2,
@@ -440,9 +437,9 @@ function presentLayer(
         disk(c, gold, x, y - 5.2 - lid, 1.4);
         stroke(c, "#f5e9df", [x - 4.5, y - 1.8 - lid, x - 3.4, y - 3.3 - lid], 1);
       } else {
-        const bites = page === "eat" ? Number(t >= 1) + Number(t >= 2) : 0;
+        const bites = page === "eat" || tastingCake ? Number(t >= 1) + Number(t >= 2) : 0;
         const lift =
-          page === "eat" && !still
+          (page === "eat" || tastingCake) && !still
             ? Math.sin(Math.PI * clamp((t - 0.15) / 0.85)) * 4 + Math.sin(Math.PI * clamp(t - 1.1)) * 4
             : 0;
         if (bites === 2) {
@@ -521,6 +518,13 @@ export function residentPlacement(npc: TownNpc, player: Point, act?: TownAct) {
     reverse = npc.id === "xiaoyou" && !!page && player.x > npc.x,
     lean = 0;
   if (npc.id === "baker") cell = bakerPose(page);
+  if (npc.id === "radio-host" && page === "studio") {
+    const {approach} = radioFaderPosition(t, still), target = radioFader.foot;
+    if (canTravelBetween(npc,target,townInteriors["town-radio"].scene)) {
+      foot = {x:between(npc.x,target.x,approach),y:between(npc.y,target.y,approach)};
+      if (approach < 1 && !still) walk = {facing:1,distance:Math.hypot(npc.x-foot.x,npc.y-foot.y)};
+    }
+  }
   if ((npc.id === "bunny" && page) || (npc.id === "cat" && page === "rub")) {
     const near = 1 - ease((Math.hypot(player.x - npc.x, player.y - npc.y) - 54) / 16);
     const approach = still ? 1 : page === "start" || page === "rub" ? ease(t / 0.45) : 1;
@@ -529,6 +533,16 @@ export function residentPlacement(npc: TownNpc, player: Point, act?: TownAct) {
     if (release > 0.02) cell = npc.id === "cat" ? 5 : 4;
     reverse = foot.x > player.x;
     if (!still && page === "rub") lean = Math.sin(t * 5) * 0.08;
+  } else if (npc.id === "xiaoyou" && page === "orange-hug") {
+    const hold = still ? Number(t < 1.2) : ease(t / .35) * (1 - ease((t - 1.15) / .45));
+    foot = alongside(npc, player, hold, 10);
+    reverse = foot.x > player.x;
+    lean = (reverse ? -1 : 1) * hold * .06;
+  } else if (npc.id === "guli" && page === "box-run" && !still) {
+    const target = safeGestureTarget(npc, {x:npc.x + 12, y:npc.y + 3}, guliStreet);
+    const step = ease(t / .7) * (1 - ease((t - .95) / .65));
+    foot = {x:between(npc.x,target.x,step), y:between(npc.y,target.y,step)};
+    if (step > 0 && step < 1) walk = {facing:t < .85 ? 2 : 1, distance:t * 34};
   } else if (npc.id === "cat" && page === "walk" && t < 4 && performance) {
     let target = catWalks.get(performance);
     if (!target) {
@@ -612,12 +626,13 @@ export function townResidentLayers(
             (page !== "receive-orange" || (!still && t < orangeOfferSeconds));
           if (reverse) c.scale(-1, 1);
           drawTownGuest(c, sheet, npc.sprite, 0, 0, 44, pose);
-          if (page === "show-star-card" && (still || t < 0.9)) {
-            c.globalAlpha *= still ? 0.85 : 1 - ease(t / 0.9);
-            twinkle(c, -11, -22.5, 2.2);
-          }
         } else if (!lifePose && npc.appearance === "yeshenhua") {
-          drawYeshenhua(c,sceneArt.yeshenhua,0,0,height,yeshenhuaPose(page));
+          c.save();
+          // The painted waving palm is on the left; turn it toward the player.
+          if (page === "studio" || (page === "night" && world.player.x > foot.x)) c.scale(-1,1);
+          if (page !== "night" || !drawTownWorkFrame(c,radioHostRow,radioWaveFrame(t,still)))
+            drawYeshenhua(c,sceneArt.yeshenhua,0,0,height,yeshenhuaPose(page));
+          c.restore();
         } else if (!lifePose && (cell === undefined || !gestureCell(c, cell, height, reverse))) {
           if (lowered > 0) {
             const head = Math.round(f.h * 0.56),
@@ -646,6 +661,27 @@ export function townResidentLayers(
             );
           } else c.drawImage(sprites, f.x, f.y, f.w, f.h, -width / 2, -height, width, height);
         }
+        if (guest && page) {
+          if (npc.id === "xiaoyou" && page === "orange-sun") {
+            const x = -9, y = -23 - (still ? 5 : 5 * ease(t / .5));
+            disk(c, "#c97745", x, y, 3.3, 3);
+            disk(c, "#ffbd64", x, y - .5, 2.7, 2.2);
+            rect(c, "#fff0b2", x - 1.8, y - 1.4, 1.8, .9);
+          }
+          if (npc.id === "guli" && page === "box-run") {
+            outline(c, -9, -16, 16, 10, "#e6b890");
+            rect(c, "#fbd9b7", -9, -16, 16, 2);
+            rect(c, "#c57283", -2, -16, 2, 10);
+          }
+          if ((npc.id === "guli" && page === "offer-letter") || (npc.id === "xiaoyou" && page === "orange-letter" && (still || t >= .8)))
+            envelope(c, 8, -17);
+          if (npc.id === "qianxiao" && page === "photo" && t < .75) {
+            const tuck = still ? 0 : ease(t / .75);
+            c.globalAlpha *= 1 - tuck;
+            outline(c, 3 - tuck * 5, -25 + tuck * 7, 7, 9, "#fff1d4");
+            disk(c, "#cb939c", 6 - tuck * 5, -22 + tuck * 7, 1.5);
+          }
+        }
         if (page && !guest) actorProps(c, npc, page, still ? 1 : t, still, world.scene !== "town");
         else if (npc.id === "books" && !routine?.walking) actorProps(c, npc, "", time, still);
         c.restore();
@@ -661,6 +697,21 @@ export function townResidentLayers(
     ? orangeLayer(npc, page, t, world, still, reverse)
     : presentLayer(npc, page, t, world.player, still);
   if (gift) layers.push(gift);
+  if (npc.id === "radio-host" && page === "studio" && world.scene === "town-radio") {
+    const {cap,approach} = radioFaderPosition(t,still), x=radioFader.x;
+    // The counter front has depth 183. Draw the player's view of the fader and
+    // her hand over its painted surface, keeping her body behind the counter.
+    layers.push({y:183.1, draw(c) {
+      rect(c,"#484055",x-2.4,radioFader.top-1,4.8,radioFader.bottom-radioFader.top+3);
+      stroke(c,"#252332",[x,radioFader.top,x,radioFader.bottom],1.1);
+      rect(c,"#bc905c",x-1.8,cap-.55,3.6,2.1);
+      rect(c,"#f7d78d",x-1.8,cap-.6,3.6,.9);
+      if (approach === 1 && Math.abs(foot.x-radioFader.foot.x)<1) {
+        stroke(c,ink,[foot.x-5,foot.y-15,foot.x-8,cap+2,x+1,cap+.8],3.1);
+        stroke(c,"#f1c4a7",[foot.x-8,cap+2,x+1,cap+.8],1.8);
+      }
+    }});
+  }
   if (npc.id === "post" && world.scene === "town" && (page === "letter" || page === "delivered")) {
     const drop = page === "delivered" ? (still ? 1 : ease(t / .75)) : 0;
     if (drop < 1) layers.push(postOfficeDelivery(foot, height, drop));

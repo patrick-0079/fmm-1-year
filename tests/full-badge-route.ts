@@ -11,6 +11,7 @@ import { townKeepsakeBadge } from "../src/town-keepsakes";
 import { pressDuration, workbenchSteps } from "../src/town-workbench-steps";
 import { scenes, type SceneId, type World } from "../src/world";
 import { verifyArcadeStamps } from "./achievement-arcade-route";
+import { verifyDuelStamp } from "./qianxiao-duel-route";
 import { verifyLetterAndMeadowStamps } from "./achievement-mail-route";
 import { verifyGuests, verifyGardenDiscovery } from "./guest-cases";
 
@@ -170,6 +171,8 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   closeActivity();
   expect(earned("friends"), "见过 25 位角色后未盖章");
   await verifyArcadeStamps(world, log);
+  await verifyDuelStamp(world);
+  log("通过浅笑的邀约入场，按牌面逐回合出牌，赢下星牌首胜章");
   for (const spot of ringSpots) await interactAt("ruins", spot.id);
   await interactAt("ruins", moonPlate.id);
   await choose("装入");
