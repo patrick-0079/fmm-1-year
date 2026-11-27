@@ -54,7 +54,7 @@ export function equipmentParts(
   walkFrame = 0,
 ): EquipmentPart[] {
   const hair = equipped.hair;
-  const hairSize = hair === "heartClip" ? 10 : 8;
+  const hairSize = hair === "heartClip" ? 8.5 : 8;
   if (pose === "lying") return hair ? [
     {id:hair, layer:"front", x:-12.15-hairSize/2, y:-6.15-hairSize/2, w:hairSize, h:hairSize},
   ] : [];
