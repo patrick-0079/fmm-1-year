@@ -1,3 +1,4 @@
+import "./fufu-pet/pet";
 import { OPEN_AT, countdownParts, getDeadline, setDebugDeadline } from "./time";
 import type { createCountdownView } from "./view";
 
