@@ -54,7 +54,7 @@ export class Xiaoye {
         return;
       }
       if (this.hug.tick(elapsed,world.player,true)) world.onAchievementEvent("xiaoye-plush");
-      if (!this.clueOpen && (this.page === "hot" || this.page === "warm")) {
+      if (this.page === "hot" || this.page === "warm") {
         this.replySeconds += Math.max(0,elapsed);
         if (this.replySeconds >= letterPauseSeconds && !this.hug.active) this.show("offer");
       }
@@ -93,11 +93,13 @@ export class Xiaoye {
     this.origin = {...this.world.player};
     this.lastHugTime = performance.now() / 1000;
     this.idleMirrored = this.origin.x < xiaoyeSpot.x;
+    let opening: XiaoyePage = "hello";
     if (this.mail.received(handedLetters.xiaoye)) {
       const phase = this.phase();
       const visit = this.world.chats.visitShift(id,phase,this.world.currentDay,this.world.currentHours);
-      this.show(xiaoyeDailyPage(phase,visit));
-    } else this.show("hello");
+      opening = xiaoyeDailyPage(phase,visit);
+    }
+    this.show(opening, true);
     return true;
   }
 
@@ -114,7 +116,7 @@ export class Xiaoye {
     return true;
   }
 
-  private show(page: XiaoyePage) {
+  private show(page: XiaoyePage, offerFlowerClue = false) {
     if (xiaoyePages[page].hug) {
       if (!this.prepareApproach()) {
         this.activities.dismissDialogue(xiaoyeSpot);
@@ -128,10 +130,10 @@ export class Xiaoye {
     this.pageStarted = this.time;
     this.replySeconds = 0;
     this.lastHugTime = performance.now() / 1000;
-    this.present();
+    this.present(offerFlowerClue);
   }
 
-  private present() {
+  private present(offerFlowerClue = false) {
     if (this.clueOpen) {
       this.dialogue(flowerClueText,[{title:"继续刚才的话题",run:()=>{
         this.clueOpen = false;
@@ -144,7 +146,7 @@ export class Xiaoye {
     const choices = this.page === "offer" || this.page === "received"
       ? [letterChoice(this.mail,handedLetters.xiaoye,()=>this.show("received"),"（收下信封）")]
       : (page.choices ?? []).map(([title,destination])=>({title,run:()=>this.show(destination)}));
-    choices.push({title:flowerClueChoice,run:()=>{
+    if (offerFlowerClue) choices.push({title:flowerClueChoice,run:()=>{
       this.clueOpen = true;
       this.clueStarted = this.time;
       this.collectFlowerMap();

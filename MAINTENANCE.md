@@ -394,7 +394,7 @@ R2 CORS 完整示例在 [README](README.md#花园小电视cdn-周年放映)。`C
 
 花海的 `CampGuest` 按本次坐下的状态计时。坐满 30 秒写入 `patrickArrived`，派大星无对白入场，放下信后立即消失。每档仅入场一次。信封留在 `(232,187)`，切图或刷新后仍可拾取。拾取时写入 `patrickDelivered`，打开正文时更新 `patrickRead`。营火的「读来信」复用游戏内信箱，收起后继续坐着。图片和动作见[营火来宾美术记录](doc/artwork/ARTWORK-residents.md#花海营火来宾)。
 
-29 位角色的初遇、日常、玩家选项及原台词汇在[居民对白全录](doc/conversation.md)。修改话题时同步更新文档。`src/town-chat-topics.ts` 和 `src/garden-chat-topics.ts` 维护原有轮换话题。浅笑、小佑、故里、夜神华的专属剧情在 `town-guest-dialogues.ts`，苏颜、鸽子、正号、Rabe 的专属剧情在 `garden-visitor-dialogue.ts`。这八人的时段首聊与额外闲聊分开记录，20:00 至次日 05:00 共用同一夜的进度，夜神华在电台和街头分别记录。小叶子的台词在 xiaoye-dialogue.ts。它在同一星夜头两次分别谈休息和小灯，再按 A、B、C 轮换。花海线索可从各页进入，回到对话时保留原分支。获得手绘地图的记录和其他背包收藏一起保存。
+29 位角色的初遇、日常、玩家选项及原台词汇在[居民对白全录](doc/conversation.md)。修改话题时同步更新文档。`src/town-chat-topics.ts` 和 `src/garden-chat-topics.ts` 维护原有轮换话题。浅笑、小佑、故里、夜神华的专属剧情在 `town-guest-dialogues.ts`，苏颜、鸽子、正号、Rabe 的专属剧情在 `garden-visitor-dialogue.ts`。这八人的时段首聊与额外闲聊分开记录，20:00 至次日 05:00 共用同一夜的进度，夜神华在电台和街头分别记录。小叶子的台词在 xiaoye-dialogue.ts。它在同一星夜头两次分别谈休息和小灯，再按 A、B、C 轮换。只有本次交谈的第一轮提供花海线索。听完线索可继续原话题，下一次主动交谈时重新提供。获得手绘地图的记录和其他背包收藏一起保存。
 
 `src/resident-chats.ts` 在主存档 `residents.chats` 下按角色和时段保存话题轮换进度。角色开出一段日常时才推进，回答选项和打开功能都属于当次交流。跨标签合并时保留每个时段较新的进度。信件归属仍以实际收取记录为准。小屋和背包共用 `application.ts` 提供的目录、已读回执与变更订阅。红笺的告别属于刚投递的柜台会话，关闭背包时按场景、距离与实际阅读状态决定是否继续。
 
