@@ -76,6 +76,8 @@ export const townAttractionSpots: Hotspot[] = entries.map(([id, layout]) => {
       kind: "game", action: "玩" + title, verb: "游玩", natural: true,
       anchor: { x: layout.anchor[0], y: layout.anchor[1] },
       objectBox: { ...bounds, x: bounds.x - x, y: bounds.y - y },
+      // Leave the crossing from the wish tiles to the paved road beside the tree open.
+      walkway: id === "link" ? { x: 596 - x, y: 322 - y, w: 136, h: 34 } : undefined,
     },
   };
 });

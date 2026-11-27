@@ -1,11 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { canStand, canTravelBetween, findPath, readProgress } from "../src/core.ts";
-import { bloomingGarden, scenes } from "../src/maps.ts";
-import { rainbowFlowers, rainbowIds, meadowOpen, meadowGate, meadowGatePosts, pickRainbow, rainbowReminderStrength } from "../src/rainbow-flowers.ts";
+import { scenes } from "../src/maps.ts";
+import { rainbowFlowers, rainbowIds, meadowOpen, meadowGate, pickRainbow, rainbowReminderStrength } from "../src/rainbow-flowers.ts";
 import { producers } from "../src/content.ts";
-import { campfire, enteredMoonCircle, meadowExit } from "../src/meadow-map.ts";
+import { campfire, enteredTravelCircle, meadowExit, campTapeSpot } from "../src/meadow-map.ts";
 import { clickedInteraction, nearbyInteraction } from "../src/interaction.ts";
+import { xiaoyeSpot } from "../src/xiaoye-data.ts";
 
 test("unpicked flower reminders fade in every 30 seconds and hold steady in reduced motion", () => {
   for (const start of [30, 60, 90]) {
@@ -21,17 +22,23 @@ test("unpicked flower reminders fade in every 30 seconds and hold steady in redu
   }
 });
 
-test("small flowers remain clickable at their petals and the moon circle only triggers on entry", () => {
+test("small flowers remain clickable at their petals", () => {
   for (const f of rainbowFlowers) {
     const spots=scenes[f.scene].spots;
     assert.equal(clickedInteraction({x:f.x,y:f.y-9},spots,s=>s.y-(s.markerOffset??12))?.id,f.id);
     assert.ok(spots.find(s=>s.id===f.id)?.selfMarked);
   }
-  const arrival=scenes.meadow.spots.find(s=>s.id==="meadow-exit")!.approach;
-  assert.equal(enteredMoonCircle(arrival,arrival),false);
-  assert.equal(enteredMoonCircle(arrival,meadowExit),true);
-  assert.equal(enteredMoonCircle(meadowExit,arrival),false);
-  assert.ok(canTravelBetween(arrival,meadowExit,scenes.meadow));
+});
+test("both travel circles trigger when entering their centres and leave each return landing clear", () => {
+  for (const [map,circle] of [[scenes.garden,meadowGate],[scenes.meadow,meadowExit]] as const) {
+    const arrival=circle.approach;
+    assert.equal(enteredTravelCircle(circle,arrival,arrival),false);
+    assert.equal(enteredTravelCircle(circle,arrival,circle),true);
+    assert.equal(enteredTravelCircle(circle,circle,circle),false);
+    assert.equal(enteredTravelCircle(circle,circle,arrival),false);
+    assert.ok(canTravelBetween(arrival,circle,map));
+    assert.equal(nearbyInteraction(arrival,map.spots)?.id,circle.id);
+  }
 });
 test("only seven different flowers from their own maps open the meadow", () => {
   const bag: string[] = [];
@@ -59,15 +66,30 @@ test("the former orange flower migrates once and a complete old flower book stil
   assert.ok(meadowOpen(p.rainbowFlowers));
   assert.equal(pickRainbow(p.rainbowFlowers,"garden","prism-calendula"),undefined);
 });
-test("when the rainbow arch appears its pillars are solid, its mouth and the courtyard routes stay open", () => {
-  for (const post of meadowGatePosts) {
-    const center={x:post.x+post.w/2,y:post.y+post.h/2};
-    for (const [map,walkable] of [[scenes.garden,true],[bloomingGarden,false]] as const)
-      assert.equal(canStand(center,map.walls,map.bounds,map.floor),walkable);
+test("the rainbow circle beside Xiaoye follows its artwork and leaves her approach clear", () => {
+  const map = scenes.garden;
+  assert.ok(Math.hypot(meadowGate.x-xiaoyeSpot.x,meadowGate.y-xiaoyeSpot.y)<65);
+  assert.equal(nearbyInteraction(xiaoyeSpot.approach,map.spots)?.id,xiaoyeSpot.id);
+  for (const point of [{x:205,y:378}, xiaoyeSpot, xiaoyeSpot.approach])
+    assert.notEqual(clickedInteraction(point,map.spots)?.id,meadowGate.id);
+  for (const [dx,dy] of [[0,0],[-26,0],[26,0],[0,-13],[0,13]])
+    assert.equal(clickedInteraction({x:meadowGate.x+dx,y:meadowGate.y+dy},map.spots)?.id,meadowGate.id);
+  assert.ok(canTravelBetween({x:170,y:375},{x:240,y:375},map));
+  for (const s of map.spots)
+    assert.deepEqual(findPath(map.spawn,s.approach,map)?.at(-1),s.approach,s.id);
+});
+
+test("the tape on the grass beside the campfire is reachable without sitting or picking up the camp letter", () => {
+  const map = scenes.meadow, tape = campTapeSpot;
+  assert.ok(tape.x < campfire.x && Math.hypot(tape.x-campfire.x,tape.y-campfire.y)<36);
+  assert.ok(canStand(tape, map.walls, map.bounds, map.floor));
+  assert.deepEqual(findPath(map.spawn, tape.approach, map)?.at(-1), tape.approach);
+  assert.equal(nearbyInteraction(tape.approach, map.spots), tape);
+  assert.equal(clickedInteraction({ x: tape.x, y: tape.y - 5 }, map.spots), tape);
+  for (const id of ["meadow-jar", "meadow-camp", "meadow-camp-letter"]) {
+    const neighbour = map.spots.find(spot => spot.id === id)!;
+    assert.equal(nearbyInteraction(neighbour.approach, map.spots), neighbour);
   }
-  assert.ok(canTravelBetween(meadowGate.approach,meadowGate,bloomingGarden));
-  for (const s of bloomingGarden.spots)
-    assert.deepEqual(findPath(bloomingGarden.spawn,s.approach,bloomingGarden)?.at(-1),s.approach,s.id);
 });
 
 test("each producer has one anonymous, clickable and reachable star", () => {

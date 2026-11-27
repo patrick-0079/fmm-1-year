@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     width="86" height="98" viewBox="0 0 86 98">
+  <title>镂空爱心与两根淡紫发夹</title>
+  <defs>
+    <path id="heart" d="M43 18 C32 2 11 4 7 22 C3 38 21 49 43 65
+                        C65 49 83 38 79 22 C75 4 54 2 43 18 Z"/>
+    <path id="pins" d="M33 79 L66 71 M35 94 L68 86"/>
+  </defs>
+  <g fill="none" stroke-linejoin="round" stroke-linecap="round">
+    <use xlink:href="#heart" stroke="#b82840" stroke-width="9"/>
+    <use xlink:href="#heart" stroke="#f8a0b0" stroke-width="4.5"/>
+    <use xlink:href="#pins" stroke="#aa84ac" stroke-width="7"/>
+    <use xlink:href="#pins" stroke="#f0d0e8" stroke-width="4"/>
+  </g>
+</svg>

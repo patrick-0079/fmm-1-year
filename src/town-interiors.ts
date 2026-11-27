@@ -29,10 +29,12 @@ interface RoomData {
   chat: ChatBook;
   art: {
     scale: number;
-    sign: { x: number; y: number; w: number; h: number; title: string; detail?: string; date?: boolean; size: number };
     backgrounds: Record<Phase, Frame>;
+    skies: Record<Phase, Frame>;
     lights: Record<Phase, Frame>;
-    props: { name: string; depth: number; variants: Record<Phase, Frame>; raisedVariants?: Record<Phase, Frame> }[];
+    blind?: { raised: Record<Phase, Frame>; lowered: Record<Phase, Frame> };
+    collection?: Record<TownInteriorKey, [x: number, y: number, width: number, height: number]>;
+    props: { name: string; depth: number; variants: Record<Phase, Frame> }[];
   };
 }
 const rooms = data as unknown as Record<TownInteriorKey, RoomData>;
@@ -43,20 +45,20 @@ const actions = {
   baker: ["烤草莓小饼", "翻看手绘白板"],
   maker: ["转动试光台铜片", "查看黄铜材料柜"],
   post: ["盖下月牙邮戳", "翻看分信格"],
-  books: ["装帧池畔折页", "拉起临池竹帘"],
+  books: ["装帧池畔折页", "卷起后窗竹帘"],
   radio: ["录一段晚安片头", "坐下试听"],
   hall: ["摇动手摇影箱", "查看小镇纪念品展柜"],
 } as const;
 
 // Trace the painted objects above their feet, including handles that project past the base.
 const objectBounds: Record<TownInteriorKey, [[number, number, number, number], [number, number, number, number]]> = {
-  florist: [[-54, -55, 109, 57], [-44, -83, 86, 75]],
+  florist: [[-69, -78, 136, 81], [-66, -104, 138, 96]],
   baker: [[-38, -50, 116, 51], [-32, -85, 64, 79]],
-  maker: [[-45, -62, 109, 63], [-45, -67, 109, 67]],
+  maker: [[-52, -85, 126, 87], [-52, -68, 119, 69]],
   post: [[-38, -64, 83, 65], [-49, -67, 110, 68]],
-  books: [[-66, -53, 123, 55], [-12, -22, 25, 35]],
+  books: [[-76, -57, 144, 59], [-41, -67, 83, 52]],
   radio: [[-82, -65, 155, 67], [-23, -44, 48, 45]],
-  hall: [[-45, -78, 101, 79], [-103, -50, 204, 53]],
+  hall: [[-47, -96, 118, 98], [-109, -90, 212, 93]],
 };
 
 // Face areas are traced on the existing town painting. The gate stays at
@@ -77,9 +79,9 @@ const doorColors: Record<TownInteriorKey, string> = {
 };
 
 export const hallCollectionSlots = [
-  ["florist", "花店", 229, 139], ["baker", "烘焙屋", 276, 139],
-  ["hall", "纪念馆", 323, 139], ["maker", "工坊", 370, 139],
-  ["post", "邮局", 248, 160], ["books", "书屋", 300, 160], ["radio", "电台", 352, 160],
+  ["florist", "花店", 229, 129], ["baker", "烘焙屋", 276, 129],
+  ["hall", "纪念馆", 323, 129], ["maker", "工坊", 368, 129],
+  ["post", "邮局", 243, 154], ["books", "书屋", 300, 154], ["radio", "电台", 359, 154],
 ] as const satisfies readonly [TownInteriorKey, string, number, number][];
 
 export type TownArea = "town" | TownInteriorId;
@@ -115,8 +117,6 @@ function activitySpot(key: TownInteriorKey, index: number, station: RoomData["pl
   const [x, y, w, h] = objectBounds[key][index];
   const title = actions[key][index];
   const hitAreas = [{ x: at.x + x, y: at.y + y, w, h }];
-  const blind = key === "books" && index === 1;
-  if (blind) hitAreas.push({ x: 30, y: 153, w: 34, h: 66 });
   // The handle on the left stays clear of Hongjian's morning workstation.
   const cueX = key === "post" && index === 1 ? .32 : .56;
   return {
@@ -124,7 +124,9 @@ function activitySpot(key: TownInteriorKey, index: number, station: RoomData["pl
     title, ...at, approach: point(station.approach), color: doorColors[key], radius: 48,
     markerOffset: -y / 2, hitAreas,
     cue: { kind: "mechanism", action: title, verb: "查看", natural: false, objectBox: { x, y, w, h },
-      anchor: blind ? { x: 0, y: 0 } : { x: x + w * cueX, y: y + h * .5 } },
+      anchor: key === "books" && index === 1 ? { x: 35, y: -40 }
+        : key === "florist" && index === 1 ? { x: 9, y: -84 }
+        : { x: x + w * cueX, y: y + h * .5 } },
   };
 }
 
@@ -148,7 +150,7 @@ function room(key: TownInteriorKey): TownInterior {
     insideId, doorFaces[key], doorColors[key], plan.street.halfWidth ? { sign: -1, halfWidth: plan.street.halfWidth } : undefined);
   const exit = portal(insideId, "前往小镇街道", point(plan.exit), point(plan.spawn), "town", outsideId,
     [plan.exit[0] - 27, 344, 54, 18], doorColors[key], { sign: 1, halfWidth: 22 });
-  const shifts = Object.fromEntries(Object.entries(plan.shifts).map(([phase, station]) =>
+  const shifts = Object.fromEntries(Object.entries(plan.shifts).filter(([phase]) => key !== "radio" || phase === "night").map(([phase, station]) =>
     [phase, { foot: point(station.foot), approach: point(station.approach) }]));
   const scene: Scene = {
     title, width: 600, height: 400, bounds: { x: 0, y: 0, w: 600, h: 400 },

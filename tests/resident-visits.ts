@@ -1,5 +1,13 @@
 import { scenes, type SceneId, type World } from "../src/world";
 
+export async function waitForVisit(check: () => boolean, message: string) {
+  const deadline = performance.now() + 10_000;
+  while (!check()) {
+    if (performance.now() > deadline) throw Error(message);
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+}
+
 /** Advance the real garden bench so a test can visit someone on their shift. */
 export async function waitOnBench(world: World) {
   await world.prepareScene("challenge");
@@ -7,9 +15,10 @@ export async function waitOnBench(world: World) {
   world.switchScene("challenge", bench.approach);
   world.interact();
   const next = [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")]
-    .find(b => b.textContent === "坐着等到下一时段");
+    .find(b => /^⌈坐在长椅上等到(?:白昼|黄昏|星夜|清晨)⌋$/.test(b.textContent ?? ""));
   if (!next) throw Error("勇气花园长椅未提供等到下一时段");
   next.click();
+  await waitForVisit(() => !next.isConnected, "长椅休息后未切换时段");
   world.standUp();
   document.querySelector<HTMLButtonElement>(".activity-close")!.click();
 }

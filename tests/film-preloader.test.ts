@@ -144,7 +144,7 @@ test("full preload continues independently of playback and publishes a Blob only
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(film.progress.state, "loading");
   assert.equal(film.progress.received, 4);
-  assert.match(downloadLabel(film.progress), /50%/);
+  assert.match(downloadLabel(film.progress), /50% · 4 B \/ 8 B/);
   controller!.enqueue(new Uint8Array([5, 6, 7, 8]));
   controller!.close();
   const url = await ready;
@@ -245,5 +245,6 @@ test("partial HTTP responses are rejected and compressed lengths do not mark dec
   const url = await encoded.start();
   assert.equal(encoded.progress.received, 12);
   assert.equal(encoded.progress.total, 0);
+  assert.equal(downloadLabel({ ...encoded.progress, state: "loading" }), "正在完整预载 · 已接收 12 B");
   URL.revokeObjectURL(url);
 });

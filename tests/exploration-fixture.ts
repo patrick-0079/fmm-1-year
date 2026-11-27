@@ -1,6 +1,7 @@
+import { actionOption } from "../src/dialogue-options";
 import { arriveOnShift, scheduledResident } from "./resident-visits";
-import { World, scenes } from "../src/world";
-import { SAVE_KEY, canStand, readProgress } from "../src/core";
+import { World, scenes, type SceneId } from "../src/world";
+import { SAVE_KEY, canStand, readProgress, type Point } from "../src/core";
 import { rainbowFlowers, meadowGate } from "../src/rainbow-flowers";
 import { producers } from "../src/content";
 import { JOURNEY_KEY, readJourney } from "../src/journey";
@@ -28,19 +29,20 @@ import { interactionHitY } from "../src/interaction";
 import { rabbitPlatforms } from "../src/town-attraction-layout";
 import { checkTapSurface } from "./hotspot-pointer-cases";
 
-// Same application as the homepage; all its saves are private to this QA tab.
+// Manual fixture visits keep a private save. The cross-tab runner supplies its
+// own isolated browser context so it can exercise real storage events.
 const space="fufu-only-exploration-fixture/";
-Object.defineProperty(window,"localStorage",{value:{
+if (!("qaUseBrowserStorage" in window)) Object.defineProperty(window,"localStorage",{value:{
   getItem:(key:string)=>sessionStorage.getItem(space+key),
   setItem:(key:string,value:string)=>sessionStorage.setItem(space+key,value),
   removeItem:(key:string)=>sessionStorage.removeItem(space+key),
 }});
 let world!: World;
 const originalLoad=World.prototype.load;
-World.prototype.load=function() {
+World.prototype.load=function(...args) {
   world=this;
   World.prototype.load=originalLoad;
-  return originalLoad.call(this);
+  return originalLoad.apply(this,args);
 };
 await import("../src/main");
 const q=<T extends HTMLElement=HTMLElement>(selector:string) => document.querySelector<T>(selector)!;
@@ -73,6 +75,10 @@ function readJournal(page: number) {
 async function start() {
   await wait(()=>!q<HTMLButtonElement>(".enter-button").disabled);
   q(".enter-button").click();
+}
+async function placeOnMap(scene: SceneId, at: Point) {
+  await world.prepareScene(scene);
+  world.switchScene(scene, at);
 }
 async function insideMeadow() {
   await wait(()=>world.scene==="meadow" && !world.paused);
@@ -182,30 +188,28 @@ async function collectStar(person: typeof producers[number], pointer = false) {
   closeStarReader();
   expect(!world.paused,"收起星星寄语没有恢复探索");
 }
-function checkHarvest() {
+async function checkHarvest() {
   const apple = scenes.garden.spots.find(s=>s.id==="apple")!;
-  world.switchScene("garden", apple.approach);
+  await placeOnMap("garden", apple.approach);
   for (let i = 1; i <= 3; i++) {
     world.interact();
-    expect(q(".bag-count").textContent?.includes("苹果 "+i),"苹果没有入袋");
+    await wait(() => q(".bag-count").textContent!.includes("苹果 "+i));
     expect(q(".activity-status").textContent?.includes("还剩 "+(3-i)+" 颗"),"剩余的树果数量不正确");
     q(".activity-close").click();
   }
   expect(!world.available(apple),"拿空的果篮仍显示为可采集目标");
-  world.interact(); world.onInteract("apple");
-  expect(q(".bag-count").textContent?.includes("苹果 3"),"同一天能收第四颗苹果");
-  q(".activity-close").click();
+  world.onInteract("apple");
+  expect(q(".activity-hud").hidden && q(".bag-count").textContent?.includes("苹果 3"),"同一天能收第四颗苹果");
   const flowers = scenes.garden.spots.find(s=>s.id==="flowers")!;
   world.switchScene("garden", flowers.approach);
   for (let i = 1; i <= 3; i++) {
     world.interact();
-    expect(q(".bag-count").textContent?.includes("花朵 "+i),"花朵没有入袋");
+    await wait(() => q(".bag-count").textContent!.includes("花朵 "+i));
     q(".activity-close").click();
   }
   expect(!world.available(flowers),"采空的花丛仍显示为可采集目标");
-  world.interact(); world.onInteract("flowers");
-  expect(q(".bag-count").textContent?.includes("花朵 3"),"同一天能收第四丛花");
-  q(".activity-close").click();
+  world.onInteract("flowers");
+  expect(q(".activity-hud").hidden && q(".bag-count").textContent?.includes("花朵 3"),"同一天能收第四丛花");
   log("拿完果篮的三颗苹果、采完当日三朵花，核对背包数量");
 }
 async function checkAll() {
@@ -228,7 +232,7 @@ async function checkAll() {
   key("Escape");
   expect(q(".inventory-panel").hidden,"Esc 未收起衣橱");
   for(const hazard of scenes.challenge.hazards.slice(0,2)) {
-    world.switchScene("challenge",hazard); q(".bag-toggle").click();
+    await placeOnMap("challenge", hazard); q(".bag-toggle").click();
     await wait(()=>world.scene==="room" && !q(".bed-note").hidden);
     expect(world.restState?.kind==="lying" && !world.suspended && q(".inventory-panel").hidden,"复活时角色或背包状态不正确");
     expect(landing()?.scene==="room" && landing()?.x===world.restState?.exit.x && landing()?.y===world.restState?.exit.y,"复活没存到床边的安全位置");
@@ -244,11 +248,11 @@ async function checkAll() {
   await wait(()=>(state().arcadeBests.mines ?? 0)>0);
   expect(q(".arcade-score span").textContent?.includes("最高 "+state().arcadeBests.mines),"翻开星纹石砖未记录实得的最高分");
   key("Escape"); key("Escape",false);
-  checkHarvest();
+  await checkHarvest();
   for(const [i,flower] of rainbowFlowers.entries()) {
     expect(q<HTMLButtonElement>('[data-scene="meadow"]').hidden, "提前出现花海导航");
     world.switchScene("meadow"); expect(world.scene!=="meadow","未集齐时可以绕过入口");
-    world.switchScene(flower.scene,flower.approach);
+    await placeOnMap(flower.scene, flower.approach);
     await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));
     const photo=q<HTMLCanvasElement>("#flowers").getContext("2d")!;
     const pos=world.project({x:flower.x,y:flower.y-14}), scale=world.canvas.width/600;
@@ -298,16 +302,16 @@ async function checkAll() {
   checkQuietEffect(q(".star-whisper"),false,"返回庭院后");
   expect(Math.hypot(world.player.x-meadowGate.approach.x,world.player.y-meadowGate.approach.y)<3,"返回落脚点错误");
   world.interact(); await insideMeadow();
-  log("实体花门可往返，营火可坐，鼠标寻路和 E 均能拾星，已拾署名可在瓶中重读");
+  log("七色传送阵可往返，营火可坐，鼠标寻路和 E 均能拾星，已拾署名可在瓶中重读");
   const initialX=world.player.x;
   key("ArrowRight"); await wait(()=>world.player.x>initialX+10); key("ArrowRight",false);
   await wait(()=>landing()?.x===world.player.x && landing()?.y===world.player.y);
   const initialY=world.player.y;
   key("ArrowDown"); await wait(()=>world.player.y>initialY+10); key("ArrowDown",false);
-  q(".save-now").click();
-  expect(landing()?.x===world.player.x && landing()?.y===world.player.y && q(".save-status").textContent?.includes("本机已保存 · 花海"),"手动保存没有记住地图上的实际落脚点");
+  await wait(()=>landing()?.scene===world.scene && landing()?.x===world.player.x && landing()?.y===world.player.y);
+  expect(q(".save-status").textContent?.includes("本机已保存 · 花海"),"自动保存后没有显示当前地图");
   sessionStorage.setItem(space+"expected",JSON.stringify({x:world.player.x,y:world.player.y}));
-  log("移动时自动存下草地上的实际位置；手账的保存按钮立即记录新位置并显示地图名");
+  log("连续移动后自动记住了花海里的实际落脚点，状态栏显示已保存的地图");
 }
 async function run(check:()=>Promise<void>) {
   q<HTMLButtonElement>("#verify").disabled=true; q("#report").textContent="验收中…"; q("#evidence").replaceChildren();
@@ -482,7 +486,7 @@ q("#check-astrolabe").addEventListener("click",()=>void run(async()=>{
   expect(q(".activity-status").textContent?.includes("西廊"),"南阶手记没有方位线索");
   q(".activity-close").click();
   openKeepsakes();
-  expect(q<HTMLButtonElement>("[data-notebook]").disabled && !state().residents.guardianInvited,"看过南阶线索就提前获得了手记");
+  expect(!document.querySelector("[data-notebook]") && !state().residents.guardianInvited,"看过南阶线索就提前获得了手记");
   q(".bag-close").click();
   const firstRing = ringSpots[1];
   world.visit(firstRing.id); await wait(()=>!world.available(firstRing));
@@ -493,7 +497,7 @@ q("#check-astrolabe").addEventListener("click",()=>void run(async()=>{
   world.visit(guardian.id); await wait(()=>q(".activity-actions").textContent?.includes("什么尝试") === true);
   chooseActivity("什么尝试"); chooseActivity("好，我去试一下");
   expect(state().residents.guardianInvited,"接受守护者邀请没有存下赠书记录");
-  chooseActivity("翻开遗迹手记");
+  chooseActivity(actionOption("翻开遗迹手记"));
   expect(q('.ruin-journal [data-ring="star"]').dataset.found==="true","领书前拾到的星纹环没有补入拓印");
   const readingAt = { ...world.player };
   const forwardPage = () => {
@@ -515,7 +519,7 @@ q("#check-astrolabe").addEventListener("click",()=>void run(async()=>{
   expect(readJournal(1).querySelectorAll('[data-seal][data-earned="true"]').length===2,"寻物的两枚印章不正确");
   q(".bag-close").click();
   log("南阶指路、守护者赠书与中途退出正常，先拾的星纹环也出现在背包的拓印页");
-  const action=chooseActivity;
+  const action=(prefix: string) => chooseActivity("⌈" + prefix);
   world.visit(moonPlate.id);await wait(()=>q(".activity-actions").textContent?.includes("装入三枚")===true);
   action("装入"); action("转内环"); expect(state().astrolabe.turns[0]===2,"转环没有立即存下");
   q(".activity-close").click();world.interact();
@@ -540,16 +544,16 @@ q("#check-astrolabe").addEventListener("click",()=>void run(async()=>{
 q("#check-ruins").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").classList.contains("dismissed")) await start();
   q(".reset-button").click(); q(".reset-confirm").click();
-  world.switchScene("town",townEchoGate.approach);
+  await placeOnMap("town", townEchoGate.approach);
   key("ArrowUp"); await wait(()=>world.scene==="ruins" && !world.paused); key("ArrowUp",false);
   expect(!world.available(echoPool) && q("#location-name").textContent?.includes("回声遗迹"),"回声遗迹入口或秘密初始状态有误");
   log("步行穿过东北旧矿场的山洞，安全落在遗迹南阶");
   const action=(title:string)=>{
-    const button=[...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")].find(b=>b.textContent===title);
+    const button=[...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")].find(b=>b.textContent===actionOption(title));
     expect(button,"缺少祭坛操作："+title);button!.click();
   };
   world.visit(echoAltar.id); await wait(()=>q(".activity-status").textContent?.includes("石刻 0/3")===true);
-  expect(!q(".activity-actions").textContent?.includes("轻敲"),"空拓本提前开放解谜"); action("继续探索");
+  expect(!q(".activity-actions").textContent?.includes("轻敲"),"空拓本提前开放解谜"); action("离开祭坛");
   for(const id of ["snake","mines","miner"]) {
     world.visit("arcade-"+id); await wait(()=>!q(".arcade-hud").hidden);
     expect(q(".arcade-hud").dataset.setting==="ruins" && !!q(".echo-inscription").textContent,"石室试炼没有对应拓本");
@@ -566,7 +570,7 @@ q("#check-ruins").addEventListener("click",()=>void run(async()=>{
   expect(world.available(echoPool) && state().echoes.played===3,"正确旋律没有唤醒听月泉");
   action("去水边看看"); await wait(()=>state().echoes.listened);
   expect(q(".activity-status").textContent?.includes("365"),"彩蛋内容未显示");
-  action("再听一遍"); action("把晚安收好");
+  action("再听一遍收音机里的晚安"); action("离开水边的收音机");
   world.visit(elderPlaces.ruins.id); await wait(()=>q(".activity-actions").textContent?.includes("什么尝试")===true);
   chooseActivity("什么尝试"); chooseActivity("好，我去试一下"); q(".activity-close").click();
   log("祭坛保留错音前的进度，三音唤醒水中电台，周年彩蛋可重听");
@@ -606,7 +610,7 @@ q("#check-lanes").addEventListener("click",()=>void run(async()=>{
   await capture("晚安小屋 · 窗边的白色贝斯",403,92,146);
   log("点琴身打开周年琴谱，鼠标和键盘都能跟弹，Esc 返回原地");
   const flower=rainbowFlowers[0];
-  world.switchScene("garden",flower.approach);
+  await placeOnMap("garden", flower.approach);
   await capture("周年庭院 · 茶桌旁的七色小花",flower.x+6,flower.y-13,115);
   clickAt(flower.x,flower.y-8); await wait(()=>state().rainbowFlowers.includes(flower.id));
   const [south,bridge,townSouth,stairs]=townGates;
@@ -631,13 +635,13 @@ q("#check-lanes").addEventListener("click",()=>void run(async()=>{
   await walkUntil("ArrowUp",()=>reached(bridge));
   log("南门步行进入、互动返回；北桥路牌可点，从镇北石阶步行可原路返回");
   for(const f of rainbowFlowers) if(!state().rainbowFlowers.includes(f.id)) {
-    world.switchScene(f.scene,f.approach); world.interact();
+    await placeOnMap(f.scene, f.approach); world.interact();
   }
   world.switchScene("garden",meadowGate.approach); world.interact(); await insideMeadow();
   await capture("夜间花海 · 月芽传送阵",83,224,146);
   await walkUntil("ArrowLeft",()=>wait(()=>world.scene==="garden" && !world.paused));
-  expect(Math.hypot(world.player.x-meadowGate.approach.x,world.player.y-meadowGate.approach.y)<1,"踏入阵心没有回到七色花门");
-  log("月芽传送阵不会在落地时触发；走入阵心才返回庭院七色花门");
+  expect(Math.hypot(world.player.x-meadowGate.approach.x,world.player.y-meadowGate.approach.y)<1,"踏入阵心没有回到七色传送阵旁");
+  log("月芽传送阵不会在落地时触发；走入阵心才返回庭院七色传送阵旁");
 }));
 q("#check-bass").addEventListener("click",()=>void run(async()=>{
   if(!q(".intro-screen").classList.contains("dismissed")) await start();
@@ -672,16 +676,18 @@ q("#check-bass").addEventListener("click",()=>void run(async()=>{
   sameRoomFrame();
   log("点琴身、错弦、示范、打开背包再返回、全鼠标与全键盘各弹完 16 音、赠曲本机记录均正常");
   const dbg=(cmd:string)=>q<HTMLButtonElement>('[data-debug="'+cmd+'"]');
-  q(".debug-trigger").click(); dbg("wardrobe").click(); expect(dbg("wardrobe").getAttribute("aria-pressed")==="false","试穿开关没有切换");
-  dbg("wardrobe").click(); dbg("flower-door").click();expect(world.canEnter("meadow") && state().rainbowFlowers.length===0,"临时花门污染了花谱");
-  dbg("flower-door").click(); expect(!world.canEnter("meadow"),"临时花门没有关闭");
+  const openDebug = () => { if (q("#game-debug-panel").hidden) q(".debug-trigger").click(); };
+  openDebug(); expect(dbg("wardrobe").getAttribute("aria-pressed")==="false","试穿应默认关闭");
+  dbg("wardrobe").click(); expect(dbg("wardrobe").getAttribute("aria-pressed")==="true","试穿开关没有切换");
+  dbg("wardrobe").click(); dbg("flower-door").click();expect(world.canEnter("meadow") && state().rainbowFlowers.length===0,"传送阵预览更改了采集进度");
+  dbg("flower-door").click(); expect(!world.canEnter("meadow"),"传送阵预览没有关闭");
   dbg("map:town").click(); await wait(()=>world.scene==="town" && !world.suspended);
   const photos=q("#town-samples");photos.replaceChildren();
   const rosters=new Set<string>();
   for(const [phase,label,count] of [["dawn","清晨",8],["day","白昼",8],["dusk","黄昏",10],["night","星夜",7]] as const) {
-    q(".debug-trigger").click();dbg("time:"+phase).click();
+    openDebug();dbg("time:"+phase).click();
     const residents=world.config.spots.map(s=>s.id).filter(id=>id.startsWith("npc-"));
-    expect(world.suspended && residents.length===count,"打开调试面板时小镇班次未同步");
+    expect(!world.suspended && !q("#game-debug-panel").hidden && residents.length===count,"打开调试面板时小镇班次未同步");
     rosters.add(residents.sort().join(","));
     q(".debug-close").click();
     await new Promise<void>(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r())));
@@ -693,7 +699,7 @@ q("#check-bass").addEventListener("click",()=>void run(async()=>{
   expect(rosters.size===4,"小镇四个时段的居民名单没有切换");
   q(".debug-trigger").click();dbg("time:auto").click();q(".debug-close").click();
   for (const [id, { scene }] of Object.entries(townInteriors)) {
-    q(".debug-trigger").click();
+    openDebug();
     const destination = dbg("map:" + id);
     expect(destination?.textContent === scene.title, "调试地图缺少室内入口：" + scene.title);
     destination.click();
@@ -701,7 +707,7 @@ q("#check-bass").addEventListener("click",()=>void run(async()=>{
     expect(world.player.x === scene.spawn.x && world.player.y === scene.spawn.y,
       "调试室内落点错误：" + scene.title);
   }
-  q(".debug-trigger").click(); dbg("map:town").click();
+  openDebug(); dbg("map:town").click();
   await wait(() => world.scene === "town" && !world.paused && !world.suspended);
   log("调试地图定位可从街道直达室内、在七栋室内间切换，并返回小镇街道");
   const board=world.canvas.parentElement!; board.scrollIntoView({block:"center",behavior:"instant"});
@@ -716,13 +722,13 @@ q("#check-bass").addEventListener("click",()=>void run(async()=>{
   key("Escape"); expect(!q(".arcade-hud").hidden && !world.suspended,"背包关闭后小游戏未恢复");
   expect(Math.abs(scrollY-sy2)<3,"收起背包后没有回到打开前的视口");
   key("Escape");
-  log("调试试穿、花门预览与真实存档相互独立；小镇四时段、跳台开局不滚动、小游戏内打开背包均通过");
+  log("调试试穿、传送阵预览与真实存档相互独立；小镇四时段、跳台开局不滚动、小游戏内打开背包均通过");
 }));
 q("#camp-preview").addEventListener("click",()=>void run(async()=>{
   if (!q(".intro-screen").hidden && world.paused) await start();
   for (const flower of rainbowFlowers) {
     if (state().rainbowFlowers.includes(flower.id)) continue;
-    world.switchScene(flower.scene,flower.approach);
+    await placeOnMap(flower.scene, flower.approach);
     world.interact();
   }
   q('[data-scene="meadow"]').click(); await insideMeadow();
@@ -739,13 +745,20 @@ q("#check-sound").addEventListener("click",()=>void run(async()=>{
   await meterContext.resume();
   if(!q(".intro-screen").classList.contains("dismissed")) await start();
   const speaker=q<HTMLButtonElement>(".sound-toggle");
+  const lower=q<HTMLButtonElement>(".volume-down");
+  const raise=q<HTMLButtonElement>(".volume-up");
+  const level=q<HTMLOutputElement>(".volume-value");
+  const volumeTools=q(".window-bar .volume-tools");
+  expect(volumeTools && [speaker,lower,level,raise].every(control=>volumeTools.contains(control)) &&
+    !q(".scene-nav").querySelector(".volume-tools"),"总音量控件应与画面上方的小喇叭放在一起");
   if(state().muted) speaker.click();
   if(state().bgm) q(".music-toggle").click();
-  if(!state().sound) {
-    q(".help-button").click();
-    q(".effects-toggle").click();
-    q(".help-close").click();
-  }
+  const effects=q<HTMLButtonElement>(".window-tools .effects-toggle");
+  expect(!!effects && !q("#game-help").contains(effects),"独立音效开关应在画面上方，不应藏在说明里");
+  if(state().sound) effects.click();
+  expect(!state().sound && effects.getAttribute("aria-pressed")==="false","音效按钮未关闭互动音效");
+  effects.click();
+  expect(state().sound && effects.getAttribute("aria-pressed")==="true","音效按钮未恢复互动音效");
   const beforeMute=state();
   speaker.click();
   world.switchScene("room",bassStand.spot.approach); world.interact();
@@ -766,11 +779,15 @@ q("#check-sound").addEventListener("click",()=>void run(async()=>{
   expect(!restored.muted && restored.bgm===beforeMute.bgm && restored.sound===beforeMute.sound &&
     restored.bassSound===beforeMute.bassSound && restored.volume===beforeMute.volume,"恢复喇叭后没有保留原混音");
   if(!restored.bassSound || restored.volume===0) voice.click();
-  const lower=q<HTMLButtonElement>(".volume-down");
   for(let step=0;step<11 && !lower.disabled;step++) lower.click();
+  expect(lower.disabled && level.value==="0%","调至最低音量后按钮或百分比没有更新");
   expect(!q(".bass-muted-tip").hidden && q(".bass-muted-tip").textContent?.includes("总音量为零"),"琴谱没有解释总音量为零");
   q(".bass-voice").click();
   expect(q(".bass-muted-tip").hidden && state().volume===.45,"一键恢复总音量失败");
+  raise.click();
+  expect(state().volume===.55 && level.value==="55%","提高总音量后存档与显示不一致");
+  lower.click();
+  expect(state().volume===.45 && level.value==="45%","降低总音量后存档与显示不一致");
   const measure=async(audio:HTMLAudioElement,trigger:()=>void,label:string)=>{
     let meter=meters.get(audio);
     if(!meter) {
@@ -804,7 +821,7 @@ q("#check-sound").addEventListener("click",()=>void run(async()=>{
 q("#check-market").addEventListener("click",()=>void run(async()=>{
   if(!q(".intro-screen").classList.contains("dismissed")) await start();
   q(".reset-button").click(); q(".reset-confirm").click();
-  world.switchScene("town",{x:572,y:644});
+  await placeOnMap("town", {x:572,y:644});
   key("ArrowLeft");try{await wait(()=>world.player.x<=518);}finally{key("ArrowLeft",false);}
   expect(world.player.y===644,"没有跨过南侧路沿");
   const moon=rabbitPlatforms[1];
@@ -814,7 +831,7 @@ q("#check-market").addEventListener("click",()=>void run(async()=>{
   await wait(()=>!q(".arcade-hud").hidden);
   expect(q(".arcade-title").textContent==="月兔跳一跳","未能从主街进入月兔台");
   q(".arcade-close").click(); log("方向键从主街跨过路沿，点击月牙跳台后进入跳一跳");
-  const orange=rainbowFlowers[1];world.switchScene(orange.scene,orange.approach);world.interact();
+  const orange=rainbowFlowers[1];await placeOnMap(orange.scene,orange.approach);world.interact();
   expect(state().rainbowFlowers.includes("prism-calendula"),"橙色金盏菊没有正常采集");
   const wreath=scenes.garden.spots.find(s=>s.id==="wreath")!;
   world.switchScene("garden",wreath.approach);world.interact();q(".activity-close").click();
@@ -826,8 +843,10 @@ q("#check-market").addEventListener("click",()=>void run(async()=>{
   debug("erase").click();debug("keep").click();
   expect(localStorage.getItem("fufu-souvenirs-v1")===bag && state().rainbowFlowers.includes(orange.id),"取消也清空了存档");
   debug("erase").click();debug("confirm-erase").click();
+  await wait(() => world.scene === "room" && !q(".intro-screen").classList.contains("dismissed"));
   expect(!landing() && !state().rainbowFlowers.length && !localStorage.getItem("fufu-souvenirs-v1"),"清档仍有收藏或旧位置");
   expect(world.scene==="room" && world.paused && !q(".intro-screen").classList.contains("dismissed"),"清档没有回到开始页");
+  expect(!q("#game-debug-panel").hidden, "清档后调试面板应保持打开");
   const empty=state(); expect(empty.muted===prefs.muted && empty.volume===prefs.volume && empty.bgm===prefs.bgm && empty.sound===prefs.sound && empty.bassSound===prefs.bassSound,"清档丢失声音设置");
   log("取消保留金盏菊和背包；确认清空后开始页、收集、位置及音量设置均正确");
 }));
@@ -844,7 +863,7 @@ if (sessionStorage.getItem(space+"reload")) {
     log("刷新后从「继续上次的冒险」进入花海，精确恢复上次站立位置");
     expect(state().rainbowFlowers.length===7 && !q<HTMLButtonElement>('[data-scene="meadow"]').hidden,"读档未恢复七花入口");
     expect(state().bedNoteUnlocked,"便签解锁没有保存在本机");
-    world.switchScene("challenge",scenes.challenge.hazards[2]);
+    await placeOnMap("challenge", scenes.challenge.hazards[2]);
     await wait(()=>world.scene==="room" && !q(".bed-note").hidden);
     log("已解锁便签的旧存档再次触发陷阱，也会自动展信");
     q(".note-close").click(); q(".stand-up").click();

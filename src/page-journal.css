@@ -8,6 +8,10 @@
   --page-line: #e5dace;
   width: min(1320px, calc(100% - 48px));
 }
+/* Frame the welcome screen with paper margins. Playing uses the full map layout. */
+@media (min-width: 1008px) {
+  .page-journal:has(.intro-screen:not(.dismissed)) { width: clamp(960px, 72%, 1320px); }
+}
 .page-journal .site-header { height: 80px; border-color: var(--page-line); }
 .page-journal .brand { font-size: 17px; letter-spacing: .3px; color: var(--page-ink); min-height: 44px; }
 .page-journal .brand small { color: var(--page-muted); letter-spacing: .5px; font-size: 12px !important; font-weight: 400; }
@@ -23,12 +27,192 @@
 .page-journal .date-stamp strong { font-size: 15px; letter-spacing: .5px; font-weight: 600; margin-top: 4px; color: #a46883; }
 .page-journal .date-stamp small { color: #907f82; line-height: 1.5; margin-top: 5px; font-size: 12px !important; }
 .page-journal .date-stamp i { background: #faf7f0; right: 8px; }
-.page-journal .adventure-layout { grid-template-columns: minmax(0,1fr) 272px; gap: 24px; align-items: start; }
-.game-stage-frame { position: relative; min-width: 0; }
-
-.page-journal .local-save { display: flex; margin-top: 13px; padding-top: 12px; border-top: 1px dashed #dfd2c6; gap: 8px; }
-.page-journal .local-save .save-status { flex: 1 1 120px; font-size: 12px !important; color: #867781; }
-.page-journal .local-save .save-now { min-height: 44px; padding: 6px 10px; font-size: 12px; border-color: #d7c6b7; background: #f9f0e3; color: #80675e; }
+.page-journal .adventure-layout {
+  grid-template-columns: minmax(0,1fr);
+  container: adventure / inline-size;
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+}
+html:has(.game-window :focus) { overflow-anchor: none; }
+.page-journal .game-window {
+  --bar-height: 44px;
+  --nav-height: 54px;
+  --touch-height: 0px;
+  --play-height: calc(100dvh - 18px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  --map-height: calc(var(--play-height) - var(--bar-height) - var(--nav-height) - var(--touch-height));
+  width: 100%;
+  justify-self: center;
+}
+.game-viewport, .game-controls { min-width: 0; }
+.game-viewport {
+  background: #f0eae7;
+  scroll-margin-block: calc(6px + env(safe-area-inset-top)) calc(6px + env(safe-area-inset-bottom));
+}
+.game-controls { container: controls / inline-size; background: #fcf8f2; }
+.game-stage-frame { position: relative; width: min(100%, calc(var(--map-height) * 1.5)); min-width: 0; margin-inline: auto; }
+.game-control-menu { flex: none; background: #fffaf2; border-bottom: 1px solid #e3d7cb; }
+.control-tabs { display: flex; align-items: stretch; gap: 3px; padding: 0 8px; border-bottom: 1px solid #e6d9cb; background: #f5ede8; }
+.control-tabs button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;
+  min-height: 44px; padding: 3px 7px; border: 0; border-bottom: 2px solid transparent;
+  font: inherit; font-size: 13px; color: #746572; background: transparent;
+}
+.control-tabs button[aria-selected="true"] { color: #74495e; border-color: #ab7189; font-weight: 650; }
+.control-tabs .icon { width: 15px; height: 15px; }
+.page-journal .control-tabs button:focus-visible { outline-offset: -3px; }
+#maps-panel { min-width: 0; }
+/* The nav retains its measurable width and height inside the collapsed panel. */
+#maps-panel[inert] { height: 0; visibility: hidden; overflow: hidden; }
+.game-controls .scene-nav { display: flex; flex-wrap: wrap; gap: 5px; padding: 7px 9px; border: 0; background: transparent; }
+.game-controls [data-scene="room"] { --ink: #895548; --wash: #fae9dc; --print-y: 0%; }
+.game-controls [data-scene="garden"] { --ink: #914d66; --wash: #f8e4e9; --print-y: 20%; }
+.game-controls [data-scene="challenge"] { --ink: #4b6d50; --wash: #e8efde; --print-y: 40%; }
+.game-controls [data-scene="town"] { --ink: #406b71; --wash: #e2efea; --print-y: 60%; }
+.game-controls [data-scene="meadow"] { --ink: #765780; --wash: #eee5f2; --print-y: 80%; }
+.game-controls [data-scene="ruins"] { --ink: #555e83; --wash: #e7e9f4; --print-y: 100%; }
+.game-controls .scene-nav > button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; padding: 4px 10px;
+  color: var(--ink, #744e64); border: 1px solid color-mix(in srgb, var(--ink, #744e64) 33%, #fffcf8); border-radius: 7px;
+  background: linear-gradient(#fffcf8, var(--wash, #f6e6ed)); font: inherit; font-size: 13px; line-height: 1.25; white-space: nowrap;
+}
+.game-controls .scene-nav > button[aria-pressed="true"] {
+  border-color: var(--ink); background: var(--wash); box-shadow: inset 0 -3px var(--ink); font-weight: 650;
+}
+.game-controls :is(.control-tabs, .scene-nav) button:enabled:hover { filter: brightness(.96); }
+.scene-nav .map-stamp { flex: none; width: 26px; height: 26px; }
+.map-stamp-frame { display: inline-grid; place-items: center; flex: none; }
+.map-note { display: none; }
+.game-meta .save-status { color: #736570; font-size: 12px; line-height: 1.5; }
+.achievement-book:not([hidden]) ~ .touch-controls { display: none; }
+.game-meta .garden-pocket {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 5px 14px; padding: 9px 12px;
+  color: #566554; background: #f0f2e9;
+}
+.game-meta .exploration-count { color: #805c72; white-space: nowrap; }
+.game-meta .day-hint { min-width: 0; color: #63715f; font-size: 12px; line-height: 1.5; }
+.page-journal .window-tools > .icon-button, .page-journal .volume-tools { border-radius: 7px; background: linear-gradient(#fffbff, #f2eaf5); }
+.page-journal .window-tools > button[aria-pressed="false"] { color: #8c7c8d; border-style: dashed; }
+.window-tools .music-toggle.muted { position: relative; }
+.window-tools .music-toggle.muted::after { content: ""; position: absolute; width: 17px; height: 1.5px; background: currentColor; transform: rotate(-48deg); }
+.game-controls .dpad button { color: #795a70; background: linear-gradient(#fffcf7, #f4e7eb); border-color: #d3bdc5; border-radius: 7px; }
+.game-controls .dpad button.pressed { background: #ebd6df; }
+.game-controls .touch-interact { color: #845671; border-color: #c9a8b5; border-radius: 14px; background: linear-gradient(#fff6f0, #efd6df); }
+.page-journal .help-close { color: #745067; border-radius: 7px; background: linear-gradient(#fffaf5, #f1e1e7); }
+.page-journal .game-help kbd { padding: 1px 4px; border: 1px solid #dac7ce; border-radius: 4px; background: #fff5ef; font: inherit; font-size: .9em; }
+@container controls (min-width: 760px) {
+  .game-control-menu { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: stretch; }
+  .control-tabs { border-bottom: 0; border-right: 1px solid #e6d9cb; }
+  .game-meta .day-hint { width: auto; margin-inline-start: auto; }
+}
+@media (pointer: coarse), (max-width: 600px) {
+  .page-journal .game-window { --touch-height: var(--dpad-height, 169px); }
+}
+@container controls (min-width: 245px) and (max-width: 560px) {
+  .control-tabs button { flex: 1; }
+  .game-controls .scene-nav { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .game-controls .scene-nav > button { padding-inline: 2px; gap: 3px; font-size: 12px; }
+  .scene-nav .map-stamp { width: 23px; height: 23px; }
+}
+/* At 880px the journal fits both a playable map and its rail, even on tall screens.
+   Short landscape windows can use the rail earlier because height limits the map. */
+@container adventure (min-width: clamp(420px, 150dvh - 130px, 880px)) {
+  .page-journal .game-window {
+    --side-controls: 1;
+    --controls-width: clamp(200px, 22cqw, 288px);
+    --map-height: calc(var(--play-height) - var(--bar-height));
+    width: min(100%, calc(var(--map-height) * 1.5 + var(--controls-width) + 2px));
+  }
+  .game-viewport { display: grid; grid-template-columns: minmax(0, 1fr) var(--controls-width); align-items: start; background: #fbf8f1; }
+  .game-viewport > .window-bar { grid-column: 1 / -1; }
+  .game-viewport > .game-stage-frame { width: 100%; }
+  .game-controls { display: flex; flex-direction: column; align-self: stretch; container-type: size; max-height: var(--map-height); border-left: 1px solid #e3d7cb; }
+  .game-controls .scene-nav { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 4px; padding: 6px; }
+  .game-controls .scene-nav > button { min-width: 0; gap: 3px; padding-inline: 2px; font-size: 12px; }
+  /* On short maps, reserve room for the headings and a usable row of stamps. */
+  .game-controls:has(> .achievement-book:not([hidden])) { container-type: inline-size; }
+  .game-controls > .achievement-book { flex: 1; container-type: size; min-height: 13.5rem; max-height: none; }
+  .achievement-book:not([hidden]) ~ .game-meta { display: none; }
+  .game-controls .touch-controls { flex: none; gap: 4px; justify-content: center; padding: 4px; }
+  .game-controls .touch-interact { flex: none; width: 46px; min-width: 44px; padding-inline: 2px; }
+  .game-meta { margin-top: auto; min-height: 0; overflow-y: auto; }
+  .game-meta .garden-pocket { flex-direction: column; align-items: flex-start; gap: 6px; }
+  @media (max-height: 480px) {
+    .game-controls .scene-nav { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .game-controls .scene-nav > button { flex-direction: column; padding: 2px; gap: 1px; }
+    .scene-nav .map-stamp { width: 21px; height: 21px; }
+    .game-controls .dpad { grid-template-rows: repeat(2, 44px); }
+    .game-controls .dpad :is(.dpad-left, .dpad-right) { grid-row: 1 / 3; align-self: center; height: 44px; }
+    .game-controls .dpad-down { grid-row: 2; }
+    .game-controls .dpad > span { display: none; }
+    .game-controls .touch-interact { height: 48px; gap: 1px; line-height: 1.15; }
+  }
+  @media (max-height: 360px) {
+    /* Let the status line follow the map instead of leaving a few scrollable pixels in the rail. */
+    .game-controls { display: contents; }
+    .game-viewport { grid-template-rows: auto auto 1fr auto; }
+    .game-stage-frame { grid-area: 2 / 1 / 4 / 2; }
+    .game-control-menu { grid-area: 2 / 2; }
+    .game-controls > .achievement-book { grid-area: 3 / 2; align-self: stretch; }
+    .game-controls .achievement-cover { padding-block: 6px; }
+    .game-controls .achievement-page { padding: 4px 9px 10px; }
+    .game-controls .touch-controls { grid-area: 3 / 2; align-self: start; }
+    .game-controls .touch-interact { align-self: flex-start; }
+    .game-meta { grid-area: 4 / 1 / 5 / -1; overflow: visible; }
+    .game-meta .garden-pocket { flex-direction: row; align-items: center; gap: 4px 12px; }
+  }
+}
+/* Let the destination list use the actual space between the tabs and the controls.
+   Only the side rail has block-size containment. The bottom toolbar stays compact. */
+@container controls (min-height: 465px) {
+  .game-control-menu:has(#maps-panel:not([inert])) { display: flex; flex: 1; min-height: 0; flex-direction: column; }
+  .game-control-menu .control-tabs { flex: none; }
+  #maps-panel:not([inert]) { flex: 1; min-height: 152px; container: destinations / size; }
+}
+@container destinations (min-height: 180px) and (max-height: 309.99px) {
+  .game-controls .scene-nav { height: 100%; grid-auto-rows: 1fr; align-items: stretch; }
+  .game-controls .scene-nav > button { flex-direction: column; gap: 2px; }
+}
+@container destinations (min-height: 310px) {
+  .game-controls .scene-nav {
+    height: 100%; display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-rows: 1fr; align-items: stretch;
+    gap: clamp(4px, 1.3cqh, 9px); padding: 8px;
+    background: repeating-linear-gradient(0deg, #f1e7db 0 1px, transparent 1px 22px), #fbf4e9;
+  }
+  .game-controls .scene-nav > button {
+    position: relative; isolation: isolate; overflow: hidden; flex-direction: row; justify-content: flex-start; gap: 9px; padding: 3px 7px;
+    text-align: left; white-space: normal; color: var(--ink); border-radius: 4px 9px 9px 4px;
+    background: linear-gradient(115deg, var(--wash), #fffcf6 78%); box-shadow: 0 2px 0 #dacdbb66;
+  }
+  /* The six miniature prints travel with the UI; no destination texture is requested here. */
+  .game-controls .scene-nav > button::before {
+    content: ""; position: absolute; z-index: -1; inset: 0 0 0 auto; height: 100%; aspect-ratio: 1; max-width: 40%; pointer-events: none;
+    background: url("./assets/map-postcards.webp?inline") right var(--print-y) / auto 600% no-repeat;
+    mask-image: linear-gradient(90deg, transparent, #0006 32%, #000 85%); opacity: .78;
+  }
+  .game-controls .scene-nav > button[aria-pressed="true"] {
+    background: linear-gradient(105deg, var(--wash) 40%, #fff9ed); box-shadow: inset 3px 0 var(--ink), 0 2px 0 #dacdbb77;
+  }
+  .game-controls .scene-nav > button[aria-pressed="true"]::after {
+    content: ""; position: absolute; inset: -1px 8px auto auto; width: 9px; height: 14px;
+    background: var(--ink); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 74%, 0 100%);
+  }
+  .scene-nav .map-stamp-frame {
+    width: clamp(36px, 9cqh, 52px); aspect-ratio: 1; border: 1px dashed color-mix(in srgb, var(--ink) 55%, #fff8e9);
+    border-radius: 3px; background: #fffaf0; box-shadow: inset 0 0 0 3px #fffcf5, inset 0 0 0 4px var(--wash);
+  }
+  .scene-nav .map-stamp { width: 70%; height: 70%; }
+  .scene-nav .map-copy { min-width: 0; }
+  .scene-nav .map-name { display: block; font-weight: 650; font-size: 15px; line-height: 1.4; }
+  .scene-nav .map-note { display: block; margin-top: 2px; font-size: 12px; font-weight: 400; line-height: 1.35; color: #655b60; }
+}
+@media (max-height: 600px) and (max-aspect-ratio: 6/5) {
+  .game-controls .touch-controls { padding: 6px 10px; gap: 8px; }
+  .game-controls .dpad { display: flex; gap: 2px; }
+  .game-controls .dpad button { width: 44px; height: 44px; }
+  .game-controls .dpad-left { order: -1; }
+  .game-controls .dpad-right { order: 1; }
+  .game-controls .dpad > span { display: none; }
+  .game-controls .touch-interact { width: 46px; height: 46px; gap: 0; }
+}
 
 .page-memory-section { margin-top: 42px; }
 .page-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-bottom: 21px; }
@@ -38,30 +222,16 @@
 .page-memory-cards { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; align-items: stretch; }
 .page-memory-card { appearance: none; min-width: 0; width: 100%; margin: 0; padding: 12px; display: flex; flex-direction: column; text-align: left; color: var(--page-ink); border: 1px solid #e2d2c4; border-radius: 10px; background: #fff9ed; box-shadow: 0 4px 0 #e6d9c64d; transition: transform .18s,border-color .18s; }
 .page-memory-card:hover { transform: translateY(-3px); border-color: #bf9d9f; }
-.page-memory-card .memory-cover { position: relative; display: block; width: 100%; height: 180px; min-height: 0; overflow: hidden; border-radius: 5px; background: #ede1d0; }
+.page-memory-card .memory-cover { display: block; width: 100%; aspect-ratio: 1.65; overflow: hidden; border: 1px solid #e7d8c4; border-radius: 5px; background: #f9ecda; }
 .memory-cover > img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.memory-cover .memory-postmark { position: absolute; left: 9px; top: 9px; padding: 5px 7px; display: flex; align-items: center; gap: 5px; border: 1px dashed #b28c9b; border-radius: 2px; background: #fff9e5eb; color: #9d7281; font-size: 12px; transform: rotate(-5deg); }
-.memory-postmark .icon { width: 14px; height: 14px; }
-.memory-cover .memory-flower-seal { position: absolute; right: 11px; bottom: 10px; width: 33px; height: 33px; display: grid; place-items: center; font-size: 25px; color: #fff0df; background: #c78c9d; border-radius: 50%; box-shadow: 0 1px 0 2px #e5bdc4; }
-.memory-letter { background: linear-gradient(155deg,#fffaf0,#faf0df); }
-.page-memory-card.memory-letter .memory-cover { background: radial-gradient(ellipse at center,#f4dfc54d,transparent 75%),#f7efe0; }
-.letter-envelope { display: block; width: 100%; height: 100%; transform: rotate(-3deg); }
-.memory-album { background: #fffdfa; border-color: #ded8d0; }
-.page-memory-card.memory-album .memory-cover { border: 7px solid #fffdfa; border-bottom-width: 29px; border-radius: 0; overflow: visible; box-shadow: 0 2px 6px #8879651a; }
-.memory-album .memory-cover > img { object-position: center 45%; }
-.photo-tape { position: absolute; width: 62px; height: 15px; background: #dacdb5a6; left: calc(50% - 31px); top: -12px; transform: rotate(-5deg); }
-.photo-caption { position: absolute; bottom: -24px; left: 0; right: 0; font-size: 12px; text-align: center; color: #9c7a87; }
-.page-memory-card.memory-cinema { border: 1px solid #c9d9dc; border-radius: 10px; background: #eef6f6; padding: 12px; color: var(--page-ink); }
-.memory-cinema .memory-cover { background: #cedde0; }
-.memory-cinema .cinema-play { position: absolute; inset: calc(50% - 22px) auto auto calc(50% - 22px); width: 44px; height: 44px; border-radius: 50%; background: #fff9e9e8; color: #a67b87; display: grid; place-items: center; padding-left: 3px; box-shadow: 0 2px 10px #58445033; font-size: 20px; }
-.memory-cinema .memory-film-label { position: absolute; right: 8px; bottom: 8px; color: #fff7e4; background: #665663bb; font-size: 12px; padding: 3px 8px; border-radius: 2px; }
+.memory-cover > img[hidden], .memory-cover .cover-fallback, .page-meadow-note > img[hidden] { display: none; }
+.memory-cover:has(img[hidden]) { display: grid; place-items: center; }
+.memory-cover img[hidden] + .cover-fallback { display: block; width: 28%; height: auto; color: #a47c89; }
 .page-memory-card .memory-card-copy { display: flex; flex-direction: column; flex: 1; min-width: 0; padding: 17px 9px 4px; }
 .page-memory-card .memory-card-title { font-size: 20px; font-weight: 650; line-height: 1.5; color: var(--page-ink); }
 .page-memory-card .memory-description { font-size: 15px; line-height: 1.8; color: var(--page-muted); margin-top: 6px; }
 .page-memory-card small { display: block; margin: 10px 0 12px; font-size: 12px !important; color: #9b7487; line-height: 1.7; }
-.page-memory-card.memory-cinema small { color: #65838c; }
 .page-memory-card .memory-card-action { margin-top: auto; padding-top: 12px; border-top: 1px dashed #decbbc; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 600; color: #9f6c82; min-height: 44px; }
-.memory-cinema .memory-card-action { color: #63838e; border-color: #bdcfd3; }
 .memory-card-action .icon { width: 16px; height: 16px; }
 
 .page-journal .page-meadow-note { display: flex; align-items: center; position: relative; isolation: isolate; overflow: hidden; border: 1px solid #aebbb0; border-radius: 10px; margin-top: 42px; padding: 30px 36px; min-height: 215px; text-align: left; background: #30413e; }
@@ -81,11 +251,7 @@
 .page-journal [data-page-ui] :is(button,a,summary):focus-visible { outline: 2px solid #b28394; outline-offset: 3px; }
 
 @media (max-width: 1099px) {
-  .page-journal .adventure-layout { grid-template-columns: minmax(0,1fr); gap: 22px; }
-  .page-journal .local-save { margin-top: 9px; padding-top: 8px; }
-  .page-journal .local-save .save-status { flex: 0 1 auto; }
   .page-journal .date-stamp { width: 148px; }
-  .page-memory-card .memory-cover { height: 155px; }
   .page-memory-card .memory-card-copy { padding: 14px 5px 3px; }
   .page-memory-card .memory-card-title { font-size: 18px; }
   .page-memory-card .memory-description { font-size: 14px; }
@@ -112,18 +278,8 @@
   .page-section-heading h2 { font-size: 23px; }
   .page-section-heading > p { font-size: 13px; }
   .page-memory-cards { grid-template-columns: 1fr; gap: 13px; }
-  .page-memory-card,.page-memory-card.memory-cinema { display: grid; grid-template-columns: 104px minmax(0,1fr); gap: 12px; padding: 10px; }
-  .page-memory-card .memory-cover { width: 100%; height: 100%; min-height: 151px; border-radius: 4px; }
-  .memory-cover > img { object-position: 52% 50%; }
-  .page-memory-card.memory-letter .memory-postmark { font-size: 0; left: 8px; top: 10px; padding: 5px; }
-  .memory-letter .memory-postmark .icon { width: 16px; height: 16px; }
-  .memory-cover .memory-postmark { left: 5px; top: 6px; font-size: 12px; padding: 4px; gap: 3px; }
-  .memory-postmark .icon { width: 11px; height: 11px; }
-  .memory-cover .memory-flower-seal { width: 26px; height: 26px; right: 8px; bottom: 9px; font-size: 21px; }
-  .page-memory-card.memory-album .memory-cover { border-width: 4px; border-bottom-width: 23px; min-height: 151px; }
-  .photo-caption { display: none; }
-  .photo-tape { width: 42px; left: calc(50% - 21px); height: 12px; top: -8px; }
-  .memory-cinema .memory-film-label { left: 5px; right: 5px; bottom: 5px; padding: 3px; font-size: 12px; text-align: center; }
+  .page-memory-card { display: grid; grid-template-columns: 104px minmax(0,1fr); gap: 12px; padding: 10px; }
+  .page-memory-card .memory-cover { align-self: center; aspect-ratio: 1; }
   .page-memory-card .memory-card-copy { padding: 2px 1px 0; }
   .page-memory-card .memory-card-title { font-size: 18px; }
   .page-memory-card .memory-description { font-size: 14px; line-height: 1.7; margin-top: 5px; }
@@ -144,12 +300,12 @@
   .page-journal .brand small { font-size: 12px !important; max-width: 180px; }
   .page-journal .bili-link .icon { display: none; }
   .page-journal .page-intro h1 { font-size: 24px; }
-  .page-memory-card,.page-memory-card.memory-cinema { grid-template-columns: 88px minmax(0,1fr); gap: 10px; padding: 9px; }
+  .page-memory-card { grid-template-columns: 88px minmax(0,1fr); gap: 10px; padding: 9px; }
   .page-memory-card .memory-card-title { font-size: 17px; }
 }
 /* Keep the existing welcome overlay inside the smallest 3:2 stage. The
    anniversary date now has its own compact stamp above the game. */
-@media (max-width: 540px) {
+@container (max-width: 540px) {
   .page-journal .intro-screen { padding: 6px 8px; }
   .page-journal .intro-screen > * { flex-shrink: 0; }
   .page-journal .intro-stars,.page-journal .intro-pill { display: none; }

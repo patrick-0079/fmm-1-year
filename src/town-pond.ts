@@ -1,6 +1,7 @@
 import waterMaskUrl from "./assets/town-pond-water.webp?no-inline";
 import { pondArtBounds, pondFishAt } from "./town-pond-motion.ts";
 import type { Rect } from "./core";
+import { requestSceneImage } from "./texture-cache";
 
 type Brush = CanvasRenderingContext2D;
 const palettes = [
@@ -67,21 +68,11 @@ function ripples(c: Brush, index: 0 | 1, time: number) {
 export class TownPond {
   private mask?: HTMLImageElement;
   private water?: Brush;
-  private retryAfter = 0;
   private lastFrame = NaN;
   draw(c: Brush, view: Rect, time: number, still: boolean) {
     const { x,y,w,h } = pondArtBounds;
     if (view.x > x+w || view.y > y+h || view.x+view.w < x || view.y+view.h < y) return;
-    if (!this.mask) {
-      if (performance.now() < this.retryAfter) return;
-      this.mask = new Image();
-      this.mask.decoding = "async";
-      this.mask.onerror = () => {
-        this.retryAfter = performance.now() + 15_000;
-        this.mask = undefined;
-      };
-      this.mask.src = waterMaskUrl;
-    }
+    if (!this.mask?.naturalWidth) this.mask = requestSceneImage(waterMaskUrl);
     if (!this.mask.complete || !this.mask.naturalWidth) return;
     if (!this.water) {
       const canvas = document.createElement("canvas");

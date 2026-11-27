@@ -60,7 +60,8 @@ try {
   // 10-second foreground intervals through the game's unmodified sampling timer.
   for (const days of [1, 3, 7]) {
     const id = "days-" + days;
-    const target = days * 600000;
+    const targetMinutes = days * 24;
+    const target = targetMinutes * 60_000;
     let elapsed = await played();
     while (elapsed < target - 10000) {
       await page.clock.fastForward(10000);
@@ -70,16 +71,49 @@ try {
     }
     assert.ok(!(await earned()).includes(id), "提前解锁 " + id);
     await page.clock.fastForward(target - elapsed + 2200);
-    assert.ok((await earned()).includes(id), "应在累计 " + days * 10 + " 分钟时解锁 " + id);
-    console.log("前台 " + days * 10 + " 分钟，徽章已保存");
+    assert.ok((await earned()).includes(id), "应在累计 " + targetMinutes + " 分钟时解锁 " + id);
+    console.log("前台 " + targetMinutes + " 分钟，徽章已保存");
   }
   assert.deepEqual((await earned()).sort(), catalogue);
   await page.reload();
   const total = catalogue.length;
+  await page.getByRole("tab", { name: "徽章", exact: true }).click();
   await page.locator(".achievement-count strong").filter({ hasText: `${total} / ${total}` }).waitFor();
+  await page.getByRole("tab", { name: "地图", exact: true }).click();
+  await page.locator('.scene-nav [data-scene="meadow"] .map-stamp').waitFor();
+  assert.equal(await page.locator(".scene-nav button:visible").count(), 6);
   assert.deepEqual((await earned()).sort(), catalogue);
   assert.deepEqual(errors, []);
   console.log(`${width}px · 同档从 0 到 ${total}，刷新后仍为 ${total} 枚`);
+
+  // Use the meadow unlocked by the seven real pickups above, including on a cold return.
+  await page.getByRole("button", { name: /继续上次的冒险/ }).click();
+  await page.setViewportSize({ width: 1413, height: 763 });
+  const meadow = page.getByRole("navigation", { name: "地图导航" }).getByRole("button", { name: "花海", exact: true });
+  await meadow.locator(".map-note").waitFor({ state: "visible" });
+  assert.equal(await meadow.locator(".map-note").innerText(), "拾落星 · 看星空");
+  const fitsRail = await page.locator(".scene-nav").evaluate(nav => {
+    const bounds = nav.getBoundingClientRect();
+    const cards = [...nav.querySelectorAll("button:not([hidden])")].map(button => button.getBoundingClientRect());
+    return cards.length === 6 && cards.every((box, i) => box.height >= 44 && box.bottom <= bounds.bottom &&
+      Math.abs(box.left - cards[0].left) < 1 && (!i || cards[i - 1].bottom <= box.top));
+  });
+  assert.ok(fitsRail, "全部六张地图卡应在同一侧栏内可见");
+  await meadow.click();
+  await page.locator('.scene-wrap[data-current-map="meadow"]').waitFor();
+  assert.equal(await meadow.getAttribute("aria-pressed"), "true");
+  await page.reload();
+  await page.getByRole("button", { name: /继续上次的冒险/ }).click();
+  await page.locator('.scene-wrap[data-current-map="meadow"]').waitFor();
+  assert.equal(await meadow.getAttribute("aria-pressed"), "true");
+  assert.equal(await page.locator('.scene-nav [aria-pressed="true"]').count(), 1);
+  if (process.argv[3]) await page.locator(".game-viewport").screenshot({ path: process.argv[3] });
+  const garden = page.getByRole("button", { name: "周年花园", exact: true });
+  await garden.click();
+  await page.locator('.scene-wrap[data-current-map="garden"]').waitFor();
+  assert.equal(await garden.getAttribute("aria-pressed"), "true");
+  assert.equal(await meadow.getAttribute("aria-pressed"), "false");
+  console.log("六张卡片同栏，花海往返、当前位置与花海续档通过");
   await page.close();
 
   // Repeat the reported sequence through native mouse/touch input on a fresh
@@ -87,19 +121,47 @@ try {
   const walk = await browser.newPage(device);
   walk.on("pageerror", error => errors.push(String(error)));
   await walk.route(/^https:\/\/cdn\./, route => route.abort());
-  await walk.goto(server.resolvedUrls.local[0] + "tests/exploration-fixture.html");
+  await walk.goto(server.resolvedUrls.local[0] + "tests/exploration-fixture.html", { waitUntil: "domcontentloaded" });
   const press = async (selector) => {
     const node = walk.locator(selector).first();
     if (device.hasTouch) await node.tap();
     else await node.click();
   };
+  const checkTapeKeepsake = async (status) => {
+    await press(".bag-toggle");
+    await press('.bag-tabs [data-tab="keepsakes"]');
+    const bag = walk.locator('.inventory-panel[data-tab="keepsakes"]');
+    await bag.locator(".bag-keepsakes").waitFor({ state: "visible" });
+    const tape = bag.locator("[data-garden-tape]");
+    if (status) {
+      assert.equal(await tape.count(), 1);
+      assert.ok(await tape.isVisible());
+      const text = await tape.innerText();
+      assert.ok(text.includes("周年录像带") && text.includes(status), text);
+      assert.ok(await tape.evaluate(card => {
+        const action = 'button, a[href], [role="button"], [tabindex="0"]';
+        return !card.matches(action) && !card.querySelector(action);
+      }), "录像带纪念卡只展示收藏状态");
+    } else {
+      assert.equal(await tape.count(), 0, "取带前背包里不应出现录像带");
+    }
+    await press(".bag-close");
+  };
   const chooseProp = async id => {
-    await walk.locator("#world").scrollIntoViewIfNeeded();
-    const { x, y } = await walk.evaluate(id => window.contentQA.point(id), id);
-    if (device.hasTouch) await walk.touchscreen.tap(x, y);
-    else await walk.mouse.click(x, y);
+    const canvas = walk.locator("#world");
+    await canvas.scrollIntoViewIfNeeded();
+    // Rotation can realign the toolbar. Use coordinates on the canvas, so a page
+    // scroll between measuring the prop and dispatching the tap keeps the same target.
+    const position = await canvas.evaluate((el, id) => {
+      const point = window.contentQA.point(id), bounds = el.getBoundingClientRect();
+      return { x: point.x - bounds.left, y: point.y - bounds.top };
+    }, id);
+    if (device.hasTouch) await canvas.tap({ position });
+    else await canvas.click({ position });
   };
   await press(".enter-button");
+  await checkTapeKeepsake(null);
+  await walk.setViewportSize(device.hasTouch ? { width: 844, height: 390 } : { width: 827, height: 763 });
   await chooseProp("album");
   await press(".photo-book-photo");
   await press(".photo-original-back");
@@ -109,12 +171,59 @@ try {
     const { scene, paused } = window.contentQA.snapshot();
     return scene === "garden" && !paused;
   });
+  await walk.setViewportSize(device.viewport);
   await chooseProp("danmaku");
+  await walk.locator(".activity-status").filter({ hasText: "小叶子" }).waitFor();
+  assert.ok(await walk.locator(".cinema-hud").isHidden());
+  await press(".activity-close");
+  const arrive = (scene, id) => walk.evaluate(([scene, id]) => window.contentQA.visit(scene, id), [scene, id]);
+  const interact = async () => {
+    if (device.hasTouch) await press(".touch-interact");
+    else { await walk.locator("#world").focus(); await walk.keyboard.press("e"); }
+  };
+  await arrive("garden", "xiaoye-plush");
+  await interact();
+  const clue = walk.getByRole("button", { name: "小叶子，你知道去花海的路怎么走吗？", exact: true });
+  await clue.click();
+  assert.match(await walk.locator(".activity-status").innerText(), /周年花园两朵[\s\S]*篝火的旁边[\s\S]*大屏幕/);
+  await press(".activity-close");
+  await press(".bag-toggle");
+  await press('.bag-tabs [data-tab="keepsakes"]');
+  await press("[data-flower-map]");
+  await walk.getByRole("button",{name:"返回纪念物"}).click();
+  await press(".bag-close");
+  const flowers = await walk.evaluate(async () => (await import("/src/rainbow-flowers.ts")).rainbowFlowers);
+  for (const { scene, id } of flowers) {
+    await arrive(scene, id);
+    await interact();
+    await walk.waitForFunction(id => window.contentQA.snapshot().progress.rainbowFlowers.includes(id), id);
+  }
+  await arrive("garden", "prism-arch");
+  await interact();
+  await walk.waitForFunction(() => window.contentQA.snapshot().scene === "meadow" && !window.contentQA.snapshot().paused);
+  await arrive("meadow", "meadow-garden-tape");
+  if (device.hasTouch) await chooseProp("meadow-garden-tape");
+  else await interact();
+  await walk.waitForFunction(() => window.contentQA.snapshot().progress.gardenTape === "carried");
+  assert.ok(await walk.evaluate(() => window.contentQA.snapshot().progress.achievements.earned.includes("garden-tape")));
+  await checkTapeKeepsake("已拾取");
+  await walk.reload({ waitUntil: "domcontentloaded" });
+  await press(".enter-button");
+  await checkTapeKeepsake("已拾取");
+  await arrive("garden", "danmaku");
+  await chooseProp("danmaku");
+  const insert = walk.getByRole("button", { name: "⌈放入录像带⌋", exact: true });
+  if (device.hasTouch) await insert.tap();
+  else await insert.click();
   await walk.locator(".cinema-hud").waitFor({ state: "visible" });
   assert.ok(await walk.evaluate(() => window.contentQA.snapshot().progress.achievements.earned.includes("memories")));
   await press(".cinema-leave");
+  await checkTapeKeepsake("已放入放映机");
+  await walk.reload({ waitUntil: "domcontentloaded" });
+  await press(".enter-button");
+  await checkTapeKeepsake("已放入放映机");
   assert.deepEqual(errors, []);
-  console.log("从小屋出生，" + (device.hasTouch ? "触屏" : "鼠标") + "点相册、单张照片、地图导航和大屏，自动寻路后盖章");
+  console.log("相册、周年海报、小叶子赠图、七色传送阵、篝火拾带、放映与勋章均通过。背包纪念卡在拾取和插带后分别刷新仍显示对应状态。");
 } finally {
   await browser?.close();
   await server.close();

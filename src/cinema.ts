@@ -1,10 +1,14 @@
 import type { World } from "./world";
+import type { GardenTape } from "./core";
 import { gardenFilm, gardenScreen, televisionSilhouette } from "./cinema-config";
+import { anniversaryPoster } from "./cinema-poster";
 import { drawGardenScreen } from "./cinema-screen";
 import { CinemaSession, mediaTime, containVideo } from "./cinema-state";
 import { duckMusic } from "./sound";
-import { FilmPreloader, downloadLabel } from "./film-preloader";
+import { FilmPreloader, downloadLabel, filmDownloadAmount } from "./film-preloader";
+import { traffic } from "./network-debug";
 import { reservedShortcut, readingTarget } from "./input";
+import { revealGame } from "./game-viewport";
 
 export class GardenCinema {
   private session = new CinemaSession();
@@ -18,9 +22,14 @@ export class GardenCinema {
   private download = new FilmPreloader(gardenFilm.src, () => this.render());
   private player = document.createElement("section");
   private expanded = false;
+  private preparing = false;
+  private resourcesReady = false;
+  private resourcesFailed = false;
   constructor(
     private world: World,
     private toast: (text: string) => void,
+    private prepareResources: () => Promise<void>,
+    private getTape: () => GardenTape,
   ) {
     const layers = world.getDepthLayers,
       tick = world.onTick,
@@ -51,7 +60,7 @@ export class GardenCinema {
     world.onTick = (dt, t) => {
       tick(dt, t);
       this.time = t;
-      if (this.active && world.scene !== "garden") this.close();
+      if (this.active && (world.scene !== "garden" || this.getTape() !== "inserted")) this.close();
       if (t - this.lastUi > 0.4) {
         this.lastUi = t;
         this.render();
@@ -138,8 +147,15 @@ export class GardenCinema {
     this.player.className = "cinema-player";
     this.player.hidden = true;
     this.player.setAttribute("aria-label", "周年视频全屏播放器");
-    this.player.innerHTML = `<div class="cinema-player-tools"><span></span><button class="cinema-shrink">返回地图内观看</button><button class="cinema-exit">离开放映</button></div><p class="cinema-player-loading" role="status"></p>`;
+    this.player.innerHTML = `<div class="cinema-player-tools"><span></span><button class="cinema-shrink">返回地图内观看</button><button class="cinema-exit">离开放映</button></div><div class="cinema-player-feedback"><p class="cinema-player-loading" role="status"></p></div>`;
     this.player.querySelector("span")!.textContent = gardenFilm.title;
+    for (const label of [this.hud.querySelector(".cinema-progress")!, this.player.querySelector(".cinema-player-loading")!]) {
+      const meter = document.createElement("progress");
+      meter.className = "cinema-download-meter";
+      meter.setAttribute("aria-label", "周年视频下载进度");
+      meter.hidden = true;
+      label.after(meter);
+    }
     this.player
       .querySelector(".cinema-shrink")!
       .addEventListener("click", () => this.shrink());
@@ -150,16 +166,32 @@ export class GardenCinema {
     document.addEventListener("fullscreenchange", () => {
       if (this.expanded && !document.fullscreenElement) this.shrink();
     });
-    this.ensureVideo();
-    this.preload(); // Start at page mount, before entering the game or TV.
+    const filmRate = traffic?.film;
+    if (filmRate) this.download.onBytes = bytes => filmRate.add(bytes, performance.now());
+    window.addEventListener("online", () => this.prepare());
+    this.render();
+  }
+  prepare() {
+    if (this.preparing || this.resourcesReady) return;
+    this.preparing = true;
+    this.resourcesFailed = false;
+    this.session.retry();
+    void this.prepareResources().then(() => {
+      this.resourcesReady = true;
+      this.ensureVideo();
+      this.preload();
+    }, () => {
+      this.resourcesFailed = true;
+      this.session.fail();
+    }).finally(() => { this.preparing = false; this.render(); });
   }
   get active() {
     return this.session.active;
   }
   open() {
-    if (this.world.scene !== "garden") return;
-    this.session.open();
+    if (this.world.scene !== "garden" || !this.session.open(this.getTape())) return;
     this.ensureVideo();
+    this.prepare();
     if (this.video!.readyState >= 3) this.session.ready();
     this.hud.hidden = false;
     this.world.onAchievementEvent("cinema-opened");
@@ -172,7 +204,7 @@ export class GardenCinema {
     this.world.canvas.parentElement!.classList.add("cinema-active");
     this.render();
     this.world.canvas.focus({ preventScroll: true });
-    this.world.canvas.scrollIntoView({ behavior: "smooth", block: "center" });
+    revealGame(this.world.canvas);
   }
   close() {
     if (!this.active) return;
@@ -190,6 +222,7 @@ export class GardenCinema {
   }
   reset() {
     this.close();
+    this.notified = false;
     if (this.video?.readyState) {
       this.video.currentTime = 0;
       this.session.pause();
@@ -212,7 +245,7 @@ export class GardenCinema {
     v.addEventListener("canplay", () => {
       this.session.ready();
       this.slow = false;
-      if (!this.active && !this.notified) {
+      if (!this.active && !this.notified && this.getTape() === "inserted") {
         this.toast("花园小电视准备好啦，随时回来按播放继续看 ♡");
         this.notified = true;
       }
@@ -222,10 +255,10 @@ export class GardenCinema {
     v.addEventListener("play", () => {
       if (this.active && this.expanded && !this.session.wanted)
         this.session.request();
-      if (!this.active || !this.session.wanted) v.pause();
+      if (!this.active || !this.session.wanted || this.getTape() !== "inserted") v.pause();
     });
     v.addEventListener("playing", () => {
-      if (!this.session.playing()) {
+      if (this.getTape() !== "inserted" || !this.session.playing()) {
         v.pause();
         return;
       }
@@ -269,7 +302,6 @@ export class GardenCinema {
     this.player.prepend(v);
   }
   private preload(replaceUnplayable = false) {
-    this.session.retry();
     void this.download
       .start(replaceUnplayable)
       .then((url) => {
@@ -323,7 +355,7 @@ export class GardenCinema {
   }
   private play() {
     const v = this.video;
-    if (!v || !this.session.request()) return;
+    if (!v || this.getTape() !== "inserted" || !this.session.request()) return;
     if (this.download.progress.state !== "ready" || !v.src) {
       this.render();
       return;
@@ -348,6 +380,7 @@ export class GardenCinema {
   private retry() {
     if (!this.video) return;
     this.session.retry();
+    if (!this.resourcesReady) { this.prepare(); return; }
     this.slow = false;
     this.notified = false;
     if (this.video.error) this.preload(true);
@@ -356,15 +389,21 @@ export class GardenCinema {
     this.render();
   }
   private render() {
-    const progress = downloadLabel(this.download.progress);
+    const progress = this.resourcesFailed ? "游戏资源未载齐，进入放映可重试" : downloadLabel(this.download.progress);
+    if (traffic) traffic.filmStatus = this.download.progress.source ? "使用本机缓存" : this.resourcesFailed ? "等待资源重试" :
+      ({ queued: "等待游戏资源", checking: "核对本机版本", loading: "下载中", ready: "已完成", error: "下载失败" })[this.download.progress.state];
     const shortcut = document.querySelector(".cinema-shortcut small");
-    if (shortcut) shortcut.textContent = progress;
+    if (shortcut) {
+      const tape = this.getTape();
+      shortcut.textContent = tape === "missing" ? "周年海报 · 找小叶子打听录像带" :
+        tape === "carried" ? "已拿到录像带 · 去花园放入放映机" : progress;
+    }
     if (!this.active) return;
     const v = this.video,
       s = this.session.stage;
     const messages: Record<typeof s, string> = {
       idle: "正在准备花园小电视…",
-      loading: "LOADING… 周年视频正在加载，可以先离开逛逛，稍后回来再看。",
+      loading: "放映机正在加载周年录像，可以先去花园逛逛，稍后回来再看。",
       ready:
         "画面准备好了 · 按播放开始观看。离开后再回来，缓冲和观看位置都会保留。",
       playing: "正在播放 · 离开时会暂停，回来继续看。",
@@ -383,14 +422,22 @@ export class GardenCinema {
     }
     const time = v ? mediaTime(v.currentTime) : "00:00",
       duration = v ? mediaTime(v.duration) : "--:--";
-    this.hud.querySelector(".cinema-progress")!.textContent =
-      `观看 ${time} / ${duration} · ${progress}`;
+    const download = this.download.progress, downloading = download.state === "loading";
+    this.hud.querySelector(".cinema-progress")!.textContent = downloading
+      ? "下载 " + filmDownloadAmount(download) : `观看 ${time} / ${duration} · ${progress}`;
     const loading = this.player.querySelector<HTMLElement>(
       ".cinema-player-loading",
     )!;
-    loading.hidden =
-      this.download.progress.state === "ready" && !!v?.readyState;
-    loading.textContent = progress + " · 可以先返回花园，稍后回来观看";
+    loading.hidden = download.state === "ready" && !!v?.readyState && s !== "error";
+    loading.textContent = s === "error" ? "视频加载失败，可返回地图重试" :
+      downloading ? "正在下载 · " + filmDownloadAmount(download) :
+      download.state === "ready" ? "下载完成，正在准备画面…" : progress;
+    for (const surface of [this.hud, this.player]) {
+      const meter = surface.querySelector<HTMLProgressElement>(".cinema-download-meter")!;
+      meter.hidden = !downloading;
+      if (downloading && download.total) { meter.max = download.total; meter.value = download.received; }
+      else meter.removeAttribute("value");
+    }
     const button = this.hud.querySelector<HTMLButtonElement>(".cinema-play")!;
     button.textContent = this.session.wanted
       ? "暂停 / 取消等待"
@@ -416,6 +463,11 @@ export class GardenCinema {
   }
   private draw(c: CanvasRenderingContext2D) {
     if (this.world.scene !== "garden") return;
+    if (this.getTape() !== "inserted") {
+      const poster = anniversaryPoster();
+      drawGardenScreen(c, ctx => ctx.drawImage(poster, 0, 0, gardenScreen.w, gardenScreen.h));
+      return;
+    }
     const box = gardenScreen,
       v = this.video,
       s = this.session.stage;
@@ -432,7 +484,9 @@ export class GardenCinema {
         }
       }
       const loading = s === "loading" || s === "buffering";
-      if (!v || loading || s === "error") {
+      const download = this.download.progress;
+      const downloading = download.state === "loading";
+      if (!v || loading || downloading || s === "error") {
         if (v && this.session.hasFrame) c.fillStyle = "#25263ddd";
         else c.fillStyle = "#25263d";
         c.fillRect(box.x, box.y, box.w, box.h);
@@ -440,7 +494,7 @@ export class GardenCinema {
         c.fillStyle = "#f8dfb0";
         c.font = '7px "Microsoft YaHei","PingFang SC",sans-serif';
         c.fillText(
-          s === "error" ? "画面还在路上" : v ? "LOADING…" : "芙芙 · 一周年放映",
+          s === "error" ? "画面还在路上" : "正在加载周年录像…",
           box.x + box.w / 2,
           box.y + 21,
         );
@@ -449,13 +503,17 @@ export class GardenCinema {
         c.fillText(
           s === "error"
             ? "按互动重试 · 或稍后回来"
-            : v
+            : downloading ? filmDownloadAmount(download) : download.state === "queued" ? "资源就绪后开始下载" : v
               ? "可以先去逛逛，回来再看"
               : "走近小电视，按 E / 右键",
           box.x + box.w / 2,
           box.y + 34,
         );
-        if (loading)
+        if (downloading && download.total) {
+          const left = box.x + 13, width = box.w - 26;
+          c.fillStyle = "#756482"; c.fillRect(left, box.y + 39, width, 3);
+          c.fillStyle = "#efbed2"; c.fillRect(left, box.y + 39, Math.min(1, download.received / download.total) * width, 3);
+        } else if (loading)
           for (let i = 0; i < 5; i++) {
             c.fillStyle =
               i === Math.floor(this.time * 4) % 5 ? "#ffd489" : "#8e7eae";

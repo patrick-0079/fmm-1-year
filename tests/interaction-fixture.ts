@@ -8,7 +8,7 @@ import { whenWardrobeReady } from "../src/item-art";
 import type { Engine, BlocksGame, HopGame } from "../src/arcade-engines";
 import { ARCADES } from "../src/town-data";
 import type { GameId } from "../src/arcade-engines";
-import { ITEMS, INVENTORY_KEY, type ItemId } from "../src/items";
+import { ITEMS, INVENTORY_KEY, starterItems, type ItemId } from "../src/items";
 import { GardenLife } from "../src/garden-life";
 import type { GiftUnwrapping } from "../src/gift-unwrapping";
 
@@ -37,7 +37,8 @@ const arcade = new Arcade(world, activities, inventory, (id, score) => {
 });
 const gardenMemory = {decoratorMet:false,rabbitIntroduced:false};
 const guests = new GardenLife(world, activities, inventory, () => gardenMemory, () => {});
-world.scene = "town";
+await world.prepareScene("town");
+world.switchScene("town");
 const engine = () => (arcade as unknown as { engine: Engine }).engine;
 const status = () => document.querySelector(".arcade-status")?.textContent ?? "";
 const assert = (condition: unknown, message: string) => { if (!condition) throw new Error(message); };
@@ -47,7 +48,13 @@ function bagButton(selector: string) {
   if (!button || button.disabled) throw new Error("背包里没有可操作的按钮 " + selector);
   return button;
 }
-const selectItem = (id: ItemId) => bagButton(`[data-select="${id}"]`).click();
+function selectItem(id: ItemId) {
+  if (!bag.querySelector(`[data-select="${id}"]`)) {
+    bag.querySelector<HTMLButtonElement>("[data-choose-category]")?.click();
+    bagButton(`[data-category="${ITEMS[id].slot}"]`).click();
+  }
+  bagButton(`[data-select="${id}"]`).click();
+}
 const confirmItem = (id: ItemId) => bagButton(`[data-equip="${id}"]`).click();
 const key = (key: string, init: KeyboardEventInit = {}, target: Element = canvas) => {
   const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init });
@@ -73,10 +80,40 @@ async function check(name: string, run: () => void | Promise<void>) {
   document.querySelector("#results")!.append(li);
 }
 
-await check("默认试穿全部饰品，关闭后恢复真实搭配，试玩时领取的奖励可以存档", () => {
+await check("纪念物只展示已取得的收藏，地图可回看，小镇小物逐件出现", () => {
+  inventory.open();
+  bagButton('[data-tab="keepsakes"]').click();
+  assert(bag.querySelector(".bag-keepsakes-empty") && !bag.querySelector(".bag-keepsake"), "空背包展示了未取得的收藏");
+  inventory.collectFlowerMap();
+  inventory.collectFlowerMap();
+  assert(bag.querySelectorAll(".bag-keepsake").length === 1 && JSON.parse(saves.get(INVENTORY_KEY)!).flowerMap === true, "重复打听线索没有保存唯一的地图");
+  bagButton("[data-flower-map]").click();
+  assert(bag.querySelector(".xiaoye-map-paper") && world.suspended, "展开地图时无法专心阅读");
+  const chart = bag.querySelector<HTMLCanvasElement>(".xiaoye-treasure-chart")!;
+  const ink = chart.getContext("2d")!.getImageData(0, 0, chart.width, chart.height).data;
+  let crossPixels = 0;
+  for (let i = Math.floor(chart.height / 2) * chart.width * 4; i < ink.length; i += 4)
+    if (ink[i] === 187 && ink[i + 1] === 81 && ink[i + 2] === 77 && ink[i + 3] > 200) crossPixels++;
+  assert(crossPixels > 80, "地图下半部的营地旁没有画出宝藏红叉");
+  const places = bag.querySelector<HTMLDetailsElement>(".xiaoye-map-key")!;
+  assert(!places.open, "文字清单遮住了藏宝路线");
+  places.querySelector("summary")!.click();
+  assert(places.open && places.querySelectorAll("li").length === 7, "展开对照清单没有七朵花");
+  bagButton("[data-keepsakes]").click();
+  assert(document.activeElement === bagButton("[data-flower-map]") && !world.suspended, "收起地图后未返回地图卡片");
+  inventory.townKeepsakes = () => ({items:["books"]});
+  inventory.refreshTownKeepsakes();
+  bagButton("[data-town-keepsakes]").click();
+  assert(bag.querySelectorAll("[data-town-item]").length === 1 && bag.querySelector('[data-town-item="books"]'), "小镇小物展示了尚未领取的纪念品");
+  inventory.townKeepsakes = () => ({items:[]});
+});
+
+await check("默认展示真实收藏，手动试穿后可以恢复真实搭配并保存试玩时领取的奖励", () => {
   const switchMode = () => inventory.setFitting(!inventory.fitting);
   inventory.open();
-  assert(bag.querySelectorAll("[data-select]:not(.is-locked)").length === Object.keys(ITEMS).length, "默认可试穿的数量有误");
+  assert(!inventory.fitting && !!bag.querySelector(".bag-item.is-locked"), "首次打开衣橱应只显示真实收藏可用");
+  switchMode();
+  assert(inventory.state.owned.length === Object.keys(ITEMS).length && !bag.querySelector(".bag-item.is-locked"), "手动开启后可试穿的数量有误");
   const before = saves.get(INVENTORY_KEY);
   selectItem("starShoes");
   assert(!world.equipment.shoes && saves.get(INVENTORY_KEY) === before, "挑选配饰就更改了地图或存档");
@@ -89,13 +126,13 @@ await check("默认试穿全部饰品，关闭后恢复真实搭配，试玩时�
   assert(world.equipment.shoes === "starShoes" && !inventory.has("starShoes"), "试穿篡改了收集进度");
   inventory.grant("anniversaryPin");
   switchMode();
-  assert(!world.equipment.shoes && bag.querySelectorAll("[data-select]:not(.is-locked)").length === 1, "关闭试穿后未还原");
+  assert(!world.equipment.shoes && inventory.state.owned.length === starterItems.length + 1, "关闭试穿后未还原");
   selectItem("starShoes");
   assert(bag.querySelector("[data-equip=starShoes]:disabled") && bag.textContent?.includes(ITEMS.starShoes.source), "缺少未收集配饰的来源说明");
   selectItem("anniversaryPin"); confirmItem("anniversaryPin");
   switchMode(); selectItem("petCat"); confirmItem("petCat");
   const saved = JSON.parse(saves.get(INVENTORY_KEY)!);
-  assert(saved.owned.length === 1 && saved.equipped.body === "anniversaryPin" && !saved.equipped.pet, "试穿装备写入了正式存档");
+  assert(saved.owned.length === starterItems.length + 1 && saved.equipped.body === "anniversaryPin" && !saved.equipped.pet, "试穿装备写入了正式存档");
   switchMode();
   assert(world.equipment.body === "anniversaryPin" && !world.equipment.pet, "原搭配丢失");
   inventory.reset();
@@ -157,28 +194,29 @@ await check("从放大的星盘互动开包换装，结束互动后衣橱仍开�
   assert(!document.querySelector<HTMLElement>(".touch-controls")?.inert, "手机方向键仍被锁定");
 });
 
-await check("试穿的猫仍需正式领取，邀请会保存真实伙伴位，拒绝不会覆盖原有兔子", () => {
+await check("试穿的猫仍需正式领取，邀请会保存真实伙伴位，拒绝不会覆盖原有兔子", async () => {
   inventory.reset(); inventory.setFitting(true);
   actions.length = 0;
   inventory.setCompanion("petBunny",true);
   inventory.toggle("petCat");
   assert(world.equipment.pet==="petCat" && !inventory.has("petCat"),"试穿不应颁发桃桃");
+  await world.prepareScene("garden");
   world.switchScene("garden",{x:304,y:318});
   const select=(title:string)=>Array.from(document.querySelectorAll<HTMLButtonElement>(".activity-actions button")).find(b=>b.textContent===title)!.click();
   const talk=()=>guests.interact("garden-guest-balloon-friend");
-  talk();select("轻轻抚摸奶油猫");select("不带上奶油猫");activities.close();
+  talk();select("⌈轻轻抚摸奶油猫⌋");select("今天就让桃桃留在你这儿吧。");activities.close();
   assert(inventory.followingPet==="petBunny" && !inventory.has("petCat"),"拒绝覆盖了真实搭配");
   assert(actions.includes("garden-guest-balloon-friend") && !actions.includes("petCat"),"来宾与同行徽章把试穿或拒绝算作邀请");
-  talk();select("轻轻抚摸奶油猫");select("带上奶油猫");
+  talk();select("⌈轻轻抚摸奶油猫⌋");select("⌈带上奶油猫⌋");
   const stored=JSON.parse(saves.get(INVENTORY_KEY)!);
   assert(stored.equipped.pet==="petCat" && stored.owned.includes("petBunny"),"邀请没有进入真实存档");
   assert(actions.includes("petCat") && actions.includes("petBunny"), "正式同行没有登记");
   inventory.setFitting(false);
   assert(world.equipment.pet==="petCat","关闭试穿后没有继续同行");
-  activities.close(); talk(); select("问问桃桃");
+  activities.close(); talk(); select("桃桃还记得我吗？");
   assert(document.querySelector(".activity-status")?.textContent === "桃桃认出你啦！你想再摸摸它吗？", "星星没有认出已获得的桃桃");
-  select("轻轻抚摸奶油猫"); select("让桃桃休息");
-  activities.close(); talk(); select("问问桃桃"); select("轻轻抚摸奶油猫"); select("带上奶油猫");
+  select("⌈轻轻抚摸奶油猫⌋"); select("⌈让桃桃休息⌋");
+  activities.close(); talk(); select("桃桃还记得我吗？"); select("⌈轻轻抚摸奶油猫⌋"); select("⌈带上奶油猫⌋");
   assert(inventory.followingPet === "petCat", "休息后不能通过星星的问候再次邀请桃桃");
   activities.close();inventory.reset();
 });
@@ -319,7 +357,7 @@ await check("掀盖时收起立即恢复探索，旧动画不会覆盖新对话�
   assert(!world.paused&&!world.actorHidden&&!world.onAction(true),"退出掀盖后地图仍被锁住");
   activities.menu("新的周年对话", [{ title: "继续看花", run() {} }]);
   world.onTick(1, 1);
-  assert(document.querySelector(".activity-actions")!.textContent === "继续看花", "旧礼盒动画覆盖了新对话");
+  assert(document.querySelector(".activity-actions")!.textContent === "⌈继续看花⌋", "旧礼盒动画覆盖了新对话");
   assert(giftCompletions===0&&giftRewards.length===0,"中途退出礼盒却完成任务");
 });
 
@@ -528,6 +566,33 @@ await check("夜空替我说只计算一次互动内成功发出的烟花", () =
   settle();
 });
 
+await check("三只心愿气球起初系在摊前，放飞后留空，重新互动才补下一组", async () => {
+  await world.prepareScene("garden");
+  world.switchScene("garden");
+  const sample = document.createElement("canvas");
+  sample.width = 270; sample.height = 282;
+  const paint = sample.getContext("2d", {willReadFrequently:true})!;
+  const centers = [179,205,231];
+  const visible = () => {
+    paint.clearRect(0,0,sample.width,sample.height);
+    activities.drawTiedBalloons(paint);
+    return centers.filter(x=>paint.getImageData(x-5,215,10,45).data.some((v,i)=>i%4===3 && v>128)).length;
+  };
+  assert(visible()===3, "首次打开摊位前没有展示三只气球");
+  activities.balloons();
+  for (const x of centers) world.onPointer("down",{x,y:237},"touch");
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")];
+  assert(buttons.length===3 && buttons.every(b=>b.textContent?.includes("1/4")), "点击球面没给对应气球充气");
+  for (const x of centers) for (let i=0;i<3;i++) world.onPointer("down",{x,y:237},"touch");
+  [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")].find(b=>b.textContent==="一起放飞")!.click();
+  assert(completedActivities.has("balloons") && visible()===0,"放飞后系点还有气球");
+  activities.close();
+  world.switchScene("town"); world.switchScene("garden");
+  assert(visible()===0,"重新进入花园自动补了气球");
+  activities.balloons();
+  assert(visible()===3 && document.querySelector(".activity-actions")!.textContent?.includes("紫气球 0/4"),"再次互动没有重新装好气球");
+});
+
 await check("蛋糕、礼盒、气球和烟花收起后，键盘焦点与操作立即返回地图", () => {
   for (const activity of ["cake", "gifts", "balloons", "fireworks"] as const) {
     activities[activity]();
@@ -577,7 +642,8 @@ await check("背包保持打开，可连续穿脱全部配饰并用 WASD 移动�
     assert(picture().toDataURL() === bareSide, "关闭再打开后仍然画着未确认的背包");
     for (const id of Object.keys(ITEMS) as ItemId[]) {
       inventory.grant(id);
-      for (const equipped of [true, false]) {
+      const initiallyWorn = world.equipment[ITEMS[id].slot] === id;
+      for (const equipped of [!initiallyWorn, initiallyWorn]) {
         world.player = { x: 300, y: 310 };
         equipFromBag(id, false);
         assert((world.equipment[ITEMS[id].slot] === id) === equipped, `${id} 穿脱未生效`);
@@ -598,13 +664,14 @@ await check("背包保持打开，可连续穿脱全部配饰并用 WASD 移动�
   } finally { world.stop(); }
 });
 
-await check("气球客邀请／送别桃桃后可读完回应并收起，衣橱换装也会结束旧对话", () => {
+await check("气球客邀请／送别桃桃后可读完回应并收起，衣橱换装也会结束旧对话", async () => {
+  await world.prepareScene("garden");
   world.switchScene("garden",{x:304,y:318}); world.paused = false;
   const id = "garden-guest-balloon-friend";
   for (const worn of [true, false]) {
     guests.interact(id);
     const choose=(title:string)=>Array.from(document.querySelectorAll<HTMLButtonElement>(".activity-actions button")).find(b=>b.textContent===title)!.click();
-    choose("轻轻抚摸奶油猫"); choose(worn ? "带上奶油猫" : "让桃桃休息");
+    choose("⌈轻轻抚摸奶油猫⌋"); choose(worn ? "⌈带上奶油猫⌋" : "⌈让桃桃休息⌋");
     document.querySelector<HTMLButtonElement>(".activity-close")!.click();
     assert(!activities.active && !world.suspended, "伙伴选择后旧对话仍截获右键和 E");
     assert((world.equipment.pet === "petCat") === worn, "伙伴选择未生效");

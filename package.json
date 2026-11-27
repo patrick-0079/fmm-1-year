@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
+    "postbuild": "node scripts/publish-game-packs.mjs prepare",
+    "packs:published": "node scripts/publish-game-packs.mjs published",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "check": "npm test && npm run build",
@@ -14,15 +16,17 @@
     "scan:letters": "node scripts/scan-letters.mjs",
     "scan:stars": "node --experimental-strip-types scripts/scan-stars.mjs",
     "optimize:art": "node scripts/optimize-art.mjs",
-    "art:festival": "node scripts/build-arcade-art.mjs && node --experimental-strip-types scripts/build-shoes.mjs",
+    "art:festival": "node scripts/build-arcade-art.mjs && npm run art:wardrobe",
     "art:town": "node --experimental-strip-types scripts/build-town-playgrounds.mjs",
-    "art:meadow": "node scripts/build-meadow-art.mjs && node --experimental-strip-types scripts/build-garments.mjs",
+    "art:meadow": "node scripts/build-meadow-art.mjs && npm run art:wardrobe",
+    "art:wardrobe": "node --experimental-strip-types scripts/build-garments.mjs && node --experimental-strip-types scripts/build-loading-runner.mjs",
     "art:night": "node scripts/build-night-meadow.mjs",
     "art:lanes": "node scripts/build-lanes.mjs",
     "art:cursors": "node scripts/build-cursors.mjs",
     "audio:bass": "node --experimental-strip-types scripts/build-bass-audio.mjs"
   },
   "devDependencies": {
+    "aws4fetch": "^1.0.20",
     "sharp": "^0.35.5",
     "typescript": "~5.9.3",
     "vite": "^7.3.1",

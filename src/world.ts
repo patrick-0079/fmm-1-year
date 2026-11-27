@@ -6,12 +6,10 @@ import gardenUrl from "./assets/anniversary-garden-tree-free.webp";
 import appleBasketUrl from "./assets/apple-basket.webp";
 import challengeUrl from "./assets/courage-garden.webp";
 import creekPropsUrl from "./assets/garden-creek-props.webp";
-import spriteUrl from "./assets/nemu-sprites.webp";
-import restUrl from "./assets/fufu-rest-poses.webp";
-import wreathUrl from "./assets/flower-wreath.webp";
 import townUrl from "./assets/anniversary-town-v13.webp";
 import townDetailUrl from "./assets/anniversary-town-hd-v13.webp";
 import { mapFragment } from "./map-fragment";
+import { LayerOutlines, type LayerOutline } from "./layer-outlines";
 import { dockOpening } from "./town-terraces";
 import meadowUrl from "./assets/night-meadow-v16.webp";
 import ruinsUrl from "./assets/echo-ruins.webp";
@@ -19,18 +17,22 @@ import wellUrl from "./assets/echo-well.webp";
 import { crossedEchoGate, townQuarry } from "./ruins-map";
 import { meadowAtlasUrl, orchardAtlasUrl } from "./wild-art";
 import { prepareSceneArt, sceneArt } from "./scene-art";
+import { prepareMapArt, loadSceneImage } from "./texture-cache";
+import type { LoadProgress } from "./resource-queue";
 import trapsUrl from "./assets/courage-path-props-v35.webp";
-import { drawItem, rewardsUrl } from "./item-art";
+import { drawItem } from "./item-art";
 import { emptyInventory, type Equipped } from "./items";
 import { bedRest, benchRest, type RestState } from "./rest";
-import { drawAvatar } from "./avatar";
+import { avatarPose } from "./costume-frames";
+import { avatarUrls, drawAvatar } from "./avatar";
 import type { Facing } from "./equipment";
 import { clickedInteraction, nearbyInteraction } from "./interaction";
 import { drawInteractionGlints } from "./interaction-glints";
 import { reservedShortcut, readingTarget } from "./input";
 import { connectionLayers } from "./connections";
 import { crossedTownGate } from "./gate-layout";
-import { enteredMoonCircle } from "./meadow-map";
+import { enteredTravelCircle, meadowExit } from "./meadow-map";
+import { meadowGate } from "./rainbow-flowers";
 import { surfaceOutline } from "./collision";
 import { trapFootprint } from "./trap-art";
 import { drawGardenHazard } from "./garden-hazards";
@@ -49,10 +51,10 @@ import {
   type Hazard,
   type Point,
 } from "./core";
-import { bloomingGarden, scenes, type BaseSceneId, type Hotspot, type Scene, type SceneId } from "./maps";
+import { scenes, type BaseSceneId, type Hotspot, type Scene, type SceneId } from "./maps";
 import { isTownInterior, type TownInteriorId } from "./town-interior-id";
 import { crossedInteriorDoor } from "./town-interiors";
-import { paintTownInterior, paintTownInteriorLight, townInteriorArt } from "./town-interior-art";
+import { interiorWindowLayers, paintTownInterior, paintTownInteriorLight, townInteriorArt } from "./town-interior-art";
 import type { RoomEffect } from "./town-interior-activities";
 import type { DaylightMix } from "./daylight-mix";
 export { scenes, type SceneId } from "./maps";
@@ -70,14 +72,15 @@ const art = {
   ruins: ruinsUrl,
 };
 const sceneTextures: Record<BaseSceneId, string[]> = {
-  room: [roomUrl, spriteUrl, restUrl, wreathUrl, rewardsUrl],
+  room: [roomUrl],
   garden: [gardenUrl, appleBasketUrl, orchardAtlasUrl, creekPropsUrl],
   challenge: [challengeUrl, orchardAtlasUrl, trapsUrl, courageFlowerUrl, creekPropsUrl],
-  town: [townUrl], meadow: [meadowUrl, meadowAtlasUrl], ruins: [ruinsUrl, wellUrl],
+  town: [townUrl, townDetailUrl], meadow: [meadowUrl, meadowAtlasUrl], ruins: [ruinsUrl, wellUrl],
 };
 export interface DepthLayer {
   y: number;
   draw: (context: CanvasRenderingContext2D) => void;
+  outline?: LayerOutline;
 }
 
 /** Temporary visual pose only; feet, movement and equipped layers stay intact. */
@@ -99,6 +102,8 @@ export class World {
   readonly townInteriorMaps = new Map<TownInteriorId, Scene>();
   gardenMapFor: (base: Scene) => Scene = base => base;
   currentPhase: Phase = "day";
+  currentDay = 1;
+  currentHours = 8;
   townInteriorEffect: () => RoomEffect | undefined = () => undefined;
   lightMix: DaylightMix = { from: "day", to: "day", mix: 0 };
   readonly chats: ResidentChats;
@@ -108,8 +113,6 @@ export class World {
   private zoom = 1;
   private focus: { point: Point; zoom: number } | null = null;
   private images = new Map<string, HTMLImageElement>();
-  private townDetail: HTMLImageElement | null = null;
-  private townDetailPending = false;
   private mapRequests = new Map<SceneId, Promise<void>>();
   private keys = new Set<string>();
   private touch: Point = { x: 0, y: 0 };
@@ -144,6 +147,11 @@ export class World {
     import.meta.env.DEV && new URLSearchParams(location.search).has("debug");
   private debugOutput: HTMLOutputElement | null = null;
   get collisionOverlay() { return this.debug; }
+  private layerOutlines?: LayerOutlines;
+  get layerOverlay() { return !!this.layerOutlines; }
+  showLayerOverlay(on: boolean) {
+    this.layerOutlines = on ? this.layerOutlines ?? new LayerOutlines() : undefined;
+  }
   showCollisionOverlay(on:boolean) {
     this.debug=on;
     if(on && !this.debugOutput) {
@@ -192,6 +200,7 @@ export class World {
   onToast: (text: string) => void = () => {};
   onRestChange: (state: RestState | null) => void = () => {};
   onRespawn: (event: RespawnEvent) => void = () => {};
+  onReturnHome: (arrive: () => void) => void = arrive => { void this.prepareScene("room").then(arrive); };
   onDraw: (context: CanvasRenderingContext2D, time: number) => void = () => {};
   onTick: (dt: number, time: number) => void = () => {};
   onPointer: (type: string, point: Point, pointerType: string) => boolean = () => false;
@@ -212,26 +221,43 @@ export class World {
   private secondaryPressed = false;
   onAction: (pressed: boolean) => boolean = () => false;
   actorHidden = false;
-  private get avatarImages() {
-    return {
-      sprite: this.images.get(spriteUrl)!,
-      rest: this.images.get(restUrl)!,
-      wreath: this.images.get(wreathUrl)!,
-      rewards: this.images.get(rewardsUrl)!,
-    };
+  drawPlayerSprite(c: CanvasRenderingContext2D) {
+    // Read after movement so a walking frame releases any idle presentation immediately.
+    const presentation = !this.restState && !this.busy && !this.paused &&
+      !this.suspended && !this.stumble && !this.walking
+      ? this.getActorPresentation() : null;
+    const lean = presentation?.lean;
+    c.save();
+    c.translate(Math.round(this.player.x), Math.round(this.player.y));
+    if (typeof lean === "number" && Number.isFinite(lean))
+      c.rotate(Math.max(-0.12, Math.min(0.12, lean)));
+    if (this.stumble) {
+      const phase = Math.min(1, (this.time - this.stumble.started) / 0.45);
+      c.globalAlpha = 1 - phase * 0.7;
+      if (!this.reducedMotion.matches)
+        c.rotate(Math.sin(phase * Math.PI) * 0.28);
+      c.scale(1 - phase * 0.5, 1 - phase * 0.5);
+    } else if (this.immunity > 0) c.globalAlpha = 0.82;
+    drawAvatar(
+      c,
+      avatarPose(this.restState),
+      presentation?.facing ?? this.facing,
+      this.walking ? avatarWalkCycle[Math.floor(this.stepDistance * 4 / avatarStride)] : 0,
+      this.equipment,
+    );
+    c.restore();
   }
   drawAvatarAt(c: CanvasRenderingContext2D, x: number, y: number, frame = 0) {
     c.save();
     c.translate(x, y);
-    drawAvatar(c, "standing", 0, frame, this.equipment, this.avatarImages);
+    drawAvatar(c, "standing", 0, frame, this.equipment);
     c.restore();
   }
   drawWardrobePreview(canvas: HTMLCanvasElement, equipped: Equipped, facing: Facing) {
     const c = canvas.getContext("2d");
-    const images = this.avatarImages;
-    if (!c || !images.sprite) return;
+    if (!c) return;
     const pet = equipped.pet;
-    const scale = Math.min(canvas.height / 50, canvas.width / (pet ? 62 : 40));
+    const scale = Math.min(canvas.height / (equipped.head === "witchHat" ? 53 : 50), canvas.width / (pet ? 62 : 40));
     c.clearRect(0, 0, canvas.width, canvas.height);
     c.save();
     c.imageSmoothingEnabled = false;
@@ -241,8 +267,8 @@ export class World {
     c.beginPath();
     c.ellipse(0, 0, 11, 2, 0, 0, Math.PI * 2);
     c.fill();
-    drawAvatar(c, "standing", facing, 0, equipped, images);
-    if (pet) drawItem(c, pet, 13, -16, 18, 17, images.wreath, images.rewards);
+    drawAvatar(c, "standing", facing, 0, equipped);
+    if (pet) drawItem(c, pet, 13, -16, 18, 17);
     c.restore();
   }
   constructor(canvas: HTMLCanvasElement, chats = new ResidentChats()) {
@@ -470,33 +496,22 @@ export class World {
       y: (point.y - this.camera.y) * this.zoom,
     };
   }
-  private loadTownDetail() {
-    if (this.townDetail || this.townDetailPending) return;
-    this.townDetailPending = true;
-    const image = new Image();
-    image.decoding = "async";
-    image.src = townDetailUrl;
-    // The lightweight map is already playable. Do not pause the frame loop or
-    // replace it with a partially decoded image; a later visit can retry.
-    void image.decode().then(() => { this.townDetail = image; })
-      .catch(() => {}).finally(() => { this.townDetailPending = false; });
-  }
-  prepareScene(scene: SceneId): Promise<void> {
+  prepareScene(scene: SceneId, report?: LoadProgress): Promise<void> {
     if (!this.canEnter(scene)) return Promise.reject(new Error("尚未集齐七色花"));
-    if (this.images.has(art[scene])) return prepareSceneArt(scene).then(() => {});
     const pending = this.mapRequests.get(scene);
     if (pending) return pending;
-    const urls = isTownInterior(scene) ? [art[scene]] : sceneTextures[scene];
-    const textures = urls.filter(url=>!this.images.has(url)).map(async url => {
-        const image = new Image();
-        image.fetchPriority = "high";
-        image.decoding = "async"; image.src = url;
-        await image.decode();
-        return [url, image] as const;
-      });
-    const request = Promise.all([Promise.all(textures), prepareSceneArt(scene)])
-        .then(([images]) => { for (const [url, image] of images) this.images.set(url,image); })
-        .finally(() => { this.mapRequests.delete(scene); });
+    const urls = [...avatarUrls, ...(isTownInterior(scene) ? [art[scene]] : sceneTextures[scene])];
+    let total = 0, fallback = false;
+    const loading: LoadProgress | undefined = report && ((loaded, count, fromSite = false) => {
+      total = count;
+      fallback = fromSite;
+      report(Math.min(loaded, count * .999), count, fromSite);
+    });
+    const request = prepareMapArt(scene, loading).then(async () => {
+      const [images] = await Promise.all([Promise.all(urls.map(url => loadSceneImage(url))), prepareSceneArt(scene)]);
+      urls.forEach((url, index) => this.images.set(url, images[index]));
+      if (total) report?.(total, total, fallback);
+    }).finally(() => { this.mapRequests.delete(scene); });
     this.mapRequests.set(scene, request);
     return request;
   }
@@ -553,12 +568,12 @@ export class World {
     c.restore();
   }
   get sceneryArtwork() {
-    return (this.scene === "town" && this.townDetail) || this.images.get(art[this.scene]);
+    return this.images.get(this.scene === "town" ? townDetailUrl : art[this.scene]);
   }
   get config() {
     if (this.scene === "town") return this.townMap;
     if (isTownInterior(this.scene)) return this.townInteriorMaps.get(this.scene) ?? scenes[this.scene];
-    if (this.scene === "garden") return this.gardenMapFor(this.canEnter("meadow") ? bloomingGarden : scenes.garden);
+    if (this.scene === "garden") return this.gardenMapFor(scenes.garden);
     return scenes[this.scene];
   }
   get visibleArea() {
@@ -580,7 +595,7 @@ export class World {
     this.onRestChange(this.restState);
   }
   lieDown() {
-    if (this.scene !== "room") this.switchScene("room");
+    if (this.scene !== "room") return;
     this.clearInput();
     this.restState = bedRest();
     this.player = { ...this.restState.anchor };
@@ -595,8 +610,9 @@ export class World {
     this.clearInput();
     this.onRestChange(null);
   }
-  async load() {
-    await this.prepareScene("room");
+  async load(scene: SceneId = "room", arrival?: Point) {
+    await this.prepareScene(scene);
+    this.switchScene(scene, arrival);
     this.frameId = requestAnimationFrame(this.frame);
   }
   clearInput() {
@@ -617,13 +633,12 @@ export class World {
   }
   switchScene(scene: SceneId, arrival?: Point, facing: Facing = 0) {
     if (this.busy || !this.canEnter(scene)) return;
-    if (!this.images.has(art[scene])) void this.prepareScene(scene).catch(()=>this.onToast("地图图片未能载入，请再试一次。"));
+    if (!this.images.has(art[scene])) return;
     this.clearInput();
     this.restState = null;
     this.onRestChange(null);
     this.setFocus(null);
     this.scene = scene;
-    if (scene === "town") this.loadTownDetail();
     const s = this.config;
     const landing = arrival && canArriveAt(arrival, s) ? arrival : s.spawn;
     this.player = { x: landing.x, y: landing.y };
@@ -729,10 +744,12 @@ export class World {
       ) {
         const { trap, scene } = this.stumble;
         this.stumble = null;
-        this.switchScene("room");
         this.immunity = 2;
-        this.lieDown();
-        this.onRespawn({ trap, scene });
+        this.onReturnHome(() => {
+          this.switchScene("room");
+          this.lieDown();
+          this.onRespawn({ trap, scene });
+        });
       }
       return;
     }
@@ -773,8 +790,9 @@ export class World {
     if (this.walking && !this.targetEvent) {
       const gate = this.scene === "town" || isTownInterior(this.scene)
         ? crossedInteriorDoor(this.config.spots, before, this.player) : undefined;
-      const crossing = this.scene === "meadow" && enteredMoonCircle(before,this.player)
-        ? "meadow-exit"
+      const circle = this.scene === "meadow" ? meadowExit : this.scene === "garden" ? meadowGate : undefined;
+      const crossing = circle && enteredTravelCircle(circle,before,this.player) && this.available(circle)
+        ? circle.id
         : crossedEchoGate(this.scene,before,this.player) ?? crossedTownGate(this.scene,before,this.player)?.id ?? gate?.id;
       if (crossing) { this.clearInput(); this.onInteract(crossing); return; }
     }
@@ -866,54 +884,37 @@ export class World {
     this.onEnvironment(c, this.time);
     if (this.scene === "room") drawDoorRug(c);
     this.drawHazards();
-    const drawPlayer = () => {
+    const drawPlayer = (c: CanvasRenderingContext2D) => {
       if (this.actorHidden) return;
       const x = Math.round(this.player.x),
         y = Math.round(this.player.y);
-      // Read after update(), so starting to walk releases a presentation in the
-      // same frame, even though activity timers run before movement in onTick.
-      const presentation = !this.restState && !this.busy && !this.paused &&
-        !this.suspended && !this.stumble && !this.walking
-        ? this.getActorPresentation() : null;
-      const lean = presentation?.lean;
       c.fillStyle = "#53496045";
       c.beginPath();
       c.ellipse(x, y, 11, 3.5, 0, 0, Math.PI * 2);
       c.fill();
-      c.save();
-      c.translate(x, y);
-      if (typeof lean === "number" && Number.isFinite(lean))
-        c.rotate(Math.max(-0.12, Math.min(0.12, lean)));
-      if (this.stumble) {
-        const phase = Math.min(1, (this.time - this.stumble.started) / 0.45);
-        c.globalAlpha = 1 - phase * 0.7;
-        if (!this.reducedMotion.matches)
-          c.rotate(Math.sin(phase * Math.PI) * 0.28);
-        c.scale(1 - phase * 0.5, 1 - phase * 0.5);
-      } else if (this.immunity > 0) c.globalAlpha = 0.82;
-      drawAvatar(
-        c,
-        this.restState?.kind ?? "standing",
-        presentation?.facing ?? this.facing,
-        this.walking ? avatarWalkCycle[Math.floor(this.stepDistance * 4 / avatarStride)] : 0,
-        this.equipment,
-        this.avatarImages,
-      );
-      c.restore();
+      this.drawPlayerSprite(c);
     };
-    const layers = [
+    const layers: DepthLayer[] = [
       ...this.getDepthLayers(),
       ...(this.scene === "challenge" ? courageFlowerLayers(this.images.get(courageFlowerUrl)) : []),
       ...connectionLayers(this.scene),
-      { y: this.player.y, draw: drawPlayer },
     ];
-    layers.sort((a, b) => a.y - b.y).forEach((layer) => layer.draw(c));
+    const actor = { y: this.player.y, draw: drawPlayer };
+    const outlines = this.layerOutlines ? layers.slice() : undefined;
+    layers.push(actor);
+    layers.sort((a, b) => a.y - b.y).forEach(layer => layer.draw(c));
     this.onDraw(c, this.time);
     this.onLighting(c);
     if (isTownInterior(this.scene) && this.sceneryArtwork)
       paintTownInteriorLight(c, this.sceneryArtwork, this.scene, this.currentPhase, this.reducedMotion.matches ? undefined : this.lightMix);
     if (this.cuesVisible) drawInteractionGlints(c, this.config.spots.filter(s => this.available(s)), this.scene, this.time, this.reducedMotion.matches, this.activeCueId);
     this.onEffects(c);
+    if (this.layerOutlines && outlines) {
+      if (isTownInterior(this.scene) && this.sceneryArtwork)
+        outlines.push(...interiorWindowLayers(this.sceneryArtwork, this.scene, this.currentPhase, this.townInteriorEffect()));
+      this.layerOutlines.draw(c, this.scene, view, outlines, actor,
+        { x: this.player.x - 62, y: this.player.y - 75, w: 124, h: 104 });
+    }
     if (this.debug) this.drawDebug();
     c.restore();
     this.drawHazardHint();

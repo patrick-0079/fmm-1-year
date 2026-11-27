@@ -1,0 +1,98 @@
+.xiaoye-map-cover {
+  position: relative;
+  display: inline-grid;
+  width: clamp(32px, 5cqw, 49px);
+  aspect-ratio: 1.45;
+  place-items: center;
+  color: #b16d74;
+  border: 1.5px solid #907458;
+  border-radius: 3px 2px 4px 2px;
+  background:
+    linear-gradient(90deg, transparent 30%, #b49b803d 31%, #fff4d7 34%, transparent 36% 64%, #b49b806b 66%, #f3deb4 68%, transparent 70%),
+    radial-gradient(ellipse at 20% 8%, #bdc9a0 0 20%, transparent 21%),
+    radial-gradient(ellipse at 81% 85%, #bbc5a0 0 26%, transparent 27%), #f4e0b9;
+  transform: rotate(-6deg);
+  box-shadow: 1px 3px #b69b7852;
+}
+.xiaoye-map-cover::before {
+  content: ""; position: absolute; width: 59%; height: 39%;
+  border: 1px dashed #8c9478; border-radius: 50%; rotate: -18deg;
+}
+.xiaoye-map-cover i { z-index: 1; font: bold clamp(13px, 2.5cqw, 23px)/1 Georgia, serif; }
+
+.inventory-panel[data-xiaoye-map-open] {
+  left: 50%; right: auto; top: 50%; translate: -50% -50%;
+  width: min(95%, 870px); height: min(62cqw, 500px); max-height: 95%;
+  display: flex; flex-direction: column; gap: 4px; padding: clamp(5px, 1cqw, 11px);
+}
+.xiaoye-map-paper {
+  --atlas-ink: #444b3c;
+  min-height: 0; min-width: 0; flex: 1 1 auto; overflow: auto; overscroll-behavior: contain;
+  padding: clamp(8px, 1.5cqw, 18px); box-sizing: border-box;
+  border: 1px solid #b9a47c; border-radius: 3px 5px 3px 4px; color: var(--atlas-ink);
+  background:
+    repeating-linear-gradient(16deg, transparent 0 5px, #b59e7608 6px, transparent 7px 11px),
+    radial-gradient(ellipse at 38% 24%, #fff8e4 0%, #f7ebcd 69%, #efe0bd);
+  scrollbar-width: thin; scrollbar-color: #a69574 #f2e5c6;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+}
+.xiaoye-map-paper h4, .xiaoye-map-paper h5 {
+  margin: 0; color: #495742; font-family: "Kaiti SC", KaiTi, STKaiti, Georgia, serif;
+  font-weight: 700; letter-spacing: .04em;
+}
+.xiaoye-map-heading {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 7px;
+  border-bottom: 2px solid #8b9575; padding: 0 1px clamp(6px, 1cqw, 12px);
+}
+.xiaoye-map-heading h4 { font-size: clamp(18px, 3.2cqw, 29px); line-height: 1.25; }
+.xiaoye-map-heading p { margin: .25em 0 0; font-size: clamp(11px, 1.4cqw, 14px); }
+.inventory-panel .xiaoye-map-heading button {
+  flex: none; padding: .35em .65em; margin-top: .2em;
+  font-size: clamp(11px, 1.5cqw, 14px); line-height: 1.4;
+  border: 1px solid #aa9675; border-radius: 3px; background: #fbf2da; color: #634f43;
+}
+.inventory-panel[data-xiaoye-map-open] .bag-heading h3 { visibility: hidden; }
+.inventory-panel[data-xiaoye-map-open] .bag-heading { height: 0; min-height: 0; margin: 0; }
+.inventory-panel[data-xiaoye-map-open] .bag-heading::after,
+.inventory-panel[data-xiaoye-map-open] .bag-heading::before { content: none; }
+.xiaoye-map-paper {
+  border-radius: 2px 7px 5px 8px;
+  background:
+    linear-gradient(90deg, transparent 32.9%, #b9986822 33.25%, #fffae140 33.65%, transparent 34% 66.15%, #b9986822 66.6%, transparent 67%),
+    repeating-linear-gradient(35deg, #b09d7110 0 1px, transparent 1.2px 5px),
+    radial-gradient(ellipse at 45% 44%, #fff8df, #f7ebcc 72%, #ecd8ac);
+}
+.xiaoye-map-heading { border: 0; padding-bottom: 2px; }
+.xiaoye-map-heading h4 {
+  display: inline-block; position: relative; transform: rotate(-2deg);
+  font-family: KaiTi, "楷体", "Kaiti SC", serif;
+  font-size: clamp(22px, 3.6cqw, 34px); color: #556547;
+}
+.xiaoye-map-heading h4::after {
+  content: ""; display: block; width: 88%; margin: -1px 0 0 5%;
+  border-bottom: 3px solid #d2ac74; border-radius: 45%; transform: rotate(.75deg);
+}
+.xiaoye-map-heading p { margin-top: .5em; font-family: KaiTi, "楷体", serif; font-size: clamp(13px, 1.8cqw, 17px); }
+.xiaoye-treasure-chart { display: block; width: 100%; height: auto; margin: 5px 0 0; }
+.xiaoye-map-itinerary {
+  margin: 0; padding: .45em .6em; border-top: 1px dashed #bea77c;
+  font: 600 clamp(13px, 1.8cqw, 17px)/1.5 KaiTi, "楷体", serif;
+}
+.xiaoye-map-key { color: #655943; font-size: clamp(12px, 1.5cqw, 15px); }
+.xiaoye-map-key summary { cursor: pointer; width: fit-content; padding: .2em .55em; }
+.xiaoye-map-folds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 8px; }
+.xiaoye-map-fold h5 { margin: 0 0 3px; font: 600 15px/1.4 KaiTi, "楷体", serif; }
+.xiaoye-map-fold ul { list-style: none; margin: 0; padding: 0; }
+.xiaoye-map-fold li { display: flex; gap: 5px; line-height: 1.45; margin-bottom: 4px; }
+.xiaoye-map-fold li i {
+  display: grid; flex: none; align-self: flex-start; place-items: center; width: 1.3em; height: 1.3em;
+  border-radius: 50%; font: bold 12px/1 Georgia, serif; color: #433d36;
+  background: color-mix(in srgb, var(--petal) 35%, #fff4da); border: 1px solid var(--petal);
+}
+.xiaoye-map-fold li b, .xiaoye-map-fold li small { display: block; }
+.xiaoye-map-fold li small { color: #695e50; }
+@container (max-width: 540px) {
+  .xiaoye-map-folds { grid-template-columns: 1fr; }
+  .xiaoye-map-fold li small { display: inline; margin-left: .3em; }
+  .xiaoye-map-fold li b { display: inline; }
+}

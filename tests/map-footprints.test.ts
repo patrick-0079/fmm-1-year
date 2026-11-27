@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canStand, canTravelBetween, findPath } from "../src/core.ts";
+import { canStand, canTravelBetween, findPath, movePlayer } from "../src/core.ts";
 import { scenes, type SceneId } from "../src/maps.ts";
 import { creeks } from "../src/creek-layout.ts";
 import { lightBrick, mirrorSpots, moonPlate } from "../src/ruins-map.ts";
@@ -25,6 +25,87 @@ test("garden feet follow the pond fence, western bench, cinema seats and balloon
   checkFeet("garden",
     [[78,391],[82,198],[620,291],[715,225],[197,440],[212,202],[250,185],[275,287]],
     [[100,150],[813,430],[53,365],[395,557],[482,559],[185,473],[650,264],[668,285],[250,206]]);
+});
+
+test("the garden south lantern can be approached behind its pier while both neighbouring passages stay open", () => {
+  checkFeet("garden",
+    [[514,540.2],[531,540],[450,568],[573,551],[566,568]],
+    [[514,576],[536,554],[552,563]]);
+  assert.ok(canTravelBetween({x:573,y:543},{x:573,y:569},scenes.garden));
+});
+
+test("the flower beds wrap around both sides of the cottage steps and leave the doorstep open", () => {
+  checkFeet("garden", [[410,151.3],[470,150],[307,142],[577,139],[330,163],[550,161],[558,169]],
+    [[326,138],[554,138],[350,146],[533,146],[367,156],[505,156],[410,161],[471,161]]);
+  const map = scenes.garden;
+  const door = map.spots.find(s => s.id === "door")!;
+  assert.ok(canTravelBetween({x:446,y:175}, door.approach, map));
+  assert.ok(canTravelBetween(door.approach, {x:446,y:117}, map));
+  assert.equal(canTravelBetween({x:325,y:169}, {x:326,y:138}, map), false);
+  assert.equal(canTravelBetween({x:558,y:169}, {x:554,y:138}, map), false);
+});
+
+test("feet stop at the north bridge lantern's stone base while the approach still leads directly onto the deck", () => {
+  checkFeet("garden", [[786,66],[797,53],[799,59],[816,56],[847,56]], [[794,70],[797,71]]);
+  const map = scenes.garden;
+  const bridge = map.spots.find(s => s.id === "north-town-gate")!;
+  assert.ok(canTravelBetween(bridge.approach, bridge, map));
+  assert.ok(canTravelBetween(bridge, bridge.approach, map));
+  assert.equal(canTravelBetween({x:795,y:58}, {x:795,y:71}, map), false);
+});
+
+test("both lower plaza fences stop feet at the stone and leave the centre path and both sides walkable", () => {
+  checkFeet("garden",
+    [[341,383],[352,386],[355,420],[543,382],[530,386],[525,420],[440,421]],
+    [[338,392],[350,402],[363,406],[376,412],[547,392],[532,402],[518,406],[506,412]]);
+  const map = scenes.garden;
+  for (const x of [350,532]) {
+    assert.equal(canTravelBetween({x,y:382},{x,y:425},map),false);
+    assert.equal(canTravelBetween({x,y:425},{x,y:382},map),false);
+  }
+  assert.ok(canTravelBetween({x:440,y:382},{x:440,y:435},map));
+});
+
+test("the wish lawn joins the eastern road past the tree in either direction", () => {
+  const map=scenes.town, west={x:596,y:340}, east={x:718,y:340};
+  checkFeet("town", [[596,340],[610,340],[631,339],[665,333],[696,336],[718,340]],
+    [[614,369],[634,358],[659,356],[682,353],[608,269]]);
+  for (const [start,end] of [[west,east],[east,west]]) {
+    const route=findPath(start,end,map);
+    assert.deepEqual(route?.at(-1),end);
+    let previous=start;
+    for (const next of route!) {
+      assert.ok(canTravelBetween(previous,next,map));
+      assert.ok(next.y>=315 && next.y<=348,"the crossing stays by the tiles");
+      previous=next;
+    }
+  }
+  assert.ok(canTravelBetween(west,{x:627,y:340},map));
+});
+
+test("the picnic waterfall stops feet at the upper rocks, cliff and pool while the lawn stays connected", () => {
+  const edges = [
+    { lawn:{x:755,y:400}, water:{x:791,y:400} },
+    { lawn:{x:773,y:440}, water:{x:791,y:440} },
+    { lawn:{x:737,y:503}, water:{x:761,y:503} },
+  ];
+  const map = scenes.garden;
+  for (const {lawn, water} of edges) {
+    assert.deepEqual(findPath(map.spawn,lawn,map)?.at(-1),lawn);
+    assert.equal(canStand(water,map.walls,map.bounds,map.floor),false);
+    assert.equal(canTravelBetween(lawn,water,map),false);
+    const route = findPath(lawn,water,map);
+    let foot = lawn;
+    for (const next of route ?? []) {
+      assert.ok(canTravelBetween(foot,next,map));
+      foot = next;
+    }
+    assert.notDeepEqual(foot,water);
+    foot = lawn;
+    for (let tick=0; tick<20; tick++) foot = movePlayer(foot,{x:1,y:0},.05,map.walls,map.bounds,map.floor);
+    assert.ok(foot.x>lawn.x && foot.x<water.x);
+    assert.ok(canStand(foot,map.walls,map.bounds,map.floor));
+  }
 });
 
 test("both stream bridges admit crossings in each direction and stop feet at either rail", () => {

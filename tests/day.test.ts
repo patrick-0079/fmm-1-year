@@ -7,6 +7,7 @@ import {
   worldTime,
 } from "../src/day.ts";
 import { readProgress } from "../src/core.ts";
+import { loadWorldClock, WORLD_CLOCK_KEY } from "../src/nature-save.ts";
 import { spriteFrames } from "../src/sprite-frames.ts";
 import { townLightMix } from "../src/town-light.ts";
 
@@ -18,18 +19,39 @@ test("the town has four distinct light phases and blends them gently at sunrise 
   assert.deepEqual(townLightMix(23.99),townLightMix(.01));
 });
 
-test("one real ten-minute interval is exactly one complete world day", () => {
-  assert.equal(DAY_SECONDS, 600);
-  for (const seconds of [0, 25, 200, 399, 599]) {
-    const first = worldTime(seconds),
-      next = worldTime(seconds + 600);
-    assert.ok(Math.abs(first.hours - next.hours) < 1e-9);
-    assert.equal(next.day, first.day + 1);
+test("each real second advances exactly one displayed minute, including midnight and repeat days", () => {
+  assert.equal(DAY_SECONDS, 1440);
+  for (let seconds = 0; seconds <= 2880; seconds++) {
+    const totalMinutes = 480 + seconds;
+    const hour = Math.floor(totalMinutes / 60) % 24;
+    const label = `${String(hour).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
+    for (const elapsed of [seconds, seconds + .999]) {
+      const time = worldTime(elapsed);
+      assert.equal(time.label, label);
+      assert.equal(time.day, 1 + Math.floor(totalMinutes / 1440));
+    }
   }
-  assert.equal(worldTime(0).label, "08:00");
-  assert.equal(worldTime(225).phase, "dusk");
-  assert.equal(worldTime(300).phase, "night");
-  assert.equal(worldTime(525).phase, "dawn");
+  for (const [seconds, before, after] of [[540, "day", "dusk"], [720, "dusk", "night"], [1260, "night", "dawn"], [1440, "dawn", "day"]] as const) {
+    assert.equal(worldTime(seconds - .001).phase, before);
+    assert.equal(worldTime(seconds).phase, after);
+  }
+});
+test("a ten-minute clock migrates once with its day, minute, bench jumps and offline time intact", () => {
+  const now = 1_800_000_000_000;
+  const records = new Map([["fufu-world-clock-v1", JSON.stringify({ origin: now - 2_500_000, shift: 125 })]]);
+  const storage = { getItem: (key: string) => records.get(key) ?? null, setItem: (key: string, value: string) => { records.set(key, value); } };
+  const migrated = loadWorldClock(storage, now);
+  assert.deepEqual(migrated, { origin: now, shift: 6300 });
+  assert.deepEqual(worldTime(migrated.shift), { day: 5, label: "17:00", hours: 17, phase: "dusk" });
+  records.set("fufu-world-clock-v1", JSON.stringify({ origin: now, shift: 0 }));
+  const later = now + 1_441_000;
+  const loaded = loadWorldClock(storage, later);
+  assert.deepEqual(loaded, migrated);
+  const time = worldTime((later - loaded.origin) / 1000 + loaded.shift);
+  assert.equal(time.label, "17:01");
+  assert.equal(time.day, 6);
+  records.set(WORLD_CLOCK_KEY, "{");
+  assert.deepEqual(loadWorldClock(storage, later), { origin: later, shift: 0 });
 });
 test("the courage garden bench advances to each exclusive easter-egg window", () => {
   let elapsed = 0;
@@ -44,11 +66,11 @@ test("the courage garden bench advances to each exclusive easter-egg window", ()
   }
 });
 test("the bench leaves a pinned preview at its next boundary on the natural clock", () => {
-  for (const elapsed of [0,224.999,301,599,1024]) {
+  for (const elapsed of [0,539.999,540,720,959.999,1260,1439.999,1440,9087.25]) {
     for (const [shown,next,hour] of [["dawn","day",8],["day","dusk",17],["dusk","night",20],["night","dawn",5]] as const) {
       const delta=untilNextPhase(elapsed,shown);
       const time=worldTime(elapsed+delta);
-      assert.ok(delta>=0 && delta<DAY_SECONDS+.011);
+      assert.ok(delta>=0 && delta<DAY_SECONDS);
       assert.equal(time.phase,next);
       assert.equal(Math.floor(time.hours),hour);
     }

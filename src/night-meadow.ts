@@ -1,9 +1,10 @@
 import { producers } from "./content";
-import type { Point } from "./core";
-import { campfire, campLetterSpot, campSeat, meadowExit, starJar, tentRoof } from "./meadow-map";
+import type { Point, Progress } from "./core";
+import { campfire, campLetterSpot, campSeat, meadowExit, starJar, tentRoof, campTapeSpot } from "./meadow-map";
 import { meadowFlock as flock } from "./meadow-ground";
 import { sfx } from "./sound";
 import { drawWildSprite } from "./wild-art";
+import { drawMapProp } from "./map-prop-frames";
 import type { DepthLayer, World } from "./world";
 import { drawMoonCircle } from "./moon-circle";
 import { drawFirefly, fireflyDrift } from "./firefly-art";
@@ -12,11 +13,13 @@ import { StarBottleView } from "./star-bottle";
 import { showQuietStarEffect } from "./quiet-star-effect";
 import { creditStarTexture } from "./credit-star-art";
 import { CampGuest } from "./camp-guest";
+import { requestSceneImage } from "./texture-cache";
 import { MeadowJellies } from "./meadow-jellies";
 import { drawJelly, drawKettleSteam, prepareJellyBells } from "./meadow-jelly-art";
 import { sceneArt } from "./scene-art";
 import sceneryOutlines from "./meadow-scenery-outlines.json";
 import { prepareMapCovers, visibleMapCovers } from "./map-covers";
+import { mapFragment } from "./map-fragment";
 import { drawFlexibleCover } from "./scenery-wind";
 import type { ResidentStory } from "./resident-story";
 
@@ -46,6 +49,30 @@ function glint(c: CanvasRenderingContext2D, x: number, y: number, size: number, 
   c.fillRect(Math.round(x), Math.round(y - size), 1, size * 2 + 1);
 }
 
+function drawCampTape(c: CanvasRenderingContext2D) {
+  const { x, y } = campTapeSpot;
+  c.fillStyle = "#372c3c70";
+  c.fillRect(x - 8, y - 1, 19, 2);
+  c.fillStyle = "#262534";
+  c.fillRect(x - 10, y - 9, 20, 9);
+  c.fillStyle = "#565161";
+  c.fillRect(x - 9, y - 10, 18, 8);
+  c.fillStyle = "#b59aab";
+  c.fillRect(x - 9, y - 10, 18, 1);
+  c.fillStyle = "#353340";
+  c.fillRect(x - 8, y - 8, 16, 4);
+  c.fillStyle = "#cec0af";
+  c.fillRect(x - 7, y - 8, 3, 3);
+  c.fillRect(x + 4, y - 8, 3, 3);
+  c.fillStyle = "#514650";
+  c.fillRect(x - 6, y - 7, 1, 1);
+  c.fillRect(x + 5, y - 7, 1, 1);
+  c.fillStyle = "#f0ceae";
+  c.fillRect(x - 5, y - 4, 10, 2);
+  c.fillStyle = "#c47580";
+  c.fillRect(x + 2, y - 4, 2, 1);
+}
+
 export class NightMeadow {
   private time = 0;
   private reduced = matchMedia("(prefers-reduced-motion: reduce)");
@@ -60,16 +87,16 @@ export class NightMeadow {
 
   private loadedStarSprite(url: string) {
     let image = this.starSprites.get(url);
-    if (!image) {
-      image = new Image();
-      image.src = url;
+    if (!image?.naturalWidth) {
+      image = requestSceneImage(url);
       this.starSprites.set(url, image);
     }
     return image.complete && image.naturalWidth > 0 ? image : undefined;
   }
 
   constructor(private world: World, private found: () => string[], private save: () => void,
-    campStory: () => ResidentStory, private collectCampLetter: () => void) {
+    campStory: () => ResidentStory, private collectCampLetter: () => void,
+    private getTape: () => Progress["gardenTape"], private collectTape: () => void) {
     this.reader = new MeadowStarReader(world);
     this.bottle = new StarBottleView(world, found);
     this.campGuest = new CampGuest(world, campStory, save);
@@ -86,9 +113,12 @@ export class NightMeadow {
         drawMoonCircle(c,meadowExit.x,meadowExit.y,this.reduced.matches ? 0 : this.time,near);
       }
     };
-    world.available = spot => available(spot) && (spot.id === campLetterSpot.id
-      ? this.campGuest.letterOnGround
-      : !(world.scene === "meadow" && this.found().includes(spot.id)));
+    world.available = spot => {
+      if (!available(spot)) return false;
+      if (spot.id === campTapeSpot.id) return this.getTape() === "missing";
+      if (spot.id === campLetterSpot.id) return this.campGuest.letterOnGround;
+      return !(world.scene === "meadow" && this.found().includes(spot.id));
+    };
     world.onTick = (dt, t) => {
       tick(dt, t);
       if (world.scene !== "meadow") return;
@@ -127,6 +157,10 @@ export class NightMeadow {
   closeBottle() { this.bottle.close(); }
   interact(id: string) {
     if (this.world.scene !== "meadow") return false;
+    if (id === campTapeSpot.id) {
+      if (this.getTape() === "missing") this.collectTape();
+      return true;
+    }
     if (id === campLetterSpot.id) {
       if (this.campGuest.letterOnGround) this.collectCampLetter();
       return true;
@@ -200,12 +234,14 @@ export class NightMeadow {
     const atlas = this.world.meadowSprites, t = this.reduced.matches ? 0 : this.time;
     const sceneryTime = this.world.ambientTime, still = this.reduced.matches;
     const layers: DepthLayer[] = [
-      {y: 168, draw: c => drawFlexibleCover(c,this.world,tentRoof,still)},
+      {y: 168, outline: still ? mapFragment(tentRoof).mask : undefined,
+        draw: c => drawFlexibleCover(c,this.world,tentRoof,still)},
       {y: 145, draw: c => drawKettleSteam(c, sceneryTime, still)},
-      {y: starJar.y, draw: c => drawWildSprite(c, atlas, 3, starJar.x, starJar.y, 17)},
+      {y: starJar.y, draw: c => drawMapProp(c, sceneArt.smallMapProps, "starJar", starJar.x - 8.5, starJar.y - 17, 17, 17)},
       ...this.campGuest.layers(sceneArt.patrickCamp, this.reduced.matches),
       ...visibleMapCovers(this.world, sceneryCovers),
     ];
+    if (this.getTape() === "missing") layers.push({ y: campTapeSpot.y, draw: drawCampTape });
     const view = this.world.visibleArea;
     this.jellies?.animals.forEach((animal, index) => {
       if (!animal.visible) return;

@@ -4,18 +4,23 @@ import { readFileSync } from "node:fs";
 import { townChatTopics } from "../src/town-chat-topics.ts";
 import { gardenChatTopics, senderIntroductions, introduceSender } from "../src/garden-chat-topics.ts";
 import { townDialogues } from "../src/town-dialogue.ts";
+import { gardenVisitorScripts } from "../src/garden-visitor-dialogue.ts";
+import { guestDialogues } from "../src/town-guest-dialogues.ts";
+import { flowerClueChoice, flowerClueText, xiaoyePages } from "../src/xiaoye-dialogue.ts";
 import { elderLines } from "../src/elders-data.ts";
 import { allLetters } from "../src/letters.ts";
 import { worksInTown } from "../src/town-routines.ts";
 import { gardenWorking } from "../src/garden-residents.ts";
 import { type Phase } from "../src/day.ts";
 import { type ChatBook } from "../src/resident-chats.ts";
+import { actionOption } from "../src/dialogue-options.ts";
 
 const phases: Phase[] = ["dawn","day","dusk","night"];
 const transcript = readFileSync(new URL("../doc/conversation.md", import.meta.url), "utf8");
-test("all 29 schedules and 134 topics match the cast and the complete dialogue transcript", () => {
+test("all 29 residents are represented and the 20 rotating chat books match their schedules and transcript", () => {
   const books: Record<string, ChatBook> = {...townChatTopics, ...gardenChatTopics};
-  assert.equal(Object.keys(books).length, 29);
+  const residents = [...Object.keys(books), ...Object.keys(gardenVisitorScripts), ...Object.keys(guestDialogues), "xiaoye-plush"];
+  assert.equal(new Set(residents).size, 29);
   let count = 0, shifts = 0;
   for (const [id, book] of Object.entries(books)) {
     const duty = phases.filter(phase => {
@@ -44,12 +49,21 @@ test("all 29 schedules and 134 topics match the cast and the complete dialogue t
     assert.equal(forks.size, 1, id);
     count += topics.size;
   }
-  assert.equal(shifts, 76);
-  assert.equal(count, 134);
+  assert.equal(shifts, 50);
+  assert.equal(count, 90);
+});
+
+test("Xiaoye's original options, hug responses and full flower clue are transcribed", () => {
+  for (const page of Object.values(xiaoyePages)) {
+    assert.ok(transcript.includes(page.text), page.text);
+    if (page.letterOffer) assert.ok(transcript.includes(page.letterOffer), page.letterOffer);
+    for (const [label] of page.choices ?? []) assert.ok(transcript.includes(label),label);
+  }
+  assert.ok(transcript.includes(flowerClueChoice) && transcript.includes(flowerClueText));
 });
 
 test("each side of a sender introduction is playable and transcribed in full", () => {
-  assert.equal(Object.keys(senderIntroductions).length, 4);
+  assert.deepEqual(Object.keys(senderIntroductions), ["visitor-dianziyang"]);
   for (const scene of Object.values(senderIntroductions)) {
     for (const [side, branch] of scene.branches.entries()) {
       let choices: {title: string; run: () => void}[] = [];
@@ -73,6 +87,18 @@ test("each side of a sender introduction is playable and transcribed in full", (
   }
 });
 
+test("the garden visitor routes preserve each choice, reply, and outcome in the transcript", () => {
+  for (const script of Object.values(gardenVisitorScripts)) {
+    for (const page of Object.values(script.pages)) {
+      for (const words of [page.text, page.title, ...(page.choices ?? []).map(([label]) => label)]) {
+        if (words) assert.ok(transcript.includes(words), words);
+      }
+      for (const [, next] of page.choices ?? [])
+        assert.ok(next === "close" || script.pages[next], "missing destination " + next);
+    }
+  }
+});
+
 test("all town dialogue pages, player choices, author credit and hints are in the transcript", () => {
   for (const pages of Object.values(townDialogues)) for (const page of Object.values(pages)) {
     const lines = [page.text, page.hint, page.speaker, ...(page.choices ?? []).map(([label]) => label)];
@@ -87,4 +113,32 @@ test("the transcript includes the elders' original lines and each signed letter 
   }
   for (const letter of allLetters)
     assert.ok(transcript.includes(letter.text), letter.title);
+});
+
+test("the revised manuscript's 46 player choices appear on their intended pages", () => {
+  const stroke = "⌈摸摸正号猫⌋", play = "⌈与浅笑开一局牌局⌋", take = "⌈收下信封⌋";
+  const expected = {
+    suyan: {intro:["对哦超超可爱的"], cute:["咦？","⌈奖励一个小巴掌⌋"], tap:["⌈奖励一个大巴掌⌋"], offer:[take],
+      dawn:["⌈抽一巴掌⌋","不要"], day:["⌈抽一巴掌⌋","不要"], night:["⌈给一巴掌⌋","不要"]},
+    qianxiao: {start:["很不错呢！咦，底下这张是什么呀？"], dawn:[play], day:[play], night:[play,"工作累了，想休息"]},
+    xiaoyou: {dawn:["谢谢宝宝～"], "offer-letter":[take], day:["⌈收下橘子⌋"], night:["⌈抱抱小佑⌋"]},
+    guli: {start:["因为故里喜欢吃甜品？","不知道哦"], "offer-letter":[take], dawn:["好哦，让我尝尝"],
+      day:["辛苦啦宝宝，注意休息"], night:["来直播间休息休息吧宝宝"]},
+    pigeon: {intro:["咕？"], again:["咕？你说什么？"], offer:[take]},
+    "radio-host": {start:["因为你梦想成为主持？","因为你喜欢？"], "offer-letter":[take], dawn:["好哦，宝宝也是"],
+      day:["是的哦","今天应该是要咕咕咕了"], night:["宝宝你也是"]},
+    zhenghao: {intro:[stroke,"我也想你了哦小正号"], dawn:[stroke], day:[stroke], night:[stroke], again:[stroke]},
+    rabe: {intro:["没事哦"], offer:[take], night:["好哦，我会注意休息的"], play:["⌈和它们握握“手”⌋"]},
+  };
+  interface Page {choices?: readonly (readonly [string,string])[]; letter?: string; offer?: boolean; collectLabel?: string}
+  const scripts: Record<string,Record<string,Page>> = {...guestDialogues,
+    ...Object.fromEntries(Object.entries(gardenVisitorScripts).map(([id, script]) => [id, script.pages]))};
+  let total = 0;
+  for (const [id, pages] of Object.entries(expected)) for (const [key, labels] of Object.entries(pages)) {
+    const page = scripts[id][key];
+    const actual = page.offer || page.letter ? [actionOption(page.collectLabel ?? "收下信封")] : page.choices?.map(([label]) => label);
+    assert.deepEqual(actual, labels, id + "/" + key);
+    total += labels.length;
+  }
+  assert.equal(total, 46);
 });

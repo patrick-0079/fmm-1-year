@@ -8,10 +8,26 @@ import {
   mediaTime,
 } from "../src/cinema-state.ts";
 
+test("a film ready in the background still requires an inserted tape and a play request", () => {
+  const film = new CinemaSession();
+  film.ready();
+  for (const tape of ["missing", "carried"] as const) {
+    assert.equal(film.open(tape), false);
+    assert.equal(film.active, false);
+    assert.equal(film.request(), false);
+    assert.equal(film.playing(), false);
+  }
+  assert.equal(film.open("inserted"), true);
+  assert.equal(film.stage, "ready");
+  assert.equal(film.playing(), false);
+  assert.equal(film.request(), true);
+  assert.equal(film.playing(), true);
+});
+
 test("late readiness after leaving never authorizes background playback", () => {
   const film = new CinemaSession();
   assert.equal(film.request(), false);
-  film.open();
+  film.open("inserted");
   assert.equal(film.stage, "loading");
   assert.equal(film.request(), true);
   film.leave();
@@ -19,7 +35,7 @@ test("late readiness after leaving never authorizes background playback", () => 
   assert.equal(film.hasFrame, true);
   assert.equal(film.wanted, false);
   assert.equal(film.playing(), false);
-  film.open();
+  film.open("inserted");
   assert.equal(film.playing(), false, "returning still requires pressing play");
   assert.equal(film.request(), true);
   assert.equal(film.playing(), true);
@@ -27,7 +43,7 @@ test("late readiness after leaving never authorizes background playback", () => 
 
 test("leaving during playback retains readiness and cancels playback intent", () => {
   const film = new CinemaSession();
-  film.open();
+  film.open("inserted");
   film.ready();
   film.request();
   film.playing();
@@ -42,7 +58,7 @@ test("leaving during playback retains readiness and cancels playback intent", ()
 
 test("load failures are retryable without starting playback, and ended stays ended on pause", () => {
   const film = new CinemaSession();
-  film.open();
+  film.open("inserted");
   film.fail();
   film.pause();
   assert.equal(film.stage, "error");

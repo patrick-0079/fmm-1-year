@@ -10,6 +10,9 @@ import { reservedShortcut } from "./input";
 import { getDeadline, setDebugDeadline } from "./launch/time";
 import { allLetters } from "./letters";
 
+import { attachDownloadMonitor, pinDebugDock } from "./network-debug";
+import { debugIsOpen, rememberDebugOpen } from "./launch/debug-open";
+
 const maps = {
   room: "晚安小屋",
   garden: "周年花园",
@@ -33,7 +36,7 @@ export function mountDebugPanel(
   flowers: FlowerTrail,
   go: Travel,
   toast: (s: string) => void,
-  eraseProgress: () => boolean,
+  eraseProgress: () => Promise<boolean>,
   mailbox: { received: () => Set<string>; receive: (id?: string) => void; restoreReadingFocus: () => boolean },
 ) {
   const book = document.querySelector<HTMLElement>(".flower-book")!;
@@ -46,9 +49,9 @@ export function mountDebugPanel(
   holder.innerHTML = `<button type="button" class="debug-trigger" aria-controls="game-debug-panel" aria-expanded="false">⚙ 调试</button>
     <aside id="game-debug-panel" class="debug-panel" aria-label="游戏调试面板" hidden>
       <header><div><small>FUFU / PLAYTEST</small><h3>游戏调试台</h3></div><button type="button" class="debug-close" aria-label="关闭调试面板">关闭 ×</button></header>
-      <p class="debug-note">试穿、花门和时段只在本次页面生效；亲手收集与通关仍会正常保存。</p>
+      <p class="debug-note">试穿、传送阵预览和时段设置只在本次页面生效。亲手收集与通关会正常保存。</p>
       <div class="debug-launch-time"></div>
-      <section><h4>查看与试穿</h4><div>${button("wardrobe", "全饰品试穿")}${button("collision", "碰撞轮廓")}</div></section>
+      <section><h4>查看与试穿</h4><div>${button("wardrobe", "全饰品试穿")}${button("collision", "碰撞轮廓")}${button("layers", "图层显示")}</div></section>
       <details class="debug-mail"><summary>快捷收信</summary>
         <p>领取的信会保存到本机，拆封后才会标为已读。</p>
         <label for="debug-mail-choice">待领取的来信</label>
@@ -64,7 +67,7 @@ export function mountDebugPanel(
           .map(([id, { scene }]) => button("map:" + id, scene.title))
           .join("")}</div>
       </details>
-      <details class="debug-flowers"><summary>七色花与花海</summary><div>${button("flower-door", "临时开放花门")}</div><p>点花名到达花旁，是否采下由你决定。</p><div>${rainbowFlowers.map((f, i) => button("flower:" + i, f.name)).join("")}</div></details>
+      <details class="debug-flowers"><summary>七色花与花海</summary><div>${button("flower-door", "临时点亮传送阵")}</div><p>点花名到达花旁，是否采下由你决定。</p><div>${rainbowFlowers.map((f, i) => button("flower:" + i, f.name)).join("")}</div></details>
       <details><summary>小镇与遗迹小游戏</summary><div>${Object.entries(ARCADES)
         .map(([id, g]) => button("game:" + id, g.title))
         .join("")}</div></details>
@@ -87,9 +90,11 @@ export function mountDebugPanel(
           ${button("keep", "保留存档")} ${button("confirm-erase", "确认清空")}</div>
       </details>
     </aside>`;
-  document.querySelector("#app")!.append(holder);
+  const root = document.querySelector("#app")!;
+  root.append(holder);
   const panel = holder.querySelector<HTMLElement>(".debug-panel")!,
     trigger = holder.querySelector<HTMLButtonElement>(".debug-trigger")!;
+  pinDebugDock(holder, panel, root);
   void import("./launch/debug").then(({ mountCountdownDebug }) => {
     mountCountdownDebug(panel.querySelector<HTMLElement>(".debug-launch-time")!, {
       mode: "game",
@@ -131,6 +136,7 @@ export function mountDebugPanel(
     const flags: Record<string, boolean> = {
       wardrobe: bag.fitting,
       collision: world.collisionOverlay,
+      layers: world.layerOverlay,
       "flower-door": flowers.previewOpen,
     };
     holder.querySelectorAll<HTMLButtonElement>("[data-debug]").forEach((b) => {
@@ -144,16 +150,16 @@ export function mountDebugPanel(
         );
       if (cmd === "map:meadow") {
         b.disabled = !world.canEnter("meadow");
-        b.title = b.disabled ? "先集齐七花或临时开放花门" : "";
+        b.title = b.disabled ? "先集齐七花或临时点亮传送阵" : "";
       }
     });
   };
   const close = (focus = false) => {
     if (panel.hidden) return;
     panel.hidden = true;
+    rememberDebugOpen(false);
     cancelErase();
     trigger.setAttribute("aria-expanded", "false");
-    world.suspend("debug", false);
     if (focus && !mailbox.restoreReadingFocus()) trigger.focus({ preventScroll: true });
   };
   trigger.onclick = () => {
@@ -161,9 +167,8 @@ export function mountDebugPanel(
       close(true);
       return;
     }
-    bag.close(false);
-    world.suspend("debug", true);
     panel.hidden = false;
+    rememberDebugOpen(true);
     refreshMail();
     refresh();
     trigger.setAttribute("aria-expanded", "true");
@@ -171,19 +176,13 @@ export function mountDebugPanel(
       .querySelector<HTMLButtonElement>(".debug-close")!
       .focus({ preventScroll: true });
   };
+  if (attachDownloadMonitor(panel) || debugIsOpen()) trigger.click();
   holder.querySelector<HTMLButtonElement>(".debug-close")!.onclick = () =>
     close(true);
-  document.addEventListener(
-    "pointerdown",
-    (e) => {
-      if (!holder.contains(e.target as Node)) close();
-    },
-    { capture: true },
-  );
   window.addEventListener(
     "keydown",
     (e) => {
-      if (!panel.hidden && e.key === "Escape" && !reservedShortcut(e)) {
+      if (!panel.hidden && holder.contains(e.target as Node) && e.key === "Escape" && !reservedShortcut(e)) {
         e.preventDefault();
         e.stopImmediatePropagation();
         if (!eraseCheck.hidden) cancelErase(true);
@@ -199,7 +198,6 @@ export function mountDebugPanel(
   ) => {
     if (travelling) return;
     travelling = true;
-    close();
     try {
       if (!(await go(scene, id, mode))) toast("请等地图准备好，再试一次。");
     } catch {
@@ -208,7 +206,7 @@ export function mountDebugPanel(
       travelling = false;
     }
   };
-  panel.addEventListener("click", (e) => {
+  panel.addEventListener("click", async (e) => {
     const cmd = (e.target as Element).closest<HTMLButtonElement>("[data-debug]")
       ?.dataset.debug;
     if (!cmd) return;
@@ -226,15 +224,14 @@ export function mountDebugPanel(
         .focus({ preventScroll: true });
     } else if (type === "keep") cancelErase(true);
     else if (type === "confirm-erase") {
-      if (!eraseCheck.hidden && !travelling && eraseProgress()) {
-        close();
-        document
-          .querySelector<HTMLButtonElement>(".enter-button")!
-          .focus({ preventScroll: true });
+      if (!eraseCheck.hidden && !travelling && await eraseProgress()) {
+        cancelErase(true);
       }
     } else if (type === "wardrobe") bag.setFitting(!bag.fitting);
     else if (type === "collision")
       world.showCollisionOverlay(!world.collisionOverlay);
+    else if (type === "layers")
+      world.showLayerOverlay(!world.layerOverlay);
     else if (type === "time")
       nature.setPreviewPhase(key === "auto" ? null : (key as Phase));
     else if (type === "flower-door") {

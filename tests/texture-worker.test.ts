@@ -1,16 +1,15 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { createContext, runInContext } from "node:vm";
 import test from "node:test";
 import { setImmediate } from "node:timers/promises";
 
-const script = readFileSync(new URL("../scripts/texture-worker.js", import.meta.url), "utf8");
+import { textureWorkerSource } from "../scripts/texture-worker-source.mjs";
+const script = textureWorkerSource();
 type Files = readonly (readonly [path: string, contents: string | Buffer])[];
 type Lifetime = { waitUntil(task: Promise<unknown>): void };
-type WorkerFetch = Lifetime & { request: Request; respondWith(task: Promise<Response>): void };
-type WorkerMessage = Lifetime & { data: { type: string; version: string; retry: boolean } };
+type WorkerFetch = Lifetime & { request: Request; clientId: string; respondWith(task: Promise<Response>): void };
 
 function mountWorker(scope: string, files: Files, entries: Map<string, Response>, network: typeof fetch, version = "release") {
   const cache = {
@@ -20,32 +19,35 @@ function mountWorker(scope: string, files: Files, entries: Map<string, Response>
     delete: async (key: string | Request) => entries.delete(typeof key === "string" ? key : key.url),
   };
   let onFetch!: (event: WorkerFetch) => void;
-  let onMessage!: (event: WorkerMessage) => void;
+  let onActivate!: (event: Lifetime) => void;
+  let onMessage!: (event: { source: { id: string }; data: { type: string; token: string } }) => void;
   const context = createContext({
-    self: { registration: { scope }, addEventListener(name: string, listener: (event: never) => void) {
+    self: { registration: { scope }, clients: { claim() {} }, addEventListener(name: string, listener: (event: never) => void) {
       if (name === "fetch") onFetch = listener as typeof onFetch;
+      if (name === "activate") onActivate = listener as typeof onActivate;
       if (name === "message") onMessage = listener as typeof onMessage;
     } },
     assetVersion: version,
     assetFiles: files.map(([name, body]) => [name, createHash("sha256").update(body).digest("base64")]),
     caches: { open: async () => cache },
-    // Node fetch has no native HTTP cache. Model a local miss without a request.
-    fetch: (input: RequestInfo | URL, init?: RequestInit) => init?.cache === "only-if-cached"
-      ? Promise.resolve(new Response(null, { status: 504 })) : network(input, init),
-    Response, crypto, URL, btoa,
+    fetch: network, Response, Headers, Blob, crypto, URL, btoa, AbortSignal, AbortController, performance, setInterval, clearInterval,
   });
   runInContext(script, context);
   return {
-    warm(pageVersion = version, retry = false) {
+    activate() {
       let result: Promise<unknown> | undefined;
-      onMessage({ data: { type: "warm-assets", version: pageVersion, retry }, waitUntil: task => { result = task; } });
+      onActivate({ waitUntil: task => { result = task; } });
       return result;
     },
-    async load(path: string, init?: RequestInit) {
+    yieldPreload(clientId: string, token: string) {
+      onMessage({ source: { id: clientId }, data: { type: "yield-preload", token } });
+    },
+    async load(path: string, init?: RequestInit, clientId = "player") {
       const lifetime: Promise<unknown>[] = [];
       let result: Promise<Response> | undefined;
       onFetch({
         request: new Request(new URL(path, scope), init),
+        clientId,
         respondWith: task => { result = task; },
         waitUntil: task => { lifetime.push(task); },
       });
@@ -85,33 +87,27 @@ test("a damaged map can be retried, including old cached copies, while valid tex
   assert.equal(downloads, 2, "even a newly started worker should accept a valid offline copy");
 });
 
-test("background warming shares transfers with foreground requests and retries after reconnect", async () => {
+test("a cold preload uses one normal fetch, shares it with the renderer and preserves WAV ranges", async () => {
   const scope = "https://game.test/preview/";
   const files = [["garden.webp", "garden"], ["photo.webp", "photo"], ["letter.webp", "letter"], ["song.wav", "01234567"]] as const;
   const entries = new Map<string, Response>();
   const pending = new Map<string, PromiseWithResolvers<Response>>();
   const requested: string[] = [];
-  const secondLetter = Promise.withResolvers<void>();
-  const worker = mountWorker(scope, files, entries, async input => {
+  const modes: (RequestCache | undefined)[] = [];
+  const worker = mountWorker(scope, files, entries, async (input, options) => {
     const name = String(input).slice(scope.length);
     assert.ok(!pending.has(name), "duplicate download for " + name);
-    if (name === "letter.webp" && requested.includes(name)) secondLetter.resolve();
+    modes.push(options?.cache);
     requested.push(name);
     const transfer = Promise.withResolvers<Response>();
     pending.set(name, transfer);
     return transfer.promise.finally(() => pending.delete(name));
   });
-  assert.equal(worker.warm("older-release"), undefined);
-  const pass = worker.warm();
-  assert.ok(pass);
-  assert.equal(worker.warm(), pass, "pages share the running queue");
-  await setImmediate();
-  assert.deepEqual(requested, ["garden.webp", "photo.webp"]);
-
+  const warming = worker.load("garden.webp", { headers: { "X-Fufu-Preload": "background" } });
   const garden = worker.load("garden.webp");
   const audio = worker.load("song.wav", { headers: { Range: "bytes=1-3" } });
   await setImmediate();
-  assert.deepEqual(requested, ["garden.webp", "photo.webp", "song.wav"], "foreground bypasses the queue");
+  assert.deepEqual(requested, ["garden.webp", "song.wav"]);
   pending.get("song.wav")!.resolve(new Response("01234567", { headers: { "Content-Type": "audio/wav" } }));
   const partial = await audio;
   assert.equal(partial?.status, 206);
@@ -120,20 +116,17 @@ test("background warming shares transfers with foreground requests and retries a
 
   pending.get("garden.webp")!.resolve(new Response("garden"));
   assert.equal(await (await garden)?.text(), "garden");
+  assert.equal(await (await warming)?.text(), "garden");
+  const failure = assert.rejects(worker.load("letter.webp"));
   await setImmediate();
-  assert.ok(pending.has("letter.webp"));
   pending.get("letter.webp")!.reject(new Error("disconnected"));
-  const recovery = worker.warm("release", true);
-  pending.get("photo.webp")!.resolve(new Response("photo"));
-  await pass;
-  await secondLetter.promise;
+  await failure;
+  const recovery = worker.load("letter.webp");
+  await setImmediate();
   pending.get("letter.webp")!.resolve(new Response("letter"));
-  await recovery;
-  assert.equal(entries.size, 4);
-  assert.deepEqual(requested, ["garden.webp", "photo.webp", "song.wav", "letter.webp", "letter.webp"]);
-
-  await worker.warm();
-  assert.equal(requested.length, 5, "a new pass checks the cache without transferring unchanged bodies");
+  assert.equal(await (await recovery)?.text(), "letter");
+  assert.equal(await (await worker.load("letter.webp"))?.text(), "letter");
+  assert.deepEqual(modes, ["default", "default", "default", "reload"]);
 });
 
 test("a newer release keeps unchanged cached bytes, repairs stale entries and removes retired URLs", async () => {
@@ -148,8 +141,40 @@ test("a newer release keeps unchanged cached bytes, repairs stale entries and re
     downloads.push(String(input));
     return new Response("new map");
   }, "new-release");
-  await worker.warm("new-release");
+  await worker.activate();
+  await worker.load("letter.webp");
+  await worker.load("map.webp");
   assert.deepEqual(downloads, [scope + "map.webp"]);
   assert.equal(await entries.get(scope + "map.webp")?.text(), "new map");
   assert.equal(entries.has(scope + "retired.webp"), false);
+});
+
+test("a scene change releases its background transfer and preserves other players' active requests", async () => {
+  const requests: { signal: AbortSignal; cache?: RequestCache; finish: (res: Response) => void }[] = [];
+  const worker = mountWorker("https://game.test/", [["garden.webp", "garden"], ["room.webp", "room"]], new Map(), async (_, options) => {
+    const signal = options!.signal!;
+    return new Promise<Response>((finish, reject) => {
+      requests.push({ signal, cache: options?.cache, finish });
+      signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+    });
+  });
+  const background = { headers: { "X-Fufu-Preload": "job" } };
+  const cancelled = assert.rejects(worker.load("garden.webp", background, "first"), { name: "AbortError" });
+  await setImmediate();
+  worker.yieldPreload("second", "job");
+  assert.equal(requests[0].signal.aborted, false);
+  worker.yieldPreload("first", "job");
+  await cancelled;
+  assert.equal(requests[0].signal.aborted, true);
+
+  const warming = worker.load("garden.webp", background, "first");
+  const foreground = worker.load("garden.webp", {}, "second");
+  await setImmediate();
+  worker.yieldPreload("first", "job");
+  assert.equal(requests.length, 2, "both tabs reuse the resumed request");
+  assert.equal(requests[1].signal.aborted, false);
+  assert.equal(requests[1].cache, "default", "yielding did not invalidate the HTTP cache");
+  requests[1].finish(new Response("garden"));
+  assert.equal(await (await foreground)?.text(), "garden");
+  await warming;
 });

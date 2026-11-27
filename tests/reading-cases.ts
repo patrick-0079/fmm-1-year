@@ -1,5 +1,7 @@
 import type { World } from "../src/world";
 import { SAVE_KEY, readProgress } from "../src/core";
+import { rainbowFlowers } from "../src/rainbow-flowers";
+import { campTapeSpot } from "../src/meadow-map";
 import { renderGameMailDesk } from "../src/game-mail-desk";
 import { checkTapSurface } from "./hotspot-pointer-cases";
 
@@ -209,7 +211,7 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
     key("PageDown", detail);
     const pageBeforeHelp = q(".mail-sheet .mail-page-count").textContent;
     q(".help-button").click();
-    expect(world.suspended && !q(".inline-help").hidden, "说明没有暂停底层阅读");
+    expect(world.suspended && q<HTMLDialogElement>("#game-help").matches(":modal"), "说明应作为弹窗暂停底层阅读");
     key("Escape", q(".help-close"));
     expect(!reader.hidden && world.paused && !world.suspended, "关闭说明错误地关闭或恢复了底层阅读");
     expect(document.activeElement === detail && q(".mail-sheet .mail-page-count").textContent === pageBeforeHelp,
@@ -249,10 +251,28 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
     expect(reader.hidden && !world.paused && document.activeElement === world.canvas, "收起相册没有恢复探索");
     log("相册翻页与单张返回均保留焦点，Esc 可逐层退出。");
   }
+  const tape = () => readProgress(localStorage.getItem(SAVE_KEY)).gardenTape;
+  if (tape() === "missing") {
+    for (const flower of rainbowFlowers) {
+      await world.prepareScene(flower.scene);
+      world.switchScene(flower.scene, flower.approach);
+      world.onInteract(flower.id);
+    }
+    await world.prepareScene("meadow");
+    world.switchScene("meadow", campTapeSpot.approach);
+    key("e");
+    expect(tape() === "carried", "在篝火左边按 E 没有拿到录像带");
+  }
   await world.prepareScene("garden");
   world.switchScene("garden", {x:710,y:347});
   world.canvas.focus({preventScroll:true});
   key("e");
+  if (tape() === "carried") {
+    const insert = [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")]
+      .find(button => button.textContent === "⌈放入录像带⌋");
+    expect(!!insert, "在大屏前没有插带选项");
+    insert!.click();
+  }
   const video = q<HTMLVideoElement>('video[data-garden-video]'), hud = q(".cinema-hud");
   expect(!hud.hidden && book().facts.includes("cinema-opened"), "在大屏前按 E 没有进入放映并记下到访");
   expect(book().earned.includes("memories"), "真实打开单张照片与花园大屏后没有盖章");

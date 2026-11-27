@@ -7,6 +7,53 @@
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <meta name="theme-color" content="#f4f3ef" />
+    <!-- journal-full:start -->
+    <link id="journal-paper-preload" rel="preload" as="image" type="image/webp"
+      href="/src/assets/journal-celestial-paper.webp?no-inline" fetchpriority="high" media="not all" />
+    <style>
+      html.journal-open { background: #faf3e8; }
+      html.journal-open body { margin: 0; background: transparent; }
+      html.journal-open::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        pointer-events: none;
+        background: radial-gradient(ellipse at 0 20%, #efd6da, transparent 42%),
+          radial-gradient(ellipse at 100% 70%, #e2dbeb, transparent 40%), #faf3e8;
+        /* Keep the engraved chart and envelope in the margins. Stretch the blank paper between them. */
+        --chart-width: min(13vw, 28vh, 250px);
+        --letter-width: min(14vw, 30vh, 270px);
+        border-image: var(--journal-paper, none) 320 290 380 340 fill /
+          calc(var(--chart-width) * 320 / 340) var(--letter-width)
+          calc(var(--letter-width) * 380 / 290) var(--chart-width);
+      }
+      @media (max-width: 700px) and (orientation: portrait) {
+        html.journal-open::before {
+          border-image: none;
+          /* Preserve the 1672 × 941 illustration and soften its lower edge. */
+          background: linear-gradient(transparent, #faf3e8)
+              left 0 top calc(56.28vw - 15px) / 100% 15px no-repeat,
+            var(--journal-paper, none) center top / 100% auto no-repeat, #faf3e8;
+        }
+      }
+    </style>
+    <script>
+      (() => {
+        const paper = document.getElementById("journal-paper-preload");
+        function showPaper() {
+          paper.media = "all";
+          const root = document.documentElement;
+          root.style.setProperty("--journal-paper", 'url("' + paper.href + '")');
+          root.classList.add("journal-open");
+        }
+        // Production can paint while the entry module is still downloading.
+        // Debug builds let the launch entry resolve its session-specific deadline.
+        if (Date.now() >= __JOURNAL_EARLY_OPEN_AT__) showPaper();
+        else document.addEventListener("fufu:journal-open", showPaper, { once: true });
+      })();
+    </script>
+    <!-- journal-full:end -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta
       name="description"
@@ -16,6 +63,7 @@
   </head>
   <body>
     <div id="app"></div>
+    <fufu-pet></fufu-pet>
     <script type="module" src="/src/launch/lite.ts"></script>
   </body>
 </html>

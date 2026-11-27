@@ -31,14 +31,14 @@ export async function verifyFieldTrip(world:World, log:(text:string)=>void) {
   log("持续按方向键走远后小镇对白自动收起，移动仍在继续");
   await world.prepareScene("garden");
   const star=await arriveOnShift(world,"garden","garden-guest-balloon-friend");
-  world.interact();press("轻轻抚摸奶油猫");
-  const stale=Array.from(hud.querySelectorAll<HTMLButtonElement>(".activity-actions button")).find(b=>b.textContent==="带上奶油猫")!;
+  world.interact();press("⌈轻轻抚摸奶油猫⌋");
+  const stale=Array.from(hud.querySelectorAll<HTMLButtonElement>(".activity-actions button")).find(b=>b.textContent==="⌈带上奶油猫⌋")!;
   const dest={x:390,y:323}, pos=world.project(dest), r=canvas.getBoundingClientRect();
   canvas.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,button:0,pointerType:"mouse",clientX:r.left+r.width*pos.x/600,clientY:r.top+r.height*pos.y/400}));
   await wait(()=>hud.hidden,"离开星星后仍在对话");stale.click();
   await wait(()=>Math.hypot(world.player.x-dest.x,world.player.y-dest.y)<2,"关闭对话截断了点击寻路");
   assert(!readInventory(localStorage.getItem(INVENTORY_KEY)).owned.includes("petCat"),"旧选项误发了桃桃");
-  world.switchScene("garden",star.approach);world.interact();press("轻轻抚摸奶油猫");press("带上奶油猫");press("继续");
+  world.switchScene("garden",star.approach);world.interact();press("⌈轻轻抚摸奶油猫⌋");press("⌈带上奶油猫⌋");press("桃桃，以后我们一起散步吧！");
   hud.querySelector<HTMLButtonElement>(".activity-close")!.click();
   log("花园离开时清掉旧选项，回去能重新邀请桃桃");
   world.switchScene("room",{x:205,y:290});

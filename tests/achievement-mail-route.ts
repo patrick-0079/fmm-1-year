@@ -1,5 +1,6 @@
-import { arriveOnShift, scheduledResident } from "./resident-visits";
+import { arriveOnShift, scheduledResident, waitOnBench } from "./resident-visits";
 import { SAVE_KEY, readProgress } from "../src/core";
+import { INVENTORY_KEY, readInventory } from "../src/items";
 import { rainbowFlowers, meadowGate } from "../src/rainbow-flowers";
 import { campLetterSpot } from "../src/meadow-ground";
 import { mailboxLetters } from "../src/resident-story";
@@ -26,6 +27,22 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
     if (!action) throw Error("找不到「"+name+"」，当前选项 "+actions().map(b=>b.textContent).join("、"));
     action.click();
   };
+  const flowerClue = "小叶子，你知道去花海的路怎么走吗？";
+  const clueIsAbsent = () => assert(!actions().some(button => button.textContent === flowerClue), "小叶子在后续轮次仍然显示花海线索选项");
+  const askAboutTape = () => {
+    const previousStage = state().gardenTape;
+    const opening = q(".activity-status").textContent;
+    choose(flowerClue);
+    clueIsAbsent();
+    const clue = q(".activity-status").textContent ?? "";
+    for (const place of ["手绘地图", "周年花园两朵", "勇气花园两朵", "周年小镇三朵", "在我的旁边会有一个传送阵", "在篝火的旁边", "大屏幕"])
+      assert(clue.includes(place), "小叶子的录像带线索缺少" + place);
+    assert(readInventory(localStorage.getItem(INVENTORY_KEY)).flowerMap, "绒爪递来的地图没有收进背包");
+    choose("我们接着聊吧！");
+    assert(q(".activity-status").textContent === opening, "打听线索后未回到开场对白");
+    clueIsAbsent();
+    assert(state().gardenTape === previousStage, "打听线索时录像带状态变了");
+  };
   const close = () => { if (!q(".activity-hud").hidden) q(".activity-close").click(); };
   const approach = async(scene: SceneId, id: string) => {
     close();
@@ -41,13 +58,8 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
     world.setCueInput("keyboard");
     world.interact();
   };
-  const originalOffer: Record<string, string> = {
-    suyan: "嗯，这封是给你的。你看，封口的小花是我自己画的。",
-    rabe: "晚安，芙芙。小药箱里有绷带，也有一封想交给你的信。",
-    dianziyang: "咩。走累了就在路边歇一歇。我给你带了一封信。",
-    pigeon: "（鸽子歪了歪头，把信推到芙芙脚边。）",
-  };
-  const followIntroduction = (author: string, side: number) => {
+  const followSheepIntroduction = (side: number) => {
+    const author = "dianziyang";
     const buttons = actions();
     assert(buttons.length === 2 && buttons[0].textContent !== buttons[1].textContent, author+" 的初遇没有两种独立回答");
     const count = letterCount();
@@ -55,9 +67,9 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
     const answer = q(".activity-status").textContent;
     for (let page = 0; page < 6; page++) {
       const current = actions();
-      assert(letterCount() === count && !current.some(b => b.textContent === "现在读信"), author+" 未收下就发信");
-      if (current.some(b => b.textContent === "收下信")) {
-        assert(q(".activity-status").textContent === originalOffer[author], author+" 没有接回原来递信的完整台词");
+      assert(letterCount() === count && !current.some(b => b.textContent === "⌈现在读信⌋"), author+" 未收下就发信");
+      if (current.some(b => b.textContent === "⌈收下信⌋")) {
+        assert(q(".activity-status").textContent === "咩。走累了就在路边歇一歇。我给你带了一封信。", author+" 没有接回原来递信的完整台词");
         return answer;
       }
       assert(current.length === 1, author+" 初遇分支缺少跟进选项");
@@ -80,22 +92,22 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
   q(".game-letter-reader .reader-close").click();
   log("开局两封信逐封拆开，正文出现时各自盖章");
   const routes: Array<[SceneId,string,string,string[]]>=[
-    ["garden","garden-guest-suyan","suyan",[]],
+    ["garden","garden-guest-suyan","suyan",["对哦超超可爱的","咦？","⌈奖励一个小巴掌⌋","⌈奖励一个大巴掌⌋"]],
     ["garden","xiaoye-plush","xiaoye",[]],
-    ["town","npc-radio-host","yeshenhua",["你的小牛角好可爱","看看节目单"]],
-    ["town","npc-xiaoyou","xiaoyou",["收下橘子","尝一瓣","看看果篮"]],
-    ["town","npc-guli","guli",["看看小鱼","你手里的是什么？"]],
+    ["town","npc-radio-host","yeshenhua",["因为你梦想成为主持？"]],
+    ["town","npc-xiaoyou","xiaoyou",["⌈收下橘子⌋","⌈尝一瓣⌋"]],
+    ["town","npc-guli","guli",["因为故里喜欢吃甜品？"]],
     ["town","npc-post","post",["不是哦"]],
-    ["challenge","visitor-rabe","rabe",[]],
+    ["challenge","visitor-rabe","rabe",["没事哦"]],
     ["town","visitor-dianziyang","dianziyang",[]],
-    ["garden","visitor-pigeon","pigeon",[]],
+    ["garden","visitor-pigeon","pigeon",["咕？","咕？你说什么？"]],
   ];
   for (const [scene,id,author,steps] of routes) {
     const count = letterCount();
     await visit(scene,id);
-    if (Object.hasOwn(originalOffer, author)) {
-      const first = followIntroduction(author, 0);
-      const stale = actions().find(b => b.textContent === "收下信")!;
+    if (author === "dianziyang") {
+      const first = followSheepIntroduction(0);
+      const stale = actions().find(b => b.textContent === "⌈收下信⌋")!;
       world.onInteract(id);
       assert(actions().includes(stale), author+" 重复点地图上的同一人会重开谈话");
       const speaker = world.config.spots.find(spot => spot.id === id)!;
@@ -105,19 +117,66 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
       stale.click();
       assert(letterCount() === count && !has("letter-"+author), author+" 过期的递信按钮仍入箱或盖章");
       await visit(scene,id);
-      const second = followIntroduction(author, 1);
+      const second = followSheepIntroduction(1);
       assert(first !== second, author+" 的两项分别进入了相同回答");
       log(author+" · 两种初遇回答都接回原来的递信台词，第一趟走远未领取");
     }
     for (const step of steps) choose(step);
-    const final=author==="post"?"继续":"收下信";
-    if (author==="xiaoye") await wait(()=>actions().some(b=>b.textContent?.startsWith(final)), "拥抱结束后没有递出信封");
+    if (author === "xiaoyou") {
+      assert(q(".activity-status").textContent?.includes("忘在家里"), "小佑初遇没有说明清晨再来");
+      assert(letterCount() === count, "小佑初遇提前发信");
+      close();
+      for (let i = 0; world.currentPhase !== "dawn" && i < 4; i++) await waitOnBench(world);
+      await visit(scene,id);
+      choose("谢谢宝宝");
+      close();
+      await visit(scene,id);
+      choose("谢谢宝宝");
+    }
+    if (author === "xiaoye") {
+      askAboutTape();
+      choose("宝宝你这是玩偶服嘛？");
+      clueIsAbsent();
+      choose("好热的拥抱");
+      clueIsAbsent();
+      assert(q(".activity-status").textContent?.includes("热也得抱"), "热的拥抱进入了错误回答");
+      const firstOffer = actions().find(button => button.textContent==="⌈收下信封⌋");
+      if (!firstOffer || firstOffer.disabled) throw Error("选完好热的拥抱后，收下信封必须能立即点击");
+      world.canvas.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+      try {
+        await wait(() => q(".activity-hud").hidden, "拥抱中走开后对白没有收起");
+      } finally {
+        world.canvas.dispatchEvent(new KeyboardEvent("keyup", { key: "ArrowRight", bubbles: true }));
+      }
+      firstOffer.click();
+      assert(letterCount() === count && !has("letter-xiaoye"), "中途离开后旧按钮仍能收信");
+      await visit(scene, id);
+      assert(actions().some(button => button.textContent === flowerClue), "重新交谈时没有恢复打听线索的选项");
+      choose("宝宝你这是玩偶服嘛？");
+      clueIsAbsent();
+      choose("好温暖的拥抱");
+      assert(q(".activity-status").textContent?.includes("温暖的话就多抱会吧"), "温暖的拥抱进入了错误回答");
+      assert(actions().some(b=>b.textContent==="⌈收下信封⌋" && !b.disabled), "选完好温暖的拥抱后，收下信封必须能立即点击");
+      clueIsAbsent();
+    }
+    const final = author === "post" ? "你说的缘分，会是什么呀？" :
+      actions().find(b => /^⌈收下信(?:封)?⌋$/.test(b.textContent ?? ""))?.textContent;
+    if (!final) throw Error(author + " 没有收信入口");
     assert(letterCount()===count && !has("letter-"+author),author+" 在实际领取前提前盖章");
     choose(final);
+    if (author === "xiaoye") {
+      assert(world.getActorPresentation(), "即时收信时拥抱应继续播放");
+      assert(actions().some(button => button.textContent === "⌈现在读信⌋"), "收信后读信入口消失");
+      clueIsAbsent();
+      await visit(scene, id);
+      askAboutTape();
+      choose("⌈抱抱⌋");
+      clueIsAbsent();
+    }
     await wait(()=>letterCount()===count+1,author+" 实际收信后信箱数量未增加");
     if (author==="rabe") {
       assert(!has("letter-rabe"),"Rabe 的信尚未拆开就已盖章");
-      choose("现在读信");
+      choose("⌈现在读信⌋");
       await wait(()=>has("letter-rabe") && q(".inventory-panel .mail-sheet")?.hidden === false,"Rabe 的信从背包展开后没有盖章");
       window.dispatchEvent(new KeyboardEvent("keydown",{key:"b",bubbles:true,cancelable:true}));
       assert(q(".inventory-panel").hidden && world.scene === scene,"合上背包后没有停在 Rabe 身边");
@@ -133,7 +192,7 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
   }
   log("七种特殊花按三张地图亲手采集，前六朵没有提前解锁，第七朵盖章");
   await visit("garden",meadowGate.id);
-  await wait(()=>world.scene==="meadow" && !world.paused,"花门未通往花海");
+  await wait(()=>world.scene==="meadow" && !world.paused,"传送阵未通往花海");
   await visit("meadow","meadow-camp");
   assert(world.restState?.kind==="sitting","未坐到营火边");
   // Keep the real rest identity and animation callbacks; advance only the world clock.

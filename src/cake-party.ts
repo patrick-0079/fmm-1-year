@@ -1,4 +1,5 @@
 import type { Point } from "./core.ts";
+import { drawMapProp } from "./map-prop-frames.ts";
 export const cakeGuides: [Point, Point][] = [
   [
     { x: 300, y: 193 },
@@ -51,17 +52,7 @@ export function drawCakeSlice(
   image?: HTMLImageElement,
 ) {
   if (image?.complete && image.naturalWidth) {
-    c.drawImage(
-      image,
-      45,
-      56,
-      1226,
-      1095,
-      x - 8 * size,
-      y - 11 * size,
-      16 * size,
-      14.3 * size,
-    );
+    drawMapProp(c, image, "cake", x - 8 * size, y - 11 * size, 16 * size, 14.3 * size);
     return;
   }
   c.save();

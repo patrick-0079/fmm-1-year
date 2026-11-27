@@ -64,16 +64,35 @@ test("two open books keep the highest single run and show the score that earned 
   }
 });
 
-test("the book starts with 54 unique stamps in five chapters and seals unopened public letters", () => {
+test("the book starts with 57 unique stamps in five chapters and seals unopened public letters", () => {
   const p = newGame(), { entries, fresh } = reconcileAchievements(p, empty);
-  assert.deepEqual(achievementChapters.map(c => entries.filter(e => e.chapter === c.id).length), [13, 12, 7, 16, 6]);
-  assert.equal(new Set(entries.map(e => e.id)).size, 54);
+  assert.deepEqual(achievementChapters.map(c => entries.filter(e => e.chapter === c.id).length), [13, 12, 8, 18, 6]);
+  assert.equal(new Set(entries.map(e => e.id)).size, 57);
   assert.deepEqual(fresh, []);
   assert.ok(entries.every(e => !e.earned && e.current === 0 && e.progressLabel));
   const mail = entries.filter(e => e.chapter === "letters");
   assert.deepEqual(new Set(mail.map(e => e.letterId)), new Set(allLetters.map(l => l.id)));
   assert.ok(entries.filter(e => e.hint).every(e => !/派大星|30 秒|两次|电波|星盘环/.test(e.hint!)));
   assert.equal(migrateAchievementFacts(p, empty), false);
+});
+
+test("the tent pickup earns the tape stamp once and legacy screenings keep their own receipts", () => {
+  const old = readProgress(JSON.stringify({ visited: ["danmaku"], achievements: { earned: ["memories"] },
+    residents: { publicLettersRead: [] } }));
+  migrateAchievementFacts(old, empty);
+  assert.equal(old.gardenTape, "missing");
+  assert.equal(readProgress('{"gardenTape":"playing"}').gardenTape, "missing");
+  assert.deepEqual(reconcileAchievements(old, empty).fresh, []);
+  assert.ok(old.achievements.earned.includes("memories"));
+  old.gardenTape = "carried";
+  assert.deepEqual(reconcileAchievements(old, empty).fresh, ["garden-tape"]);
+  const carried = readProgress(JSON.stringify(old));
+  assert.equal(carried.gardenTape, "carried");
+  carried.gardenTape = "inserted";
+  const installed = readProgress(JSON.stringify(carried));
+  assert.equal(installed.gardenTape, "inserted");
+  assert.deepEqual(reconcileAchievements(installed, empty).fresh, []);
+  assert.deepEqual(installed.achievements.earned, ["memories", "garden-tape"]);
 });
 
 test("all twelve letters award at their own handoff or first reading", () => {
@@ -162,12 +181,25 @@ test("split visits, flowers, stars, clues and foreground time require distinct r
   assert.deepEqual(scene.fresh, ["day-secrets"]);
   for (const id of ["rainbow", "star-bottle"]) assert.equal(scene.entries.find(e => e.id === id)!.current, 1);
   p.rainbowFlowers = [...rainbowIds]; p.creditStars = producers.map(s => s.id);
-  assert.deepEqual(pages(599.999).fresh, ["rainbow", "star-bottle"]);
-  assert.deepEqual(pages(600).fresh, ["days-1"]);
-  assert.deepEqual(pages(1799.9).fresh, []);
-  assert.deepEqual(pages(1800).fresh, ["days-3"]);
-  assert.deepEqual(pages(4199.99).fresh, []);
-  assert.deepEqual(pages(4200).fresh, ["days-7"]);
+  assert.deepEqual(pages(1439.999).fresh, ["rainbow", "star-bottle"]);
+  assert.deepEqual(pages(1440).fresh, ["days-1"]);
+  assert.deepEqual(pages(4319.999).fresh, []);
+  assert.deepEqual(pages(4320).fresh, ["days-3"]);
+  assert.deepEqual(pages(10079.999).fresh, []);
+  assert.deepEqual(pages(10080).fresh, ["days-7"]);
+});
+
+test("previously earned day stamps survive the longer day and partial foreground minutes carry over", () => {
+  const previous = newGame();
+  previous.achievements.earned.push("days-1");
+  const p = readProgress(JSON.stringify(previous));
+  const { entries, fresh } = reconcileAchievements(p, { ...empty, playSeconds: 15 * 60 });
+  assert.deepEqual(fresh, []);
+  const first = entries.find(entry => entry.id === "days-1")!;
+  assert.ok(first.earned);
+  assert.equal(first.progressLabel, "已盖章 · 累计前台游玩 15 分钟");
+  const third = entries.find(entry => entry.id === "days-3")!;
+  assert.deepEqual([third.current, third.goal, third.earned], [15, 72, false]);
 });
 
 test("legacy migration uses real inventory and recent clues once; old camp records survive without replaying the visitor", () => {
@@ -191,6 +223,7 @@ test("every documented stamp can be completed and replay never duplicates receip
   for (const fact of achievementEvents) recordAchievementFact(p, fact);
   p.completed = ["gifts","cake","fireworks","balloons","courage"];
   p.bassSongPlayed = p.bedNoteUnlocked = true;
+  p.gardenTape = "carried";
   p.rainbowFlowers = [...rainbowIds];
   p.townKeepsakes.items = [...townInteriorKeys];
   p.creditStars = producers.map(s => s.id);
@@ -199,14 +232,25 @@ test("every documented stamp can be completed and replay never duplicates receip
   grantDebugLetters(p.residents);
   for (const l of allLetters) markLetterRead(p.residents, l.id);
   for (const id of Object.keys(ARCADES) as GameId[]) p.arcadeBests[id] = 400;
-  const ctx = { ...empty, townTalked: TOWN_NPCS.map(n => n.id), playSeconds: 4200 };
-  assert.equal(reconcileAchievements(p, ctx).fresh.length, 54);
+  const ctx = { ...empty, owned:["mikoOutfit"], townTalked: TOWN_NPCS.map(n => n.id), playSeconds: 7 * 24 * 60 };
+  assert.equal(reconcileAchievements(p, ctx).fresh.length, 57);
   assert.deepEqual(reconcileAchievements(p, ctx).fresh, []);
-  assert.equal(reconcileAchievements(readProgress(JSON.stringify(p)), ctx).entries.filter(e => e.earned).length, 54);
+  assert.equal(reconcileAchievements(readProgress(JSON.stringify(p)), ctx).entries.filter(e => e.earned).length, 57);
   assert.deepEqual(readAchievementMemory({ earned: ["cake","bad","cake","gifts"] }).earned, ["cake","gifts"]);
   assert.equal(achievementDefinitions.filter(d => d.id.startsWith("ruin-")).length, 5);
 });
 
+test("the miko stamp requires seven distinct keepsakes and accepting the shrine maiden outfit", () => {
+  const p=newGame();
+  const check=(owned:string[])=>reconcileAchievements(p,{...empty,owned}).entries.find(e=>e.id==="town-miko")!;
+  p.townKeepsakes.items=[...townInteriorKeys.slice(1),townInteriorKeys[1]];
+  assert.equal(check(["mikoOutfit"]).earned,false);
+  p.townKeepsakes.items=[...townInteriorKeys];
+  assert.equal(check([]).earned,false); assert.match(check([]).progressLabel,/待向暖栗领取/);
+  assert.equal(check(["witchDress","witchHat"]).earned,false);
+  assert.equal(check(["mikoOutfit"]).earned,true);
+  assert.deepEqual(reconcileAchievements(readProgress(JSON.stringify(p)),empty).fresh,[]);
+});
 test("each claimed town keepsake earns exactly its own stamp, including existing saves", () => {
   const progress = newGame();
   assert.deepEqual(reconcileAchievements(progress, empty).fresh, []);
@@ -216,7 +260,8 @@ test("each claimed town keepsake earns exactly its own stamp, including existing
     assert.equal(collectTownKeepsake(progress.townKeepsakes, key, "creek", 200), false);
     assert.deepEqual(reconcileAchievements(progress, empty).fresh, []);
   }
-  assert.equal(progress.townKeepsakes.radioTrack, "bells");
+  assert.equal(progress.townKeepsakes.radioTrack, "creek");
+  assert.equal(reconcileAchievements(progress, empty).entries.find(entry => entry.id === townKeepsakeBadge("radio"))?.keepsakeChoice, "creek");
   const older = readProgress(JSON.stringify({ townKeepsakes: { items: ["post", "books", "post"] } }));
   const backfilled = reconcileAchievements(older, empty).fresh.filter(id => id.startsWith("town-keepsake-"));
   assert.deepEqual(backfilled, [townKeepsakeBadge("post"), townKeepsakeBadge("books")]);

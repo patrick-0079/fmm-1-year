@@ -1,9 +1,13 @@
 import { EQUIP_SLOTS, ITEMS, INVENTORY_KEY } from "../src/items";
 import { elderPlaces } from "../src/elders-data";
 import type { World } from "../src/world";
+import { outfits, type Facing } from "../src/costume-frames";
+import { backpacks } from "./bag-fitting-cases";
 
 /** Run once at desktop width and once at phone width in the isolated exploration fixture. */
 export async function verifyWardrobe(world: World, log: (message: string) => void) {
+  const fitting = document.querySelector<HTMLButtonElement>('[data-debug="wardrobe"]')!;
+  if (fitting.getAttribute("aria-pressed") !== "true") fitting.click();
   const scene = world.canvas.parentElement!;
   const panel = scene.querySelector<HTMLElement>(".inventory-panel")!;
   const trigger = scene.querySelector<HTMLButtonElement>(".bag-toggle")!;
@@ -18,6 +22,10 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   scene.scrollIntoView({block:"center",behavior:"instant"});
   await frame();
   const bounds = world.canvas.getBoundingClientRect();
+  const tab = trigger.getBoundingClientRect();
+  const art = trigger.querySelector("svg.bag-trigger-art");
+  check(art && art.getBoundingClientRect().width >= 18, "地图背包图标没有绘制");
+  if (matchMedia("(pointer: coarse)").matches) check(tab.width >= 44 && tab.height >= 44, "触屏背包入口过小");
   const scroll = scrollY;
   const sameFrame = () => {
     const current = world.canvas.getBoundingClientRect();
@@ -50,21 +58,24 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   const grid = getComputedStyle(panel.querySelector(".bag-grid")!);
   check(grid.gridTemplateColumns.split(" ").length === (compact ? 4 : 5) && grid.gridTemplateRows.split(" ").length === (compact ? 2 : 3), "显示的行列数不正确");
   const ids = catalogue();
-  if (compact) {
+  const pageCount = Math.ceil(Object.keys(ITEMS).length / (compact ? 8 : 15));
+  let pages = 1;
+  while (panel.querySelector('[data-page="1"]:not(:disabled)')) {
     button('[data-page="1"]').click();
     ids.push(...catalogue());
-    check(panel.querySelector('[data-page="1"]:disabled'), "最后一页没有禁用下一页");
-    button('[data-tab="equipped"]').click();
-    check(visibleSlots().length === 6, "身上页需要六个装备槽");
-    button('[data-tab="wardrobe"]').click();
-    button('[data-page="-1"]').click();
-  } else check(visibleSlots().length === 6, "桌面衣橱缺少装备槽");
-  check(ids.length===15 && new Set(ids).size===15 && Object.keys(ITEMS).every(id=>ids.includes(id)), "配饰格子有遗漏或者重复");
+    pages++;
+    check(pages <= pageCount, "翻页没有到达末页");
+  }
+  check(pages === pageCount, "页数与屏幕容量不一致");
+  check(panel.querySelector('[data-page="1"]:disabled'), "最后一页没有禁用下一页");
+  if (compact) button('[data-tab="equipped"]').click();
+  check(visibleSlots().length === EQUIP_SLOTS.length, "衣橱缺少装备槽");
+  if (compact) button('[data-tab="wardrobe"]').click();
+  check(ids.length === Object.keys(ITEMS).length && new Set(ids).size === ids.length && Object.keys(ITEMS).every(id=>ids.includes(id)), "配饰格子有遗漏或者重复");
   const chooseCategory = (category: string) => {
     if (compact) button("[data-choose-category]").click();
     button(`[data-category="${category}"]`).click();
   };
-  if (compact) button('[data-page="1"]').click();
   for (const slot of EQUIP_SLOTS) {
     chooseCategory(slot);
     const expected = Object.keys(ITEMS).filter(id => ITEMS[id as keyof typeof ITEMS].slot === slot);
@@ -75,9 +86,11 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   check(catalogue()[0] === ids[0], "切回全部没有回到第一页");
   if (!compact) button('.bag-slot[data-slot="backpack"]').click();
   else chooseCategory("backpack");
-  check(catalogue().length === 3 && !panel.querySelector('[data-select="wreath"]'), "背包类混入了其他穿戴部位");
+  check(catalogue().length === backpacks.length && !panel.querySelector('[data-select="wreath"]'), "背包类混入了其他穿戴部位");
   button('[data-select="moonBag"]').click();
-  check(["1","2"].includes(avatar().dataset.facing!), "试背时角色没有侧身");
+  check(avatar().dataset.facing === "3", "从正面试背月兔包时未显示包身");
+  button('[data-select="rabbitSatchel"]').click();
+  check(avatar().dataset.facing === "1", "试背斜挎包未转到挂包的一侧");
   const facings = new Set<string>();
   const drawings = new Set<string>();
   for (let i=0; i<4; i++) {
@@ -89,11 +102,43 @@ export async function verifyWardrobe(world: World, log: (message: string) => voi
   check(facings.size===4 && drawings.size===4, "四个角度没有绘出不同的人物");
   button('[data-turn="-1"]').click();
   check(original===JSON.stringify(world.equipment) && saved===localStorage.getItem(INVENTORY_KEY), "试穿写入了地图或本机存档");
+  const expected = document.createElement("canvas");
+  expected.width = avatar().width; expected.height = avatar().height;
+  function apply(id: keyof typeof ITEMS) {
+    button(`[data-select="${id}"]`).click();
+    button(`[data-equip="${id}"]`).click();
+  }
+  let pairViews = 0;
+  for (const clothes of outfits) {
+    chooseCategory("clothes");
+    if (world.equipment.clothes !== clothes) {
+      const change = clothes ?? world.equipment.clothes;
+      if (change) apply(change);
+    }
+    chooseCategory("backpack");
+    for (const backpack of backpacks) {
+      if (world.equipment.backpack !== backpack) apply(backpack);
+      check(world.equipment.clothes === clothes && world.equipment.backpack === backpack, "换装没有应用到游戏角色");
+      const seen = new Set<Facing>();
+      for (let turn=0; turn<4; turn++) {
+        await frame();
+        const facing = Number(avatar().dataset.facing) as Facing;
+        seen.add(facing);
+        world.drawWardrobePreview(expected, {...world.equipment, clothes, backpack}, facing);
+        check(avatar().toDataURL() === expected.toDataURL(), `${clothes ?? "原装"}/${backpack}/${facing} 衣橱画面与佩戴状态不符`);
+        pairViews++;
+        button('[data-turn="1"]').click();
+      }
+      check(seen.size === 4, "穿搭旋转遗漏了一个朝向");
+    }
+  }
   sameFrame();
   button(".bag-close").click();
   sameFrame();
   check(panel.hidden && document.activeElement===world.canvas && !world.suspended, "收起后未恢复地图操作");
-  log((compact ? "手机 4×2 两页、身上六槽" : "桌面 5×3 和六个装备槽") + "、六部位筛选、左右转身、未确认退出、3:2 画幅和视口均通过");
+  fitting.click();
+  check(original===JSON.stringify(world.equipment) && saved===localStorage.getItem(INVENTORY_KEY), "结束全组合试穿后存档发生变化");
+  log((compact ? "手机 4×2" : "桌面 5×3") + " 衣橱核对 " + pairViews + " 个穿搭朝向，" + pages + " 页、" + EQUIP_SLOTS.length + " 个装备槽和视口检查通过");
 }
 
 /** The book's controls must keep scrolling inside the book, including at its edges. */
@@ -105,7 +150,7 @@ export async function verifyJournalInput(world: World, log: (message: string) =>
   world.onInteract(elderPlaces.ruins.id);
   for (let step = 0; step < 3; step++) {
     const choices = [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")];
-    const openBook = choices.find(button => button.textContent === "翻开遗迹手记");
+    const openBook = choices.find(button => button.textContent === "⌈翻开遗迹手记⌋");
     if (openBook) { openBook.click(); break; }
     const reply = choices.find(button => ["什么尝试？", "好，我去试一下"].includes(button.textContent ?? ""));
     check(reply, "守护者缺少领取手记的选项"); reply!.click();

@@ -1,7 +1,10 @@
-node_modules/
-dist/
-.vite/
-.wrangler/
+/artifacts/
+/.idea/
+/.wrangler/
+/dist/
+/node_modules/
+
+# Keep local settings, OS metadata and resource packs out of commits.
 .DS_Store
 *.local
-artifacts/
+*.pack

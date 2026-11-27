@@ -1,4 +1,5 @@
 import type { Memory } from "./content.ts";
+import { actionOption } from "./dialogue-options.ts";
 import { mergeChatMemory, readChatMemory, type ChatMemory } from "./resident-chats.ts";
 import { allLetters, handedLetters, letterById, patrickLetter, postLetter, postRevision, publicLetterIds } from "./letters.ts";
 
@@ -137,10 +138,10 @@ export interface LetterHandoff {
   read: (id: HandedLetterId) => void;
 }
 
-export function letterChoice(mail: LetterHandoff, id: HandedLetterId, refresh: () => void) {
-  if (mail.received(id)) return { title: "现在读信", run: () => mail.read(id) };
+export function letterChoice(mail: LetterHandoff, id: HandedLetterId, refresh: () => void, collectLabel = "收下信") {
+  if (mail.received(id)) return { title: actionOption("现在读信"), run: () => mail.read(id) };
   let finished = false;
-  return { title: "收下信", run: () => {
+  return { title: actionOption(collectLabel), run: () => {
     // Another tab may have delivered the letter after this choice appeared.
     if (finished || (!mail.received(id) && !mail.collect(id))) return;
     finished = true;
@@ -179,4 +180,9 @@ export function markLetterRead(story: ResidentStory, id: string) {
     return true;
   }
   return false;
+}
+
+export function mailSummary(story: ResidentStory) {
+  const unread = unreadLetterIds(story).length;
+  return { unread, label: mailboxLetters(story).length + " 封来信" + (unread ? ` · ${unread} 封未读` : "") };
 }

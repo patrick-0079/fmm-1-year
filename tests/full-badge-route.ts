@@ -11,6 +11,7 @@ import { townKeepsakeBadge } from "../src/town-keepsakes";
 import { pressDuration, workbenchSteps } from "../src/town-workbench-steps";
 import { scenes, type SceneId, type World } from "../src/world";
 import { verifyArcadeStamps } from "./achievement-arcade-route";
+import { verifyDuelStamp } from "./qianxiao-duel-route";
 import { verifyLetterAndMeadowStamps } from "./achievement-mail-route";
 import { verifyGuests, verifyGardenDiscovery } from "./guest-cases";
 
@@ -120,9 +121,11 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   el(".game-album-reader .reader-close").click();
   expect(!earned("memories"), "只看单张照片就盖章");
   await interactAt("garden", "danmaku");
-  expect(!el(".cinema-hud").hidden && earned("memories"), "真正打开花园大屏时，徽章未完成");
-  el(".cinema-leave").click();
-  log("从蛋糕到放映，实测三刀、吃完、收礼、16 音；先看单张照片，只在亲自打开花园大屏时补齐徽章");
+  expect(el(".cinema-hud").hidden && !earned("memories") && !state().visited.includes("danmaku"),
+    "查看周年海报提前解锁了放映");
+  expect(el(".activity-status").textContent?.includes("小叶子"), "海报未提示找小叶子");
+  closeActivity();
+  log("实测蛋糕三刀、吃完、收礼、16 音；看过照片后，单看周年海报仍未取得回忆徽章");
 
   await interactAt("garden", "balloons");
   for (const color of ["粉","蓝","紫"]) for (let i = 0; i < 4; i++) await choose(color + "气球");
@@ -148,6 +151,17 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
 
   await verifyLetterAndMeadowStamps(world, log);
   closeActivity();
+  await interactAt("meadow", "meadow-garden-tape");
+  expect(state().gardenTape === "carried" && earned("garden-tape"), "篝火旁拾取录像带未立即盖章");
+  await interactAt("garden", "danmaku");
+  await choose("⌈先去逛逛⌋");
+  expect(state().gardenTape === "carried" && !earned("memories"), "离开放映机时意外插带");
+  await interactAt("garden", "danmaku");
+  await choose("⌈放入录像带⌋");
+  expect(state().gardenTape === "inserted" && !el(".cinema-hud").hidden && earned("memories"),
+    "插带打开放映时没有保存到访或补齐回忆徽章");
+  el(".cinema-leave").click();
+  log("花海篝火旁拾带获章，插带前可以离开，真正放映时补齐回忆徽章");
   await collectStars();
   log(`${producers.length} 颗落星逐一按键拾起，署名与寄语核对，重复互动未增加收藏`);
   for (const npc of TOWN_NPCS) {
@@ -157,18 +171,20 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   closeActivity();
   expect(earned("friends"), "见过 25 位角色后未盖章");
   await verifyArcadeStamps(world, log);
+  await verifyDuelStamp(world);
+  log("通过浅笑的邀约入场，按牌面逐回合出牌，赢下星牌首胜章");
   for (const spot of ringSpots) await interactAt("ruins", spot.id);
   await interactAt("ruins", moonPlate.id);
-  await choose("装入");
+  await choose("⌈装入");
   for (const [name, count] of [["内",3],["中",2],["外",1]] as const) {
-    for (let i = 0; i < count; i++) await choose("转" + name);
+    for (let i = 0; i < count; i++) await choose("⌈转" + name);
   }
   await interactAt("ruins", mirrorSpots[0].id);
-  await choose("转上镜");
-  await choose("转下镜");
+  await choose("⌈转上镜");
+  await choose("⌈转下镜");
   expect(earned("ruin-light"), "星纹砖已亮却未盖章");
   await interactAt("ruins", echoAltar.id);
-  for (const name of ["叶","铃","星"]) await choose("轻敲「" + name + "」");
+  for (const name of ["叶","铃","星"]) await choose("⌈轻敲「" + name + "」");
   await interactAt("ruins", echoPool.id);
   closeActivity();
 
@@ -203,6 +219,12 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
     closeActivity();
   }
   log("七件小镇纪念品均在亲手完成并收下后盖章");
+
+  expect(!earned("town-miko"), "集齐小物时提前颁发了绯袴留影徽章");
+  await interactAt("town-hall","npc-photo-visitor");
+  await choose("⌈收下巫女服⌋");
+  expect(earned("town-miko"), "从暖栗手中收下巫女服后未颁发绯袴留影徽章");
+  closeActivity();
 
   const ordinary = achievementDefinitions.filter(d => !d.id.startsWith("days-"));
   const missing = ordinary.filter(d => !earned(d.id));

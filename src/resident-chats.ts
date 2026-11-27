@@ -11,9 +11,11 @@ export interface ChatBook {
 
 const phases: readonly Phase[] = ["dawn", "day", "dusk", "night"];
 interface Cursor { count: number; turn: number }
+interface ShiftVisits { day: number; count: number }
 interface ChatRecord {
   introduced: boolean;
   phases: Partial<Record<Phase, Cursor>>;
+  shifts?: Partial<Record<Phase, ShiftVisits>>;
 }
 export type ChatMemory = Record<string, ChatRecord>;
 const fresh = (): ChatRecord => ({introduced: false, phases: {}});
@@ -31,8 +33,11 @@ export function readChatMemory(raw?: ChatMemory | null): ChatMemory {
       const cursor = saved.phases?.[phase];
       if (cursor && positive(cursor.count) && positive(cursor.turn))
         record.phases[phase] = {count: cursor.count, turn: cursor.turn};
+      const shift = saved.shifts?.[phase];
+      if (shift && Number.isSafeInteger(shift.day) && shift.day >= 0 && positive(shift.count))
+        (record.shifts ??= {})[phase] = {day: shift.day, count: shift.count};
     }
-    if (record.introduced || Object.keys(record.phases).length) memory[id] = record;
+    if (record.introduced || record.shifts || Object.keys(record.phases).length) memory[id] = record;
   }
   return memory;
 }
@@ -51,6 +56,11 @@ export function mergeChatMemory(into: ChatMemory, from: ChatMemory) {
       if (other && (!local || other.count > local.count ||
           (other.count === local.count && other.turn > local.turn))) {
         current.phases[phase] = {...other};
+        changed = true;
+      }
+      const shift = saved.shifts?.[phase], seen = current.shifts?.[phase];
+      if (shift && (!seen || shift.day > seen.day || (shift.day === seen.day && shift.count > seen.count))) {
+        (current.shifts ??= {})[phase] = {...shift};
         changed = true;
       }
     }
@@ -73,6 +83,26 @@ export class ResidentChats {
     if (record.introduced) return;
     record.introduced = true;
     this.save();
+  }
+  /** Zero-based visit in this game day's shift. An outstanding delivery can replay visit zero. */
+  visitShift(id: string, phase: Phase, day: number, hours: number, repeatFirst = false) {
+    const record = this.memory()[id] ??= fresh();
+    const shifts = record.shifts ??= {};
+    // The night from 20:00 to 05:00 belongs to the day on which it started.
+    const shiftDay = phase === "night" && hours < 5 ? day - 1 : day;
+    const previous = shifts[phase];
+    const visits = previous?.day === shiftDay ? previous.count : 0;
+    if (visits && repeatFirst) return 0;
+    shifts[phase] = {day: shiftDay, count: visits + 1};
+    this.save();
+    return visits;
+  }
+  /** -1 opens this shift's scene; other indices select the author's additional lines. */
+  daily(id: string, phase: Phase, day: number, hours: number, hasOpening: boolean, familiarCount: number,
+    pendingOpening = false) {
+    const visits = this.visitShift(id, phase, day, hours, hasOpening && pendingOpening);
+    if (!familiarCount || (hasOpening && visits === 0)) return -1;
+    return (visits - (hasOpening ? 1 : 0)) % familiarCount;
   }
   next(id: string, book: ChatBook, phase: Phase): ChatTopic {
     const current = this.memory()[id] ??= fresh();

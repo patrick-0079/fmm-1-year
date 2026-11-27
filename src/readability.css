@@ -91,29 +91,53 @@ small {
 .memory-author {
   font-size: 11px;
 }
-.inline-help {
-  padding: 20px;
+.game-help {
+  width: min(24rem, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  margin: auto;
+  padding: clamp(18px, 5vw, 26px);
+  background: #fffaf4;
+  border: 1px solid #d9cde3;
+  border-radius: 14px;
+  box-shadow: 0 12px 45px #38263f38;
   font-size: 14px;
-  line-height: 1.85;
+  line-height: 1.6;
   color: #5c5664;
 }
-.inline-help h3 {
-  margin: 0 0 14px;
-  font-size: 18px;
+.game-help::backdrop {
+  background: #33253d66;
 }
-.help-grid {
+html:has(.game-help[open]) {
+  overflow: hidden;
+  scrollbar-gutter: stable;
+}
+.game-help h2 {
+  margin: 0 0 16px;
+  font-size: 20px;
+  color: #584568;
+}
+.game-help > dl {
   margin: 0;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px 24px;
+  grid-template-columns: max-content 1fr;
+  gap: 10px 14px;
 }
-.help-grid dt {
+.game-help > dl > dt {
   color: #8c5c77;
   font-weight: 700;
-  margin-bottom: 4px;
 }
-.help-grid dd {
+.game-help > dl > dd {
   margin: 0;
+}
+.help-close {
+  display: block;
+  margin: 18px 0 0 auto;
+  padding: 7px 18px;
+  min-height: 38px;
+  font-weight: 600;
 }
 .reader-tools {
   display: flex;
@@ -252,19 +276,20 @@ small {
   color: #fff;
   font-size: 14px;
 }
-.cinema-player-loading {
+.cinema-player-feedback {
   position: absolute;
   top: 45%;
-  left: 10%;
-  width: 80%;
+  align-self: center;
+  width: min(80%, 440px);
+  pointer-events: none;
+}
+.cinema-player-loading {
+  margin: 0 0 8px;
   font-size: 18px;
   text-align: center;
   line-height: 1.8;
 }
 @media (max-width: 650px) {
-  .help-grid {
-    grid-template-columns: 1fr;
-  }
   .game-bottom,
   .scene-nav button,
   .day-hint,

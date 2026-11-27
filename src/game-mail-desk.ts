@@ -294,7 +294,7 @@ export function renderGameMailDesk(
   }
   function visibilityChange() { if (document.hidden) suspendTransition(); }
   function focusOutside(event: FocusEvent) {
-    if (event.target instanceof Element && event.target.closest(".inline-help,.debug-panel")) suspendTransition();
+    if (event.target instanceof Element && event.target.closest("#game-help,.debug-panel")) suspendTransition();
   }
   document.addEventListener("visibilitychange", visibilityChange);
   document.addEventListener("focusin", focusOutside);

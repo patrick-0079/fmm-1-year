@@ -1,6 +1,6 @@
 import "./star-bottle.css";
 import { producers } from "./content";
-import { reservedShortcut } from "./input";
+import { debugTarget, reservedShortcut } from "./input";
 import { meadowAtlasUrl } from "./wild-art";
 import meadowBackground from "./assets/night-meadow-v16.webp";
 import bottleUrl from "./assets/star-bottle-closeup.webp";
@@ -8,6 +8,7 @@ import { BOTTLE_COMPACT_WIDTH,bottleEntries,bottleGeometry,bottleScrollTop,neare
 import type { World } from "./world";
 import { clearQuietStarEffect, showQuietStarEffect } from "./quiet-star-effect";
 import { creditStarTexture } from "./credit-star-art";
+import { copySceneImage, sceneImage } from "./texture-cache";
 
 export class StarBottleView {
   readonly element=document.createElement("section");
@@ -42,9 +43,9 @@ export class StarBottleView {
     this.closeButton.setAttribute("aria-label","收起星光瓶，返回花海");this.closeButton.setAttribute("aria-keyshortcuts","Escape");this.closeButton.addEventListener("click",()=>this.close());
     this.returnButton.type="button";this.returnButton.className="star-bottle-back";this.returnButton.textContent="‹ 返回瓶中";this.returnButton.addEventListener("click",()=>this.showBottle());
     heading.append(title,this.returnButton,this.closeButton);
-    const main=document.createElement("div"),display=document.createElement("section"),glass=new Image();
+    const main=document.createElement("div"),display=document.createElement("section"),glass=sceneImage(bottleUrl);
     main.className="star-bottle-layout";display.className="star-bottle-display";this.art.className="star-bottle-art";this.vessel.className="star-bottle-vessel";
-    glass.className="star-bottle-glass";glass.src=bottleUrl;glass.alt="";glass.decoding="async";glass.draggable=false;
+    glass.className="star-bottle-glass";glass.alt="";glass.draggable=false;
     this.stars.className="star-bottle-stars";this.vessel.append(glass,this.stars);this.art.append(this.vessel);
     this.previous.type=this.next.type="button";this.previous.className="star-bottle-pick-previous";this.next.className="star-bottle-pick-next";
     this.previous.innerHTML="‹<span>上一颗</span>";this.next.innerHTML="›<span>下一颗</span>";
@@ -80,7 +81,12 @@ export class StarBottleView {
         if(top!==null){event.preventDefault();event.stopPropagation();this.message.scrollTop=top;}
       }else if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Home","End","PageUp","PageDown"].includes(event.key)||(event.key===" "&&!(event.target as Element).closest("button")))event.preventDefault();
     });
-    window.addEventListener("keydown",event=>{if(!this.opened||event.defaultPrevented||reservedShortcut(event)||event.key!=="Escape"||document.querySelector(".debug-panel:not([hidden])"))return;event.preventDefault();event.stopImmediatePropagation();this.close();},{capture:true});
+    window.addEventListener("keydown", event => {
+      if (!this.opened || event.defaultPrevented || reservedShortcut(event) || event.key !== "Escape" || debugTarget(event.target)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      this.close();
+    }, { capture: true });
   }
 
   get opened(){return !this.element.hidden;}
@@ -140,14 +146,12 @@ export class StarBottleView {
         art.style.backgroundImage = `url("${creditStarTexture(person.shape).toDataURL()}")`;
       }
       if (person.sprite) {
-        const image = new Image();
-        image.alt = "";
-        image.draggable = false;
-        image.onload = () => {
+        void copySceneImage(person.sprite).then(image => {
+          image.alt = "";
+          image.draggable = false;
           art.style.backgroundImage = "none";
           art.append(image);
-        };
-        image.src = person.sprite;
+        }).catch(() => { /* The star keeps its painted fallback. */ });
       }
       button.append(art);
       button.addEventListener("click", event => {

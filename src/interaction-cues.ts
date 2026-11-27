@@ -1,4 +1,4 @@
-import type { Point } from "./core.ts";
+import type { GardenTape, Point, Rect } from "./core.ts";
 import type { BaseSceneId, Hotspot, SceneId } from "./maps.ts";
 import { isTownInterior } from "./town-interior-id.ts";
 import { townInteriors } from "./town-interiors.ts";
@@ -13,7 +13,9 @@ export interface InteractionCue {
   /** The illustration already communicates this target without extra sparkles. */
   natural: boolean;
   /** Painted subject bounds relative to the hotspot, for the adjacent label. */
-  objectBox: { x: number; y: number; w: number; h: number };
+  objectBox: Rect;
+  /** Walkable ground to leave tappable, relative to the same hotspot. */
+  walkway?: Rect;
 }
 
 const verbs: Record<InteractionCueKind, string> = {
@@ -63,15 +65,19 @@ const destinations: Record<BaseSceneId, string> = {
 const names = (spot: Hotspot) => spot.title.split(" · ")[0];
 
 /** Rendering-only metadata. Availability and click geometry remain with World. */
-export function resolveCue(spot: Hotspot, scene: SceneId): InteractionCue {
+export function resolveCue(spot: Hotspot, scene: SceneId, tape?: GardenTape): InteractionCue {
   if (spot.cue) return spot.cue;
   if (spot.portal) {
-    const tall = spot.id === "echo-gate" || spot.id === "prism-arch";
+    const tall = spot.id === "echo-gate";
     const title = isTownInterior(spot.portal) ? townInteriors[spot.portal].scene.title : destinations[spot.portal];
     return cue("exit", "前往" + title, 0, tall ? -31 : -7,
       tall ? [-35, -72, 70, 76] : [-27, -20, 54, 30], true);
   }
   const known = objects[spot.id];
+  if (spot.id === "danmaku" && tape === "missing")
+    return { ...known, action: "看看周年海报", verb: "查看" };
+  if (spot.id === "danmaku" && tape === "carried")
+    return { ...known, action: "把录像带放入放映机", verb: "插带" };
   if (spot.id === "apple" && scene === "garden")
     return cue("collect", spot.title, 11, -11, [-21, -23, 42, 28], false, "拿苹果");
   if (known) return known;

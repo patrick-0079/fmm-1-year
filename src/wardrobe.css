@@ -1,4 +1,4 @@
-/* Keep the wardrobe measured against the game, including when the page has a journal beside it. */
+/* The wardrobe and its map tab scale with the game window. */
 .scene-wrap {
   container-type: inline-size;
 }
@@ -29,24 +29,23 @@
   width: var(--bag-tab-size);
   height: var(--bag-tab-size);
   box-sizing: border-box;
-  border: 1px solid #886047;
+  border: 1px solid #af8d88;
   border-left: 0;
   border-radius: 0 8px 8px 0;
-  background: linear-gradient(150deg, #fff9e7, #f8dbb5);
-  box-shadow: inset -1px 0 0 1px #fff6db, 1px 1px 2px #55392d55;
+  background: #fff6e9;
+  box-shadow: 0 2px 4px #55392d33;
 }
 /* Leave the cottage shelves, meadow portal and bookshop window tappable. */
 @container (max-width: 640px) {
   .scene-wrap:is([data-current-map="room"], [data-current-map="meadow"], [data-current-map="town-books"]) > .bag-toggle { top: 52cqw; }
 }
-.bag-trigger-art {
+.bag-toggle .bag-trigger-art {
   display: block;
   position: relative;
-  width: calc(var(--bag-tab-size) - 7px);
-  margin-left: 3px;
-  aspect-ratio: 1;
-  /* The strawberry picnic bag occupies the first cell in the atlas's lower row. */
-  background: url("./assets/wardrobe-v11.webp") 2.56% 92.08% / 438% 240.4% no-repeat;
+  width: calc(var(--bag-tab-size) - 9px);
+  height: calc(var(--bag-tab-size) - 9px);
+  margin-left: 4px;
+  color: #76515c;
 }
 .bag-toggle kbd {
   position: absolute;
@@ -71,7 +70,7 @@
   border-color: #b36b76;
 }
 .scene-wrap:has(.intro-screen:not(.dismissed)) > .bag-toggle {
-  visibility: hidden;
+  display: none;
 }
 .scene-wrap:has(> .inventory-panel:not([hidden], .game-letter-reader))::after {
   content: "";
@@ -236,7 +235,7 @@
 }
 .bag-slots {
   display: grid;
-  grid-template-rows: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
   align-items: center;
   justify-items: center;
   gap: var(--gap);
@@ -330,7 +329,7 @@
 }
 .bag-filters {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(9, minmax(0, 1fr));
   gap: 2px;
 }
 .bag-filters button, .bag-category-toggle {
@@ -469,7 +468,7 @@
   font-size: clamp(13px, 1.85cqw, 18px);
 }
 .bag-apply:disabled { color: #705e52 !important; background: #e8d9c1; border-color: #bba68b; box-shadow: inset 0 0 0 1px #f7eddc; text-shadow: none; }
-.bag-equipped-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); }
+.bag-equipped-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); }
 .bouquet-detail {
   display: flex;
   align-items: center;
@@ -487,22 +486,31 @@
 .bouquet-detail h4 { font-size: clamp(12px, 1.8cqw, 18px); }
 .bouquet-detail p { color: #695148; font-size: clamp(11px, 1.5cqw, 15px); line-height: 1.5; }
 .bag-keepsakes {
-  display: flex;
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(68px, min(17cqw, 145px));
+  align-content: start;
   height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
   gap: var(--gap);
   padding: var(--gap);
   border: 1px solid #d6a780;
   border-radius: 6px;
   background: #ffebcf;
 }
+.inventory-panel[data-tab="keepsakes"]:has(> .bag-collection) {
+  grid-template-columns: 1fr;
+  grid-template-rows: max-content minmax(0, 1fr);
+  grid-template-areas: "tabs" "collection";
+}
+.bag-keepsakes-empty { grid-column: 1 / -1; justify-self: center; align-self: center; color: #765343; }
 .bag-keepsake {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--gap);
-  width: min(65%, 160px);
   min-width: 0;
   padding: var(--gap);
   border: 1px solid #c99e77;
@@ -516,7 +524,17 @@
 .bag-keepsake[data-mail] img { max-height: 47%; }
 .bag-keepsake[data-town-keepsakes] canvas { width: min(75%, 56px); max-height: 48%; object-fit: contain; }
 .bag-mail-count { color: #765343; font-size: clamp(10px, 1.3cqw, 13px); line-height: 1.2; }
-.bag-keepsake.is-locked img { opacity: .5; filter: saturate(.35); }
+.bag-tape canvas {
+  width: min(75%, 52px);
+  max-height: 47%;
+  object-fit: contain;
+  height: auto;
+  image-rendering: pixelated;
+}
+.bag-tape small {
+  color: #765343;
+  font-size: clamp(10px, 1.3cqw, 13px);
+}
 .inventory-panel[data-town-keepsakes-open] { display: flex; padding: clamp(8px, 1.5cqw, 16px); }
 .bag-town-paper {
   flex: 1;
@@ -542,8 +560,6 @@
 }
 .bag-town-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 5px; }
 .bag-town-grid button { display: grid; justify-items: center; align-content: start; gap: 1px; line-height: 1.25; }
-.bag-town-grid button:disabled { background: #f2e5cf; color: #675344; }
-.bag-town-grid button:disabled canvas { opacity: .48; filter: grayscale(.5); }
 .bag-town-grid canvas { width: clamp(24px, 5.6cqw, 52px); height: auto; }
 .bag-town-detail { display: flex; align-items: center; justify-content: center; gap: 12px; }
 .bag-town-detail canvas { width: clamp(42px, 13cqw, 116px); height: auto; }
@@ -598,8 +614,8 @@
   .bag-filters {
     flex: 1;
     min-height: 0;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-template-rows: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(3, minmax(0, 1fr));
     gap: 3px;
     padding: 3px;
     border: 1px solid #d9ab83;

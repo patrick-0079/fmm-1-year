@@ -1,3 +1,5 @@
+import type { GardenTape } from "./core.ts";
+
 export type CinemaStage =
   | "idle"
   | "loading"
@@ -13,10 +15,12 @@ export class CinemaSession {
   wanted = false;
   hasFrame = false;
   stage: CinemaStage = "idle";
-  open() {
+  open(tape: GardenTape) {
+    if (tape !== "inserted") return false;
     this.active = true;
     this.wanted = false;
     if (this.stage === "idle") this.stage = "loading";
+    return true;
   }
   leave() {
     this.active = false;

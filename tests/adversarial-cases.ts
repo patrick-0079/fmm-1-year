@@ -1,7 +1,7 @@
 import type { World } from "../src/world";
 import { SAVE_KEY, readProgress } from "../src/core";
 import { rainbowIds } from "../src/rainbow-flowers";
-import { INVENTORY_KEY, readInventory } from "../src/items";
+import { INVENTORY_KEY, readInventory, starterItems } from "../src/items";
 import { TOWN_TALKED_KEY } from "../src/town";
 import { arriveOnShift } from "./resident-visits";
 
@@ -101,12 +101,13 @@ export async function verifyNavigationRaces(world: World, log: (text: string) =>
   expect(["post", "welcome", "cat"].every(id => visitors.includes(id)), "同时写入的居民记录没有合并");
   q(".reset-button").click();
   q(".reset-confirm").click();
-  expect(!readInventory(localStorage.getItem(INVENTORY_KEY)).owned.length && JSON.parse(localStorage.getItem(TOWN_TALKED_KEY)!).length === 0 &&
+  await wait(() => world.scene === "room" && q(".reset-confirmation").hidden);
+  expect(readInventory(localStorage.getItem(INVENTORY_KEY)).owned.join() === starterItems.join() && JSON.parse(localStorage.getItem(TOWN_TALKED_KEY)!).length === 0 &&
     q('[data-scene="meadow"]').hidden, "清档后恢复了上次冒险的收藏");
   log("两份背包和居民会面记录合并后不丢收藏，重新探索不会复活旧记录");
   q(".reset-button").click();
   q(".reset-confirm").click();
-  expect(!readInventory(localStorage.getItem(INVENTORY_KEY)).owned.length &&
+  expect(readInventory(localStorage.getItem(INVENTORY_KEY)).owned.join() === starterItems.join() &&
     !JSON.parse(localStorage.getItem(TOWN_TALKED_KEY)!).length, "重新探索时合并回了旧收藏");
   log("两页的装备、花束与会面记录没有互相覆盖，主动清档仍能从零开始");
 }

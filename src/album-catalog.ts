@@ -13,7 +13,7 @@ interface Photo {
   version: string;
 }
 
-const album: { originalBaseUrl: string; cover?: string; stamp?: string; photos: Photo[] } = data;
+const album: { originalBaseUrl: string; photos: Photo[] } = data;
 const base = new URL(album.originalBaseUrl);
 if (!base.pathname.endsWith("/")) base.pathname += "/";
 
@@ -37,10 +37,3 @@ export const albumItems: Memory[] = album.photos.map(photo => ({
   src: previewUrl(`${photo.id}.${photo.version}`),
   thumbnail: previewUrl(`${photo.id}.${photo.version}-thumb`),
 }));
-
-function coverPhoto(filename?: string): Memory | undefined {
-  const index = album.photos.findIndex(photo => photo.file === filename);
-  return albumItems[Math.max(0, index)];
-}
-export const albumCoverPhoto = coverPhoto(album.cover);
-export const albumStampPhoto = coverPhoto(album.stamp);

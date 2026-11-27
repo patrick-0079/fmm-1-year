@@ -1,11 +1,13 @@
+import { actionOption } from "./dialogue-options.ts";
 import type { Activities } from "./activities";
 import type { Hotspot } from "./maps";
 import { playTownRadio, sfx, townRadioDuration } from "./sound";
 import { isTownInterior, townInteriorId, townInteriorKeys, type TownInteriorId, type TownInteriorKey } from "./town-interior-id";
-import { drawTownKeepsake } from "./town-keepsake-art";
-import { radioTrackName, townKeepsakeInfo, type RadioTrack, type TownKeepsakes } from "./town-keepsakes";
+import { drawTownKeepsake, prepareTownKeepsakeArt } from "./town-keepsake-art";
+import { radioTrackName, townKeepsakeChoice, townKeepsakeInfo, type RadioTrack, type TownKeepsakes } from "./town-keepsakes";
 import { townInteriors } from "./town-interiors";
 import { TownWorkbench } from "./town-workbench";
+import { anniversary } from "./launch/anniversary";
 import { copperTolerance } from "./town-workbench-steps";
 import type { World } from "./world";
 
@@ -43,12 +45,19 @@ export class TownInteriorActivities {
     private world: World,
     private activities: Activities,
     private keepsakes: () => TownKeepsakes,
-    private collect: (key: TownInteriorKey, track?: RadioTrack) => boolean,
+    private collect: (key: TownInteriorKey, choice?: string) => boolean,
     private openBag: (key: TownInteriorKey) => void,
   ) {}
 
   get roomEffect() { return this.effect; }
   refreshCollection() { this.refreshDisplay?.(); }
+
+  private portrait(key: TownInteriorKey) {
+    return {
+      ready: prepareTownKeepsakeArt(),
+      draw: (c: CanvasRenderingContext2D) => drawTownKeepsake(c, key, townKeepsakeChoice(this.keepsakes(), key)),
+    };
+  }
 
   interact(spot: Hotspot) {
     const scene = this.world.scene;
@@ -66,7 +75,7 @@ export class TownInteriorActivities {
       show: (text, options = [], effect, timed, portrait) => {
         let timer: ReturnType<typeof setTimeout> | undefined;
         this.activities.dialogue(spot.title, text, options,
-          portrait ? c => drawTownKeepsake(c, key, 0, 2) : null, spot.approach, () => {
+          portrait ? this.portrait(key) : null, spot.approach, () => {
             clearTimeout(timer);
             this.effect = undefined;
             this.stopAudio?.();
@@ -99,12 +108,12 @@ export class TownInteriorActivities {
             this.effect = { kind: "reel", frame: step === "ticket" ? 3 : Math.floor(rotation / 120) };
           } else this.effect = undefined;
         },
-        collect: track => {
-          const first = this.collect(key, track);
+        collect: choice => {
+          const first = this.collect(key, choice);
           this.activities.dialogue(spot.title, first ? "收下了" + name + "。" + note : note, [
-            { title: "查看纪念物", run: () => { this.activities.close(); this.openBag(key); } },
-            { title: "再做一次", run: () => this.workbench(spot, key) },
-          ], c => drawTownKeepsake(c, key, 0, 2), spot.approach);
+            { title: actionOption("查看纪念物"), run: () => { this.activities.close(); this.openBag(key); } },
+            { title: actionOption(spot.title), run: () => this.workbench(spot, key) },
+          ], this.portrait(key), spot.approach);
         },
       });
       return {
@@ -139,7 +148,11 @@ export class TownInteriorActivities {
         state.textContent = collected ? "已收集" : "待收集";
       }
     };
-    content.append(count, list);
+    const dates = document.createElement("small");
+    dates.textContent = `${anniversary.start} — ${anniversary.end}`;
+    const note = document.createElement("p");
+    note.textContent = "「收齐七件小物，白昼或黄昏来馆里找我吧。给你留了套拍照穿的绯袴巫女服。」——暖栗";
+    content.append(count, dates, list, note);
     update();
     this.activities.dialogue(spot.title, "", [], null, spot.approach, () => {
       this.refreshDisplay = undefined;
@@ -154,35 +167,36 @@ export class TownInteriorActivities {
       case "town-florist":
         sfx("echo-bell");
         show("气窗抬起来了。吊铃碰了一下，叶影慢慢扫过花桶。",
-          [{ title: "放回窗把", run: () => this.activities.close() }], { kind: "window" });
+          [{ title: actionOption("放回窗把"), run: () => this.activities.close() }], { kind: "window" });
         break;
       case "town-baker":
-        show(phaseBoard[phase], [{ title: "翻到背面", run: () => {
+        show(phaseBoard[phase], [{ title: actionOption("翻到背面"), run: () => {
           sfx("flip");
-          show(phase === "dawn" ? phaseBoard.dusk : phaseBoard.dawn, [{ title: "放回白板", run: () => this.activities.close() }], { kind: "board" });
+          show(phase === "dawn" ? phaseBoard.dusk : phaseBoard.dawn, [{ title: actionOption("放回白板"), run: () => this.activities.close() }], { kind: "board" });
         } }]);
         break;
       case "town-maker":
         sfx("flip");
         show("左边的黄铜保留一圈圈锤纹，右边那一片磨得平整，能映出灯罩的边。",
-          [{ title: "合上抽屉", run: () => this.activities.close() }], { kind: "drawer" });
+          [{ title: actionOption("合上抽屉"), run: () => this.activities.close() }], { kind: "drawer" });
         break;
       case "town-post":
         sfx("flip");
-        show("木牌翻到这一班。" + mailRoutes[phase], [{ title: "把木牌放回去", run: () => this.activities.close() }], { kind: "sort" });
+        show("木牌翻到这一班。" + mailRoutes[phase], [{ title: actionOption("把木牌放回去"), run: () => this.activities.close() }], { kind: "sort" });
         break;
       case "town-books": {
         sfx("flip");
-        const pond = { dawn: "睡莲叶上还留着水珠。", day: "正午的池光照到窗座。", dusk: "窗外的桥影落在水面。", night: "一盏街灯照着岸边的睡莲。" };
-        const compare = { title: "展开折页对照", run: () => show("折页里的木栏刚好接在窗外那一段。" + pond[phase], [], { kind: "blind" }, undefined, true) };
-        show("竹帘卷起来了。" + pond[phase], items.includes("books") ? [compare] : [], { kind: "blind" });
+        const view = { dawn: "对街的青瓦上闪着晨露。", day: "树梢在青瓦前轻轻摇晃。", dusk: "斜阳给屋檐描了一条金边。", night: "树影后面，街灯已经亮了。" };
+        const compare = { title: actionOption("展开折页对照"), run: () => show("折页里池岸边的屋顶，和窗外的青瓦是同一种颜色。" + view[phase], [], { kind: "blind" }, undefined, true) };
+        show("竹帘卷起来了。" + view[phase], items.includes("books") ? [compare] : [], { kind: "blind" });
         break;
       }
       case "town-radio": {
         const title = radioTrack ? `重听${radioTrackName[radioTrack]}片头` : "试听电台台呼";
-        const play = { title, run: () => listen(radioTrack ? `正在重听。声轨一为${radioTrackName[radioTrack]}，声轨二为晚安片头。` : "耳机里响起台呼。『晚安小镇，现在是试音时间。』",
+        const play = { title: actionOption(title), run: () => listen(radioTrack ? `正在重听。声轨一为${radioTrackName[radioTrack]}，声轨二为晚安片头。` : "耳机里响起台呼。『晚安小镇，现在是试音时间。』",
           radioTrack, () => show("耳机里的余音淡了下去。", [play])) };
-        show(`现在的台标是『${radioStatus[phase]}』。戴上耳机，可以试听。`, [play]);
+        const status = phase === "night" && this.world.currentHours < 5 ? "已收播" : radioStatus[phase];
+        show(`现在的台标是『${status}』。戴上耳机，可以试听。`, [play]);
         break;
       }
     }

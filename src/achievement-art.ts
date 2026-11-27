@@ -1,7 +1,7 @@
 import { motif, type PixelMotif } from "./arcade-pixels";
 import { applyStationeryTheme } from "./stationery-themes";
 import { townInteriorKeys } from "./town-interior-id";
-import { drawTownKeepsake } from "./town-keepsake-art";
+import { drawTownKeepsake, prepareTownKeepsakeArt, townKeepsakeArtReady } from "./town-keepsake-art";
 import { townKeepsakeBadge } from "./town-keepsakes";
 
 type Ink = CanvasRenderingContext2D;
@@ -134,7 +134,25 @@ function ticket(c: Ink, x: number, y: number, w: number, h: number) {
   rect(c, x + 2, y + 2, w - 4, h - 4, "#e6b570");
   rect(c, x + 3, y + 3, w - 6, h - 6, "#fff0c4");
 }
-const art: Record<string, (c: Ink) => void> = {
+const art: Record<string, (c: Ink, choice?: string) => void> = {
+  "qianxiao-duel-win"(c) {
+    polygon(c, ink, [3,6],[15,3],[21,23],[9,27]);
+    polygon(c, lilac, [5,7],[14,5],[19,22],[10,25]);
+    rect(c,12,7,16,22,ink); rect(c,13,8,14,20,gold); rect(c,15,10,10,16,"#615575");
+    polygon(c,cream,[20,12],[22,16],[25,17],[22,20],[22,23],[19,21],[16,22],[17,18],[15,16],[19,16]);
+    spark(c,26,5,gold);
+  },
+  "town-miko"(c) {
+    polygon(c, ink, [2,14],[7,7],[12,4],[20,4],[25,7],[30,14],[26,19],[22,17],[26,28],[6,28],[10,17],[6,19]);
+    polygon(c, "#fffbef", [4,14],[8,8],[13,5],[19,5],[24,8],[28,14],[26,17],[21,14],[11,14],[6,17]);
+    line(c, "#a78b91", [12,5],[16,10]);
+    line(c, ink, [20,5],[12,14]);
+    polygon(c, "#ce514c", [11,15],[21,15],[24,26],[8,26]);
+    line(c, "#993d49", [13,18],[11,26]);
+    line(c, "#993d49", [18,18],[20,26]);
+    rect(c, 11, 14, 10, 2, "#933946");
+    line(c, "#f69172", [13,17],[16,15],[19,18]);
+  },
   cake(c) {
     oval(c, 16, 24, 13, 3, "#9baab1");
     oval(c, 16, 23, 12, 2, cream);
@@ -228,6 +246,21 @@ const art: Record<string, (c: Ink) => void> = {
     rect(c, 6, 14, 15, 9, "#9dc4bd");
     polygon(c, leaf, [6, 22], [11, 17], [15, 21], [18, 18], [21, 22]);
     rect(c, 17, 15, 2, 2, gold);
+  },
+  "garden-tape"(c) {
+    polygon(c, ink, [3, 7], [29, 7], [30, 8], [30, 24], [28, 26], [4, 26], [2, 24], [2, 8]);
+    rect(c, 3, 8, 26, 16, "#837587");
+    rect(c, 4, 9, 24, 2, lilac);
+    rect(c, 5, 12, 22, 8, ink);
+    for (const x of [9, 23]) {
+      oval(c, x, 16, 3, 3, cream);
+      rect(c, x - 1, 15, 2, 2, ink);
+    }
+    rect(c, 13, 12, 6, 8, "#f6cccd");
+    rect(c, 15, 14, 2, 4, ink);
+    rect(c, 14, 15, 1, 1, ink);
+    rect(c, 14, 18, 4, 1, ink);
+    rect(c, 5, 22, 22, 1, ink);
   },
   fox,
   "fox-peace"(c) {
@@ -536,17 +569,20 @@ const art: Record<string, (c: Ink) => void> = {
   },
 };
 
-for (const key of townInteriorKeys) art[townKeepsakeBadge(key)] = c => drawTownKeepsake(c, key, 1, 0, 30);
+for (const key of townInteriorKeys) art[townKeepsakeBadge(key)] = (c, choice) => drawTownKeepsake(c, key, choice, 1, 0, 30);
 
 export const hasDrawnStamp = (id: string) => Object.hasOwn(art, id);
 
 export function paintAchievementArt(root: HTMLElement) {
+  if (!townKeepsakeArtReady() && root.querySelector('[data-stamp-art^="town-keepsake-"]')) {
+    void prepareTownKeepsakeArt().then(ok => { if (ok && root.isConnected) paintAchievementArt(root); });
+  }
   for (const canvas of root.querySelectorAll<HTMLCanvasElement>("canvas[data-stamp-art]")) {
     const c = canvas.getContext("2d");
     if (!c) continue;
     c.clearRect(0, 0, 32, 32);
     c.imageSmoothingEnabled = false;
-    art[canvas.dataset.stampArt!]?.(c);
+    art[canvas.dataset.stampArt!]?.(c, canvas.dataset.stampChoice);
     if (canvas.hasAttribute("data-stamp-veiled")) {
       c.globalCompositeOperation = "source-in";
       rect(c, 0, 0, 32, 32, "#a6999e");

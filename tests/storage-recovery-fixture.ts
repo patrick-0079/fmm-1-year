@@ -1,4 +1,5 @@
 import { World } from "../src/world";
+import { WORLD_CLOCK_KEY } from "../src/nature-save";
 
 // Read each record through the real application, without touching user saves.
 const records = new Map<string, string>([
@@ -15,10 +16,10 @@ Object.defineProperty(window, "localStorage", {value: {
 }});
 let world: World;
 const load = World.prototype.load;
-World.prototype.load = function () {
+World.prototype.load = function (...args) {
   world = this;
   World.prototype.load = load;
-  return load.call(this);
+  return load.apply(this, args);
 };
 await import("../src/main");
 const report = document.querySelector<HTMLOutputElement>("#storage-report")!;
@@ -36,7 +37,7 @@ try {
   world!.switchScene("garden");
   const basket = world!.config.spots.find(s => s.id === "apple")!;
   if (world!.available(basket)) throw Error("损坏时钟使当日拿空的果篮重新奖励苹果");
-  const recovered = JSON.parse(records.get("fufu-world-clock-v1")!);
+  const recovered = JSON.parse(records.get(WORLD_CLOCK_KEY)!);
   if (!Number.isFinite(recovered.origin) || recovered.shift !== 0) throw Error("时钟没有独立恢复");
   report.textContent = "通过：损坏时钟独立恢复；17 苹果 / 9 花朵 / 4 星屑及当日采空记录保留";
   report.dataset.result = "pass";

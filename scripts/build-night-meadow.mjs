@@ -39,3 +39,4 @@ for (const [kind, x, y, size] of patches) {
 }
 await sharp(map).composite(layers).webp({quality: 93, smartSubsample: true, effort: 6})
   .toFile(dir + "night-meadow-v16.webp");
+await sharp(dir + "night-meadow-v16.webp").resize({width: 640}).webp({quality: 76}).toFile(dir + "meadow-postcard.webp");

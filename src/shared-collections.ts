@@ -15,6 +15,7 @@ export function mergeCollections(into: Progress, from: Progress) {
   mergeTownKeepsakes(into.townKeepsakes, from.townKeepsakes);
   into.bedNoteUnlocked ||= from.bedNoteUnlocked;
   into.bassSongPlayed ||= from.bassSongPlayed;
+  if (from.gardenTape === "inserted" || into.gardenTape === "missing") into.gardenTape = from.gardenTape;
   into.decoratorMet ||= from.decoratorMet;
   into.rabbitIntroduced ||= from.rabbitIntroduced;
   addMissing(into.echoes.found, from.echoes.found);

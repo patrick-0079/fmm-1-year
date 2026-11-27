@@ -93,9 +93,9 @@ export function tiltMirror(s: AstrolabeState, i: 0 | 1) {
 export const seals = [
   {id:"first", name:"初拾月痕", mark:"月", hint:"拾起任意一枚星盘环"},
   {id:"set", name:"三环归位", mark:"环", hint:"找齐三枚星盘环"},
-  {id:"plate", name:"月相复圆", mark:"盘", hint:"把三道缺口连成一线"},
-  {id:"light", name:"引月成路", mark:"光", hint:"让月光抵达星纹砖"},
-  {id:"radio", name:"晚安收听员", mark:"声", hint:"听见听月泉里的旧电波"},
+  {id:"plate", name:"月相复圆", mark:"盘", hint:"把三枚环装入月相星盘，将三道缺口都转向北面的月牙"},
+  {id:"light", name:"引月成路", mark:"光", hint:"调好月相星盘后，转动两面铜镜，把月光引到左下角的星纹砖"},
+  {id:"radio", name:"晚安收听员", mark:"声", hint:"在三间石室的石座上抄齐铭文，在中央祭坛奏完旋律，再去听月泉收听旧电波"},
 ] as const;
 export type SealId = typeof seals[number]["id"];
 export function earnedSeals(s: AstrolabeState, listened: boolean): SealId[] {

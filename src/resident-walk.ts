@@ -2,26 +2,21 @@ import type { Facing } from "./equipment";
 import type { Point } from "./core";
 import type { TownResidentId } from "./town-dialogue";
 import type { GardenGuest } from "./garden-guests";
+import { requestSceneImage } from "./texture-cache";
 
 type Walker = TownResidentId | GardenGuest["id"] | "suyan";
 const urls = import.meta.glob<string>("./assets/resident-walk/*.webp", { eager: true, import: "default", query: "?url&no-inline" });
-const sheets = new Map<Walker, { image: HTMLImageElement; retryAt: number }>();
+const sheets = new Map<Walker, HTMLImageElement>();
 
 /** Request on first use. A missing or loading sheet leaves the normal standing pose visible. */
 export function prepareResidentWalk(id: Walker) {
   const previous = sheets.get(id);
-  if (previous) {
-    if (previous.image.naturalWidth) return previous.image;
-    if (!previous.retryAt || performance.now() < previous.retryAt) return;
-  }
+  if (previous?.naturalWidth) return previous;
   const url = urls["./assets/resident-walk/" + id + ".webp"];
   if (!url) return;
-  const image = new Image();
-  const entry = { image, retryAt: 0 };
-  sheets.set(id, entry);
-  image.decoding = "async";
-  image.onerror = () => { entry.retryAt = performance.now() + 5000; };
-  image.src = url;
+  const image = requestSceneImage(url);
+  sheets.set(id, image);
+  if (image.naturalWidth) return image;
 }
 
 export function residentWalkFrame(id: Walker, distance: number) {

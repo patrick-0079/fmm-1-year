@@ -7,6 +7,10 @@ import { townScene } from "./town-map.ts";
 import { townInteriorId } from "./town-interior-id.ts";
 import { interiorForResident, townInteriors, type TownArea, type TownInterior } from "./town-interiors.ts";
 
+export type TownShift = Phase | "after-midnight";
+export const townShift = (phase: Phase, hours: number): TownShift =>
+  phase === "night" && hours < 5 ? "after-midnight" : phase;
+
 type Schedule = "always" | "morning" | "afternoon" | "evening" | "late";
 const shifts: Record<Schedule, readonly Phase[]> = {
   always: ["dawn","day","dusk","night"], morning: ["dawn","day"],
@@ -24,18 +28,19 @@ export const townLives: Record<TownResidentId, Shift> = {
   maker: { shift:"morning", stops:[p(1164,423)] },
   "blocks-keeper": { shift:"afternoon", stops:[p(1065,551)], doorway:[p(1172,500),p(1166,448),p(1161,422),p(1151,408)] },
   walker: { shift:"afternoon", stops:[p(558,718)], doorway:[p(474,815)] },
-  xiaoyou: { shift:"afternoon", stops:[p(451,905)], doorway:[p(448,925)] },
+  xiaoyou: { shift:"always", stops:[p(451,905)], doorway:[p(448,925)] },
   cat: { shift:"afternoon", stops:[p(1184,127)], doorway:[p(1128,157)] },
   bunny: { shift:"evening", stops:[], doorway:[p(755,523)] },
-  guli: { shift:"evening", stops:[p(948,332),p(968,352)], doorway:[p(820,324),p(780,316),p(777,289),p(772,270),p(756,252),p(747,252),p(733,252),p(726,250),p(718,246),p(715,245)] },
-  qianxiao: { shift:"evening", stops:[p(1198,522)], doorway:[p(1170,469),p(1166,448),p(1161,422),p(1151,408)] },
-  "radio-host": { shift:"evening", stops:[] },
+  guli: { shift:"always", stops:[p(948,332),p(968,352)], doorway:[p(820,324),p(780,316),p(777,289),p(772,270),p(756,252),p(747,252),p(733,252),p(726,250),p(718,246),p(715,245)] },
+  qianxiao: { shift:"always", stops:[p(1198,522)], doorway:[p(1170,469),p(1166,448),p(1161,422),p(1151,408)] },
+  "radio-host": { shift:"always", stops:[] },
   "hop-keeper": { shift:"late", stops:[p(514,613)], doorway:[p(497,605)] },
   books: { shift:"late", stops:[p(839,803)] },
   "snake-keeper": { shift:"late", stops:[p(516,406)], doorway:[p(516,406),p(368,396)] },
   "photo-visitor": { shift:"late", stops:[p(900,452),p(879,451)] },
 };
-export const worksInTown = (id: TownResidentId, phase: Phase) => shifts[townLives[id].shift].includes(phase);
+export const worksInTown = (id: TownResidentId, shift: TownShift) =>
+  shifts[townLives[id].shift].includes(shift === "after-midnight" ? "night" : shift);
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 const onScreen = (a: Point, v: Rect) => a.x > v.x - 21 && a.x < v.x + v.w + 21 && a.y > v.y - 8 && a.y < v.y + v.h + 48;
 interface Station { scene: TownArea; foot: Point; approach?: Point }
@@ -46,11 +51,16 @@ const indoorStations = new Map([...interiorForResident].map(([id, room]) => [
     phase, { ...stop, scene: townInteriorId(room.key) },
   ])) as Partial<Record<Phase, Station>>,
 ]));
-function station(id: TownResidentId, phase: Phase) {
-  const inside = indoorStations.get(id)?.[phase];
-  return inside ?? (worksInTown(id, phase) ? streetStations.get(id) : undefined);
+const radioStreet: Station = {scene:"town", foot:p(1356,828), approach:p(1327,833)};
+function station(id: TownResidentId, shift: TownShift) {
+  if (id === "radio-host") {
+    if (shift === "night") return indoorStations.get(id)?.night;
+    return shift === "dusk" ? streetStations.get(id) : radioStreet;
+  }
+  const phase = shift === "after-midnight" ? "night" : shift;
+  return indoorStations.get(id)?.[phase] ?? (worksInTown(id, phase) ? streetStations.get(id) : undefined);
 }
-export function residentTownScene(id: TownResidentId, phase: Phase) {
+export function residentTownScene(id: TownResidentId, phase: TownShift) {
   return station(id, phase)?.scene;
 }
 const streetGeometry = { ...townScene, walls: townScene.walls.filter(w => !w.yieldsOnArrival) };
@@ -78,7 +88,7 @@ export interface ResidentMotion extends Point {
   workTime: number;
   avoiding?: Point;
 }
-function initialize(n: TownNpc, i: number, phase: Phase): ResidentMotion {
+function initialize(n: TownNpc, i: number, phase: TownShift): ResidentMotion {
   const destination = station(n.id, phase);
   const foot = destination?.foot ?? n;
   return {id:n.id, x:foot.x, y:foot.y, scene:destination?.scene ?? "town", destination,
@@ -89,16 +99,16 @@ function initialize(n: TownNpc, i: number, phase: Phase): ResidentMotion {
 
 export class TownRoutines {
   readonly people = new Map<TownResidentId,ResidentMotion>();
-  private phase: Phase = "day";
+  private phase: TownShift = "day";
   private heldAfterJump?: TownResidentId;
-  constructor(phase: Phase = "day") { this.enter(phase); }
-  enter(phase: Phase) {
+  constructor(phase: TownShift = "day") { this.enter(phase); }
+  enter(phase: TownShift) {
     this.phase=phase;
     this.heldAfterJump=undefined;
     TOWN_NPCS.forEach((n,i)=>this.people.set(n.id,initialize(n,i,phase)));
   }
 
-  syncShift(phase:Phase, speaking?:TownResidentId) {
+  syncShift(phase:TownShift, speaking?:TownResidentId) {
     this.phase=phase;
     this.heldAfterJump=speaking;
     TOWN_NPCS.forEach((npc,index)=>{
@@ -117,7 +127,7 @@ export class TownRoutines {
       route: findPath(door, destination.foot, geometry(destination.scene)) ?? [] });
   }
 
-  private commute(actor: ResidentMotion, npc: TownNpc, house: TownInterior, phase: Phase, visible: boolean,
+  private commute(actor: ResidentMotion, npc: TownNpc, house: TownInterior, phase: TownShift, visible: boolean,
     area: TownArea, view: Rect, still: boolean) {
     const next = station(npc.id, phase);
     if (actor.destination === next) return;
@@ -171,7 +181,7 @@ export class TownRoutines {
     actor.wait = 6 + (TOWN_NPCS.indexOf(npc) * 2.61 + actor.odometer * .08) % 9;
   }
 
-  tick(dt:number, phase:Phase, player:Point, view:Rect, held:string|null, speaking:string|undefined, still:boolean,
+  tick(dt:number, phase:TownShift, player:Point, view:Rect, held:string|null, speaking:string|undefined, still:boolean,
     area: TownArea = "town") {
     if (this.heldAfterJump && speaking!==this.heldAfterJump) {
       const npc = TOWN_NPCS.find(person => person.id === this.heldAfterJump)!;

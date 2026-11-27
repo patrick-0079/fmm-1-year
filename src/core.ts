@@ -60,6 +60,7 @@ export interface Checkpoint {
   x: number;
   y: number;
 }
+export type GardenTape = "missing" | "carried" | "inserted";
 export interface Progress {
   /** Assigned on reset so stale tabs can never restore receipts into the next adventure. */
   generation?: string;
@@ -73,6 +74,7 @@ export interface Progress {
   volume: number;
   bedNoteUnlocked: boolean;
   bassSongPlayed: boolean;
+  gardenTape: GardenTape;
   roomFox: FoxMemory;
   residents: ResidentStory;
   townKeepsakes: TownKeepsakes;
@@ -113,6 +115,7 @@ export function readProgress(raw: string | null): Progress {
     volume: 0.45,
     bedNoteUnlocked: false,
     bassSongPlayed: false,
+    gardenTape: "missing",
     roomFox: readFoxMemory(),
     residents: readResidentStory(),
     townKeepsakes: readTownKeepsakes(undefined),
@@ -150,6 +153,7 @@ export function readProgress(raw: string | null): Progress {
       bassSound: p.bassSound !== false,
       bedNoteUnlocked: p.bedNoteUnlocked === true,
       bassSongPlayed: p.bassSongPlayed === true,
+      gardenTape: p.gardenTape === "carried" || p.gardenTape === "inserted" ? p.gardenTape : "missing",
       roomFox: readFoxMemory(p.roomFox),
       residents: readResidentStory(p.residents ?? {}),
       townKeepsakes: readTownKeepsakes(p.townKeepsakes),

@@ -1,3 +1,4 @@
+import "./fufu-pet/pet";
 import { OPEN_AT, countdownParts, getDeadline, setDebugDeadline } from "./time";
 import type { createCountdownView } from "./view";
 
@@ -37,6 +38,7 @@ export async function startLaunch(loadGame?: () => Promise<unknown>) {
   async function enterGame() {
     stop();
     document.title = gameTitle;
+    document.dispatchEvent(new Event("fufu:journal-open"));
     try {
       await loadGame!();
     } catch {

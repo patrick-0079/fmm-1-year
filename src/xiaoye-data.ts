@@ -15,7 +15,7 @@ export const xiaoyeSpot: Hotspot = {
   selfMarked: true,
   hitAreas: [{ x: 303, y: 255, w: 57, h: 64 }],
   cue: {
-    kind: "pet", action: "抱抱小叶子", verb: "抱抱", natural: true,
+    kind: "talk", action: "和小叶子聊聊", verb: "交谈", natural: true,
     anchor: { x: 18, y: -43 },
     objectBox: { x: -27, y: -60, w: 57, h: 64 },
   },
@@ -25,7 +25,6 @@ export const xiaoyeFootprint: Obstacle = {
   x: xiaoyeSpot.x - 9, y: xiaoyeSpot.y - 4, w: 18, h: 8,
 };
 export const XIAOYE_HUG_SECONDS = EMBRACE_SECONDS;
-export const xiaoyeHugText = "（软乎乎的大猫猫轻轻抱住了你。）";
 
 export const xiaoyeLanternOn = (phase: Phase) => phase === "dusk" || phase === "night";
 export const xiaoyeFrame = (phase: Phase, hugging: boolean) =>

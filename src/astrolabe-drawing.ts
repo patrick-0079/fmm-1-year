@@ -1,16 +1,9 @@
 import { lightBoard, mirrorCells, targetCell, plateAligned, rings, starLit, traceMoonlight, type AstrolabeState, type RingId } from "./astrolabe";
 import { moonPlate, southNotebookArt } from "./ruins-map";
-import { drawRelic } from "./relic-icons";
+import { drawAstrolabeMapProp, drawRelic } from "./relic-icons";
 import { sceneArt } from "./scene-art";
 
 type Ctx = CanvasRenderingContext2D;
-const toolCells = {plate:0, book:1, mirror:2, star:3} as const;
-function tool(c:Ctx, name:keyof typeof toolCells, x:number, y:number, size:number) {
-  const image=sceneArt.astrolabeProps;
-  if (!image.naturalWidth) return;
-  const i=toolCells[name], cell=image.naturalWidth/2;
-  c.drawImage(image,(i%2)*cell,Math.floor(i/2)*cell,cell,cell,x,y,size,size);
-}
 function glow(c:Ctx, x:number, y:number, radius:number, color:string) {
   const light=c.createRadialGradient(x,y,0,x,y,radius);
   light.addColorStop(0,color+"95"); light.addColorStop(1,color+"00");
@@ -23,15 +16,17 @@ export function drawGroundRing(c:Ctx, id:RingId, x:number, y:number, near:boolea
     glow(c,x,y-6,12+Math.sin(t*1.6),"#ffe8a8");
     c.fillStyle="#fff4c7"; c.fillRect(x+6,y-12,5,1); c.fillRect(x+8,y-14,1,5);
   }
-  drawRelic(c,id,x-9,y-15,18);
+  // Keep the base at y + 3 and the drawing inside the original 24 × 25 pickup area.
+  drawRelic(c,id,x-10.5,y-18,21);
   c.restore();
 }
 export function drawSouthNotebook(c:Ctx) {
-  tool(c,"book",southNotebookArt.x,southNotebookArt.y,southNotebookArt.w);
+  drawAstrolabeMapProp(c,"book",southNotebookArt.x,southNotebookArt.y,southNotebookArt.w);
 }
 export function drawMoonPlate(c:Ctx, s:AstrolabeState) {
   const {x,y}=moonPlate, solved=plateAligned(s);
-  tool(c,"plate",x-30,y-54,60);
+  const image = sceneArt.astrolabeProps, cell = image.naturalWidth / 2;
+  if (cell) c.drawImage(image, 0, 0, cell, cell, x-30, y-54, 60, 60);
   // The empty recess of the illustrated plinth is centred above its foot.
   c.save(); c.translate(x,y-29); c.scale(1,.77);
   rings.forEach((ring,i)=>{
@@ -84,11 +79,11 @@ export function drawLightBoard(c:Ctx, s:AstrolabeState, t:number) {
     c.save(); c.translate(cx,cy);
     c.fillStyle="#35494c"; c.beginPath(); c.ellipse(0,2,7,5,0,0,Math.PI*2); c.fill();
     c.strokeStyle="#b1915f"; c.lineWidth=1; c.stroke();
-    c.rotate(face==="/"?-Math.PI/4:Math.PI/4); tool(c,"mirror",-11,-11,22);
+    c.rotate(face==="/"?-Math.PI/4:Math.PI/4); drawAstrolabeMapProp(c,"mirror",-11,-11,22);
     c.restore();
   });
   c.translate(targetCell.x*step,targetCell.y*step);
-  tool(c,"star",-10,-10,20);
+  drawAstrolabeMapProp(c,"brick",-10,-10,20);
   if (starLit(s)) {
     glow(c,0,0,15,"#ffe3a4"); drawRelic(c,"brooch",-9,-16+Math.sin(t*1.6),18);
   }

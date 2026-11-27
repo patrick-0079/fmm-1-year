@@ -3,7 +3,7 @@ import { reservedShortcut } from "./input";
 import { playTownRadio, sfx } from "./sound";
 import type { TownInteriorKey } from "./town-interior-id";
 import { radioTrackName, townKeepsakeInfo, type RadioTrack } from "./town-keepsakes";
-import { drawWorkbench } from "./town-workbench-art";
+import { drawWorkbench, prepareWorkbenchArt } from "./town-workbench-art";
 import {
   copperStart, copperTolerance, pressDuration, workbenchSize, workbenchSteps,
   type WorkbenchStep, type WorkbenchTool,
@@ -20,7 +20,7 @@ interface PointerGesture {
 
 interface WorkbenchHooks {
   preview: (step: string | undefined, rotation: number) => void;
-  collect: (track?: RadioTrack) => void;
+  collect: (choice?: string) => void;
 }
 
 const clamp = (value: number, max = 1) => Math.max(0, Math.min(max, value));
@@ -74,6 +74,7 @@ export class TownWorkbench {
     this.surface.append(this.workspace, this.keyHelp);
     root.append(this.surface);
     this.show(true);
+    void prepareWorkbenchArt().then(() => { if (!this.closed) this.paint(); });
   }
 
   private get step(): WorkbenchStep | undefined { return this.steps[this.index]; }
@@ -104,7 +105,7 @@ export class TownWorkbench {
       claim.addEventListener("click", () => {
         if (this.closed || this.collected) return;
         this.collected = true;
-        this.hooks.collect(this.track);
+        this.hooks.collect(this.choice);
       });
       this.surface.append(claim);
       if (focus) claim.focus({ preventScroll: true });

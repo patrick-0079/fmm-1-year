@@ -1,12 +1,24 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readProgress } from "../src/core.ts";
-import { readInventory } from "../src/items.ts";
+import { starterItems, readInventory, mergeInventoryReceipts } from "../src/items.ts";
 import { readResidentStory, mailboxLetters, postLetter, postUnread, POST_LETTER_REVISION,
   collectHandedLetter, grantDebugLetters, handedLetters, letterChoice, markLetterRead, patrickLetter, unreadLetterIds } from "../src/resident-story.ts";
 import { allLetters } from "../src/letters.ts";
 
 const starterLetters = ["kerry-anniversary-letter", "xiaoaimen-anniversary-letter"];
+
+test("the hand-drawn map is earned separately from the letter and survives old or simultaneous inventory saves", () => {
+  const legacy = readInventory('{"bouquet":true}');
+  assert.equal(legacy.flowerMap, false);
+  assert.equal(readInventory('{"flowerMap":"true"}').flowerMap, false);
+  const received = readInventory('{"flowerMap":true}');
+  assert.equal(mergeInventoryReceipts(legacy, received), true);
+  assert.equal(mergeInventoryReceipts(legacy, received), false);
+  assert.equal(mergeInventoryReceipts(received, legacy), true);
+  assert.equal(readInventory(JSON.stringify(received)).flowerMap, true);
+  assert.equal(received.bouquet, true);
+});
 
 test("debug receipt grants a chosen letter or fills the mailbox while preserving existing read receipts", () => {
   const story = readResidentStory();
@@ -99,13 +111,13 @@ test("showing a choice does not collect or read its letter", () => {
     read: letter => { reads++; markLetterRead(story, letter); },
   }, id, () => { refreshes++; });
   const take = showChoice();
-  assert.equal(take.title, "收下信");
+  assert.equal(take.title, "⌈收下信⌋");
   assert.deepEqual(unreadLetterIds(story), []);
   take.run(); take.run();
   assert.deepEqual(unreadLetterIds(story), [id]);
   assert.equal(refreshes, 1);
   const read = showChoice();
-  assert.equal(read.title, "现在读信");
+  assert.equal(read.title, "⌈现在读信⌋");
   assert.equal(reads, 0);
   read.run();
   assert.equal(reads, 1);
@@ -126,7 +138,7 @@ test("a pending offer switches to reading when a second window has already deliv
   offer.run();
   offer.run();
   assert.equal(refreshes, 1);
-  assert.equal(letterChoice(mail, id, () => {}).title, "现在读信");
+  assert.equal(letterChoice(mail, id, () => {}).title, "⌈现在读信⌋");
   assert.equal(story.npcLetters[id], "unread");
 });
 
@@ -172,8 +184,8 @@ test("the camp letter is gated, saved once and read independently of the postman
 test("visiting residents, earning a keepsake and equipping items have separate records", () => {
   const bag = readInventory('{"owned":["wreath"],"equipped":{"head":"wreath"},"bouquet":true}');
   assert.ok(bag.bouquet);
-  assert.equal(bag.equipped.head, "wreath");
-  assert.deepEqual(bag.owned, ["wreath"]);
+  assert.equal(bag.equipped.wreath, "wreath");
+  assert.deepEqual(bag.owned, [...starterItems, "wreath"]);
   assert.deepEqual(readInventory(JSON.stringify(bag)), bag);
   assert.equal(readInventory('{"bouquet":"yes"}').bouquet, false);
   const old = readProgress('{"completed":["cake"],"residents":{"postReadRevision":99}}');

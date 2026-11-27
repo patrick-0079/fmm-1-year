@@ -2,17 +2,12 @@ import gardenUrl from "./assets/garden-guest-routines.webp?no-inline";
 import brimUrl from "./assets/gardener-hat.webp?no-inline";
 import staffUrl from "./assets/guardian-moonstone.webp?no-inline";
 import type { GardenPerformer } from "./garden-residents";
+import { requestSceneImage } from "./texture-cache";
 
 const urls={garden:gardenUrl,challenge:brimUrl,ruins:staffUrl};
 const pictures:Partial<Record<keyof typeof urls,HTMLImageElement>>={};
 export function prepareGardenGestures(scene:keyof typeof urls="garden") {
-  if(pictures[scene])return;
-  const image=new Image();
-  pictures[scene]=image;
-  image.decoding="async";
-  image.fetchPriority="low";
-  image.onerror=()=>{delete pictures[scene];};
-  image.src=urls[scene];
+  pictures[scene] = requestSceneImage(urls[scene]);
 }
 
 const performers={

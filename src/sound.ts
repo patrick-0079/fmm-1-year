@@ -1,4 +1,4 @@
-// Original, locally synthesized music and effects. No downloads or audio service.
+// Scene music and synthesized effects, including the badge chime, share the mixer.
 import type { BaseSceneId, SceneId } from "./maps";
 import { isTownInterior } from "./town-interior-id";
 import type { FoxCall } from "./fox-memory";
@@ -40,6 +40,16 @@ function tone(
     oscillator.disconnect();
     gain.disconnect();
   };
+}
+// A soft rising bell flourish, voiced directly on the interaction-effects bus.
+export function playAchievementSound() {
+  if (!context || !effects || !enabled || !volume || document.hidden || context.state !== "running") return;
+  const at = context.currentTime + .015;
+  tone(74, at, .23, .15, effects, "triangle");
+  tone(78, at + .075, .28, .13, effects);
+  tone(81, at + .15, .34, .15, effects);
+  tone(86, at + .24, .50, .17, effects);
+  tone(93, at + .24, .23, .035, effects);
 }
 function levels() {
   if (!context || !master || !music || !effects) return;

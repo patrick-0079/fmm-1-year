@@ -2,16 +2,16 @@ import { anniversary, collections, encouragements, type Memory } from "./content
 import { EVENT_IDS, GAME_IDS, SAVE_KEY, readProgress } from "./core";
 import { mergeCollections } from "./shared-collections";
 import { mergeAchievementProgress, migrateAchievementFacts, reconcileAchievements, recordAchievementFact } from "./achievements";
-import { mountAchievementBook, achievementStampMarkup } from "./achievement-book";
-import { paintAchievementArt } from "./achievement-art";
-import "./achievement-flash.css";
+import type { mountAchievementBook } from "./achievement-book";
+import { revealGame } from "./game-viewport";
+import { mountAchievementNotices } from "./achievement-notice";
 import { ForegroundPlayClock } from "./playtime";
 import { icon } from "./icons";
 import { World, scenes, type SceneId } from "./world";
 import { isTownInterior } from "./town-interior-id";
 import { townInteriors } from "./town-interiors";
 import { TownInteriorActivities } from "./town-interior-activities";
-import { collectTownKeepsake, mergeTownKeepsakes, townKeepsakeInfo } from "./town-keepsakes";
+import { collectTownKeepsake, mergeTownKeepsakes, townKeepsakeChoice, townKeepsakeInfo } from "./town-keepsakes";
 import { ResidentChats } from "./resident-chats";
 import { InteractionPrompt } from "./interaction-prompt";
 import { resolveCue } from "./interaction-cues";
@@ -27,7 +27,7 @@ import { Xiaoye } from "./xiaoye";
 import { Suyan } from "./suyan";
 import { AnniversaryVisitors } from "./anniversary-visitors";
 import { ARCADES } from "./town-data";
-import { reservedShortcut } from "./input";
+import { debugTarget, reservedShortcut } from "./input";
 import type { GameId } from "./arcade-engines";
 import { Nature, NATURE_KEY } from "./nature";
 import { INVENTORY_KEY } from "./items";
@@ -35,7 +35,7 @@ import { FlowerTrail } from "./flower-trail";
 import { NightMeadow } from "./night-meadow";
 import { EchoRuins } from "./echo-ruins";
 import { Elders } from "./elders";
-import { collectHandedLetter, grantDebugLetters, handedLetters, hasHandedLetter, mailboxLetters, markLetterRead, mergeResidentStory, postLetter,
+import { collectHandedLetter, grantDebugLetters, handedLetters, hasHandedLetter, mailboxLetters, markLetterRead, mergeResidentStory, mailSummary, postLetter,
   unreadLetterIds, type LetterHandoff } from "./resident-story";
 import { AstrolabeQuest } from "./astrolabe-quest";
 import { RoomBass } from "./room-bass";
@@ -43,7 +43,9 @@ import { bassStand, foxNook } from "./room-props";
 import { RoomFox } from "./room-fox";
 import { mountDebugPanel } from "./debug-panel";
 import { meadowOpen } from "./rainbow-flowers";
-import { JOURNEY_KEY, readJourney, type Journey } from "./journey";
+import { JOURNEY_KEY, showJourneyStatus, type Journey } from "./journey";
+import { prepareGameResources } from "./texture-cache";
+import { showResourceCount } from "./loading-meter";
 import { openCollection } from "./media";
 import { renderGameMailDesk, type LetterList } from "./game-mail-desk";
 import {
@@ -56,18 +58,8 @@ import {
   sfx,
 } from "./sound";
 
-export function mountGame() {
-  let saved: string | null = null;
-  try {
-    saved = localStorage.getItem(SAVE_KEY);
-  } catch {
-    /* optional local progress */
-  }
-  let progress = readProgress(saved),
-    started = false,
-    transitioning = false;
-  let journey: Journey | null = null;
-  try { journey = readJourney(localStorage.getItem(JOURNEY_KEY), progress.rainbowFlowers); } catch { /* optional storage */ }
+export function mountGame(progress: ReturnType<typeof readProgress>, journey: Journey | null, achievementBook: ReturnType<typeof mountAchievementBook>) {
+  let started = false, transitioning = false;
   let worldReady = false, resetInProgress = false, lastPositionCheck = 0;
   let sharedResetPending = false;
   let refreshAchievements: ((announce?: boolean) => boolean) | undefined;
@@ -99,7 +91,7 @@ export function mountGame() {
   const world = new World(document.querySelector("#world")!, chats);
   const revealMapIfOffscreen = () => {
     const board=world.canvas.parentElement!, rect=board.getBoundingClientRect();
-    if (rect.bottom<=0 || rect.top>=window.innerHeight) board.scrollIntoView({block:"nearest",behavior:"instant"});
+    if (rect.bottom<=0 || rect.top>=window.innerHeight) revealGame(world.canvas);
   };
   const reader = new MapReader(world);
   const mailboxListeners = new Set<(items: readonly Memory[], unreadIds: readonly string[]) => void>();
@@ -109,11 +101,10 @@ export function mountGame() {
   mailCard.disabled = true;
   albumCard.disabled = true;
   function updateMailCount() {
-    const story = progress.residents;
-    const unread = unreadLetterIds(story).length;
-    mailCount.textContent = mailboxLetters(story).length + " 封来信" + (unread ? ` · ${unread} 封未读` : "");
+    const { label, unread } = mailSummary(progress.residents);
+    mailCount.textContent = label;
     mailCard.classList.toggle("has-unread", unread > 0);
-    inventory.refreshMailCount();
+    inventory.refreshStoryKeepsakes();
   }
   function refreshMailboxViews() {
     updateMailCount();
@@ -141,20 +132,13 @@ export function mountGame() {
     renderGameMailDesk(body, {...mailbox(), selectedId}, cleanup => reader.onCleanup(cleanup));
   }
   const enter = document.querySelector<HTMLButtonElement>(".enter-button")!;
-  const saveNow = document.querySelector<HTMLButtonElement>(".save-now")!;
   const saveStatus = document.querySelector<HTMLElement>(".save-status")!;
-  const showJourney = () => {
-    if (!journey) { saveStatus.textContent = "开始冒险后自动保存"; saveStatus.removeAttribute("title"); return; }
-    const date = new Date(journey.savedAt);
-    const when = date.toLocaleTimeString("zh-CN", {hour: "2-digit", minute: "2-digit"});
-    saveStatus.textContent = `本机已保存 · ${scenes[journey.scene].title} ${when}`;
-    saveStatus.title = date.toLocaleString("zh-CN");
-  };
-  const saveLocation = (manual = false) => {
+  const showJourney = () => showJourneyStatus(saveStatus, journey);
+  const saveLocation = () => {
     if (!started || !worldReady || resetInProgress || world.busy) return;
     if (world.scene==="meadow" && !meadowOpen(progress.rainbowFlowers)) return;
     const {x,y} = world.restState?.exit ?? world.player;
-    if (!manual && journey?.scene === world.scene && journey.x === x && journey.y === y) return;
+    if (journey?.scene === world.scene && journey.x === x && journey.y === y) return;
     const next = {scene: world.scene, x, y, savedAt: Date.now()};
     try {
       // pagehide can run before the other tab's reset notification is dispatched.
@@ -167,7 +151,6 @@ export function mountGame() {
   showJourney();
   window.addEventListener("pagehide", () => saveLocation());
   document.addEventListener("visibilitychange", () => { if (document.hidden) saveLocation(); });
-  saveNow.addEventListener("click", () => { saveLocation(true); world.canvas.focus({preventScroll:true}); });
   const toastElement = document.querySelector<HTMLElement>(".toast")!;
   document.querySelector(".scene-wrap")!.append(toastElement);
   let toastTimeout: ReturnType<typeof setTimeout>;
@@ -223,12 +206,16 @@ export function mountGame() {
   }
   function mergeLiveCollections(other: ReturnType<typeof readProgress>) {
     const flowers = progress.rainbowFlowers.length, visited = progress.visited.length;
+    const tape = progress.gardenTape;
     const { items, radioTrack } = progress.townKeepsakes;
+    const flower = townKeepsakeChoice(progress.townKeepsakes, "florist"), postcard = townKeepsakeChoice(progress.townKeepsakes, "post");
     const souvenirs = items.length;
     mergeCollections(progress, other);
+    if (progress.gardenTape !== tape) inventory.refreshGardenTape();
     if (flowers !== progress.rainbowFlowers.length) flowerTrail.refresh();
     if (visited !== progress.visited.length) document.querySelector("#explored")!.textContent = String(progress.visited.length);
-    if (souvenirs !== items.length || radioTrack !== progress.townKeepsakes.radioTrack) {
+    if (souvenirs !== items.length || radioTrack !== progress.townKeepsakes.radioTrack
+      || flower !== townKeepsakeChoice(progress.townKeepsakes, "florist") || postcard !== townKeepsakeChoice(progress.townKeepsakes, "post")) {
       inventory.refreshTownKeepsakes();
       interiorActivities.refreshCollection();
     }
@@ -251,7 +238,8 @@ export function mountGame() {
     sound.title = progress.muted ? "恢复游戏声音" : "静音游戏声音";
     sound.setAttribute("aria-pressed", String(!progress.muted));
     const effects = document.querySelector<HTMLButtonElement>(".effects-toggle")!;
-    effects.textContent = progress.sound ? "互动音效：开" : "互动音效：关";
+    effects.innerHTML = icon(progress.sound ? "effects" : "effectsOff");
+    effects.title = progress.sound ? "关闭互动音效" : "开启互动音效";
     effects.setAttribute("aria-pressed", String(progress.sound));
     const music = document.querySelector<HTMLButtonElement>(".music-toggle")!;
     music.setAttribute(
@@ -261,8 +249,9 @@ export function mountGame() {
     music.setAttribute("aria-pressed", String(progress.bgm));
     music.title = progress.muted ? "背景音乐偏好（游戏已静音）" : "背景音乐";
     music.classList.toggle("muted", progress.muted || !progress.bgm);
-    document.querySelector(".volume-value")!.textContent =
-      `${Math.round(progress.volume * 100)}%`;
+    const volumeValue = document.querySelector<HTMLOutputElement>(".volume-value")!;
+    const percent = `${Math.round(progress.volume * 100)}%`;
+    if (volumeValue.value !== percent) volumeValue.value = percent;
     document.querySelector<HTMLButtonElement>(".volume-down")!.disabled =
       progress.volume <= 0;
     document.querySelector<HTMLButtonElement>(".volume-up")!.disabled =
@@ -277,46 +266,51 @@ export function mountGame() {
       chime(true);
     }
   }
+  const getGardenTape = () => progress.gardenTape;
   const inventory = new Inventory(world, toast);
+  inventory.gardenTape = getGardenTape;
   inventory.canSave = canSaveReceipts;
   inventory.townKeepsakes = () => progress.townKeepsakes;
   inventory.mailbox = mailbox;
   inventory.notebookState = () => progress.residents.guardianInvited
     ? { astrolabe: progress.astrolabe, listened: progress.echoes.listened }
     : null;
-  const help = document.querySelector<HTMLElement>(".inline-help")!;
-  const setHelp = (open: boolean) => {
-    if (open) {
-      meadow.closeBottle();
-      inventory.close(false);
-    }
-    help.hidden = !open;
-    world.suspend("help", open);
-    document.querySelector(".help-button")!.setAttribute("aria-expanded", String(open));
-    if (open) {
-      help.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      help.querySelector<HTMLButtonElement>(".help-close")!.focus({ preventScroll: true });
-    }
+  const help = document.querySelector<HTMLDialogElement>("#game-help")!;
+  const helpButton = document.querySelector<HTMLButtonElement>(".help-button")!;
+  const closeHelp = (restoreFocus = true) => {
+    if (!help.open) return;
+    help.close();
+    world.suspend("help", false);
+    helpButton.setAttribute("aria-expanded", "false");
+    if (restoreFocus && !world.suspended && !reader.restoreFocus()) helpButton.focus({ preventScroll: true });
   };
   const closePanels = () => {
     meadow.closeBottle();
     meadow.closeReader();
     bass.close(false);
     inventory.close(false);
-    if (!help.hidden) setHelp(false);
+    closeHelp(false);
   };
-  const returnFromHelp = () => {
-    setHelp(false);
-    if (world.suspended) return;
-    if (!reader.restoreFocus()) world.canvas.focus({ preventScroll: true });
-    world.canvas.parentElement!.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-  help.querySelector(".help-close")!.addEventListener("click", returnFromHelp);
+  helpButton.addEventListener("click", () => {
+    if (help.open) return;
+    meadow.closeBottle();
+    inventory.close(false);
+    world.suspend("help", true);
+    helpButton.setAttribute("aria-expanded", "true");
+    help.showModal();
+  });
+  help.querySelector(".help-close")!.addEventListener("click", () => closeHelp());
+  help.addEventListener("cancel", event => { event.preventDefault(); closeHelp(); });
+  help.addEventListener("click", event => {
+    if (event.target !== help) return;
+    const bounds = help.getBoundingClientRect();
+    if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) closeHelp();
+  });
   window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !help.hidden && !e.defaultPrevented && !reservedShortcut(e)) {
+    if (e.key === "Escape" && help.open && !e.defaultPrevented && !reservedShortcut(e) && !debugTarget(e.target)) {
       e.preventDefault();
       e.stopImmediatePropagation();
-      returnFromHelp();
+      closeHelp();
     }
   }, { capture: true });
   const activities = new Activities(world, {
@@ -325,7 +319,7 @@ export function mountGame() {
     toast,
     reward: (id) => inventory.grant(id),
   });
-  const interiorActivities = new TownInteriorActivities(world, activities, () => progress.townKeepsakes, (key, track) => {
+  const interiorActivities = new TownInteriorActivities(world, activities, () => progress.townKeepsakes, (key, choice) => {
     if (resetInProgress || sharedResetPending) return false;
     const book = progress.townKeepsakes;
     // Recheck the shared receipt before collecting. A player in another tab
@@ -339,16 +333,15 @@ export function mountGame() {
         mergeAchievementProgress(progress, other);
       }
     } catch { /* The souvenir can still be collected for this session. */ }
-    if (!collectTownKeepsake(book, key, track)) {
-      inventory.refreshTownKeepsakes();
-      refreshAchievements?.(false);
-      return false;
-    }
-    save();
+    const first = collectTownKeepsake(book, key, choice);
+    if (first || choice) save();
+    else refreshAchievements?.(false);
     inventory.refreshTownKeepsakes();
-    sfx("match");
-    toast(`收到${townKeepsakeInfo[key].name}`);
-    return true;
+    if (first) {
+      sfx("match");
+      toast(`收到${townKeepsakeInfo[key].name}`);
+    }
+    return first;
   }, key => inventory.openTownKeepsakes(key));
   world.townInteriorEffect = () => interiorActivities.roomEffect;
   const mail: LetterHandoff = {
@@ -368,7 +361,7 @@ export function mountGame() {
     },
   };
   inventory.onEquip = () => activities.finishEquipmentChoice();
-  const nature = new Nature(world, activities, toast, inventory);
+  const nature = new Nature(world, activities, toast, inventory, canSaveReceipts);
   world.isPresentingDialogue = () => activities.dialogueOpen;
   const arcade = new Arcade(world, activities, inventory, (id, score) => {
     const best = progress.arcadeBests[id] ?? 0;
@@ -381,7 +374,7 @@ export function mountGame() {
     {
       canSave: canSaveReceipts,
       story: () => progress.residents, mail, save, notify: toast,
-      keepsakes: () => progress.townKeepsakes.items,
+      keepsakes: () => progress.townKeepsakes,
       readPost: onReturn => {
         if (progress.residents.postDelivered) inventory.openMail(postLetter.id, onReturn);
       },
@@ -392,7 +385,7 @@ export function mountGame() {
     if (world.scene === "town" || isTownInterior(world.scene)) town.syncShift();
     world.cancelUnavailableTarget();
   };
-  const xiaoye = new Xiaoye(world, activities, mail, () => world.currentPhase);
+  const xiaoye = new Xiaoye(world, activities, mail, () => world.currentPhase, () => inventory.collectFlowerMap());
   const suyan = new Suyan(world, activities, mail, gardenLife.residents);
   const flowerTrail = new FlowerTrail(world, () => progress.rainbowFlowers, save, toast);
   const campLetterButton = document.querySelector<HTMLButtonElement>(".camp-letter")!;
@@ -401,7 +394,13 @@ export function mountGame() {
       world.restState?.scene !== "meadow" || !mail.received(handedLetters.patrick);
   };
   const meadow = new NightMeadow(world, () => progress.creditStars, save, () => progress.residents,
-    () => { mail.collect(handedLetters.patrick); refreshCampLetter(); });
+    () => { mail.collect(handedLetters.patrick); refreshCampLetter(); }, getGardenTape, () => {
+      if (progress.gardenTape !== "missing" || !canSaveReceipts()) return;
+      progress.gardenTape = "carried";
+      save();
+      sfx("match");
+      toast("拾得周年录像带 · 带回周年花园，放进大屏前的放映机吧。");
+    });
   const starQuest = new AstrolabeQuest(world, activities, inventory, () => progress.astrolabe,
     () => progress.echoes.listened, save);
   const ruins = new EchoRuins(world, activities, () => progress.echoes, () => { save(); starQuest.refresh(); });
@@ -414,7 +413,7 @@ export function mountGame() {
     else progress.bassSound=!progress.bassSound;
     update(); save();
   });
-  const cinema = new GardenCinema(world, toast);
+  const cinema = new GardenCinema(world, toast, () => prepareGameResources(), getGardenTape);
   const bedNote = new BedNote(world);
   const fox = new RoomFox(world, () => progress.roomFox, save);
   const sceneWrap = world.canvas.parentElement!;
@@ -441,7 +440,7 @@ export function mountGame() {
     !activities.active && !arcade.active && !cinema.active && !bass.active && !bedNote.isOpen && !meadow.readerOpen && !meadow.bottleOpen &&
     cuePanels.every(panel => panel.hidden);
   world.onInteractionCue = spot => {
-    const cue = spot ? resolveCue(spot, world.scene) : null;
+    const cue = spot ? resolveCue(spot, world.scene, progress.gardenTape) : null;
     const verb = cue?.verb ?? (world.restState ? "起身" : "互动");
     if (touchAction.textContent !== verb) touchAction.textContent = verb;
     if (!spot || !cue) { prompt.update(null); return; }
@@ -457,7 +456,8 @@ export function mountGame() {
           (world.scene === "town" && (cue.kind === "game" || other.id.startsWith("arcade-") ||
             isTownInterior(spot.portal ?? "") || isTownInterior(other.portal ?? ""))));
       }).map(other => cueBox(other, resolveCue(other, world.scene).objectBox))
-      : undefined;
+      : [];
+    if (cue.walkway) nearbyTargets.push(cueBox(spot, cue.walkway));
     const inRange = world.inInteractionRange(spot);
     prompt.update({
       id: spot.id, action: cue.action, verb: cue.verb, kind: cue.kind,
@@ -485,6 +485,10 @@ export function mountGame() {
   const sceneTransition = document.querySelector<HTMLElement>(".scene-transition")!;
   const sceneDestination = sceneTransition.querySelector(".scene-transition-destination")!;
   const sceneStatus = sceneTransition.querySelector(".scene-transition-status")!;
+  const mapMeter = sceneTransition.querySelector("progress")!;
+  function mapProgress(loaded: number, total: number, fallback?: boolean) {
+    showResourceCount(mapMeter, loaded, total, fallback);
+  }
   function showSceneTransition(scene: SceneId) {
     const title = scenes[scene].title;
     sceneDestination.textContent = title;
@@ -494,7 +498,26 @@ export function mountGame() {
   function hideSceneTransition() {
     sceneTransition.classList.remove("active");
     sceneStatus.textContent = "";
+    mapMeter.removeAttribute("value");
+    mapMeter.removeAttribute("aria-valuetext");
+    mapMeter.nextElementSibling!.textContent = "";
   }
+  world.onReturnHome = arrive => {
+    transitioning = true;
+    world.paused = true;
+    world.clearInput();
+    showSceneTransition("room");
+    void world.prepareScene("room", mapProgress).then(arrive).catch(() => {
+      toast("小屋未能载入，留在原地，可以通过地图导航再试。");
+    }).finally(() => {
+      hideSceneTransition();
+      transitioning = false;
+      world.paused = false;
+      const next = afterCrossing;
+      afterCrossing = undefined;
+      next?.();
+    });
+  };
   function transition(scene: SceneId, entrance?: string) {
     if (world.busy || !started) return;
     if (!world.canEnter(scene)) { toast("还需要集齐七种彩虹花。"); return; }
@@ -524,7 +547,7 @@ export function mountGame() {
       sfx("portal");
       await new Promise<void>(done => setTimeout(done,180));
     };
-    void Promise.allSettled([fade(),world.prepareScene(scene)]).then((results) => {
+    void Promise.allSettled([fade(),world.prepareScene(scene, mapProgress)]).then((results) => {
       if (results.some(result => result.status === "rejected")) throw Error("Map crossing failed");
       const opposite = scenes[scene].spots.find(s => s.id === entrance);
       const arrival = opposite?.approach;
@@ -595,6 +618,7 @@ export function mountGame() {
     revealMapIfOffscreen();
   };
   world.onScene = (scene) => {
+    if (worldReady) cinema.prepare();
     nature.refreshClock();
     if (scene !== "garden") gardenLife.residents.leave();
     town.enterScene(scene);
@@ -617,6 +641,17 @@ export function mountGame() {
     setMusicScene(scene);
     bedNote.refresh(progress.bedNoteUnlocked);
   };
+  function recordVisit(id: string) {
+    if (!EVENT_IDS.includes(id) || progress.visited.includes(id)) return;
+    progress.visited.push(id);
+    save();
+    update();
+  }
+  function openScreening() {
+    activities.close();
+    cinema.open();
+    recordVisit("danmaku");
+  }
   world.onInteract = (id) => {
     const spot = world.config.spots.find((s) => s.id === id);
     if (!spot || !world.available(spot)) return;
@@ -666,21 +701,35 @@ export function mountGame() {
       return;
     }
     if (nature.interact(id)) return;
-    if (EVENT_IDS.includes(id) && !progress.visited.includes(id)) {
-      progress.visited.push(id);
-      save();
-      update();
+    if (id === "danmaku") {
+      sfx("interact");
+      if (progress.gardenTape === "inserted") openScreening();
+      else {
+        const leave = { title: "先去逛逛", run: () => activities.close() };
+        if (progress.gardenTape === "missing") {
+          activities.menu("放映机的带仓还空着。去问问花园里的小叶子，它知道周年录像带在哪儿。", [leave], spot, 2.4);
+        } else {
+          activities.menu("放映机的带仓开着。把从花海带回来的周年录像带放进去吧。", [
+            { title: "放入录像带", run: () => {
+              if (!canSaveReceipts() || progress.gardenTape === "missing" || world.scene !== "garden") return;
+              progress.gardenTape = "inserted";
+              save();
+              openScreening();
+            } },
+            leave,
+          ], spot, 2.4);
+        }
+      }
+      return;
     }
+    recordVisit(id);
     prompt.update(null);
     sfx("interact");
     if (id === "cake") activities.cake();
     else if (id === "gifts") activities.gifts();
     else if (id === "balloons") activities.balloons();
     else if (id === "fireworks") activities.fireworks();
-    else if (id === "danmaku") {
-      activities.close();
-      cinema.open();
-    } else if (id === "courage") {
+    else if (id === "courage") {
       complete("courage");
       activities.note(
         "走过小挫折，摘到了勇气之花 · 愿芙芙一路有光，向阳生长 ♡",
@@ -713,7 +762,6 @@ export function mountGame() {
     if (!worldReady || enter.disabled || started) return;
     started = true;
     playClock.start();
-    saveNow.disabled = false;
     saveLocation();
     document.querySelector(".intro-screen")!.classList.add("dismissed");
     world.paused = false;
@@ -731,39 +779,30 @@ export function mountGame() {
       }
     }
     world.canvas.focus({ preventScroll: true });
+    revealGame(world.canvas);
   }
   enter.addEventListener("click", begin);
-  world
-    .load()
-    .then(async () => {
-      const resume = journey;
-      if (resume) {
-        try {
-          await world.prepareScene(resume.scene);
-          if (journey === resume) world.switchScene(resume.scene, resume);
-        } catch {
-          if (journey === resume) {
-              world.switchScene("room");
-              toast("上次的地图暂未载入，先回小屋歇一会儿。");
-          }
-        }
-      }
-      // Switching a scene dismisses activities and normally resumes walking.
-      // A restored adventure must still wait for the player's Continue gesture.
+  const loadStart = () => {
+    enter.disabled = true;
+    void world.load(journey?.scene ?? "room", journey ?? undefined).then(() => {
       world.paused = !started;
       worldReady = true;
+      document.querySelector<HTMLProgressElement>(".entry-progress")!.hidden = true;
       enter.disabled = false;
       mailCard.disabled = false;
       albumCard.disabled = false;
       enter.innerHTML = `${journey ? "继续上次的冒险" : "开始小冒险"} ${icon("arrow")}`;
-      if (journey) document.querySelector(".intro-screen small")!.textContent =
-        `本机存档 · ${scenes[world.scene].title} · 点击继续`;
+      document.querySelector(".intro-screen small")!.textContent = journey ?
+        `本机存档 · ${scenes[world.scene].title} · 点击继续` : "点击开始会播放轻柔音乐 · 可随时关闭 ♡";
+      cinema.prepare();
     })
     .catch(() => {
       enter.disabled = false;
-      enter.textContent = "图片加载失败，点击刷新";
-      enter.addEventListener("click", () => location.reload(), { once: true });
+      enter.textContent = "地图画面未能载入，点击重试";
+      enter.addEventListener("click", loadStart, { once: true });
     });
+  };
+  loadStart();
   for (const [selector, key] of [
     [".sound-toggle", "muted"],
     [".effects-toggle", "sound"],
@@ -793,15 +832,12 @@ export function mountGame() {
       update();
       save();
     });
-  document.querySelector(".help-button")!.addEventListener("click", () => {
-    if (help.hidden) setHelp(true);
-    else returnFromHelp();
-  });
   document
     .querySelectorAll<HTMLButtonElement>(".scene-nav button[data-scene]")
     .forEach((button) =>
       button.addEventListener("click", () => {
         begin();
+        revealGame(world.canvas);
         const destination = button.dataset.scene as SceneId;
         const door = destination === "town" && isTownInterior(world.scene) ? townInteriors[world.scene].exterior.id : undefined;
         transition(destination, door);
@@ -830,17 +866,10 @@ export function mountGame() {
     world.canvas.focus({ preventScroll: true });
     revealMapIfOffscreen();
   };
-  const achievementBook = mountAchievementBook();
-  const flash = document.createElement("div");
-  flash.className = "achievement-flash";
-  flash.hidden = true;
-  flash.setAttribute("role", "status");
-  flash.setAttribute("aria-live", "polite");
-  sceneWrap.append(flash);
-  let flashTimer: ReturnType<typeof setTimeout> | undefined;
+  const notices = mountAchievementNotices();
   const achievementContext = () => ({
     townTalked: town.talkedIds,
-    owned: (["wreath", "petCat", "petBunny"] as const).filter(id => inventory.has(id)),
+    owned: inventory.collectedItems,
     wearingWreath: inventory.wearingWreath,
     pickedEggs: nature.pickedEggs,
     playSeconds: playClock.seconds,
@@ -848,18 +877,7 @@ export function mountGame() {
   refreshAchievements = (announce = true) => {
     const {entries, fresh} = reconcileAchievements(progress, achievementContext());
     achievementBook.update(entries, progress.achievements.earned.at(-1));
-    // The ruins already stamp their journal in the corner of the map.
-    const notices = fresh.filter(id => !id.startsWith("ruin-"));
-    const recent = announce && notices.length ? entries.find(entry => entry.id === notices.at(-1)) : undefined;
-    if (recent) {
-      clearTimeout(flashTimer);
-      flash.innerHTML = achievementStampMarkup(recent) + "<span><small></small><strong></strong></span>";
-      flash.querySelector("small")!.textContent = notices.length === 1 ? "周年徽章册 · 新徽章" : `周年徽章册 · ${notices.length} 枚新徽章`;
-      flash.querySelector("strong")!.textContent = recent.name;
-      flash.hidden = false;
-      paintAchievementArt(flash);
-      flashTimer = setTimeout(() => { flash.hidden = true; }, 2700);
-    }
+    if (announce && fresh.length) notices.show(entries.filter(entry => fresh.includes(entry.id)));
     return fresh.length > 0;
   };
   world.onAchievementEvent = event => {
@@ -892,11 +910,14 @@ export function mountGame() {
   });
   document
     .querySelector(".cinema-shortcut")!
-    .addEventListener("click", () => visit("garden", "danmaku"));
+    .addEventListener("click", () => {
+      visit("garden", "danmaku");
+      revealGame(world.canvas);
+    });
   for (const card of [mailCard, albumCard]) {
     card.addEventListener("click", () => {
       visit("room", card.dataset.memory!);
-      sceneWrap.scrollIntoView({ block: "nearest", behavior: "instant" });
+      revealGame(world.canvas);
     });
   }
   for (const region of document.querySelectorAll<HTMLElement>("[data-page-ui]")) {
@@ -929,24 +950,31 @@ export function mountGame() {
   document.querySelector(".reset-cancel")!.addEventListener("click", () => {
     document.querySelector<HTMLElement>(".reset-confirmation")!.hidden = true;
   });
-  function resetAdventure(freshStart = false) {
+  async function resetAdventure(freshStart = false) {
     if (!worldReady || world.busy || transitioning) {
       toast("正在回到安全的位置，请稍等一下再重新开始。");
       return false;
+    }
+    if (world.scene !== "room") {
+      transitioning = true;
+      world.paused = true;
+      world.clearInput();
+      showSceneTransition("room");
+      try { await world.prepareScene("room", mapProgress); }
+      catch { toast("小屋未能载入，原存档没有更改。"); return false; }
+      finally { hideSceneTransition(); transitioning = false; world.paused = !started; afterCrossing = undefined; }
     }
     closePanels();
     resetInProgress = true;
     if (freshStart) {
       started = false;
-      saveNow.disabled = true;
       document.querySelector(".intro-screen")!.classList.remove("dismissed");
     }
     journey = null;
     try { localStorage.removeItem(JOURNEY_KEY); } catch { /* optional storage */ }
     const { muted, sound, bgm, bassSound, volume } = progress;
     achievementBook.reset();
-    clearTimeout(flashTimer);
-    flash.hidden = true;
+    notices.clear();
     progress = { ...readProgress(null), generation: crypto.randomUUID?.() ?? String(Date.now()), muted, sound, bgm, bassSound, volume };
     elders.reset();
     xiaoye.reset();
@@ -955,7 +983,7 @@ export function mountGame() {
     nature.reset();
     inventory.reset();
     starQuest.reset();
-    flowerTrail.setPreviewOpen(false);
+    flowerTrail.reset();
     town.reset();
     arcade.close();
     reader.close();
@@ -975,7 +1003,7 @@ export function mountGame() {
     world.switchScene("room");
     resetInProgress = false;
     refreshAchievements?.(false);
-    if (started) saveLocation(true);
+    if (started) saveLocation();
     else {
       showJourney();
       enter.innerHTML = `开始小冒险 ${icon("arrow")}`;
@@ -990,7 +1018,6 @@ export function mountGame() {
   document.querySelector(".reset-confirm")!.addEventListener("click", () => resetAdventure());
   update();
   updateMailCount();
-  world.onScene("room");
   mountDebugPanel(world,inventory,nature,flowerTrail,async(scene,id,mode)=>{
     if(!worldReady || world.busy || transitioning || !world.canEnter(scene)) return false;
     begin();
@@ -1004,7 +1031,7 @@ export function mountGame() {
     const spot = scenes[scene].spots.find(s => s.id === id);
     let arrived = false;
     try {
-      await world.prepareScene(scene);
+      await world.prepareScene(scene, mapProgress);
       if(world.busy || !world.canEnter(scene)) return false;
       const arrival = mode === "trap" ? scenes.challenge.hazards[0] : spot?.approach;
       if (world.scene === "room" && scene !== "room") fox.departed(false);

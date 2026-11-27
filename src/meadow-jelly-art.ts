@@ -1,5 +1,6 @@
 import atlasUrl from "./assets/meadow-jelly-bells.webp?no-inline";
 import { jellyfish, type JellyVisitor } from "./meadow-jellies";
+import { requestSceneImage } from "./texture-cache";
 
 const turn = 2*Math.PI;
 const frameTimes = [0,.19,.32,.43,.54,.64,.75,.87];
@@ -10,10 +11,7 @@ let atlas: HTMLImageElement | undefined;
 
 /** Called on entry to the meadow. A failed optional image can retry on a later visit. */
 export function prepareJellyBells() {
-  if (atlas && (atlas.naturalWidth || !atlas.complete)) return;
-  atlas = new Image();
-  atlas.decoding = "async";
-  atlas.src = atlasUrl;
+  atlas = requestSceneImage(atlasUrl);
 }
 
 export function drawJelly(c: CanvasRenderingContext2D, index: number, a: JellyVisitor, seconds: number, still: boolean) {

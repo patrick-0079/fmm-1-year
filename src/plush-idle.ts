@@ -5,6 +5,30 @@ const eyes=[[.546,.345,.062,.052],[.820,.312,.052,.049]];
 const lidColor=[99,60,45];
 const clamp=(v:number)=>Math.max(0,Math.min(1,v));
 const smooth=(v:number)=>{const x=clamp(v);return x*x*(3-2*x);};
+
+/** Warp only the raised arm of the greeting sprite. The opposite paw still holds its lantern. */
+export function plushWaveFrame(image:HTMLImageElement, night:boolean, step:number) {
+  if (!step) return;
+  const key="wave/"+night+"/"+step;
+  const cached=frames.get(key);
+  if(cached)return cached;
+  const f=xiaoyeFrames[night?3:1], h=174, scale=h/f.h, w=Math.round(f.w*scale);
+  const canvas=document.createElement("canvas");canvas.width=w;canvas.height=h;
+  const c=canvas.getContext("2d",{willReadFrequently:true})!;
+  c.drawImage(image,f.x,f.y,f.w,f.h,0,0,w,h);
+  const src=c.getImageData(0,0,w,h),out=c.createImageData(w,h);
+  const jointX=(f.paw.x-f.x-25)*scale, jointY=(f.paw.y-f.y+f.paw.h*.86)*scale;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const dx=x-jointX,dy=y-jointY;
+    const weight=smooth((dx+4)/16)*(1-smooth((Math.abs(dy)-24)/15));
+    const angle=step*.09*weight, cos=Math.cos(angle),sin=Math.sin(angle);
+    const sx=Math.round(jointX+dx*cos-dy*sin), sy=Math.round(jointY+dx*sin+dy*cos);
+    if(sx<0 || sx>=w || sy<0 || sy>=h)continue;
+    const source=(sy*w+sx)*4, target=(y*w+x)*4;
+    for(let channel=0;channel<4;channel++)out.data[target+channel]=src.data[source+channel];
+  }
+  c.putImageData(out,0,0);frames.set(key,canvas);return canvas;
+}
 export function plushIdleMotion(time:number,night:boolean,quiet:boolean) {
   if(quiet)return {ear:0,blink:0,up:0,swing:0};
   const t=(time+(night?5.25:8.6))%(night?15.6:11.8);

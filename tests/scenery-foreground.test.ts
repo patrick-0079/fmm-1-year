@@ -7,7 +7,7 @@ import { roomBalloons } from "../src/room-foreground.ts";
 
 test("camp canvas and ruin ivy silhouettes retain their edges without repainting grass or paving",()=>{
   const cases=[
-    {name:"tent",outline:tentRoof,solid:[[269,144],[223,176],[190,268],[209,292]],clear:[[222,153],[236,150],[250,150],[240,287],[270,283]]},
+    {name:"tent",outline:tentRoof,solid:[[269,144],[223,176],[190,268],[279,167]],clear:[[222,153],[236,150],[250,150],[240,287],[270,283],[249,251],[209,292]]},
     {name:"ruin lintel",outline:stairLintel,solid:[[763,720],[723,728],[708,818],[856,829]],clear:[[773,710],[741,717],[750,800],[790,800],[775,786]]},
   ];
   for(const {name,outline,solid,clear}of cases){

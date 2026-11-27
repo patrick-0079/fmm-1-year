@@ -30,10 +30,15 @@ export function rainbowSpot(flower: typeof rainbowFlowers[number]): Hotspot {
   // The blossom is its own marker; keep the generous reach for touch and keyboard.
   return { ...flower, title: "采下" + flower.name, markerOffset: 8, radius: 37, selfMarked: true };
 }
+const circleCenter = { x: 353, y: 368 };
 export const meadowGate: Hotspot = {
-  id:"prism-arch", title:"穿过七色花门", portal:"meadow", portalExit:"meadow-exit",
-  x: 155, y: 346, approach: {x:155,y:366}, color:"#b28cc9", radius:48, markerOffset:72,
+  id:"prism-arch", title:"七色传送阵 · 去花海", portal:"meadow", portalExit:"meadow-exit",
+  ...circleCenter, approach: {x:circleCenter.x,y:circleCenter.y+20}, color:"#b28cc9", radius:38, markerOffset:0, selfMarked:true,
+  hitAreas: [
+    {x:circleCenter.x-28,y:circleCenter.y-8,w:56,h:16},
+    {x:circleCenter.x-21,y:circleCenter.y-12,w:42,h:24},
+    {x:circleCenter.x-12,y:circleCenter.y-15,w:24,h:30},
+  ],
+  cue: {kind:"exit", action:"前往花海", verb:"前往", natural:true,
+    anchor:{x:0,y:0}, objectBox:{x:-28,y:-14,w:56,h:28}},
 };
-export const meadowGatePosts = [-26,26].map(offset => ({
-  x:meadowGate.x+offset-4,y:meadowGate.y-7,w:8,h:8,label:"七色花门立柱",
-}));

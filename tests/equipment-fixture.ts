@@ -1,139 +1,140 @@
-import { drawAvatar } from "../src/avatar";
-import { ITEMS, type ItemId } from "../src/items";
-import type { AvatarPose, Facing } from "../src/equipment";
-import sprite from "../src/assets/nemu-sprites.webp";
-import rest from "../src/assets/fufu-rest-poses.webp";
-import wreath from "../src/assets/flower-wreath.webp";
-import rewards from "../src/assets/reward-icons.webp";
-import { drawItem, whenWardrobeReady } from "../src/item-art";
-import { prepareSceneArt } from "../src/scene-art";
-import shoes from "../src/assets/fufu-footwear-v38.webp";
-import garments from "../src/assets/fufu-garments-v15.webp";
-import type { Equipped } from "../src/items";
-const load = (src: string) =>
-  new Promise<HTMLImageElement>((resolve) => {
-    const i = new Image();
-    i.onload = () => resolve(i);
-    i.src = src;
-  });
-const [a, b, c, d] = await Promise.all(
-  [sprite, rest, wreath, rewards, shoes, garments].map(load),
-);
-const images = { sprite: a, rest: b, wreath: c, rewards: d };
-await Promise.all([prepareSceneArt("ruins"), new Promise<void>(whenWardrobeReady)]);
+import { avatarUrls, drawAvatar } from "../src/avatar";
+import { footwearIds, outfits, type AvatarPose, type Facing } from "../src/costume-frames";
+import { equipmentParts } from "../src/equipment";
+import { ITEMS, type Equipped, type ItemId } from "../src/items";
+import { drawItem, wardrobeUrl } from "../src/item-art";
+import iconFrames from "../src/wardrobe-icons.json";
+import { loadSceneImage, sceneImage } from "../src/texture-cache";
+import { backpacks } from "./bag-fitting-cases";
 
-const headRows = document.querySelector<HTMLTableSectionElement>("#headwear tbody")!;
-const headFrames: { pose: AvatarPose; facing: Facing; walkFrame: number; label: string }[] = [];
-for (const [facing, direction] of (["正面", "向左", "向右", "背面"] as const).entries())
-  for (let frame = 0; frame < 3; frame++)
-    headFrames.push({ pose: "standing", facing: facing as Facing, walkFrame: frame, label: `${direction} · ${["待机", "迈步一", "迈步二"][frame]}` });
-headFrames.push({ pose: "sitting", facing: 0, walkFrame: 0, label: "坐下" });
-headFrames.push({ pose: "lying", facing: 0, walkFrame: 0, label: "睡觉 · 无头饰" });
-for (const head of [null, "wreath", "candyClip", "headphones", "starWings"] as const) {
-  const row = headRows.insertRow();
-  row.dataset.head = head ?? "none";
-  const name = document.createElement("th");
-  name.scope = "row";
-  name.textContent = head ? ITEMS[head].name : "原角色 · 无头饰";
-  row.append(name);
-  for (const {pose, facing, walkFrame, label} of headFrames) {
-    const cell = row.insertCell();
-    if (pose === "standing" && facing === 3) cell.classList.add("rear-view");
-    const canvas = document.createElement("canvas");
-    canvas.width = 96; canvas.height = 132;
-    canvas.dataset.head = head ?? "none";
-    canvas.dataset.pose = pose;
-    canvas.dataset.facing = String(facing);
-    canvas.dataset.walkFrame = String(walkFrame);
-    canvas.setAttribute("aria-label", `${name.textContent} · ${label}`);
-    const ctx = canvas.getContext("2d")!;
-    ctx.imageSmoothingEnabled = false;
-    ctx.translate(48, pose === "lying" ? 80 : 125);
-    const zoom = pose === "lying" ? 1.15 : 2.5;
-    ctx.scale(zoom, zoom);
-    drawAvatar(ctx, pose, facing, walkFrame, {head}, images);
-    cell.append(canvas);
+await Promise.all(avatarUrls.map(loadSceneImage));
+const poses: {pose: AvatarPose; facing: Facing; step: number; name: string}[] = [];
+for (const [facing, direction] of ["正面","向左","向右","背面"].entries())
+  for (const [step, action] of ["待机","迈步一","迈步二"].entries())
+    poses.push({pose:"standing",facing:facing as Facing,step,name:direction+" · "+action});
+poses.push({pose:"sitting",facing:0,step:0,name:"花海坐地"}, {pose:"bench",facing:0,step:0,name:"长椅落座"},
+  {pose:"lying",facing:0,step:0,name:"床上侧卧"});
+
+function table(id: string) {
+  const element=document.createElement("table");
+  const head=element.createTHead().insertRow();
+  for (const word of ["穿搭",...poses.map(p=>p.name)]) {
+    const label=document.createElement("th"); label.scope="col"; label.textContent=word; head.append(label);
   }
-}
-document.querySelector<HTMLElement>("#headwear")!.dataset.ready = "true";
-
-const bagRows = document.querySelector<HTMLTableSectionElement>("#backpacks tbody")!;
-for (const backpack of ["moonBag", "berryBag", "rabbitSatchel"] as const) {
-  const row = bagRows.insertRow();
-  const name = document.createElement("th");
-  name.scope = "row";
-  name.textContent = ITEMS[backpack].name;
-  row.append(name);
-  for (const facing of [1, 2] as const) {
-    for (let frame = 0; frame < 3; frame++) {
-      const canvas = document.createElement("canvas");
-      canvas.width = 108;
-      canvas.height = 144;
-      const ctx = canvas.getContext("2d")!;
-      ctx.imageSmoothingEnabled = false;
-      ctx.translate(54, 136);
-      ctx.scale(3, 3);
-      drawAvatar(ctx, "standing", facing, frame, { backpack }, images);
+  const rows=element.createTBody();
+  document.getElementById(id)!.append(element);
+  return (name:string, worn: Equipped, icon?:ItemId) => {
+    const row=rows.insertRow(); const label=document.createElement("th");
+    if (worn.clothes) row.dataset.outfit = worn.clothes;
+    label.scope="row"; label.textContent=name; row.append(label);
+    if (icon) {
+      const c=document.createElement("canvas"); c.width=80; c.height=48;
+      drawItem(c.getContext("2d")!,icon,16,0,48,48); label.append(c);
+    }
+    for (const p of poses) {
+      const canvas=document.createElement("canvas");
+      canvas.width=p.pose==="lying" ? 145 : 88; canvas.height=104;
+      const ctx=canvas.getContext("2d")!;
+      ctx.translate(canvas.width/2,p.pose==="lying" ? 61 : 98);
+      ctx.scale(2,2);
+      drawAvatar(ctx,p.pose,p.facing,p.step,worn);
+      if (worn.pet && p.pose!=="lying") drawItem(ctx,worn.pet,8,-12,13,12);
+      canvas.dataset.pose=p.pose;
+      canvas.setAttribute("aria-label",name+" · "+p.name);
       row.insertCell().append(canvas);
     }
-  }
+    return row;
+  };
 }
-const cloth = document.querySelector<HTMLCanvasElement>("#garments")!.getContext("2d")!;
-cloth.fillStyle="#e4e7d5"; cloth.fillRect(0,0,1176,440); cloth.imageSmoothingEnabled=false;
-const outfits: Equipped[] = [{},{clothes:"roseDress"},{clothes:"mintCape"},{clothes:"mintCape",backpack:"rabbitSatchel",head:"headphones",shoes:"starShoes"}];
-outfits.forEach((outfit,row) => {
-  for(let frame=0;frame<14;frame++) {
-    const sleeping=frame===13, zoom=sleeping ? 1.12 : 2.25;
-    cloth.save(); cloth.translate(frame*84+42,row*110+(sleeping?77:103)); cloth.scale(zoom,zoom);
-    drawAvatar(cloth,sleeping?"lying":frame===12?"sitting":"standing",(Math.floor(frame/3)%4) as Facing,frame%3,outfit,images);
-    cloth.restore();
-  }
-});
-const steps = document.querySelector<HTMLCanvasElement>("#footsteps")!.getContext("2d")!;
-steps.fillStyle = "#e8e6d2"; steps.fillRect(0,0,1092,350);
-steps.imageSmoothingEnabled = false;
-for (const [row, pair] of ([null,"ribbonShoes","starShoes"] as const).entries()) {
-  for (let frame = 0; frame < 13; frame++) {
-    const x = frame * 84 + 42, y = row * 115 + 104;
-    steps.save(); steps.translate(x,y); steps.scale(2.25,2.25);
-    drawAvatar(steps, frame === 12 ? "sitting" : "standing", (Math.floor(frame / 3) % 4) as Facing, frame % 3, { shoes: pair }, images);
-    steps.restore();
-  }
+const bodyRow=table("outfits"), headRow=table("headwear"), bagRow=table("backpacks");
+const shoeRow=table("footsteps"), mixRow=table("catalog");
+for (const clothes of outfits)
+  bodyRow(clothes ? ITEMS[clothes].name : "原版淡紫睡衣",{clothes},clothes ?? undefined);
+for (const backpack of backpacks) {
+  const section = document.createElement("section");
+  section.id = "fit-" + backpack;
+  const title = document.createElement("h3");
+  title.textContent = ITEMS[backpack].name;
+  section.append(title);
+  document.getElementById("bag-fits")!.append(section);
+  const addFit = table(section.id);
+  for (const clothes of outfits)
+    addFit(clothes ? ITEMS[clothes].name : "原版淡紫睡衣", {clothes, backpack});
 }
-const poses: [string, AvatarPose, Facing][] = [
-  ["正面", "standing", 0],
-  ["向左", "standing", 1],
-  ["向右", "standing", 2],
-  ["背面", "standing", 3],
-  ["坐下", "sitting", 0],
-  ["睡觉 · 无饰品", "lying", 0],
-];
-const catalog = document.querySelector<HTMLCanvasElement>("#catalog")!.getContext("2d")!;
-const catalogRows=Math.ceil(Object.keys(ITEMS).length/2);
-catalog.canvas.height=catalogRows*90;
-catalog.fillStyle="#e6e9d9"; catalog.fillRect(0,0,catalog.canvas.width,catalog.canvas.height); catalog.imageSmoothingEnabled=false;
-for (const [id, item] of Object.entries(ITEMS))
-  for (const [label, pose, facing] of poses) {
-    const card = document.createElement("article"),
-      canvas = document.createElement("canvas");
-    canvas.width = 180;
-    canvas.height = 175;
-    canvas.setAttribute("aria-label", item.name + " · " + label);
-    const name = document.createElement("small");
-    name.textContent = item.name + " · " + label;
-    card.append(name, canvas);
-    document.querySelector("main")!.append(card);
-    const ctx = canvas.getContext("2d")!;
-    ctx.imageSmoothingEnabled = false;
-    ctx.translate(90, pose === "lying" ? 105 : 145);
-    ctx.scale(pose === "lying" ? 2 : 2.5, pose === "lying" ? 2 : 2.5);
-    drawAvatar(ctx, pose, facing, 0, { [item.slot]: id as ItemId }, images);
-    if (item.slot === "pet" && pose !== "lying")
-      drawItem(ctx, id as ItemId, 16, -18, 20, 19);
-    const index=Object.keys(ITEMS).indexOf(id), column=poses.findIndex(p=>p[0]===label);
-    const x=Math.floor(index/catalogRows)*576, y=(index%catalogRows)*90;
-    if (!column) {
-      catalog.fillStyle="#685663"; catalog.font="12px sans-serif"; catalog.fillText(item.name,x+6,y+13);
+headRow("摘下头饰和发夹",{});
+shoeRow("原鞋",{});
+for (const id of Object.keys(ITEMS) as ItemId[]) {
+  const item=ITEMS[id], worn={[item.slot]:id};
+  if (item.slot==="head" || item.slot==="hair" || item.slot==="wreath") headRow(item.name,worn,id);
+  if (item.slot==="head") headRow("花环 × "+item.name,{head:id,wreath:"wreath",hair:"heartClip"});
+  if (item.slot==="backpack" || item.slot==="body") bagRow(item.name,worn,id);
+  if (item.slot==="shoes") shoeRow(item.name,worn,id);
+  if (item.slot==="pet") mixRow(item.name,worn,id);
+}
+for (const [i,clothes] of outfits.entries()) {
+  mixRow(clothes ? ITEMS[clothes].name : "原版淡紫睡衣", {
+    clothes, hair:(["heartClip","fishClip","starClip"] as const)[i%3], head:clothes === "witchDress" ? "witchHat" : "headphones", wreath:i%2 ? "wreath" : null,
+    backpack:(["moonBag","rabbitSatchel","berryBag"] as const)[i%3], shoes:i%2 ? "ribbonShoes" : "starShoes",
+    body:i%2 ? "echoBrooch" : "anniversaryPin",
+  });
+}
+mixRow("月灯女巫套装",{clothes:"witchDress",head:"witchHat",hair:"heartClip"}).id = "witch-set";
+document.body.dataset.ready="true";
+
+export function verifyWornViews() {
+  const atlas = sceneImage(wardrobeUrl);
+  const canvas=document.createElement("canvas");
+  canvas.width=116; canvas.height=108;
+  const c=canvas.getContext("2d",{willReadFrequently:true})!;
+  const paint=(pose:AvatarPose, facing:Facing, step:number, worn:Equipped) => {
+    c.clearRect(0,0,canvas.width,canvas.height);
+    c.save(); c.translate(58,pose==="lying" ? 60 : 101); c.scale(2,2);
+    drawAvatar(c,pose,facing,step,worn); c.restore();
+    return new Uint32Array(c.getImageData(0,0,canvas.width,canvas.height).data.buffer);
+  };
+  const pinsAndClips = (Object.keys(ITEMS) as ItemId[]).filter(id=>["hair","body"].includes(ITEMS[id].slot));
+  const headwear = (Object.keys(ITEMS) as ItemId[]).filter(id=>ITEMS[id].slot === "head");
+  const wreathViews = ["wreathFront","wreathLeft","wreathRight","wreathRear"] as const;
+  for (const clothes of outfits) for (const {pose,facing,step,name} of poses) {
+    const bare=paint(pose,facing,step,{clothes});
+    const differs=(worn:Equipped)=>{
+      const next=paint(pose,facing,step,{clothes,...worn});
+      return next.some((pixel,i)=>pixel!==bare[i]);
+    };
+    const check=(ok:boolean,id:ItemId)=>{if (!ok) throw Error(`${clothes ?? "原装"} · ${name} · ${ITEMS[id].name} 显隐错误`);};
+    for (const id of pinsAndClips) {
+      const slot=ITEMS[id].slot;
+      const visible=pose==="lying" ? slot==="hair" : facing===0 || facing===1;
+      check(differs({[slot]:id})===visible,id);
     }
-    catalog.drawImage(canvas,x+column*93+7,y+13,79,77);
+    check(differs({head:"witchHat"})===(pose!=="lying"),"witchHat");
+    const shoeViews = new Set<string>();
+    for (const shoes of footwearIds) {
+      check(differs({shoes}) === (pose !== "lying"), shoes);
+      if (pose !== "lying") shoeViews.add(canvas.toDataURL());
+    }
+    if (pose !== "lying" && shoeViews.size !== footwearIds.length) throw Error(name+" · 两双鞋用了同一帧");
+    for (const head of headwear) {
+      const layers: Equipped = {clothes,head,hair:"heartClip",wreath:"wreath"};
+      const actual = paint(pose,facing,step,layers);
+      const under = paint(pose,facing,step,{...layers,wreath:null});
+      if (pose === "lying") { check(actual.every((p,i)=>p===under[i]),"wreath"); continue; }
+      const crown = equipmentParts(layers,pose,facing,step).find(part=>part.id==="wreath")!;
+      const [sx,sy,sw,sh] = iconFrames[wreathViews[facing]];
+      const scale = Math.min(crown.w/sw,crown.h/sh), w = sw*scale, h = sh*scale;
+      c.save(); c.translate(58,101); c.scale(2,2);
+      c.imageSmoothingQuality = "high";
+      // Recompose from the native aspect ratio independently of the item renderer.
+      c.drawImage(atlas,sx,sy,sw,sh,crown.x+(crown.w-w)/2,crown.y+(crown.h-h)/2,w,h);
+      c.restore();
+      const expected = new Uint32Array(c.getImageData(0,0,canvas.width,canvas.height).data.buffer);
+      check(actual.some((p,i)=>p!==under[i]) && actual.every((p,i)=>p===expected[i]),"wreath");
+    }
+    if (pose==="standing" && facing>=2) {
+      const hat=paint(pose,facing,step,{clothes,head:"witchHat"});
+      const clipped=paint(pose,facing,step,{clothes,head:"witchHat",hair:"heartClip"});
+      check(hat.every((pixel,i)=>pixel===clipped[i]),"heartClip");
+    }
   }
+  return outfits.length * poses.length;
+}

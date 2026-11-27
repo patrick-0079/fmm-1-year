@@ -1,61 +1,35 @@
-import { spriteFrames } from "./sprite-frames";
-import { drawItem, drawWornBag } from "./item-art";
-import garmentUrl from "./assets/fufu-garments-v15.webp";
-import {
-  equipmentParts,
-  fitItem,
-  type AvatarPose,
-  type Facing,
-  type EquipmentPart,
-} from "./equipment";
-import type { Equipped } from "./items";
-import footwearUrl from "./assets/fufu-footwear-v38.webp";
-const footwear = new Image();
-footwear.src = footwearUrl;
-const garments = new Image();
-garments.src = garmentUrl;
+import { drawItem, wardrobeUrl, type WardrobeArt } from "./item-art";
+import garmentUrl from "./assets/fufu-garments.webp";
+import footwearUrl from "./assets/fufu-footwear.webp";
+import jewelryUrl from "./assets/worn-jewelry.webp";
+import { equipmentParts, type AvatarPose, type Facing, type EquipmentPart } from "./equipment";
+import { artScale, cellWidth, cellHeight, footStripHeight, footwearIds, costumeFrame, outfitIndex, poseFrame } from "./costume-frames";
+import type { Equipped, ItemId } from "./items";
+import { sceneImage } from "./texture-cache";
+import { drawWornBags } from "./worn-bags";
+
+export const avatarUrls = [garmentUrl, footwearUrl, wardrobeUrl, jewelryUrl];
+const footwear = sceneImage(footwearUrl), garments = sceneImage(garmentUrl);
+const jewelry = sceneImage(jewelryUrl);
+const jewelryCells: Partial<Record<ItemId, number>> = {
+  anniversaryPin: 0, echoBrooch: 1, leafPin: 2, tulipPin: 3, shellPin: 4,
+  candyClip: 5, fishClip: 6, starClip: 7, starWings: 8, heartClip: 9,
+};
+const headwearViews: Partial<Record<ItemId, readonly [WardrobeArt, WardrobeArt, WardrobeArt, WardrobeArt]>> = {
+  wreath: ["wreathFront", "wreathLeft", "wreathRight", "wreathRear"],
+  witchHat: ["hatFront", "hatLeft", "hatRight", "hatRear"],
+  blueBeret: ["blueBeret", "beretSide", "beretSide", "beretRear"],
+  ginghamBand: ["ginghamBand", "ginghamSide", "ginghamSide", "ginghamRear"],
+  strawHat: ["strawHat", "strawSide", "strawSide", "strawRear"],
+};
 export function whenAvatarLayersReady(refresh: () => void) {
-  for (const sheet of [footwear, garments]) {
-    if (!sheet.complete) sheet.addEventListener("load", refresh, { once: true });
+  for (const sheet of [footwear, garments, jewelry]) {
+    if (!sheet.naturalWidth) sheet.addEventListener("load", refresh, {once:true});
   }
 }
-export interface AvatarImages {
-  sprite: HTMLImageElement;
-  rest: HTMLImageElement;
-  wreath: HTMLImageElement;
-  rewards: HTMLImageElement;
-}
-
-function paintPart(
-  c: CanvasRenderingContext2D,
-  p: EquipmentPart,
-  facing: Facing,
-  images: AvatarImages,
-  frame: number,
-) {
+function paintPart(c: CanvasRenderingContext2D, p: EquipmentPart, facing: Facing) {
   c.save();
-  if (p.style === "footwear") {
-    if (footwear.complete && footwear.naturalWidth)
-      c.drawImage(footwear, frame * 128, p.id === "starShoes" ? 40 : 0, 128, 40, p.x, p.y, p.w, p.h);
-  } else if (p.style === "garment" || p.style === "straps") {
-    const row = p.style === "straps" ? 2 : p.id === "roseDress" ? 0 : 1;
-    if (garments.complete && garments.naturalWidth)
-      c.drawImage(garments, frame * 128, row * 176, 128, 176, p.x, p.y, p.w, p.h);
-  } else if (p.style === "bag") {
-    drawWornBag(c, p, facing === 1 || facing === 2, images.rewards);
-  } else if (p.style === "wreathFar" || p.style === "wreathNear") {
-    // Both halves use one fitted source rectangle, so the crown keeps its
-    // proportions and there is no seam/overlap when composited around hair.
-    const b = fitItem(239, 76, p.x, p.y, p.w, p.h), split = b.y + b.h * .46;
-    c.beginPath();
-    if (p.style === "wreathFar") c.rect(b.x, b.y, b.w, split - b.y);
-    else c.rect(b.x, split, b.w, b.y + b.h - split);
-    c.clip();
-    if (p.mirror) {
-      c.translate(p.x + p.w, p.y); c.scale(-1, 1);
-      drawItem(c, p.id, 0, 0, p.w, p.h, images.wreath, images.rewards);
-    } else drawItem(c, p.id, p.x, p.y, p.w, p.h, images.wreath, images.rewards);
-  } else if (p.style === "rearBand" || p.style === "rearEarpieces") {
+  if (p.style === "rearBand" || p.style === "rearEarpieces") {
     c.translate(0, p.y);
     if (p.style === "rearBand") {
       c.beginPath(); c.moveTo(-10.8, 11.3);
@@ -73,90 +47,113 @@ function paintPart(
       c.strokeStyle = "#eed5dc"; c.lineWidth = .55;
       c.beginPath(); c.moveTo(x + side * .65, 10.6); c.lineTo(x + side * .65, 13.2); c.stroke();
     }
+  } else if (p.style === "profileBand" || p.style === "profileCup") {
+    c.translate(p.mirror ? p.x + p.w : p.x, p.y);
+    if (p.mirror) c.scale(-1, 1);
+    c.lineJoin = "round";
+    if (p.style === "profileBand") {
+      // In profile the far side disappears at the crown. Only the strap
+      // leading from behind the cowlick down to the near hinge is visible.
+      c.beginPath();
+      c.moveTo(.25, .65);
+      c.quadraticCurveTo(.9, .16, 1.9, .25);
+      c.bezierCurveTo(4, 2.15, 4.9, 6.25, 4.95, 9.3);
+      c.lineTo(3.05, 9.45);
+      c.bezierCurveTo(3.04, 6.15, 2.25, 2.7, .25, .65);
+      c.closePath();
+      c.fillStyle = "#c5a1c4"; c.fill();
+      c.lineWidth = .48; c.strokeStyle = "#78586e"; c.stroke();
+    } else {
+      // The pale cushion is just visible ahead of the broad outer housing.
+      c.beginPath(); c.ellipse(4.15, 3.9, 3.94, 3.64, -.12, 0, 2*Math.PI);
+      c.fillStyle = "#f6ddbc"; c.fill();
+      c.lineWidth = .55; c.strokeStyle = "#77576c"; c.stroke();
+      c.beginPath(); c.ellipse(4.65, 3.75, 3.23, 3.27, -.12, 0, 2*Math.PI);
+      c.fillStyle = "#bea0c6"; c.fill();
+      c.lineWidth = .42; c.strokeStyle = "#805e78"; c.stroke();
+      c.beginPath();
+      c.moveTo(4.68, 1.63); c.quadraticCurveTo(5.13, 3.19, 6.72, 3.73);
+      c.quadraticCurveTo(5.17, 4.19, 4.68, 5.83);
+      c.quadraticCurveTo(4.22, 4.22, 2.68, 3.73);
+      c.quadraticCurveTo(4.20, 3.20, 4.68, 1.63); c.closePath();
+      c.fillStyle = "#ffe5a9"; c.fill();
+      c.lineWidth = .28; c.strokeStyle = "#997384"; c.stroke();
+    }
   } else if (p.style === "band" || p.style === "earpieces") {
     c.translate(0,p.y);
-    const profile = facing === 1 || facing === 2;
-    if (facing === 2) c.scale(-1,1);
     if (p.style === "band") {
       c.beginPath();
-      if (profile) {
-        c.moveTo(7.4, 8.3); c.bezierCurveTo(7, -1.8, -3.4, -2, -1.5, 12);
-      } else {
-        c.moveTo(-10.6, 12.2); c.bezierCurveTo(-11,-1.6,10,-1.6,10.6,12.2);
-      }
+      c.moveTo(-10.6, 12.2); c.bezierCurveTo(-11,-1.6,10,-1.6,10.6,12.2);
       c.lineCap = "round";
       c.lineWidth = 2.3; c.strokeStyle = "#775971"; c.stroke();
       c.lineWidth = 1.25; c.strokeStyle = "#dcb7d4"; c.stroke();
-    } else for (const x of profile ? [-1.5] : [-10.5,10.5]) {
-      const y=12.5, width=profile ? 3.15 : 2.05;
+    } else for (const x of [-10.5,10.5]) {
+      const y=12.5, width=2.05;
       c.fillStyle="#78586e"; c.beginPath(); c.ellipse(x,y,width,4.2,0,0,Math.PI*2); c.fill();
       c.fillStyle="#c4a8d0"; c.beginPath(); c.ellipse(x,y-.15,width-.55,3.5,0,0,Math.PI*2); c.fill();
-      c.fillStyle="#fff0cc"; c.beginPath(); c.ellipse(x+.1,y,width-.95,2.65,0,0,Math.PI*2); c.fill();
-      c.fillStyle="#d28ca7"; c.fillRect(x-.9,y-.4,1.8,1.1); c.fillRect(x-.45,y+.65,.9,.65);
+      c.fillStyle="#fff0cc";
+      c.beginPath(); c.moveTo(x,y-2); c.lineTo(x+.5,y-.5); c.lineTo(x+1.6,y);
+      c.lineTo(x+.5,y+.5); c.lineTo(x,y+2); c.lineTo(x-.5,y+.5);
+      c.lineTo(x-1.6,y); c.lineTo(x-.5,y-.5); c.closePath(); c.fill();
     }
   } else {
-    if (p.mirror) {
-      c.translate(p.x + p.w, p.y);
-      c.scale(-1, 1);
-      drawItem(c, p.id, 0, 0, p.w, p.h, images.wreath, images.rewards);
-    } else drawItem(c, p.id, p.x, p.y, p.w, p.h, images.wreath, images.rewards);
+    c.translate(p.mirror ? p.x+p.w : p.x, p.y);
+    if (p.mirror) c.scale(-1,1);
+    if (p.style === "pinEdge") {
+      // Seen edge-on, only the setting catches the light on her left lapel.
+      c.rotate(.25);
+      c.fillStyle = "#805a53";
+      c.beginPath(); c.roundRect(0, 0, p.w, p.h, p.w/2); c.fill();
+      c.fillStyle = p.id === "echoBrooch" ? "#d99979" : "#edbb71";
+      c.fillRect(.35, .35, .65, p.h - 1.0);
+    } else {
+      const cell = jewelryCells[p.id];
+      if (cell !== undefined && jewelry.naturalWidth) {
+        c.drawImage(jewelry, cell % 5 * 40, Math.floor(cell / 5) * 40, 40, 40, 0, 0, p.w, p.h);
+      } else {
+        drawItem(c,headwearViews[p.id]?.[facing] ?? p.id,0,0,p.w,p.h);
+      }
+    }
   }
   c.restore();
 }
 
-export function drawAvatar(
-  c: CanvasRenderingContext2D,
-  pose: AvatarPose,
-  facing: Facing,
-  walkFrame: number,
-  equipped: Equipped,
-  images: AvatarImages,
-) {
-  if (pose === "sitting") facing = 0;
-  const parts = equipmentParts(equipped, pose, facing, walkFrame);
-  const frame = pose === "standing" ? facing * 3 + walkFrame : 12;
-  for (const p of parts.filter((p) => p.layer === "behind"))
-    paintPart(c, p, facing, images, frame);
-  if (pose === "standing") {
-    const f = spriteFrames[frame],
-      scale = 43 / 330;
-    c.drawImage(
-      images.sprite,
-      f.x,
-      f.y,
-      f.w,
-      f.h,
-      (-f.w * scale) / 2,
-      -f.h * scale,
-      f.w * scale,
-      f.h * scale,
-    );
-  } else {
-    const sleeping = pose === "lying";
-    const f = sleeping
-      ? { x: 754, y: 275, w: 966, h: 520 }
-      : { x: 87, y: 88, w: 593, h: 733 };
-    const width = sleeping ? 70 : 30,
-      height = (width / f.w) * f.h;
-    c.drawImage(
-      images.rest,
-      f.x,
-      f.y,
-      f.w,
-      f.h,
-      -width / 2,
-      sleeping ? -height / 2 : -height,
-      width,
-      height,
-    );
-    if (sleeping) {
-      c.fillStyle = "#a999c9";
-      c.font = '8px "Microsoft YaHei", "PingFang SC", sans-serif';
-      c.fillText("z", 24, -23);
-      c.font = '6px "Microsoft YaHei", "PingFang SC", sans-serif';
-      c.fillText("z", 31, -30);
-    }
+export function drawAvatar(c: CanvasRenderingContext2D, pose: AvatarPose, facing: Facing,
+  step: number, equipped: Equipped) {
+  if (!garments.naturalWidth) return;
+  c.save();
+  c.imageSmoothingEnabled = true;
+  c.imageSmoothingQuality = "high";
+  if (pose !== "standing") facing = 0;
+  const frame = poseFrame(pose, facing, step), outfit = outfitIndex(equipped.clothes);
+  const f = costumeFrame(outfit,frame), w=f.w/artScale, h=f.h/artScale;
+  const x=-w/2, y=pose === "lying" ? -h/2 : -h;
+  const parts=equipmentParts(equipped,pose,facing,step);
+  const shoeIndex = pose !== "lying" && footwear.naturalWidth ? footwearIds.findIndex(id => id === equipped.shoes) : -1;
+  const bodyHeight = shoeIndex >= 0 ? cellHeight-footStripHeight : cellHeight;
+  const hat = parts.find(p => p.style === "hat");
+  if (hat) {
+    // Only the central cowlick tucks into a cap. Keep the silhouette of the
+    // fringe visible below a tilted beret or the raised edge of a brim.
+    c.save();
+    c.beginPath();
+    c.rect(x, y, w, h);
+    c.rect(hat.x+hat.w/2-5.5, y, 11, hat.y+hat.h*.69-y);
+    c.clip("evenodd");
   }
-  for (const p of parts.filter((p) => p.layer === "front"))
-    paintPart(c, p, facing, images, frame);
+  c.drawImage(garments,f.x,f.y,f.w,bodyHeight,x,y,w,bodyHeight/artScale);
+  if (hat) c.restore();
+  if (shoeIndex >= 0) {
+    const row=outfit*footwearIds.length+shoeIndex;
+    c.drawImage(footwear,frame*cellWidth,row*footStripHeight,cellWidth,footStripHeight,
+      x,-footStripHeight/artScale,w,footStripHeight/artScale);
+  }
+  if (parts.some(part => part.layer === "underArm")) drawWornBags(c, parts, equipped.clothes, pose, facing, step);
+  for (const part of parts) if (part.layer === "front") paintPart(c,part,facing);
+  if (pose === "lying") {
+    c.fillStyle = "#a999c9";
+    c.font = '8px "Microsoft YaHei", sans-serif'; c.fillText("z",24,-23);
+    c.font = '6px "Microsoft YaHei", sans-serif'; c.fillText("z",31,-30);
+  }
+  c.restore();
 }
