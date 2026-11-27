@@ -1,6 +1,6 @@
 import test, { type TestContext } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, readdir, rm, unlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, rmdir, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
@@ -22,10 +22,12 @@ async function catalog(root: string) {
 
 test("scanning new filenames builds proportional previews, escaping the CDN key and respecting edits on rescan", async t => {
   const root = await newAlbum(t);
+  const originals = join(root, "artifacts", "r2", "相册");
+  await mkdir(originals, { recursive: true });
   const filename = "芙芙 #1%.PNG";
   const original = await sharp({ create: { width: 960, height: 600, channels: 4, background: "#ba8399" } }).png().toBuffer();
-  await writeFile(join(root, filename), original);
-  await scanAlbum(root);
+  await writeFile(join(originals, filename), original);
+  await scanAlbum(root, originals);
 
   const config = await catalog(root);
   assert.equal(config.photos.length, 1);
@@ -40,16 +42,20 @@ test("scanning new filenames builds proportional previews, escaping the CDN key 
     const meta = await sharp(await readFile(join(previews, `${photo.id}.${photo.version}${suffix}.webp`))).metadata();
     assert.deepEqual([meta.format, meta.width, meta.height], ["webp", width, height]);
   }
-  assert.deepEqual(await readFile(join(root, filename)), original);
+  assert.deepEqual(await readFile(join(originals, filename)), original);
 
   Object.assign(photo, { title: "一起回家", alt: "小屋门口", text: "晚安", originalUrl: "https://photos.example.test/edition-2.png" });
   await writeFile(join(root, "album.json"), JSON.stringify(config));
-  // A collaborator can have just the checked-in previews plus a newly supplied original.
-  await unlink(join(root, filename));
+  // A clean checkout has only the catalog and previews.
+  await unlink(join(originals, filename));
+  await rmdir(originals);
+  await scanAlbum(root, originals);
+  assert.deepEqual((await catalog(root)).photos, [photo]);
+  await mkdir(originals);
   const portrait = "CharaStudio-2026-12-01-22-00-00-Render.jpg";
   await sharp({ create: { width: 720, height: 480, channels: 3, background: "#c49679" } })
-    .withMetadata({ orientation: 6 }).jpeg().toFile(join(root, portrait));
-  await scanAlbum(root);
+    .withMetadata({ orientation: 6 }).jpeg().toFile(join(originals, portrait));
+  await scanAlbum(root, originals);
 
   const updated = await catalog(root);
   assert.deepEqual(updated.photos.map((p: {file: string}) => p.file), [filename, portrait]);
@@ -60,7 +66,7 @@ test("scanning new filenames builds proportional previews, escaping the CDN key 
   const newer = await sharp(await readFile(join(previews, `${second.id}.${second.version}.webp`))).metadata();
   assert.ok(newer.height! > newer.width!);
   const saved = await readFile(join(root, "album.json"));
-  await scanAlbum(root);
+  await scanAlbum(root, originals);
   assert.deepEqual(await readFile(join(root, "album.json")), saved);
   assert.equal((await readdir(previews)).length, 4);
 });
@@ -76,6 +82,7 @@ test("a broken new image cannot publish a partial photo catalog; correcting it a
   const before = await readFile(join(root, "album.json"));
   await writeFile(filename, "not a webp");
   await assert.rejects(scanAlbum(root));
+  assert.ok(!(await readdir(root)).some(name => name.startsWith(".album-scan-")));
   assert.deepEqual(await readFile(join(root, "album.json")), before);
   assert.equal(await readFile(filename, "utf8"), "not a webp");
   const priorImage = await sharp(await readFile(join(root, "previews", `${original.id}.${original.version}.webp`))).metadata();

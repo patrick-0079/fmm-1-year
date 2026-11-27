@@ -8,12 +8,12 @@
 
 | 内容 | 原画 | 相册 ID |
 | --- | --- | --- |
-| 草莓吐司的早晨 | [morning.png](../../ref/相册/morning.png) | `fufu-morning` |
-| 雨声翻过一页书 | [reading.png](../../ref/相册/reading.png) | `fufu-reading` |
-| 把黄昏弹给你 | [bass.png](../../ref/相册/bass.png) | `fufu-bass` |
-| 小狐狸也说晚安 | [fox.png](../../ref/相册/fox.png) | `fufu-fox` |
+| 草莓吐司的早晨 | [morning.png](https://cdn.xn--nemu-k77ja176r.space/1-year/picture/morning.png) | `fufu-morning` |
+| 雨声翻过一页书 | [reading.png](https://cdn.xn--nemu-k77ja176r.space/1-year/picture/reading.png) | `fufu-reading` |
+| 把黄昏弹给你 | [bass.png](https://cdn.xn--nemu-k77ja176r.space/1-year/picture/bass.png) | `fufu-bass` |
+| 小狐狸也说晚安 | [fox.png](https://cdn.xn--nemu-k77ja176r.space/1-year/picture/fox.png) | `fufu-fox` |
 
-四张日常插画与后来的拍摄照片一起放在 [ref/相册](../../ref/相册)。标题、配文、替代文字、尺寸和原图地址都在 [album.json](../../ref/相册/album.json)。原图上传对象存储。运行 `npm run scan:album` 生成书页图与缩略图，也可用 `npm run scan` 同时更新来信与花海落星。WebP 位于同目录的 `previews/`，文件名分别为 `<id>.<version>.webp` 和 `<id>.<version>-thumb.webp`，长边最多 640px 和 240px。相册翻页使用预览，玩家点开单张时才请求原图。
+四张日常插画与后来的拍摄照片都上传到对象存储，本地原图放在 `artifacts/r2/相册/`。标题、配文、替代文字、尺寸和原图地址都在 [album.json](../../ref/相册/album.json)。运行 `npm run scan:album` 生成书页图与缩略图，也可用 `npm run scan` 同时更新来信与花海落星。WebP 位于清单旁的 [previews/](../../ref/相册/previews)，文件名分别为 `<id>.<version>.webp` 和 `<id>.<version>-thumb.webp`，长边最多 640px 和 240px。相册翻页使用预览，玩家点开单张时才请求原图。
 
 拆礼物改为单个礼盒：解开两端缎带、掀开盒盖、确认收礼。复用既有礼盒/缎带鞋素材，配合分层盒盖、纸衬、柔和光点。角色与礼物在原地图中显示，保留 3:2 画幅；关闭会清除本次手势，已完成的 `gifts` 记录及奖励沿用旧档。
 

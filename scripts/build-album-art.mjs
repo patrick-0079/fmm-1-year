@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
 import { access, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
-import { basename, extname, join, resolve } from "node:path";
+import { basename, extname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import sharp from "sharp";
 
-const defaultDirectory = fileURLToPath(new URL("../ref/相册/", import.meta.url));
+const defaultDirectory = fileURLToPath(new URL("../ref/相册", import.meta.url));
+const artifacts = fileURLToPath(new URL("../artifacts", import.meta.url));
 const formats = /\.(png|jpe?g|webp)$/i;
 const naturalOrder = new Intl.Collator("zh-CN", { numeric: true });
 const fingerprint = bytes => createHash("sha256").update(bytes).digest("hex").slice(0, 12);
@@ -35,8 +36,11 @@ async function previewsExist(dir, photo) {
 
 /** Refresh the editable catalog in place; a checkout can contain previews of
  * archived originals as well as the local originals currently being edited. */
-export async function scanAlbum(directory = defaultDirectory) {
+export async function scanAlbum(directory = defaultDirectory, originalsDirectory) {
   const root = resolve(directory);
+  const projectAlbum = relative(defaultDirectory, root) === "";
+  // Custom, standalone albums can still keep originals beside their catalog.
+  const originals = resolve(originalsDirectory ?? (projectAlbum ? join(artifacts, "r2", "相册") : root));
   const catalogPath = join(root, "album.json");
   const initial = await readFile(catalogPath, "utf8");
   const album = JSON.parse(initial);
@@ -44,7 +48,11 @@ export async function scanAlbum(directory = defaultDirectory) {
   if (!base.pathname.endsWith("/")) base.pathname += "/";
   if (!Array.isArray(album.photos)) throw new Error("album.json 中的 photos 必须是数组。");
 
-  const files = (await readdir(root, { withFileTypes: true }))
+  const entries = await readdir(originals, { withFileTypes: true }).catch(error => {
+    if (error.code === "ENOENT") return [];
+    throw error;
+  });
+  const files = entries
     .filter(entry => entry.isFile() && formats.test(entry.name))
     .map(entry => entry.name)
     .sort((a, b) => naturalOrder.compare(a, b) || (a < b ? -1 : a > b ? 1 : 0));
@@ -57,7 +65,8 @@ export async function scanAlbum(directory = defaultDirectory) {
 
   const previews = join(root, "previews");
   await mkdir(previews, { recursive: true });
-  const staging = await mkdtemp(join(root, ".album-scan-"));
+  if (projectAlbum) await mkdir(artifacts, { recursive: true });
+  const staging = await mkdtemp(join(projectAlbum ? artifacts : root, ".album-scan-"));
   const staged = [], superseded = [];
   const ids = new Set();
   try {
@@ -77,10 +86,10 @@ export async function scanAlbum(directory = defaultDirectory) {
 
       const ready = await previewsExist(previews, photo);
       if (!available.has(file)) {
-        if (!ready) throw new Error(`缺少原图和可用的预览，请将 ${file} 放回相册目录。`);
+        if (!ready) throw new Error(`缺少原图和可用的预览，请将原图放回 ${join(originals, file)}。`);
         continue;
       }
-      const source = await readFile(join(root, file));
+      const source = await readFile(join(originals, file));
       const version = fingerprint(source);
       if (ready && photo.version === version) continue;
 
@@ -123,6 +132,6 @@ export async function scanAlbum(directory = defaultDirectory) {
 }
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
-  const album = await scanAlbum(process.argv[2]);
+  const album = await scanAlbum(process.argv[2], process.argv[3]);
   console.log(`相册已更新，共 ${album.photos.length} 张。标题和原图地址保存在 album.json。`);
 }

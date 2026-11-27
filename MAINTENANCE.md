@@ -17,7 +17,9 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 在启用 `VITE_WARDROBE_DEBUG=true` 的游戏中，右下角「调试 → 快捷收信」可领取单封或一键收齐。选项来自扫描生成的来信目录，只列出尚未收到的信。新信写入本机存档并保留蜡封，已经读过的信保留阅读记录。提前领取派大星的信后，仍可在营火旁触发他的一次到访。
 
-更新照片、信件或制作人星星后，从仓库根目录运行 `npm run scan`，核对改动并运行 `npm run check`。也可单独执行 `npm run scan:album`、`npm run scan:letters` 或 `npm run scan:stars`。修改与扫描产生的目录、预览或索引一起进入版本管理。新增文件、示例 JSON 与原图上传步骤见 [README 内容维护](README.md#更新相册来信与花海落星)。
+本地素材和工作产物集中在 Git 整体忽略的 `artifacts/`。上传对象存储的相册原图和视频分别放在 `artifacts/r2/相册/`、`artifacts/r2/周年视频/`。制作母版、临时导出和验收文件放在 `artifacts/` 对应的工作目录。IDE、Wrangler、站点构建和 npm 依赖继续使用根目录的 `.idea/`、`.wrangler/`、`dist/` 和 `node_modules/`。
+
+更新照片、信件或制作人星星后，从仓库根目录运行 `npm run scan`，核对改动并运行 `npm run check`。也可单独执行 `npm run scan:album`、`npm run scan:letters` 或 `npm run scan:stars`。相册提交清单和预览，信件与星星提交内容和索引。新增文件、示例 JSON 与原图上传步骤见 [README 内容维护](README.md#更新相册来信与花海落星)。
 
 | 内容 | 文件与维护要点 |
 | --- | --- |
