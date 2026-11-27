@@ -1,7 +1,7 @@
 import { ResourceQueue, type LoadProgress, type Resource } from "./resource-queue";
 import { traffic, recordTransfer } from "./network-debug";
 import { fetchVerifiedAsset } from "./resource-stream.js";
-import { PACK_START_TIMEOUT_MS, PackResources, type PackIndex } from "./pack-resources";
+import { PACK_MAX_RETRIES, PACK_NETWORK_TIMEOUT_MS, PackResources, type PackIndex } from "./pack-resources";
 
 const base = new URL(import.meta.env.BASE_URL, document.baseURI);
 const version = document.querySelector<HTMLMetaElement>('meta[name="fufu-release"]')?.dataset.version ??
@@ -13,15 +13,25 @@ let packs: PackResources | undefined;
 
 async function loadPackIndex() {
   if (!import.meta.env.PROD || !globalThis.caches || !globalThis.crypto?.subtle) return;
-  try {
-    const [response, cache] = await Promise.all([
-      fetch(new URL(`game-packs-${version}.json`, base), { mode: "same-origin", signal: AbortSignal.timeout(PACK_START_TIMEOUT_MS) }),
-      caches.open("fufu-game-textures-v1:" + base.pathname),
-    ]);
-    if (!response.ok) return;
-    const index: PackIndex = await response.json();
-    if (index.release === version) return { index, cache };
-  } catch { /* A missing index or disabled storage uses the existing file queue. */ }
+  const cache = await caches.open("fufu-game-textures-v1:" + base.pathname).catch(() => undefined);
+  if (!cache) return;
+  const url = new URL(`game-packs-${version}.json`, base);
+  for (let attempt = 0; attempt <= PACK_MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch(url, { mode: "same-origin", cache: attempt ? "reload" : "default",
+        signal: AbortSignal.timeout?.(PACK_NETWORK_TIMEOUT_MS) });
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw Error("资源包索引 HTTP " + response.status);
+      }
+      const index: PackIndex = await response.json();
+      if (index.release !== version) throw Error("资源包索引版本不匹配");
+      return { index, cache };
+    } catch (error) {
+      if (traffic) console.info(attempt < PACK_MAX_RETRIES ? "[pack] 重试资源包索引" : "[pack] 站内补载", url.pathname,
+        error instanceof Error ? error.message : error);
+    }
+  }
 }
 
 export function registerResourceCache() {
@@ -89,7 +99,7 @@ async function readResource([path, digest]: Resource, priority: "high" | "low", 
 
 function getQueue() {
   return catalogue ??= Promise.all([fetch(new URL(`game-assets-${version}.json`, base),
-    { mode: "same-origin", signal: AbortSignal.timeout?.(60_000) }), loadPackIndex()])
+    { mode: "same-origin", signal: AbortSignal.timeout?.(PACK_NETWORK_TIMEOUT_MS) }), loadPackIndex()])
     .then(async ([response, packIndex]) => {
       if (!response.ok) throw new Error("无法读取游戏资源清单");
       const files: Resource[] = await response.json();

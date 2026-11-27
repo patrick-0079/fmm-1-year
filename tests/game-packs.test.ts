@@ -40,25 +40,36 @@ test("pack identities are independent of code, branch prefixes and unrelated map
   assert.notEqual(packBranch("feature/map"), packBranch("feature-map"));
 });
 
-test("pack requests and their member bytes follow the first appearance in the manifest", async t => {
+test("pack requests complete one at a time in manifest order and preserve member order", async t => {
   const [a, b, c, town] = files;
   const manifest = [town, inScenes(a, "*"), inScenes(c, "town", "room"), inScenes(b, "room", "town")];
   const { index, bodies } = makeGamePacks(manifest, (path: string) => bytes.get(path), "preview");
   assert.deepEqual(index.packs.map(pack => pack.group), ["town", "common", "shared-room-town"]);
-  const [townPack, commonPack, sharedPack] = index.packs;
+  const sharedPack = index.packs[2];
   assert.deepEqual(sharedPack.entries, [["c.webp", 0, 4], ["b.webp", 4, 3]]);
   assert.equal(bodies.get(sharedPack.file).toString(), "hijkefg");
 
   const requested: string[] = [];
+  const started = index.packs.map(() => Promise.withResolvers<ReadableStreamDefaultController<Uint8Array>>());
   t.mock.method(globalThis, "fetch", async (url: URL) => {
     const name = url.pathname.split("/").at(-1)!;
+    const request = started[requested.length];
     requested.push(name);
-    return new Response(bodies.get(name));
+    return new Response(new ReadableStream({ start(controller) { request.resolve(controller); } }));
   });
   const resources = setup().open(index, manifest);
-  await resources.prepare("town");
-  assert.deepEqual(new Set(requested.slice(0, 2)), new Set([townPack.file, commonPack.file]));
-  assert.deepEqual(requested.slice(2), [sharedPack.file]);
+  const run = resources.prepare("town");
+  const seenBeforeCompletion: number[] = [];
+  for (const [i, request] of started.entries()) {
+    const stream = await request.promise;
+    await setImmediate();
+    seenBeforeCompletion.push(requested.length);
+    stream.enqueue(bodies.get(requested[i]));
+    stream.close();
+  }
+  await run;
+  assert.deepEqual(seenBeforeCompletion, [1, 2, 3], "the next request must wait for the previous response body");
+  assert.deepEqual(requested, index.packs.map(pack => pack.file));
   for (const [path] of manifest) assert.equal(await resources.wait(path, new AbortController().signal), true);
 });
 
@@ -70,7 +81,7 @@ test("a mixed-scene pack is rejected before scene loading can wait for an unsche
   }
 });
 
-test("an interrupted pack commits complete members immediately and resumes at the first missing byte", async t => {
+test("an interrupted pack keeps completed members and retries from the first incomplete member in the same run", async t => {
   const { hits, base, open } = setup();
   const first = open(), signal = new AbortController().signal;
   let stream!: ReadableStreamDefaultController<Uint8Array>;
@@ -81,17 +92,16 @@ test("an interrupted pack commits complete members immediately and resumes at th
   assert.equal(await first.wait("a.webp", signal), true);
   assert.equal(await hits.get(base + "a.webp")!.clone().text(), "abcd");
   assert.equal(first.progress(files).received, 5);
-  stream.error(Error("interrupted"));
-  await run;
-  assert.equal(await first.wait("b.webp", signal), false);
-  assert.equal(first.progress(files).fallback, true);
-  assert.equal(hits.size, 1);
-  const second = open();
+  const retryRanges: (string | null)[] = [];
   net.mock.mockImplementation(async (_: URL, init: RequestInit) => {
-    assert.deepEqual(init.headers, { Range: "bytes=4-10" });
+    retryRanges.push(new Headers(init.headers).get("Range"));
     return new Response("efghijk", {status: 206, headers: { "Content-Range": "bytes 4-10/11" }});
   });
-  await second.prepare("room");
+  stream.error(Error("interrupted"));
+  await run;
+  assert.deepEqual(retryRanges, ["bytes=4-10"]);
+  assert.equal(await first.wait("b.webp", signal), true);
+  assert.equal(first.progress(files).fallback, false);
   assert.equal(hits.size, 3);
   assert.equal(await hits.get(base + "b.webp")!.clone().text(), "efg");
   const coldTab = open();
@@ -99,21 +109,34 @@ test("an interrupted pack commits complete members immediately and resumes at th
   assert.equal(net.mock.callCount(), 2, "a warm cache needs no object storage");
 });
 
-test("a wrong digest, missing object or invalid Range response only releases missing files to fallback", async t => {
-  const { hits, base, open } = setup();
-  const net = t.mock.method(globalThis, "fetch", async () => new Response("abcdXXXhijk"));
-  let packs = open(); await packs.prepare("room");
-  assert.deepEqual([...hits.keys()], [base + "a.webp"]);
-  for (const res of [new Response(null,{status:404}), new Response("all content"), new Response("efghijk",{status:206})]) {
-    net.mock.mockImplementation(async () => res);
-    packs = open(); await packs.prepare("room");
-    assert.equal(await packs.wait("a.webp", new AbortController().signal), true);
-    assert.equal(await packs.wait("b.webp", new AbortController().signal), false);
-    assert.equal(hits.size, 1);
+test("corrupt bytes, missing objects and invalid Range responses fall back only after three attempts", async t => {
+  const net = t.mock.method(globalThis, "fetch");
+  const signal = new AbortController().signal;
+  for (const response of [
+    () => new Response("XXXhijk", { status: 206, headers: { "Content-Range": "bytes 4-10/11" } }),
+    () => new Response(null, { status: 404 }),
+    () => new Response("all content"),
+    () => new Response("efghijk", { status: 206 }),
+  ]) {
+    const { hits, base, open } = setup();
+    hits.set(base + "a.webp", new Response("abcd"));
+    hits.set(base + "b.webp", new Response("bad"));
+    const ranges: (string | null)[] = [];
+    net.mock.mockImplementation(async (_: URL, init: RequestInit) => {
+      ranges.push(new Headers(init.headers).get("Range"));
+      return response();
+    });
+    const packs = open();
+    await packs.prepare("room");
+    assert.deepEqual(ranges, Array(3).fill("bytes=4-10"));
+    assert.equal(await packs.wait("a.webp", signal), true);
+    assert.equal(await packs.wait("b.webp", signal), false);
+    assert.equal(await packs.wait("c.webp", signal), false);
+    assert.deepEqual([...hits.keys()], [base + "a.webp"]);
   }
 });
 
-test("a pack whose first byte arrives after nine seconds still caches every member", async t => {
+test("a pack receiving data every 45 seconds can finish beyond two minutes and cache every member", async t => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
   const { open, hits, base } = setup();
   const packs = open();
@@ -131,9 +154,20 @@ test("a pack whose first byte arrives after nine seconds still caches every memb
   });
   const run = packs.prepare("room");
   const signal = await started.promise;
-  t.mock.timers.tick(9000);
+  t.mock.timers.tick(45_000);
   assert.equal(signal.aborted, false);
-  stream.enqueue(new TextEncoder().encode("abcdefghijk"));
+  const encoder = new TextEncoder();
+  stream.enqueue(encoder.encode("a"));
+  await setImmediate();
+  assert.equal(packs.progress(files).received, 1);
+  t.mock.timers.tick(45_000);
+  assert.equal(signal.aborted, false);
+  stream.enqueue(encoder.encode("bc"));
+  await setImmediate();
+  assert.equal(packs.progress(files).received, 3);
+  t.mock.timers.tick(45_000);
+  assert.equal(signal.aborted, false);
+  stream.enqueue(encoder.encode("defghijk"));
   stream.close();
   await run;
   assert.equal(net.mock.callCount(), 1);
@@ -163,7 +197,7 @@ test("the network idle timeout excludes time spent writing verified members to t
   const packs = open();
   const run = packs.prepare("room");
   await startedWrite.promise;
-  t.mock.timers.tick(16000);
+  t.mock.timers.tick(130_000);
   const abortedDuringWrite = signal.aborted;
   releaseWrite.resolve();
   await run;
@@ -173,16 +207,17 @@ test("the network idle timeout excludes time spent writing verified members to t
   assert.equal(packs.progress(files).fallback, false);
 });
 
-test("object storage falls back after 30 seconds without a first byte or 15 seconds without more data", async t => {
-  t.mock.timers.enable({apis:["setTimeout"]});
+test("each of three attempts waits 60 seconds for the first byte or further data before fallback", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
   const net = t.mock.method(globalThis, "fetch");
   for (const firstByte of [false, true]) {
     const { open } = setup(), packs = open();
-    let signal!: AbortSignal;
-    const called = Promise.withResolvers<void>();
+    const signals: AbortSignal[] = [], cacheModes: (RequestCache | undefined)[] = [];
     net.mock.mockImplementation(async (_: URL, init: RequestInit) => {
-      signal = init.signal!;
-      called.resolve();
+      const signal = init.signal!;
+      signals.push(signal);
+      cacheModes.push(init.cache);
+      if (signals.length > 3) return new Response(null, { status: 404 });
       return new Response(new ReadableStream({
         start(controller) {
           if (firstByte) controller.enqueue(new Uint8Array([97]));
@@ -191,15 +226,58 @@ test("object storage falls back after 30 seconds without a first byte or 15 seco
       }));
     });
     const run = packs.prepare("room");
-    await called.promise; await setImmediate();
-    t.mock.timers.tick((firstByte ? 15000 : 30000) - 1);
-    assert.equal(signal.aborted, false);
-    t.mock.timers.tick(1);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await setImmediate();
+      assert.equal(signals.length, attempt + 1);
+      t.mock.timers.tick(59_999);
+      assert.equal(signals[attempt].aborted, false);
+      assert.equal(packs.progress(files).fallback, false);
+      t.mock.timers.tick(1);
+      assert.equal(signals[attempt].aborted, true);
+    }
     await run;
-    assert.equal(signal.aborted, true);
+    assert.equal(signals.length, 3);
+    assert.deepEqual(cacheModes.slice(1), ["reload", "reload"]);
     assert.equal(packs.progress(files).fallback, true);
     assert.equal(await packs.wait("a.webp", new AbortController().signal), false);
   }
+});
+
+test("yielding a background pack to a foreground scene leaves its three network attempts available", async t => {
+  const { open } = setup();
+  const { index, bodies } = build();
+  const room = index.packs.find(pack => pack.group === "room")!.file;
+  const town = index.packs.find(pack => pack.group === "town")!.file;
+  const started = Promise.withResolvers<AbortSignal>();
+  const requested: string[] = [];
+  let roomAttempts = 0;
+  t.mock.method(globalThis, "fetch", async (url: URL, init: RequestInit) => {
+    const name = url.pathname.split("/").at(-1)!;
+    requested.push(name);
+    if (name === room) {
+      roomAttempts++;
+      if (roomAttempts === 1) {
+        const signal = init.signal!;
+        return new Response(new ReadableStream({
+          start(controller) {
+            signal.addEventListener("abort", () => controller.error(signal.reason));
+            started.resolve(signal);
+          },
+        }));
+      }
+      if (roomAttempts < 4) return new Response(null, { status: 503 });
+    }
+    return new Response(bodies.get(name));
+  });
+  const packs = open();
+  const background = packs.prepare();
+  const firstRequest = await started.promise;
+  await packs.prepare("town");
+  assert.equal(firstRequest.aborted, true);
+  await background;
+  assert.deepEqual(requested, [room, town, room, room, room]);
+  assert.equal(packs.progress(files).fallback, false);
+  assert.equal(await packs.wait("c.webp", new AbortController().signal), true);
 });
 
 test("uploads repair mismatches and reuse complete packs on code-only builds", async t => {

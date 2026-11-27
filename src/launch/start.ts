@@ -6,7 +6,7 @@ const debug = import.meta.env.VITE_WARDROBE_DEBUG === "true";
 const gameTitle = "芙眠眠一周年 · 晚安小屋";
 const retryInterval = 30_000;
 
-export async function startLaunch(loadGame?: () => Promise<unknown>) {
+export async function startLaunch(game?: { open: () => Promise<unknown>; preload: () => Promise<void> }) {
   const root = document.querySelector<HTMLElement>("#app")!;
   let deadline = getDeadline(debug);
   let view: ReturnType<typeof createCountdownView> | undefined;
@@ -40,7 +40,7 @@ export async function startLaunch(loadGame?: () => Promise<unknown>) {
     document.title = gameTitle;
     document.dispatchEvent(new Event("fufu:journal-open"));
     try {
-      await loadGame!();
+      await game!.open();
     } catch {
       showRetry("小屋未能载入，点击重试");
     }
@@ -93,7 +93,7 @@ export async function startLaunch(loadGame?: () => Promise<unknown>) {
     if (stopped) return;
     const now = Date.now();
     const remaining = deadline - now;
-    if (remaining <= 0 && loadGame) {
+    if (remaining <= 0 && game) {
       void enterGame();
       return;
     }
@@ -112,7 +112,7 @@ export async function startLaunch(loadGame?: () => Promise<unknown>) {
     }
   }
 
-  if (loadGame && Date.now() >= deadline) {
+  if (game && Date.now() >= deadline) {
     await enterGame();
     return;
   }
@@ -128,6 +128,10 @@ export async function startLaunch(loadGame?: () => Promise<unknown>) {
   window.addEventListener("pageshow", wake);
   document.addEventListener("visibilitychange", wake);
   tick();
+  if (game && !stopped) {
+    // Opening takes priority even if maps are still downloading in the background.
+    void game.preload().catch(() => { /* The opening map retries through the same resource queue. */ });
+  }
   if (debug && !stopped) {
     const { mountCountdownDebug } = await import("./debug");
     if (stopped) return;

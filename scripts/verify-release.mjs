@@ -8,12 +8,15 @@ import { build, preview } from "vite";
 import { OPEN_AT } from "../src/launch/time.ts";
 import { townInteriorKeys } from "../src/town-interior-id.ts";
 import { rainbowIds } from "../src/rainbow-flowers.ts";
+import { achievementDefinitions } from "../src/achievements.ts";
+import { packDirectory } from "./game-packs.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || "playwright-core");
 const tempRoot = resolve(tmpdir());
-const outDir = await mkdtemp(join(tempRoot, "fufu-release-browser-"));
-assert.equal(dirname(outDir), tempRoot);
+const workspace = await mkdtemp(join(tempRoot, "fufu-release-browser-"));
+const outDir = join(workspace, "dist");
+assert.equal(dirname(workspace), tempRoot);
 const releaseFile = join(outDir, "release.json");
 const release = async full => {
   process.env.FULL_BUILD = String(full);
@@ -101,12 +104,13 @@ try {
     channel: process.env.PLAYWRIGHT_CHANNEL ?? (process.platform === "win32" ? "msedge" : undefined),
   });
   const errors = [];
-  const beforeOpening = async (width, mode) => {
+  const beforeOpening = async (width, mode, setup) => {
     const context = await browser.newContext({ viewport: { width, height: 820 }, hasTouch: width < 600,
       reducedMotion: "reduce", timezoneId: "America/New_York" });
     await context.route(/^https:\/\/cdn\./, route => route.abort());
     const page = await context.newPage();
     page.on("pageerror", error => errors.push(String(error)));
+    await setup(page);
     await page.clock.setFixedTime(new Date(OPEN_AT - 1500));
     await page.addInitScript(() => sessionStorage.setItem("fufu-launch-preview-v1", "1"));
     if (mode === "lite") {
@@ -123,32 +127,77 @@ try {
     await page.locator(".launch-clock").waitFor();
     assert.equal(await page.locator(".launch-date time").getAttribute("datetime"), new Date(OPEN_AT).toISOString());
     assert.equal(await page.locator('[data-unit="seconds"]').innerText(), "02");
-    assert.equal(await page.locator(".launch-debug-trigger, #world").count(), 0);
-    assert.ok(!await page.evaluate(() => performance.getEntriesByType("resource").some(entry =>
-      /\/(?:main-|application-|room-interactive-|fufu-garments-|journal-celestial-paper-|texture-cache\.js)/.test(new URL(entry.name).pathname))));
+    assert.equal(await page.locator(".launch-debug-trigger, .entry-progress, #world").count(), 0);
     await page.locator(".launch-invitation img").evaluateAll(images => Promise.all(images.map(image => image.decode())));
     return page;
   };
-  const waiting = await beforeOpening(320, "lite");
+  const liteGameRequests = [];
+  const waiting = await beforeOpening(320, "lite", page => {
+    page.on("request", request => {
+      const path = new URL(request.url()).pathname;
+      if (/\/(?:game-(?:packs|assets)-|main-|application-|room-interactive-|fufu-garments-|journal-celestial-paper-|texture-cache\.js)|\.pack$/.test(path))
+        liteGameRequests.push(path);
+    });
+  });
   await Promise.all([
     waiting.waitForResponse(response => response.url() === base + "release.json"),
     waiting.clock.setFixedTime(new Date(OPEN_AT)),
   ]);
   await waiting.locator(".launch-waiting").waitFor();
   assert.equal(await waiting.locator("#world").count(), 0);
-  console.log("精简包：倒计时、资源失败重试、到点等待均通过");
+  assert.deepEqual(liteGameRequests, [], "精简倒计时及到点等待期间不应请求游戏清单或资源包");
+  console.log("精简包：倒计时、资源失败重试、到点等待均通过，游戏资源请求为零");
 
   const full = await release(true);
   assert.notEqual(full.version, lite.version);
-  const game = await beforeOpening(1280, "full");
+  const index = JSON.parse(await readFile(join(outDir, `game-packs-${full.version}.json`), "utf8"));
+  const initialPacks = index.packs.filter(pack => pack.group === "common" || pack.group === "room");
+  assert.equal(initialPacks.length, 2);
+  const initialRequests = [];
+  const blocked = Promise.withResolvers();
+  const releasePack = Promise.withResolvers();
+  const game = await beforeOpening(1280, "full", async page => {
+    await page.route(index.base + "*", async route => {
+      const file = route.request().url().slice(index.base.length);
+      const pack = index.packs.find(item => item.file === file);
+      assert.ok(pack, file);
+      if (initialPacks.includes(pack)) {
+        initialRequests.push(file);
+        // Keep one real request in flight as the countdown gives way to the game.
+        if (initialRequests.length === 2) {
+          blocked.resolve();
+          await releasePack.promise;
+        }
+      }
+      const bytes = await readFile(join(packDirectory(outDir, index.branch), file));
+      const range = route.request().headers().range?.match(/^bytes=(\d+)-(\d+)$/);
+      const start = range ? Number(range[1]) : 0, end = range ? Number(range[2]) + 1 : bytes.length;
+      await route.fulfill({ status: range ? 206 : 200, body: bytes.subarray(start, end), headers: {
+        "Content-Type": "application/octet-stream", "Access-Control-Allow-Origin": "*", "Access-Control-Expose-Headers": "Content-Range",
+        ...(range ? { "Content-Range": `bytes ${start}-${end - 1}/${bytes.length}` } : {}),
+      } });
+    });
+  });
+  await Promise.race([blocked.promise, delay(10000, null, { ref: false }).then(() => {
+    throw Error("完整倒计时未开始下载公共资源和小屋包");
+  })]);
+  const firstPack = initialPacks.find(pack => pack.file === initialRequests[0]);
+  await game.waitForFunction(async path =>
+    !!await (await caches.open("fufu-game-textures-v1:/")).match(new URL(path, location.href)), firstPack.entries.at(-1)[0]);
+  assert.ok(await game.locator(".launch-clock").isVisible());
+  assert.equal(await game.locator(".entry-progress, #world").count(), 0);
   await game.clock.setFixedTime(new Date(OPEN_AT));
+  await game.locator(".entry-progress").waitFor();
+  releasePack.resolve();
   const enter = game.getByRole("button", { name: /开始小冒险/ });
   await enter.waitFor();
+  assert.deepEqual(initialRequests.toSorted(), initialPacks.map(pack => pack.file).sort(),
+    "到点进入游戏应复用倒计时期间已缓存和正在下载的包");
   await waiting.evaluate(() => window.dispatchEvent(new Event("online")));
   await waiting.getByRole("button", { name: /开始小冒险/ }).waitFor();
   assert.equal(await waiting.locator('meta[name="fufu-release"]').getAttribute("data-version"), full.version);
   await waiting.context().close();
-  console.log("全量包：到点自动开门，旧邀请函自动更新，无需调试或手动刷新");
+  console.log("全量包：倒计时预载资源，到点复用已缓存与在途资源包，旧邀请函自动更新");
 
   const badges = game.getByRole("tab", { name: "徽章", exact: true });
   const maps = game.getByRole("tab", { name: "地图", exact: true });
@@ -161,7 +210,7 @@ try {
   assert.ok(await badges.evaluate(tab => tab === document.activeElement));
   assert.equal(await badges.getAttribute("aria-selected"), "true");
   assert.ok(await book.isVisible());
-  assert.match(await book.innerText(), /0\s*\/\s*55/);
+  assert.equal(await book.locator(".achievement-count strong").innerText(), `0 / ${achievementDefinitions.length}`);
   assert.equal(await game.locator(":modal").count(), 0);
   // Keep a stamp open while the journal moves between the rail and the bottom sheet.
   await book.locator('[data-book-pick="gifts"]').click();
@@ -394,5 +443,5 @@ try {
 } finally {
   await browser?.close();
   await server?.close();
-  if (dirname(outDir) === tempRoot) await rm(outDir, { recursive: true, force: true });
+  if (dirname(workspace) === tempRoot) await rm(workspace, { recursive: true, force: true });
 }

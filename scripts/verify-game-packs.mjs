@@ -26,12 +26,14 @@ if (!live) {
     const body = await readFile(join(packDirectory("dist", index.branch), pack.file));
     const range = req.headers.range?.match(/^bytes=(\d+)-(\d+)$/);
     const start = range ? Number(range[1]) : 0, end = range ? Number(range[2]) + 1 : body.length;
-    run.transfers.push({ file:pack.file, start, end });
+    if (pack.file === common.file) run.commonRanges.push([start, end]);
     res.writeHead(range ? 206 : 200, { "Access-Control-Allow-Origin": "*", "Access-Control-Expose-Headers": "Content-Range",
       "Content-Type": "application/octet-stream", "Cache-Control": "no-store", "Content-Length": end-start,
       ...(range ? { "Content-Range": "bytes " + start + "-" + (end-1) + "/" + body.length } : {}) });
-    const partial = run.fault && pack.file === common.file;
-    const limit = partial ? Math.min(end, common.entries[0][2] + 300) : end;
+    const attempt = run.commonRanges.length;
+    const partial = pack.file === common.file && attempt <= run.interruptions;
+    // Deliver another whole member and part of the next one on every interrupted request.
+    const limit = partial ? common.entries[attempt][1] + Math.min(300, common.entries[attempt][2] - 1) : end;
     for (let offset = start; !res.destroyed && offset < limit; offset += 65536) {
       res.write(body.subarray(offset, Math.min(offset + 65536, limit)));
       await delay(6);
@@ -45,7 +47,9 @@ if (!live) {
       server.middlewares.use((req,res,next) => {
         const path = new URL(req.url,"http://localhost").pathname.slice(1);
         if (path === indexFile) { res.setHeader("Content-Type","application/json"); res.end(JSON.stringify({...index,base:origin})); return; }
-        if (path.startsWith("assets/")) scenario?.files.push(path);
+        if (scenario && path.startsWith("assets/") && !scenario.files.has(path)) {
+          scenario.files.set(path, scenario.commonRanges.length);
+        }
         next();
       });
     }}]});
@@ -55,17 +59,27 @@ let browser;
 try {
   browser = await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL ?? (process.platform === "win32" ? "msedge" : undefined)});
   const base = live || site.resolvedUrls.local[0];
-  const cases = [[false,"allow","room"]];
-  if (!live) cases.push([true,"block","room"], [false,"block","garden"]);
+  const cases = [{ interruptions: 0, worker: "allow", scene: "room" }];
+  if (!live) cases.push(
+    { interruptions: 1, worker: "block", scene: "room" },
+    { interruptions: 3, worker: "block", scene: "room" },
+    { interruptions: 0, worker: "block", scene: "garden" },
+  );
   const packedPaths = new Set(index.packs.flatMap(p => p.entries.map(entry => entry[0])));
-  for (const [fault, worker, scene] of cases) {
-    const run = scenario = {fault, transfers:[], files:[]};
+  for (const { interruptions, worker, scene } of cases) {
+    const fallback = interruptions === 3;
+    const run = scenario = { interruptions, commonRanges: [], files: new Map() };
     const ctx = await browser.newContext({serviceWorkers:worker, viewport:{width:390,height:844}});
     try {
       const page = await ctx.newPage(), errors=[], looseImages = new Set();
       page.on("pageerror", e=>errors.push(e.message));
       page.setDefaultTimeout(live ? 180000 : 30000);
       await page.clock.setFixedTime(new Date("2026-12-03T12:00:00+08:00"));
+      let indexRequests = 0;
+      if (interruptions === 1) await page.route("**/" + indexFile, route => {
+        indexRequests++;
+        return indexRequests === 1 ? route.abort("connectionreset") : route.continue();
+      });
       if (scene === "garden") await page.addInitScript(() => {
         localStorage.setItem("fufu-journey-v1", JSON.stringify({scene:"garden", x:0, y:0, savedAt:Date.now()}));
       });
@@ -94,13 +108,20 @@ try {
       },first);
       assert.ok(result.saved);
       assert.ok(result.readings.some(v=>/^\d+\.\d%$/.test(v) && parseFloat(v)>0 && parseFloat(v)<100));
-      assert.equal(result.readings.at(-1),fault ? "站内补载 100.0%" : "100.0%");
-      assert.equal(result.readings.some(v=>v.startsWith("站内补载")),fault);
+      assert.equal(result.readings.at(-1),fallback ? "站内补载 100.0%" : "100.0%");
+      assert.equal(result.readings.some(v=>v.startsWith("站内补载")),fallback);
       assert.ok(requests.some(url=>url.endsWith(common.file)));
       if (!live) {
-        assert.equal(run.transfers.filter(x=>x.file===common.file).length,1);
-        assert.ok(!run.files.includes(first),"a fully received member should never be fetched from the site again");
-        if (fault) assert.ok(run.files.includes(common.entries[1][0]),"only the missing tail falls back");
+        if (interruptions === 1) assert.equal(indexRequests, 2, "retry the interrupted pack index");
+        const expectedAttempts = fallback ? 3 : interruptions + 1;
+        const expectedRanges = common.entries.slice(0, expectedAttempts).map(([, offset]) => [offset, common.size]);
+        assert.deepEqual(run.commonRanges, expectedRanges, "each retry must start at its first unfinished member");
+        for (const [path] of common.entries.slice(0, interruptions)) {
+          assert.ok(!run.files.has(path), "fully received member fetched from the site: " + path);
+        }
+        const unfinished = common.entries[interruptions][0];
+        if (fallback) assert.equal(run.files.get(unfinished), 3, "the site fallback must wait for all three attempts");
+        else assert.ok(!run.files.has(unfinished), "a successful pack request must satisfy the missing member");
       }
       await enter.click();
       await page.locator(`.scene-wrap[data-current-map="${scene}"]`).waitFor();
@@ -109,8 +130,8 @@ try {
         assert.deepEqual([...looseImages], [], "uncontrolled garden must reuse unpacked sprites and leave the bedroom note unloaded");
       }
       assert.deepEqual(errors,[]);
-      console.log(fault ? "断流后复用已收齐文件，站内补载完成" : "对象存储字节进度完成",
-        {scene, worker, packRequests:requests.length, intermediate:result.readings.find(v=>parseFloat(v)>0 && parseFloat(v)<99.9),
+      console.log("对象存储加载完成",
+        {scene, worker, interruptions, packRequests:requests.length, intermediate:result.readings.find(v=>parseFloat(v)>0 && parseFloat(v)<99.9),
           final:result.readings.at(-1)});
       if (worker === "allow") {
         const manifestFile = "game-assets-" + marker.version + ".json";

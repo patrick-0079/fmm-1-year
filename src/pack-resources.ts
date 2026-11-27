@@ -1,7 +1,7 @@
 import { ResourceQueue, type Resource } from "./resource-queue.ts";
 
-export const PACK_START_TIMEOUT_MS = 30_000;
-const PACK_IDLE_TIMEOUT_MS = 15_000;
+export const PACK_NETWORK_TIMEOUT_MS = 60_000;
+export const PACK_MAX_RETRIES = 2;
 
 type Pack = { group: string; file: string; hash: string; size: number; entries: [string, number, number][] };
 export type PackIndex = { format: number; base: string; release: string; packs: Pack[] };
@@ -41,7 +41,7 @@ export class PackResources {
     this.cache = cache;
     this.onBytes = onBytes;
     const resources = new Map(files.map(file => [file[0], file]));
-    const jobs = new Map<string, { url: URL; size: number; members: Member[] }>();
+    const jobs = new Map<string, { url: URL; size: number; members: Member[]; retries: number }>();
     const groups: Resource[] = [];
     if (index.format !== 1 || !index.packs.length) throw Error("无法识别资源包索引");
     for (const pack of index.packs) {
@@ -62,8 +62,9 @@ export class PackResources {
       });
       if (end !== pack.size) throw Error("资源包长度无效");
       groups.push([pack.file, pack.hash, scenes]);
-      jobs.set(pack.file, { url: new URL(pack.file, index.base), size: end, members });
+      jobs.set(pack.file, { url: new URL(pack.file, index.base), size: end, members, retries: 0 });
     }
+    // Fetch one pack at a time so a large HTTP/2 transfer cannot starve the next pack.
     this.queue = new ResourceQueue(groups, async ([name], priority, _retry, signal) => {
       const job = jobs.get(name)!;
       try {
@@ -82,14 +83,22 @@ export class PackResources {
           if (job.members[i].ready === true) { i++; continue; }
           const start = i++;
           while (i < job.members.length && job.members[i].ready !== true) i++;
-          await this.download(job.url, job.size, job.members.slice(start, i), priority, signal);
+          try {
+            await this.download(job.url, job.size, job.members.slice(start, i), priority, signal, job.retries > 0);
+          } catch (error) {
+            if (signal.aborted || job.retries >= PACK_MAX_RETRIES) throw error;
+            job.retries++;
+            if (this.onBytes) console.info("[pack] 重试", name, job.retries + "/" + PACK_MAX_RETRIES, error instanceof Error ? error.message : error);
+            // The failed request may already have committed complete members of this range.
+            i = start;
+          }
         }
       } catch (error) {
         if (signal.aborted) throw error;
         if (this.onBytes) console.info("[pack] 站内补载", name, error instanceof Error ? error.message : error);
         for (const item of job.members) if (item.ready === undefined) this.finish(item, false);
       }
-    }, { active: 2, background: 1 });
+    }, { active: 1, background: 1 });
   }
 
   prepare(scene?: string) { return this.queue.prepare(scene); }
@@ -132,17 +141,17 @@ export class PackResources {
     return (await this.cache.match(url.href, { ignoreVary: true }))?.blob();
   }
 
-  private async download(url: URL, total: number, batch: Member[], priority: "low" | "high", signal: AbortSignal) {
+  private async download(url: URL, total: number, batch: Member[], priority: "low" | "high", signal: AbortSignal, retry: boolean) {
     const start = batch[0].offset, last = batch[batch.length - 1], end = last.offset + last.size;
     const range = start !== 0 || end !== total;
     const controller = new AbortController();
     const abort = () => controller.abort(signal.reason);
     signal.throwIfAborted();
     signal.addEventListener("abort", abort, { once: true });
-    let timer = setTimeout(() => controller.abort(new Error("等待资源包首字节超时")), PACK_START_TIMEOUT_MS);
+    let timer = setTimeout(() => controller.abort(new Error("等待资源包首字节超时")), PACK_NETWORK_TIMEOUT_MS);
     let current = 0, filled = 0, buffer = new Uint8Array(batch[0].size);
     try {
-      const response = await fetch(url, { mode: "cors", credentials: "omit", priority, signal: controller.signal,
+      const response = await fetch(url, { mode: "cors", credentials: "omit", priority, signal: controller.signal, cache: retry ? "reload" : "default",
         headers: range ? { Range: "bytes=" + start + "-" + (end - 1) } : {} });
       const length = response.headers.get("Content-Length");
       if (response.status !== (range ? 206 : 200) || !response.body ||
@@ -179,7 +188,7 @@ export class PackResources {
           }
           this.changed();
           // Local verification and cache writes can take time on a busy device.
-          timer = setTimeout(() => controller.abort(new Error("资源包连续无数据超时")), PACK_IDLE_TIMEOUT_MS);
+          timer = setTimeout(() => controller.abort(new Error("资源包连续无数据超时")), PACK_NETWORK_TIMEOUT_MS);
         }
       } finally { reader.releaseLock(); }
       if (current !== batch.length) throw Error("资源包未传完");
