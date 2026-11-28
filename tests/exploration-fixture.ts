@@ -5,6 +5,7 @@ import { SAVE_KEY, canStand, readProgress, type Point } from "../src/core";
 import { rainbowFlowers, meadowGate } from "../src/rainbow-flowers";
 import { producers } from "../src/content";
 import { JOURNEY_KEY, readJourney } from "../src/journey";
+import { NATURE_KEY } from "../src/nature-save";
 import { townGates, gateSignFoot } from "../src/gate-layout";
 import { bassStand } from "../src/room-props";
 import { bassScore } from "../src/bass-score";
@@ -195,7 +196,16 @@ async function checkHarvest() {
     world.interact();
     await wait(() => q(".bag-count").textContent!.includes("苹果 "+i));
     expect(q(".activity-status").textContent?.includes("还剩 "+(3-i)+" 颗"),"剩余的树果数量不正确");
-    q(".activity-close").click();
+    if (i === 1) {
+      const repeat = q<HTMLButtonElement>(".activity-actions button");
+      world.player = { ...scenes.garden.spawn };
+      repeat.click();
+      expect(q(".activity-hud").hidden, "离开果篮后仍能从旧按钮取苹果");
+      world.switchScene("garden", apple.approach);
+      repeat.click();
+      await navigator.locks?.request(NATURE_KEY, () => {});
+      expect(q(".bag-count").textContent?.includes("苹果 1"), "返回果篮时旧按钮还能重复采集");
+    } else q(".activity-close").click();
   }
   expect(!world.available(apple),"拿空的果篮仍显示为可采集目标");
   world.onInteract("apple");
@@ -564,6 +574,9 @@ q("#check-ruins").addEventListener("click",()=>void run(async()=>{
   expect(state().echoes.found.length===3 && state().echoes.played===0,"三间石室没有分别记录");
   expect(state().astrolabe.found.length===0,"进入试炼不应自动取得星盘环");
   log("三间石室均能沿石地走到，原地启动与退出游戏，未通关也能抄录三条线索");
+  world.visit(echoAltar.id); await wait(()=>q(".activity-actions").textContent?.includes("轻敲")===true);
+  key("ArrowDown"); await wait(()=>q(".activity-hud").hidden); key("ArrowDown",false);
+  expect(state().echoes.played===0, "走出祭坛时意外奏响了符号");
   world.visit(echoAltar.id); await wait(()=>q(".activity-actions").textContent?.includes("轻敲")===true);
   action("轻敲「叶」"); action("轻敲「星」"); expect(state().echoes.played===1,"错音丢失已奏的音");
   action("轻敲「铃」"); action("轻敲「星」");

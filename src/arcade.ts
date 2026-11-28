@@ -132,7 +132,7 @@ export class Arcade {
       )
         return;
       e.preventDefault();
-      if (e.repeat && ["primary", "up"].includes(action)) return;
+      if (e.repeat && (this.engine?.status !== "playing" || ["primary", "up", "drop"].includes(action))) return;
       this.action(action, true);
     });
     window.addEventListener("keyup", (e) => {

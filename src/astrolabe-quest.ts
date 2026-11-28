@@ -17,7 +17,8 @@ export class AstrolabeQuest {
   private flashTimer?: ReturnType<typeof setTimeout>;
   private reduced = matchMedia("(prefers-reduced-motion: reduce)");
   constructor(private world:World, private activities:Activities, private inventory:Inventory,
-    private memory:()=>AstrolabeState, private listened:()=>boolean, private save:()=>void) {
+    private memory:()=>AstrolabeState, private listened:()=>boolean,
+    private saveMove:(move:(state:AstrolabeState)=>boolean)=>boolean) {
     const available=world.available, depth=world.getDepthLayers;
     world.available=spot=>{
       if (!available(spot)) return false;
@@ -47,7 +48,11 @@ export class AstrolabeQuest {
     this.clearFlash();
     this.refresh(false);
   }
-  private commit() { this.save(); this.refresh(); }
+  private commit(move:(state:AstrolabeState)=>boolean) {
+    const changed = this.saveMove(move);
+    if (changed) this.refresh();
+    return changed;
+  }
   private exit = () => {
     this.activities.close(); this.world.canvas.focus({preventScroll:true});
   };
@@ -76,8 +81,8 @@ export class AstrolabeQuest {
     const relic=rings.find(r=>ringSpotId(r.id)===id);
     if(relic) {
       this.exit();
-      if(collectRing(this.memory(),relic.id)) {
-        this.commit();sfx("match");this.world.onToast("拾起"+relic.name+" · 拓印 "+this.memory().found.length+"/3");
+      if(this.commit(state => collectRing(state,relic.id))) {
+        sfx("match");this.world.onToast("拾起"+relic.name+" · 拓印 "+this.memory().found.length+"/3");
       }
     } else if(id===southNotebook.id) this.notebook();
     else if(id===moonPlate.id) this.plate();
@@ -98,14 +103,14 @@ export class AstrolabeQuest {
     if(!state.installed) {
       const full=state.found.length===3;
       this.menu(full?"三枚环的刻纹与盘心的凹槽吻合。":"残缺的星盘留着三圈凹槽。你已找到 "+state.found.length+" / 3 枚环。",[
-        full ? {title:"装入三枚星盘环",run:()=>{if(installRings(state)) this.commit();this.plate();}} :
+        full ? {title:"装入三枚星盘环",run:()=>{this.commit(installRings);this.plate();}} :
           {title:"读读南阶手记里的寻环线索",run:()=>this.notebook()},
         {title:"离开月相星盘",run:this.exit},
       ],0,view);return;
     }
     this.menu("盘沿刻着「让月光从盘心流向北面的月牙」。每拨一次，缺口顺时针转动四分之一圈。",[
       ...rings.map((r,i)=>({title:"转"+r.band+"，让缺口朝"+directions[(state.turns[i]+1)%4],run:()=>{
-        if(turnRing(state,r.id)) {this.commit();sfx(plateAligned(state)?"echo-star":"flip");}
+        if(this.commit(latest => turnRing(latest,r.id))) sfx(plateAligned(state)?"echo-star":"flip");
         this.plate(i);
       }})), {title:"离开月相星盘",run:this.exit},
     ],focusIndex,view);
@@ -123,7 +128,7 @@ export class AstrolabeQuest {
     const end=traceMoonlight(state.mirrors).points.at(-1)!;
     this.menu(end.y<0?"月灯向右照进上镜，光从北边射出了。目标在左下角。":"光经过两面镜子，落在右边。左下角的星纹砖还没有亮。",[
       ...([0,1] as const).map(i=>({title:"转"+(i===0?"上镜":"下镜")+"，让右端"+(state.mirrors[i]==="/"?"降下来":"抬起来"),run:()=>{
-        if(tiltMirror(state,i)) {this.commit();sfx(starLit(state)?"complete":"echo-bell");}
+        if(this.commit(latest => tiltMirror(latest,i))) sfx(starLit(state)?"complete":"echo-bell");
         this.mirrors(i);
       }})), {title:"离开铜镜",run:this.exit},
     ],focusIndex,view);

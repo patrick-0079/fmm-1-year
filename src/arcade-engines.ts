@@ -181,7 +181,9 @@ export class BlocksGame implements Engine {
   status: GameStatus = "ready";
   achieved = false;
   continuePlay() {
-    if (this.status === "won") this.status = "playing";
+    if (this.status !== "won") return;
+    this.status = "playing";
+    this.spawn();
   }
   score = 0;
   goal = 4;
@@ -275,7 +277,7 @@ export class BlocksGame implements Engine {
       for (let x = 0; x < this.piece[y].length; x++)
         if (this.piece[y][x]) this.board[this.y + y][this.x + x] = this.color;
     this.clearLines();
-    if (this.status !== "lost") this.spawn();
+    if (this.status === "playing") this.spawn();
   }
   update(dt: number) {
     if (this.status !== "playing") return;
@@ -302,16 +304,18 @@ export class BlocksGame implements Engine {
     this.board.forEach((r, y) => r.forEach((v, x) => {
       if (v) cube(75 + x * 9, 8 + y * 9, v);
     }));
-    let landing = this.y;
-    while (this.fits(this.x, landing + 1)) landing++;
-    this.piece.forEach((r, y) => r.forEach((v, x) => {
-      if (!v) return;
-      const left = 75 + (this.x + x) * 9;
-      if (landing > this.y) {
-        c.fillStyle = "#b7acc061"; c.fillRect(left + 1, 8 + (landing + y) * 9 + 1, 7, 7);
-      }
-      cube(left, 8 + (this.y + y) * 9, this.color);
-    }));
+    if (this.status !== "won") {
+      let landing = this.y;
+      while (this.fits(this.x, landing + 1)) landing++;
+      this.piece.forEach((r, y) => r.forEach((v, x) => {
+        if (!v) return;
+        const left = 75 + (this.x + x) * 9;
+        if (landing > this.y) {
+          c.fillStyle = "#b7acc061"; c.fillRect(left + 1, 8 + (landing + y) * 9 + 1, 7, 7);
+        }
+        cube(left, 8 + (this.y + y) * 9, this.color);
+      }));
+    }
     panel(c, 178, 34, 51, 46, "#f9ead3", "#976f73");
     c.fillStyle = "#6f5362"; c.textAlign = "center";
     c.font = '8px "Microsoft YaHei",sans-serif'; c.fillText("下一块", 204, 46);
@@ -489,9 +493,14 @@ export class FlightGame implements Engine {
       this.vy = -83;
   }
   update(dt: number) {
-    if (this.status !== "playing") return;
+    if (this.status !== "playing" || dt <= 0) return;
+    const previousY = this.y;
     this.vy += 235 * dt;
     this.y += this.vy * dt;
+    if (this.y < 6 || this.y > 151) {
+      this.status = "lost";
+      return;
+    }
     this.timer += dt;
     if (this.timer > 1.65) {
       this.timer -= 1.65;
@@ -501,8 +510,20 @@ export class FlightGame implements Engine {
         passed: false,
       });
     }
+    const travel = 58 * dt;
     for (const gate of this.gates) {
-      gate.x -= 58 * dt;
+      const previousX = gate.x;
+      gate.x -= travel;
+      // Check the part of this frame when the gate overlaps the bird's body (x = 42…58).
+      if (gate.x < 58 && previousX + 22 > 42) {
+        const enter = Math.max(0, (previousX - 58) / travel);
+        const leave = Math.min(1, (previousX + 22 - 42) / travel);
+        const offset = (at: number) => Math.abs(previousY + (this.y - previousY) * at - gate.center);
+        if (offset(enter) > 25 || offset(leave) > 25) {
+          this.status = "lost";
+          return;
+        }
+      }
       if (
         !gate.collected &&
         Math.hypot(gate.x + 11 - 50, gate.center - 18 - this.y) < 14
@@ -510,7 +531,7 @@ export class FlightGame implements Engine {
         gate.collected = true;
         this.stars++;
       }
-      if (!gate.passed && gate.x + 22 < 44) {
+      if (!gate.passed && gate.x + 22 <= 42) {
         gate.passed = true;
         this.score++;
         if (this.score >= this.goal && !this.achieved) {
@@ -518,15 +539,8 @@ export class FlightGame implements Engine {
           this.status = "won";
         }
       }
-      if (
-        gate.x < 58 &&
-        gate.x + 22 > 42 &&
-        Math.abs(this.y - gate.center) > 25
-      )
-        this.status = "lost";
     }
     this.gates = this.gates.filter((g) => g.x > -30);
-    if (this.y < 6 || this.y > 151) this.status = "lost";
   }
   draw(c: CanvasRenderingContext2D, art?: Backdrop) {
     scenery(c, art, "#4d527a");

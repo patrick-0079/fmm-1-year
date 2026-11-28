@@ -13,8 +13,8 @@ export async function verifyArcadeStamps(world: World, log: (line: string) => vo
     link: LinkGame, mines: MinesGame, miner: MinerGame};
   const save = () => readProgress(localStorage.getItem(SAVE_KEY));
   const assert = (ok: unknown, message: string) => { if (!ok) throw Error(message); };
-  const control = (key: string, down: boolean) => world.canvas.dispatchEvent(new KeyboardEvent(
-    down ? "keydown" : "keyup", {key, bubbles: true, cancelable: true}));
+  const control = (key: string, down: boolean, repeat = false) => world.canvas.dispatchEvent(new KeyboardEvent(
+    down ? "keydown" : "keyup", {key, repeat, bubbles: true, cancelable: true}));
   const tap = (key: string) => { control(key, true); control(key, false); };
   let clock = performance.now()/1000;
   const tick = (dt: number) => world.onTick(dt, clock += dt);
@@ -58,8 +58,15 @@ export async function verifyArcadeStamps(world: World, log: (line: string) => vo
       for (let n = 0; n < 10; n++) {
         const distance = (n % 5) * 2 - e.x;
         for (let i = 0; i < Math.abs(distance); i++) tap(distance < 0 ? "ArrowLeft" : "ArrowRight");
-        tap("f");
+        control("f", true);
+        const locked = e.board.flat().join(",");
+        control("f", true, true);
+        assert(e.board.flat().join(",") === locked, "一次按住硬降键连续落下了多块积木");
+        control("f", false);
       }
+      control("ArrowDown", true, true);
+      control("ArrowDown", false);
+      assert(e.status === "won", "按住方向键自动略过了通关结算");
     } else if (e instanceof HopGame) {
       for (let n = 0; n < 8 && e.status === "playing"; n++) {
         const next = e.platforms[e.platformId + 1];

@@ -72,6 +72,24 @@ test("starting soft drop does not spend the old normal-fall time as an instant p
   game.update(0.06);
   assert.equal(game.y, before + 2);
 });
+test("the fourth cleared row is awarded before a blocked next piece ends continuation", () => {
+  const g = new BlocksGame(() => 0);
+  g.start();
+  g.score = 3;
+  g.nextIndex = 1; // The next square needs both middle columns of rows 0 and 1.
+  g.board[3].fill(2);
+  g.board[3][4] = 0;
+  g.board[4][4] = 2;
+  g.input("right", true);
+  g.input("up", true);
+  g.input("drop", true);
+  assert.equal(g.score, 4);
+  assert.equal(g.status, "won");
+  g.continuePlay();
+  assert.equal(g.status, "lost");
+  assert.equal(g.achieved, true);
+  assert.equal(g.score, 4);
+});
 test("hop charging and landing can reach eight platforms without mid-air double jumps", () => {
   const g = new HopGame(() => 0.35);
   g.start();
@@ -122,6 +140,34 @@ test("flight has achievable gates and correctly fails on collision", () => {
   crash.y = 120;
   crash.update(0.01);
   assert.equal(crash.status, "lost");
+});
+test("flight counts a gate only after the whole bird has safely cleared it", () => {
+  for (const dt of [.01, .05]) {
+    const g = new FlightGame();
+    g.start();
+    g.score = 7;
+    g.gates = [{ x: 22, center: 80, passed: false }];
+    g.y = 104.8;
+    g.vy = 60;
+    g.update(dt);
+    assert.equal(g.status, "lost", "clipped the gate before the end of the frame");
+    assert.equal(g.score, 7);
+    assert.equal(g.achieved, false);
+  }
+  for (const previous of [7, 15]) {
+    const g = new FlightGame();
+    g.start();
+    g.score = previous;
+    g.achieved = previous >= g.goal;
+    g.gates = [{ x: 22, center: 80, passed: false }];
+    g.y = 80;
+    g.update(.01);
+    assert.equal(g.score, previous, "still inside the gate");
+    assert.equal(g.status, "playing");
+    g.update(.04);
+    assert.equal(g.score, previous + 1);
+    assert.equal(g.status, previous === 7 ? "won" : "playing");
+  }
 });
 test("souvenir rewards are unique, equipment slots persist and legacy wreaths migrate", () => {
   const bag = emptyInventory();
