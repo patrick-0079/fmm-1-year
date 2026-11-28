@@ -7,7 +7,7 @@ import { artScale, cellWidth, cellHeight, footStripHeight, footwearIds, costumeF
 import type { Equipped, ItemId } from "./items";
 import { sceneImage } from "./texture-cache";
 import { drawWornBags } from "./worn-bags";
-import { campCostume, type CampAvatarPose } from "./camp-costumes";
+import { drawCampExpression, type CampAvatarPose } from "./camp-costumes";
 
 export const avatarUrls = [garmentUrl, footwearUrl, wardrobeUrl, jewelryUrl];
 const footwear = sceneImage(footwearUrl), garments = sceneImage(garmentUrl);
@@ -127,46 +127,31 @@ export function drawAvatar(c: CanvasRenderingContext2D, pose: AvatarPose, facing
   c.imageSmoothingQuality = "high";
   if (pose !== "standing") facing = 0;
   const frame = poseFrame(pose, facing, step), outfit = outfitIndex(equipped.clothes);
-  const camp = campPose && pose === "sitting" ? campCostume(campPose, outfit) : undefined;
-  const f = camp ?? costumeFrame(outfit,frame), w=f.w/artScale, h=f.h/artScale;
+  const f = costumeFrame(outfit,frame), w=f.w/artScale, h=f.h/artScale;
   const x=-w/2, y=pose === "lying" ? -h/2 : -h;
   const parts=equipmentParts(equipped,pose,facing,step);
   const shoeIndex = pose !== "lying" && footwear.naturalWidth ? footwearIds.findIndex(id => id === equipped.shoes) : -1;
-  // The camp cels keep the seated feet planted. The fitted shoes change only
-  // columns 48–97 in the bottom 25 source pixels across all nine outfits.
-  const footX = camp ? 47 : 0, footW = camp ? 52 : cellWidth, footH = camp ? 26 : footStripHeight;
-  const bodyHeight = !camp && shoeIndex >= 0 ? cellHeight-footStripHeight : f.h;
+  const bodyHeight = shoeIndex >= 0 ? cellHeight-footStripHeight : cellHeight;
   const hat = parts.find(p => p.style === "hat");
-  c.save();
   if (hat) {
     // Only the central cowlick tucks into a cap. Keep the silhouette of the
     // fringe visible below a tilted beret or the raised edge of a brim.
+    c.save();
     c.beginPath();
     c.rect(x, y, w, h);
     c.rect(hat.x+hat.w/2-5.5, y, 11, hat.y+hat.h*.69-y);
     c.clip("evenodd");
   }
-  if (camp && shoeIndex >= 0) {
-    c.beginPath();
-    c.rect(x,y,w,h);
-    c.rect((footX-cellWidth/2)/artScale,-footH/artScale,footW/artScale,footH/artScale);
-    c.clip("evenodd");
-  }
-  c.drawImage(camp?.body ?? garments,f.x,f.y,f.w,bodyHeight,x,y,w,bodyHeight/artScale);
-  c.restore();
+  c.drawImage(garments,f.x,f.y,f.w,bodyHeight,x,y,w,bodyHeight/artScale);
+  if (pose === "sitting" && campPose) drawCampExpression(c, campPose, outfit);
+  if (hat) c.restore();
   if (shoeIndex >= 0) {
     const row=outfit*footwearIds.length+shoeIndex;
-    c.drawImage(footwear,frame*cellWidth+footX,(row+1)*footStripHeight-footH,footW,footH,
-      (footX-cellWidth/2)/artScale,-footH/artScale,footW/artScale,footH/artScale);
+    c.drawImage(footwear,frame*cellWidth,row*footStripHeight,cellWidth,footStripHeight,
+      x,-footStripHeight/artScale,w,footStripHeight/artScale);
   }
-  if (parts.some(part => part.layer === "underArm")) drawWornBags(c, parts, equipped.clothes, pose, facing, step, !!camp);
-  for (const part of parts) {
-    if (part.layer === "front") paintPart(c,part,facing);
-  }
-  if (camp && (parts.length || shoeIndex >= 0 || campPose?.drawHeld)) {
-    campPose?.drawHeld?.(c);
-    camp.drawSleeves(c);
-  }
+  if (parts.some(part => part.layer === "underArm")) drawWornBags(c, parts, equipped.clothes, pose, facing, step);
+  for (const part of parts) if (part.layer === "front") paintPart(c,part,facing);
   if (pose === "lying") {
     c.fillStyle = "#a999c9";
     c.font = '8px "Microsoft YaHei", sans-serif'; c.fillText("z",24,-23);

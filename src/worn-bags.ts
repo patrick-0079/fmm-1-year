@@ -106,7 +106,7 @@ function masksFor(clothes: Equipped["clothes"], pose: AvatarPose, facing: Facing
 }
 
 export function drawWornBags(c: CanvasRenderingContext2D, parts: EquipmentPart[], clothes: Equipped["clothes"],
-  pose: AvatarPose, facing: Facing, step: number, separateSleeves = false) {
+  pose: AvatarPose, facing: Facing, step: number) {
   const masks = masksFor(clothes, pose, facing, step);
   for (const part of parts) {
     if (part.layer !== "underArm") continue;
@@ -122,8 +122,8 @@ export function drawWornBags(c: CanvasRenderingContext2D, parts: EquipmentPart[]
     c.save();
     if (straps) {
       if (!facing || facing === 3 || satchel) c.clip(masks.cloth);
-      if (!separateSleeves) c.clip(satchel && facing !== 2 ? masks.behindArm : masks.aroundShoulder);
-    } else if (!separateSleeves) {
+      c.clip(satchel && facing !== 2 ? masks.behindArm : masks.aroundShoulder);
+    } else {
       // A rucksack sits outside the hair at the back. The satchel stays beneath the nearer hand.
       c.clip(masks.behindArm);
     }

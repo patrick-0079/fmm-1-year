@@ -1,39 +1,23 @@
-/** World-pixel offsets from the seated player's feet. The visitor and the
- * dressed figure use the same drawn contact on each cel. */
-const contacts = {
-  bird: [
-    [-2.2,-10.5],[-2.4,-10.6],[-2.6,-10.7],[-2.8,-10.8],
-    [-2.75,-10.8],[-2.5,-10.6],[-2.45,-10.55],[-2.65,-10.7],
-    [-3,-11],[-8.2,-12.2],[-11.65,-15.15],[-15,-16],
-    [-15.4,-16.2],[-15,-16],[-9.4,-12.55],[-3,-11],
-  ],
-  butterfly: [
-    [0,-10.6],[0,-10.65],[0,-10.75],[0,-10.9],
-    [0,-10.85],[0,-10.95],[0,-11.1],[0,-10.95],
-    [0,-10.5],[0,-10.65],[0,-11.0],[0,-11.45],
-    [0,-11.55],[0,-11.45],[0,-10.95],[0,-10.5],
-  ],
-  jelly: [
-    [2.2,-10.5],[2.3,-10.6],[2.55,-10.8],[2.75,-10.85],
-    [2.7,-10.8],[2.55,-10.7],[2.4,-10.55],[2.55,-10.7],
-    [3,-11],[8,-12.5],[10.6,-16.5],[14,-19],
-    [14.4,-19.5],[14,-19],[9,-13.5],[3,-11],
-  ],
-  marshmallow: [
-    [-6,-10.95],[-7.65,-11.25],[-9.25,-11.55],[-10.3,-11.85],
-    [-10.45,-11.9],[-9.5,-12.5],[-8.5,-13.05],[-9.85,-12.15],
-    [-10.3,-11.85],[-8.65,-12.1],[-6.65,-12.55],[-5.45,-13.05],
-    [-4.9,-13.2],[-4.95,-13.15],[-5.5,-12.7],[-6.65,-12.1],
-  ],
-} as const;
+import type { CampEncounterId } from "./camp-encounters.ts";
+import { artScale, cellWidth, cellHeight } from "./costume-frames.ts";
 
-export function campEncounterContact(id: keyof typeof contacts, frame: number) {
-  const [x, y] = contacts[id][frame];
-  return {x, y};
-}
+// Landmarks are in the unaltered 144 × 184 seated drawings. The bird's toes,
+// the butterfly's feet and the jelly's lowest filament touch different spots.
+const landmarks = [
+  // knee, cuff, hem, mouth
+  [[56,148],[53,136],[95,156],[74,111]],
+  [[56,148],[55,137],[109,163],[74,112]],
+  [[55,148],[53,135],[107,165],[74,113]],
+  [[55,148],[53,136],[96,155],[74,111]],
+  [[55,149],[55,136],[106,163],[74,112]],
+  [[56,147],[53,135],[96,154],[74,112]],
+  [[55,146],[52,135],[96,154],[72,109]],
+  [[56,149],[54,137],[105,165],[74,112]],
+  [[56,149],[54,136],[102,164],[74,111]],
+] as const;
+const spot = {bird: 0, butterfly: 1, jelly: 2, marshmallow: 3} as const;
 
-// The nine original rest drawings have slightly different chin heights.
-const lipY = [110.3,111.3,112.3,110.3,111.3,111.3,108.3,111.3,110.3];
-export function campEncounterMouth(outfit: number) {
-  return { x: outfit===6 ? 0 : .5, y: (lipY[outfit]-184)/4 };
+export function campEncounterLandmark(id: CampEncounterId, outfit: number) {
+  const [x, y] = landmarks[outfit][spot[id]];
+  return {x: (x - cellWidth / 2) / artScale, y: (y - cellHeight) / artScale};
 }

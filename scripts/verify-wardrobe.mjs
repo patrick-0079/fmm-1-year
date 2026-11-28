@@ -72,7 +72,7 @@ try {
     await page.waitForFunction(()=>window.contentQA?.ready());
     await page.getByRole("button",{name:"⚙ 调试"}).click();
     await page.locator("summary").filter({hasText:"花海营火奇遇"}).click();
-    for (const [id,verb] of [["bird","伸出手指"],["butterfly","摊开双手"],["jelly","碰一碰"],["marshmallow","尝一口"],["marshmallow","尝一口"]]) {
+    for (const [id,verb] of [["bird","听它唱歌"],["butterfly","让它停一会儿"],["jelly","等它靠近"],["marshmallow","尝一口"],["marshmallow","尝一口"]]) {
       await page.locator('[data-debug="camp:'+id+'"]').click();
       await page.waitForFunction(verb => {
         const b=document.querySelector(".camp-respond");

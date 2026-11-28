@@ -1,20 +1,45 @@
-import { campEncounterMouth } from "../src/camp-encounter-contacts.ts";
+import { campEncounterLandmark } from "../src/camp-encounter-contacts.ts";
 
-// Artist coordinates are the seated outfit master's 144 × 184 cell. The
-// pelvis, shoes, collar and crown stay on the existing wardrobe registration.
-// The drawn bend, wrist, palm, eyelids and fingertip change from cel to cel.
-const designs = [
-  {name:"base", sleeve:"#d5bce0", shade:"#b69bc5", cuff:"#fff0db", shell:"#cbb2d5", knee:"#f9d9c7", type:"detached"},
-  {name:"roseDress", sleeve:"#fff0dd", shade:"#debfb0", cuff:"#f7dfbd", shell:"#be577a", knee:"#fadbc7", type:"puff"},
-  {name:"mintCape", sleeve:"#fbf0dd", shade:"#d5c7bb", cuff:"#f1e7cb", shell:"#91ada1", knee:"#496c6e", type:"cape"},
-  {name:"cloudPajamas", sleeve:"#b4addc", shade:"#938dbd", cuff:"#f8edde", shell:"#b1abdb", knee:"#b3addd", type:"piping"},
-  {name:"apricotNightgown", sleeve:"#f9c4a6", shade:"#dfa386", cuff:"#fff0d9", shell:"#f5bd9c", knee:"#fadac8", type:"puff"},
-  {name:"sailorSet", sleeve:"#fff2e0", shade:"#e0cbba", cuff:"#716478", shell:"#fff0dc", knee:"#fbddc8", type:"short"},
-  {name:"honeyOveralls", sleeve:"#aaa989", shade:"#888a73", cuff:"#babb99", shell:"#d49a58", knee:"#dfa054", type:"short"},
-  {name:"witchDress", sleeve:"#f3e1de", shade:"#cfb1be", cuff:"#faece3", shell:"#554157", knee:"#fad9c6", type:"mantle"},
-  {name:"mikoOutfit", sleeve:"#fff4f0", shade:"#ddcdd0", cuff:"#ba3338", shell:"#fff1ec", knee:"#ce2922", type:"bell"},
+// Coordinates measured on each of the nine seated originals. Each pupil has
+// its own centre. In particular the two irises are not mirror images.
+const features = [
+  {eyes: [51,81,95], pupils: [[59.95,100.45],[85.15,100.45]]},
+  {eyes: [51,82,96], pupils: [[60.15,101.8],[86.7,101.85]]},
+  {eyes: [50,81,97], pupils: [[59.2,103.65],[85.7,103.5]]},
+  {eyes: [51,82,95], pupils: [[60.1,101.65],[86.4,101.55]]},
+  {eyes: [50,81,96], pupils: [[59.4,101.8],[85.7,101.8]]},
+  {eyes: [52,83,96], pupils: [[61.25,101.8],[87.35,101.8]]},
+  {eyes: [50,80,93], pupils: [[59.0,99.4],[84.7,99.4]]},
+  {eyes: [51,82,96], pupils: [[60.4,102.4],[86.35,102.3]]},
+  {eyes: [52,82,95], pupils: [[61.1,100.5],[86.35,100.45]]},
 ];
-export { designs };
+const gaze = {
+  glanceLeft: [-.6,.2],    lookLeft: [-1.15,.4],
+  glanceUp: [-.28,-.5],    lookUp: [-.58,-1],
+  glanceRight: [.55,-.12], lookRight: [1.2,-.25],
+  glanceDown: [-.25,.5],   lookDown: [-.5,.95],
+};
+const offset = (x,y) => 4*(y*144+x);
+const clamp = value => Math.min(255,Math.max(0,Math.round(value)));
+
+// Each gaze cel repaints only the little dark pupil inside the original iris.
+// Lift its ink at the old centre and lay it down at the new one. Both pigment
+// and iris undertone come from this eye on this garment. The iris rim, white,
+// highlights, upper and lower lashes, hair, smile and jaw stay on the master.
+function paintGaze(pixels, source, row, direction) {
+  const [dx,dy] = gaze[direction];
+  for (const [cx,cy] of features[row].pupils) {
+    const x0 = Math.round(cx), y0 = Math.round(cy);
+    const core = offset(x0,y0), left = offset(x0-2,y0), right = offset(x0+2,y0);
+    const pigment = [0,1,2].map(k => Math.max(0,(source[left+k]+source[right+k])/2-source[core+k]));
+    const dot = (x,y) => Math.exp(-1.45*((x/.99)**2+(y/1.15)**2));
+    for (let y=y0-2;y<=y0+2;y++) for (let x=x0-2;x<=x0+2;x++) {
+      const coverage = dot(x-cx,y-cy)-dot(x-cx-dx,y-cy-dy);
+      const i = offset(x,y);
+      for (let k=0;k<3;k++) pixels[i+k]=clamp(source[i+k]+coverage*pigment[k]);
+    }
+  }
+}
 
 const n = value => Math.round(value*100)/100;
 const p = point => n(point[0])+" "+n(point[1]);
@@ -22,44 +47,6 @@ const path = (d,fill,stroke="none",width=1) =>
   '<path d="'+d+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="'+n(width)+'" stroke-linejoin="round" stroke-linecap="round"/>';
 const line = (d,color,width=1) => path(d,"none",color,width);
 const ellipse = (x,y,rx,ry,color) => '<ellipse cx="'+n(x)+'" cy="'+n(y)+'" rx="'+n(rx)+'" ry="'+n(ry)+'" fill="'+color+'"/>';
-
-const look = {
-  bird: {
-    x:[-.4,-.7,-1.0,-1.25,-1.3,-1.0,-.7,-1.0,-1.0,-1.2,-1.45,-1.65,-1.6,-1.5,-1.1,-.65],
-    y:[.25,.5,.8,.9,.9,.8,.7,.7,.7,.55,.3,.12,0,.12,.4,.5],
-    lid:[1,1,.97,1,.97,.87,.68,.97,.96,1,1,.96,.88,.98,.98,.92],
-    mouth:[0,0,1,1,1,0,0,1,1,1,2,2,3,2,1,0],
-  },
-  butterfly: {
-    x:[-1.45,-1.3,-1.16,-.95,-1.0,-1.15,-1.3,-.9,-.85,-.6,-.4,-.12,-.05,-.12,-.25,-.55],
-    y:[-.5,-.85,-1,-1.15,-1.15,-.98,-.78,-1.05,-.75,-.28,.2,.65,.9,.65,.2,-.45],
-    lid:[.93,1,1,1,.96,.88,.95,1,1,.98,1,.95,.9,.96,.98,.94],
-    mouth:[0,1,1,2,1,0,0,1,1,1,2,2,3,2,1,0],
-  },
-  jelly: {
-    x:[.4,.7,1.1,1.35,1.4,1.15,.85,1.1,1.05,1.35,1.55,1.65,1.7,1.55,1.15,.8],
-    y:[-.25,-.4,-.6,-.75,-.7,-.5,-.3,-.6,-.6,-.7,-.9,-1,-1.05,-.85,-.55,-.35],
-    lid:[.98,1,.98,1,.95,.83,.95,.99,1,1,1,.98,.96,.99,1,.98],
-    mouth:[0,0,1,1,1,0,0,1,1,1,2,3,3,2,1,0],
-  },
-  marshmallow: {
-    x:[-1,-1.15,-1.35,-1.4,-1.5,-1.15,-.85,-1.2,-1.45,-1.12,-.85,-.5,0,0,-.5,-.95],
-    y:[.5,.55,.65,.7,.7,.5,.35,.55,.75,.65,.45,.3,.2,.15,.3,.5],
-    lid:[1,.98,.96,.97,.95,.73,.42,.86,.97,.93,.78,.28,0,0,.5,.92],
-    mouth:[0,0,1,1,1,0,0,1,1,1,1,2,4,4,1,0],
-  },
-};
-
-// Left and right eyes have subtly different placements on the independently
-// authored outfit masters. These are the outer corner x and upper lash y.
-export const eyes = [
-  [51,81,95], [51,82,96], [50,81,97], [51,82,95], [50,81,96],
-  [52,83,96], [50,80,93], [51,82,96], [52,82,95],
-];
-export function mouthAt(row) {
-  const {x,y}=campEncounterMouth(row);
-  return [72+4*x,184+4*y];
-}
 
 // Traced from the approved marshmallow bite. The shorter screen-left crescent
 // rises at its outer corner. The longer right lash slopes down into its flick.
@@ -92,48 +79,73 @@ function tastingCheeks(left,right,top,frame) {
   return svg;
 }
 
-export function faceArt(row,event,frame) {
-  const acting=look[event], sky=acting.y[frame], gaze=acting.x[frame], open=acting.lid[frame];
-  const [left,right,top]=eyes[row];
-  const tasting=event==="marshmallow" && frame>=11 && frame<=13;
-  let svg=tasting?tastingCheeks(left,right,top,frame):"";
-  for (let side=0;side<2;side++) {
-    const x=side?right:left, width=14, near=side?1:-1;
-    const z=(px,py)=>p([x+(side?width-px:px),top+py]);
-    if(tasting) {
-      svg+=tastingEye(side,x,top+(side?.65:0),frame===11);
-      continue;
+function lip(row) {
+  const {x,y} = campEncounterLandmark("marshmallow",row);
+  return [72+4*x,184+4*y-.7];
+}
+
+// Only the bite requires painting the skin behind the original open eyes.
+// Find the upper lash column by column to follow the fringe, then sample the
+// wearer's own skin on the inner cheek to feather the small cleared aperture.
+function prepareBite(pixels, source, row) {
+  const [left,right,top] = features[row].eyes;
+  for (const lx of [left,right]) {
+    const leftEye=lx===left;
+    const near=offset(leftEye?65:79,top+12), far=offset(leftEye?63:81,top+13);
+    const skin=[0,1,2].map(k=>.6*source[near+k]+.4*source[far+k]);
+    for (let x=lx-2;x<=lx+16;x++) {
+      let first=Infinity, last=-1;
+      for (let y=top-1;y<=top+10;y++) {
+        const i=offset(x,y), r=source[i], g=source[i+1], b=source[i+2];
+        const ink=(r<148 && g<130 && b<143) || (r<g-10 && b<g+8) || (r>g+64 && g<103);
+        // On some garments the white at the inner corner extends one pixel
+        // past the end of the lash. That white also disappears on closure.
+        const inner=leftEye?x>=lx+13:x<=lx+1;
+        const white=inner && y>=top+3 && y<=top+9 && g>skin[1]+6 && b>skin[2]+8;
+        if ((ink && x>=lx-1 && x<=lx+15) || white) {
+          first=Math.min(first,y);
+          last=y;
+        }
+      }
+      if (last<first) continue;
+      const t=Math.min(1,Math.abs((x-lx-6.8)/8.15));
+      const bottom=Math.max(last+1,Math.round(top+5+7.4*Math.sqrt(1-t*t)));
+      const cheek=offset(x,Math.min(top+14,bottom+2));
+      const hasCheek=source[cheek]>227 && source[cheek+1]>176 && source[cheek+1]>source[cheek+2]+2;
+      for (let y=first-1;y<=bottom+1;y++) {
+        const i=offset(x,y), feather=y===first-1?.55:y===bottom+1?.38:1;
+        const cheekMix=hasCheek?.65*Math.min(1,Math.max(0,(y-top-3)/9)):0;
+        for (let k=0;k<3;k++) {
+          const tone=skin[k]*(1-cheekMix)+source[cheek+k]*cheekMix;
+          pixels[i+k]=clamp(source[i+k]*(1-feather)+tone*feather);
+        }
+      }
     }
-    const lift=2.6*(1-open), floor=4.5+6.2*open;
-    const outline="M"+z(.25,4.3+lift)+"Q"+z(5,-.7+lift)+" "+z(12.6,1.35+lift)
-      +"Q"+z(14.7,4.7+lift)+" "+z(12.2,floor-2.2)+"Q"+z(8.6,floor+2.6)+" "+z(4,floor-.8)
-      +"Q"+z(1.8,floor-2)+" "+z(.25,4.3+lift)+"Z";
-    const id="eye"+side, cx=x+(side?6:8)+gaze, cy=top+5.75+sky;
-    svg+='<defs><clipPath id="'+id+'"><path d="'+outline+'"/></clipPath></defs>';
-    svg+=path(outline,"#fff1e9");
-    svg+='<g clip-path="url(#'+id+')">';
-    svg+=ellipse(cx,cy,5.25,6.45,side?"#733652":"#355956")
-      +ellipse(cx,cy+.4,4.45,5.6,side?"#ac466f":"#548b79")
-      +ellipse(cx,cy+1.8,3.65,3.8,side?"#d16a99":"#7fbc9d")
-      +ellipse(cx,cy-.3,1.45,2.25,side?"#73324f":"#28564a")
-      +ellipse(cx-1.5,cy-2.4,.92,1.0,"#fff9ef")
-      +ellipse(cx+1.2,cy+3.0,.49,.63,side?"#f7beca":"#bae5cf")+'</g>';
-    svg+=line("M"+z(-.35,4.05+lift)+"Q"+z(4.6,-1+lift)+" "+z(12.55,1.4+lift), "#54313c",2.35);
-    svg+=line("M"+z(.4,4+lift)+"l"+n(near*.5)+" 1.35","#6c3b49",1.05);
   }
-  const [mx,my]=mouthAt(row), smile=acting.mouth[frame];
-  if(tasting){
-    const bite=frame===13?.6:0;
-    svg+=line("M"+p([mx-3.3,my-.7])+"q.55 1.35 1.35 1.15 q1.25 .95 2.6 .75 q1.85 .35 3.6 "+n(-1.95+bite),
-      "#935950",1.05);
-    svg+=line("M"+p([mx-2.8,my-.8])+"q-.25 1.25 .65 2.1","#a56c5f",.7);
-  } else if(smile===2 || smile===3) {
-    const w=smile===3?3.3:2.7, h=smile===3?2.75:2.2;
-    svg+=path("M"+p([mx-w,my])+"Q"+p([mx,my+1.4])+" "+p([mx+w,my-.5])+"Q"+p([mx+w*.48,my+h+1.3])+" "+p([mx,my+h])+"Q"+p([mx-w*.75,my+h*.9])+" "+p([mx-w,my])+"Z","#a2515d","#80444b",.85);
-    svg+=line("M"+p([mx-1,my+h-.85])+"q1.5 .5 2.5 -.55","#ec9c99",.8);
-  } else {
-    const w=smile===4?3.1:smile===1?3.2:2.5;
-    svg+=line("M"+p([mx-w,my+.15])+"Q"+p([mx-.15,my+(smile===4?3.2:2.1)])+" "+p([mx+w,my-.5]),"#955e57",.93);
+  const [cx,cy]=lip(row);
+  for (let y=Math.floor(cy-2);y<cy+3.65;y++) for (let x=cx-5;x<=cx+5;x++) {
+    const radius=((x-cx)/5.8)**2+((y-cy-.6)/3.1)**2;
+    if (radius>=1) continue;
+    const mix=Math.min(1,(1-radius)*3);
+    const i=offset(x,y), a=offset(cx-6,y), b=offset(cx+6,y);
+    for (let k=0;k<3;k++) pixels[i+k]=clamp(source[i+k]*(1-mix)+(source[a+k]+source[b+k])*.5*mix);
   }
-  return svg;
+}
+
+export function expressionDrawing(source,row,drawing) {
+  const pixels=Buffer.from(source);
+  if (drawing in gaze) {
+    paintGaze(pixels,source,row,drawing);
+    return {pixels};
+  }
+  prepareBite(pixels,source,row);
+  const [left,right,top]=features[row].eyes;
+  const closing=drawing==="closing";
+  const [mx,my]=lip(row);
+  const bite=drawing==="taste"?.6:0;
+  const strokes=tastingCheeks(left,right,top,closing?11:12)
+    +tastingEye(0,left,top,closing)+tastingEye(1,right,top+.65,closing)
+    +line("M"+p([mx-3.3,my-.7])+"q.55 1.35 1.35 1.15 q1.25 .95 2.6 .75 q1.85 .35 3.6 "+n(-1.95+bite),"#935950",1.05)
+    +line("M"+p([mx-2.8,my-.8])+"q-.25 1.25 .65 2.1","#a56c5f",.7);
+  return {pixels,strokes};
 }

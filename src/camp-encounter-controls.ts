@@ -6,9 +6,9 @@ import { sfx } from "./sound";
 import type { World } from "./world";
 
 const invitations: Record<CampEncounterId, [string, string]> = {
-  bird: ["小鸟落在身旁", "伸出手指"],
-  butterfly: ["蝴蝶绕着芙芙飞", "摊开双手"],
-  jelly: ["一只水母游近了", "碰一碰"],
+  bird: ["小鸟落在身旁", "听它唱歌"],
+  butterfly: ["火蝴蝶绕着芙芙飞", "让它停一会儿"],
+  jelly: ["一只水母游近了", "等它靠近"],
   marshmallow: ["棉花糖烤好了", "尝一口"],
 };
 type HitTest = (point: Point, event: Readonly<CampEncounter>, frame: number, pointerType: string) => boolean;

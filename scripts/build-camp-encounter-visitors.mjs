@@ -116,7 +116,7 @@ function butterfly([pose,cinders], frame) {
     + (cinders===2 ? line("M10 36 L11 34.5","#f08347",.85) : "");
 }
 
-// Painted ribbons lead a drifting jelly to the right palm. The lowest filament
+// Painted ribbons lead a drifting jelly to the hem. The lowest filament
 // reaches (10,40) in the touch cels. The glass has a pearl rim and four canals.
 const bells = {
   open: ["M10 21 Q10 13 16 9 Q22 5 29 8 Q35 10 38 16 L38 19 35 21 32 20 30 23 26 22 23 24 20 22 17 23 15 21 12 22Z","M12 19 Q14 12 20 10 M24 9 L27 9.5","M16 20 Q16 13 22 9 M23 22 Q22 15 24 10 M31 20 Q30 14 26 10"],
@@ -191,11 +191,19 @@ const gradients = `<defs>
   <linearGradient id="toasted" x2=".15" y2="1"><stop stop-color="#fff6df"/><stop offset=".5" stop-color="#ffe9c6"/><stop offset="1" stop-color="#e8b277"/></linearGradient>
 </defs>`;
 const rows = [birdCels.map(bird),butterflyCels.map(butterfly),jellyCels.map(jelly),sweetCels.map(marshmallow)];
+// Fixed fork at the edge of the coals. The sparrow takes the candy off the
+// exposed tip at (40,10); both the fork and its skewer remain on the ground.
+const rack = line("M9 44 Q12 37 12 27 L12 20 M12 28 Q15 25 17 21", "#4d3837", 3.8)
+  + line("M9 43 Q11.6 37 12 27 L12 20 M12.2 27 Q15 24.5 17 21", "#ac7851", 2)
+  + line("M5 28 Q20 21 40 10", "#5e4039", 2.6)
+  + line("M5 27.8 Q20 20.8 40 9.8", "#e6bc85", 1.2)
+  + line("M11.8 26 Q13 24.5 15 24.6 M12.7 27.3 Q14.1 25.8 16 25.8", "#d7a772", 1);
+rows.push([rack]);
 const frames = [];
 for (const [row,drawings] of rows.entries()) for (const [column,drawing] of drawings.entries()) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cell}" height="${cell}">${gradients}${drawing}</svg>`;
   frames.push({input: await sharp(Buffer.from(svg)).png().toBuffer(), top: row * cell, left: column * cell});
 }
 const output = fileURLToPath(new URL("../src/assets/meadow-camp-encounter-visitors.webp",import.meta.url));
-await sharp({create:{width:16*cell,height:4*cell,channels:4,background:"#0000"}})
+await sharp({create:{width:16*cell,height:rows.length*cell,channels:4,background:"#0000"}})
   .composite(frames).webp({lossless:true,effort:6}).toFile(output);
