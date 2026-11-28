@@ -52,13 +52,17 @@ let removeEarly: (() => boolean) | undefined;
 
 export function pinDebugDock(dock: HTMLElement, panel: HTMLElement, root: Element) {
   const help = document.querySelector<HTMLDialogElement>("#game-help")!;
+  const cinema = document.querySelector<HTMLElement>(".cinema-player");
+  const cinemaTools = cinema?.querySelector<HTMLElement>(".cinema-player-tools");
   const place = () => {
-    const target = !panel.hidden && help.open ? help : document.fullscreenElement || root;
+    const target = !panel.hidden && help.open ? help
+      : cinema && !cinema.hidden && cinemaTools ? cinemaTools : document.fullscreenElement || root;
     if (target !== dock.parentElement && !(target instanceof HTMLVideoElement)) target.append(dock);
   };
   const observer = new MutationObserver(place);
   observer.observe(help, { attributes: true, attributeFilter: ["open"] });
   observer.observe(panel, { attributes: true, attributeFilter: ["hidden"] });
+  if (cinema) observer.observe(cinema, { attributes: true, attributeFilter: ["hidden"] });
   document.addEventListener("fullscreenchange", place);
   place();
   return () => { observer.disconnect(); document.removeEventListener("fullscreenchange", place); };

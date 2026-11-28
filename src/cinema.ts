@@ -220,6 +220,7 @@ export class GardenCinema {
   }
   reset() {
     this.close();
+    this.refreshTapeHint();
     this.notified = false;
     if (this.video?.readyState) {
       this.video.currentTime = 0;
@@ -392,17 +393,22 @@ export class GardenCinema {
     else this.video.load();
     this.render();
   }
+  private get downloadStatus() {
+    return this.resourcesFailed ? "游戏资源未载齐，进入放映可重试" : downloadLabel(this.download.progress);
+  }
+  refreshTapeHint() {
+    const shortcut = document.querySelector(".cinema-shortcut small");
+    if (!shortcut) return;
+    const tape = this.getTape();
+    shortcut.textContent = gardenScreeningHint[tape] + (tape === "inserted" ? " · " + this.downloadStatus : "");
+  }
   private render() {
     setCinemaMuted(this.active && (this.expanded || this.session.wanted));
-    const progress = this.resourcesFailed ? "游戏资源未载齐，进入放映可重试" : downloadLabel(this.download.progress);
     if (traffic) traffic.filmStatus = this.download.progress.source ? "使用本机缓存" : this.resourcesFailed ? "等待资源重试" :
       ({ queued: "等待游戏资源", checking: "核对本机版本", loading: "下载中", ready: "已完成", error: "下载失败" })[this.download.progress.state];
-    const shortcut = document.querySelector(".cinema-shortcut small");
-    if (shortcut) {
-      const tape = this.getTape();
-      shortcut.textContent = gardenScreeningHint[tape] + (tape === "inserted" ? " · " + progress : "");
-    }
+    this.refreshTapeHint();
     if (!this.active) return;
+    const progress = this.downloadStatus;
     const v = this.video,
       s = this.session.displayStage();
     const messages: Record<typeof s, string> = {

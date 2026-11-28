@@ -205,6 +205,10 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     updateMailCount();
     persist();
   }
+  function refreshGardenTapeViews() {
+    inventory.refreshGardenTape();
+    cinema.refreshTapeHint();
+  }
   function mergeLiveCollections(other: ReturnType<typeof readProgress>) {
     const flowers = progress.rainbowFlowers.length, visited = progress.visited.length;
     const tape = progress.gardenTape;
@@ -218,7 +222,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
       Object.assign(progress, { muted, sound, bgm, bassSound, volume });
       update();
     }
-    if (progress.gardenTape !== tape) inventory.refreshGardenTape();
+    if (progress.gardenTape !== tape) refreshGardenTapeViews();
     if (flowers !== progress.rainbowFlowers.length) flowerTrail.refresh();
     if (visited !== progress.visited.length) document.querySelector("#explored")!.textContent = String(progress.visited.length);
     if (souvenirs !== items.length || radioTrack !== progress.townKeepsakes.radioTrack
@@ -406,6 +410,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
       if (progress.gardenTape !== "missing" || !canSaveReceipts()) return;
       progress.gardenTape = "carried";
       save();
+      refreshGardenTapeViews();
       sfx("match");
       toast("拾得周年录像带 · 带回周年花园，放进大屏前的放映机吧。");
     });
@@ -729,6 +734,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
               if (!canSaveReceipts() || progress.gardenTape === "missing" || world.scene !== "garden") return;
               progress.gardenTape = "inserted";
               save();
+              refreshGardenTapeViews();
               openScreening();
             } },
             leave,

@@ -264,7 +264,7 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
     world.switchScene("meadow", campTapeSpot.approach);
     key("e");
     expect(tape() === "carried", "在篝火左边按 E 没有拿到录像带");
-    await waitForReading(() => screeningHint().includes("已拿到录像带"), "拾带后首页仍然指引玩家寻带");
+    expect(screeningHint().includes("已拿到录像带"), "拾带操作结束时首页仍然指引玩家寻带");
   }
   await world.prepareScene("garden");
   world.switchScene("garden", {x:710,y:347});

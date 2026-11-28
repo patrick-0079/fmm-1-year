@@ -66,11 +66,15 @@ export async function verifyNavigationRaces(world: World, log: (text: string) =>
   const remote = readProgress(localStorage.getItem(SAVE_KEY));
   remote.rainbowFlowers = rainbowIds.slice(0, -1);
   remote.arcadeBests.flight = 16;
+  remote.gardenTape = "carried";
   localStorage.setItem(SAVE_KEY, JSON.stringify(remote));
   q(".music-toggle").click();
   expect(readProgress(localStorage.getItem(SAVE_KEY)).arcadeBests.flight === 16, "更改设置覆盖了另一标签页的飞行纪录");
   expect(q(".prism-count").textContent === "6 / 7", "保存时合并了花朵，却没有更新花谱");
+  const screeningHint = () => q(".cinema-shortcut small").textContent ?? "";
+  expect(screeningHint().includes("已拿到录像带"), "保存时合并了另一页的持带状态，首页仍然提示寻带");
   remote.rainbowFlowers = [...rainbowIds];
+  remote.gardenTape = "inserted";
   const notify = (key: string, value: unknown) => {
     const raw = JSON.stringify(value);
     localStorage.setItem(key, raw);
@@ -78,6 +82,7 @@ export async function verifyNavigationRaces(world: World, log: (text: string) =>
   };
   remote.astrolabe = {found: ["vine", "star", "brass"], installed: true, turns: [1, 2, 3], mirrors: ["/", "\\"]};
   notify(SAVE_KEY, remote);
+  expect(screeningHint().includes("已放入放映机"), "收到插带存档通知时没有立即更新首页");
   remote.astrolabe.turns[1] = 3;
   remote.volume = .25;
   localStorage.setItem(SAVE_KEY, JSON.stringify(remote));
@@ -126,6 +131,7 @@ export async function verifyNavigationRaces(world: World, log: (text: string) =>
   expect(readInventory(localStorage.getItem(INVENTORY_KEY)).owned.join() === starterItems.join() && JSON.parse(localStorage.getItem(TOWN_TALKED_KEY)!).length === 0 &&
     q('[data-scene="meadow"]').hidden, "清档后恢复了上次冒险的收藏");
   log("两份背包和居民会面记录合并后不丢收藏，重新探索不会复活旧记录");
+  expect(screeningHint().includes("小叶子"), "清档后首页未恢复寻带线索");
   q(".reset-button").click();
   q(".reset-confirm").click();
   expect(readInventory(localStorage.getItem(INVENTORY_KEY)).owned.join() === starterItems.join() &&

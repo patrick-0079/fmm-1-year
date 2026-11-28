@@ -424,7 +424,9 @@ try {
     assert.ok(await panel.isVisible());
     await page.locator(".cinema-shrink").click();
     await page.locator(".cinema-play").click();
-    await page.locator(".cinema-leave").click();
+    await page.locator(".cinema-fullscreen").click();
+    await page.locator(".cinema-exit").click();
+    assert.ok(await page.locator(".cinema-hud").isHidden());
     filmPause.resolve();
     await page.waitForFunction(() => document.querySelector(".network-state")?.textContent?.includes("影片：已完成"));
     await page.waitForFunction(() => document.querySelector("video[data-garden-video]").readyState >= 3);
