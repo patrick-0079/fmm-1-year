@@ -252,7 +252,9 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
     log("相册翻页与单张返回均保留焦点，Esc 可逐层退出。");
   }
   const tape = () => readProgress(localStorage.getItem(SAVE_KEY)).gardenTape;
+  const screeningHint = () => q(".cinema-shortcut small").textContent ?? "";
   if (tape() === "missing") {
+    expect(screeningHint().includes("小叶子"), "领取前首页没有提供录像带线索");
     for (const flower of rainbowFlowers) {
       await world.prepareScene(flower.scene);
       world.switchScene(flower.scene, flower.approach);
@@ -262,6 +264,7 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
     world.switchScene("meadow", campTapeSpot.approach);
     key("e");
     expect(tape() === "carried", "在篝火左边按 E 没有拿到录像带");
+    await waitForReading(() => screeningHint().includes("已拿到录像带"), "拾带后首页仍然指引玩家寻带");
   }
   await world.prepareScene("garden");
   world.switchScene("garden", {x:710,y:347});
@@ -274,16 +277,23 @@ export async function verifyReadingControls(world: World, log: (text: string) =>
     insert!.click();
   }
   const video = q<HTMLVideoElement>('video[data-garden-video]'), hud = q(".cinema-hud");
+  expect(screeningHint().includes("已放入放映机"), "插带后首页放映提示没有更新");
   expect(!hud.hidden && book().facts.includes("cinema-opened"), "在大屏前按 E 没有进入放映并记下到访");
   expect(book().earned.includes("memories"), "真实打开单张照片与花园大屏后没有盖章");
   for (const shortcut of ["e", " "]) {
     video.pause();
-    video.dispatchEvent(new Event("error"));
-    expect(hud.dataset.stage === "error", "没有模拟出放映失败状态");
-    world.canvas.focus({preventScroll:true});
-    key(shortcut);
-    expect(hud.dataset.stage !== "error" && q(".cinema-hud .cinema-play").textContent?.includes("取消等待"),
-      "视频出错后互动键未重试并恢复播放意图：" + shortcut);
+    // Native media errors set video.error before they send the event.
+    Object.defineProperty(video, "error", { configurable: true, value: { code: MediaError.MEDIA_ERR_NETWORK } });
+    try {
+      video.dispatchEvent(new Event("error"));
+      expect(hud.dataset.stage === "error", "没有模拟出放映失败状态");
+      world.canvas.focus({preventScroll:true});
+      key(shortcut);
+      expect(hud.dataset.stage !== "error" && q(".cinema-hud .cinema-play").textContent?.includes("取消等待"),
+        "视频出错后互动键未重试并恢复播放意图：" + shortcut);
+    } finally {
+      Reflect.deleteProperty(video, "error");
+    }
   }
   q(".cinema-leave").click();
   expect(hud.hidden && !world.paused && !world.suspended && document.activeElement === world.canvas,

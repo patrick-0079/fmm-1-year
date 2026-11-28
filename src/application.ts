@@ -275,6 +275,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
   }
   const getGardenTape = () => progress.gardenTape;
   const inventory = new Inventory(world, toast);
+  inventory.onKeepsakeCollected = save;
   inventory.gardenTape = getGardenTape;
   inventory.canSave = canSaveReceipts;
   inventory.townKeepsakes = () => progress.townKeepsakes;
@@ -807,7 +808,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
       albumCard.disabled = false;
       enter.innerHTML = `${journey ? "继续上次的冒险" : "开始小冒险"} ${icon("arrow")}`;
       document.querySelector(".intro-screen small")!.textContent = journey ?
-        `本机存档 · ${scenes[world.scene].title} · 点击继续` : "点击开始会播放轻柔音乐 · 可随时关闭 ♡";
+        `本机存档 · ${scenes[world.scene].title} · 点击继续` : "可随时开关背景音乐、调节游戏音量 ♡";
       cinema.prepare();
     })
     .catch(() => {
@@ -882,6 +883,8 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     townTalked: town.talkedIds,
     owned: inventory.collectedItems,
     wearingWreath: inventory.wearingWreath,
+    hasBouquet: inventory.hasBouquet(),
+    hasFlowerMap: inventory.hasFlowerMap(),
     pickedEggs: nature.pickedEggs,
     playSeconds: playClock.seconds,
   });
@@ -1018,7 +1021,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     else {
       showJourney();
       enter.innerHTML = `开始小冒险 ${icon("arrow")}`;
-      document.querySelector(".intro-screen small")!.textContent = "点击开始会播放轻柔音乐 · 可随时关闭 ♡";
+      document.querySelector(".intro-screen small")!.textContent = "可随时开关背景音乐、调节游戏音量 ♡";
     }
     world.paused = !started;
     document.querySelector<HTMLElement>(".reset-confirmation")!.hidden = true;

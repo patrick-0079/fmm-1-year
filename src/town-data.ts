@@ -37,7 +37,7 @@ export const ARCADES: Record<
     x: 1057,
     y: 492,
     reward: "headphones",
-    instructions: "左右移动，上键旋转，下键加速，空格落下。累计消除 4 行。",
+    instructions: "左右移动，上键旋转，下键加速，空格落下。在同一局中消除 4 行即可获得奖励。",
   },
   hop: {
     scene: "town",
@@ -66,7 +66,7 @@ export const ARCADES: Record<
     y: 332,
     reward: "roseDress",
     instructions:
-      "连接相同心愿图案，连线最多拐两次。没有倒计时，可用提示与洗牌；8 对即可领奖。",
+      "连接相同心愿图案，连线最多拐两次。没有倒计时，可以使用提示和洗牌。在同一局中连成 8 对，奖励会自动放进背包。",
   },
   mines: {
     title: "星纹石阵扫雷",
@@ -86,7 +86,7 @@ export const ARCADES: Record<
     y: 326,
     reward: "starShoes",
     instructions:
-      "古绞盘在琥珀井里摇摆。对准晶矿或铜铃按空格或点放钩，收集 160 矿光即可领奖。不限时，落空不扣分。",
+      "古绞盘在琥珀井里摇摆。对准晶矿或铜铃，按空格或点「放下星光钩」。在同一局中收集 160 矿光，奖励会自动放进背包。不限时，落空不扣分。",
   },
 };
 export function arcadesIn(scene: "town" | "ruins") {

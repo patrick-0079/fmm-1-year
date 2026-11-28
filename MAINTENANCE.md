@@ -165,7 +165,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 `src/main.ts`、`src/page-journal.css` 与 `src/game-viewport.ts` 管理游戏外布局。地图以 3:2 适配可用宽高，导航和触控键随视口排列在下方或右侧。`src/game-control-menu.ts` 管理地图图标及「地图」「徽章」两个页签。徽章册直接在导航区内展开，首张地图加载期间也可翻阅。自动保存的地图和时间显示在游戏状态栏中。右栏按可用高度排列目的地卡片。卡面的六张风景图取自对应的地图原画，合在 `src/assets/map-postcards.webp` 中随样式表加载。更新时按 `--print-y` 核对六个位置，花海在第五格。
 
-`src/achievements.ts` 定义五章与 58 枚徽章，由实际收信、互动、收集和单局成绩判定。新徽章在页面右上角排队展示。新徽章的提示音由 `src/sound.ts` 使用 Web Audio 实时合成，通过游戏的音效通道播放，沿用交互音效开关和总音量，不加载外部音频。小镇手作徽章依据 `townKeepsakes.items` 盖章。修改目录时同时核对徽章、隐藏线索及章节数测试。独立的活动时长计时从开局手势开始，读档时只补登有游戏记录佐证的徽章。
+`src/achievements.ts` 定义五章与 64 枚徽章，由实际收信、互动、收集和单局成绩判定。新徽章在页面右上角排队展示。新徽章的提示音由 `src/sound.ts` 使用 Web Audio 实时合成，通过游戏的音效通道播放，沿用交互音效开关和总音量，不加载外部音频。小镇手作徽章依据 `townKeepsakes.items` 盖章。修改目录时同时核对徽章、隐藏线索及章节数测试。独立的活动时长计时从开局手势开始，读档时只补登有游戏记录佐证的徽章。
 
 画面角落只保留当前位置、时间等标签，不再放快捷切图、花环穿脱或复活点条幅。地图切换使用地图导航和实际出口；花环穿脱使用背包或 H 键。添加界面或事件时不要重新绑定已移除的角落按钮，复活仍回到小屋床上。
 
@@ -200,7 +200,7 @@ Workers 与 Pages 的具体填写值、预览构建、Access、令牌和变量�
 
 ## 资源缓存和故障排查
 
-花园周年视频（约 67.1 MiB）的 GET 和版本检查 HEAD 都等站内非视频资源全部下载后才以低优先级发送。影片不阻塞任何地图。优先比较 ETag，否则要求修改时间和长度都一致；只有长度相同不足以复用。完整下载才会替换旧片；没有存储配额或 CDN 指定 `no-store` 时仍可播放本次下载。影片保存在 `fufu-complete-films-v1`，与存档独立。
+花园周年正片（约 204.3 MiB）的 GET 和版本检查 HEAD 都等站内非视频资源全部下载后才以低优先级发送。影片不阻塞任何地图。优先比较 ETag，否则要求修改时间和长度都一致；只有长度相同不足以复用。完整下载才会替换旧片；没有存储配额或 CDN 指定 `no-store` 时仍可播放本次下载。影片保存在 `fufu-complete-films-v1`，与存档独立。
 
 完整构建生成 `game-assets-<version>.json` 和 `game-packs-<version>.json`。在 `scripts/scene-assets.mjs` 维护地图归属。开发清单从 Vite 的游戏入口追踪实际引用，保留媒体 URL 的查询参数。新增入包媒体缺少归属时，构建会指出源路径。
 
@@ -231,7 +231,7 @@ Cloudflare 完整构建根据 `WORKERS_CI_BRANCH` 生成 `artifacts/game-packs/<
 | 修改后正式站没变化 | 确认已 push 到连接的生产分支、Cloudflare 最新构建成功、提交号一致，再刷新正式站 |
 | 新增图标为空 | 确认 WebP 路径和图集尺寸；图集晚到会自动重绘，网络 404 则需修复路径 |
 
-R2 CORS 完整示例在 [README](README.md#花园小电视cdn-周年放映)。`Content-Encoding` 如需供前端读取，应列入 `ExposeHeaders`。依据：[Cloudflare R2 CORS 与缓存说明](https://developers.cloudflare.com/r2/buckets/cors/)。部署命令/预览命令依据：[Workers Builds 配置](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)。
+R2 CORS 完整示例在 [README](README.md#花园大屏cdn-周年放映)。`Content-Encoding` 如需供前端读取，应列入 `ExposeHeaders`。依据：[Cloudflare R2 CORS 与缓存说明](https://developers.cloudflare.com/r2/buckets/cors/)。部署命令/预览命令依据：[Workers Builds 配置](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)。
 
 ## 发布前验收
 

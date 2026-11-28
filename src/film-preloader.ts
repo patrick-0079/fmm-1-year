@@ -48,7 +48,7 @@ export class FilmPreloader {
     if (this.task && (!replaceUnplayable || this.progress.state !== "ready")) return this.task;
     this.progress = { state: "loading", received: 0, total: 0 };
     this.update();
-    // A second tab can reuse the finished copy instead of downloading another 67 MB.
+    // A second tab can reuse the complete film once the first tab has cached it.
     this.task = this.loadOnce(replaceUnplayable).catch((error) => {
       this.progress.state = "error";
       this.task = null;

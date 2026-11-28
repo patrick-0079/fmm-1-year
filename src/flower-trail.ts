@@ -45,7 +45,7 @@ export class FlowerTrail {
     const count = document.querySelector<HTMLElement>(".prism-count");
     if (count) count.textContent = found.length + " / 7";
     const hint = document.querySelector<HTMLElement>(".prism-hint");
-    if (hint) hint.textContent = this.preview && !meadowOpen(found) ? "七色传送阵已临时点亮，就在小叶子左下方的草坪上。" : unlocked ? "七色已齐。去周年庭院西边，在小叶子左下方的草坪上踏入七色传送阵，就能到达花海。" : "留意草丛里的七色小花。每隔 30 秒，未采过的花会短暂亮起。";
+    if (hint) hint.textContent = this.preview && !meadowOpen(found) ? "七色传送阵已临时点亮，就在小叶子左下方的草坪上。" : unlocked ? "七色已齐。去周年花园西边，在小叶子左下方的草坪上踏入七色传送阵，就能到达花海。" : "留意草丛里的七色小花。每隔 30 秒，未采过的花会短暂亮起。";
     const list = document.querySelector<HTMLElement>(".prism-list");
     if (list) {
       list.replaceChildren(...rainbowFlowers.map(f => {

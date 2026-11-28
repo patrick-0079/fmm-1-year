@@ -24,7 +24,7 @@ export const campTapeSpot: Hotspot = {
 };
 export const starJar = { x: 198, y: 194 };
 export const meadowExit: Hotspot = {
-  id: "meadow-exit", title: "月芽传送阵 · 回庭院", x: 58, y: 238, portal: "garden", portalExit: "prism-arch",
+  id: "meadow-exit", title: "月芽传送阵 · 回周年花园", x: 58, y: 238, portal: "garden", portalExit: "prism-arch",
   approach: {x: 87, y: 239}, radius: 39, markerOffset: 0, selfMarked: true,
 };
 export const meadowFlock = [

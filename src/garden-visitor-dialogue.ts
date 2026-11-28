@@ -76,7 +76,7 @@ export const gardenVisitorScripts: Record<GardenSpeaker, Script> = {
   rabe: {
     phases:{dawn:"dawn",day:"day",night:"night"}, other:["exam","play"],
     pages: {
-      intro: {text:"（触手拉住了路过的芙芙）（制止）抱歉哦，他们有点不懂事", gesture:"catch", choices:[["没事哦","offer"]]},
+      intro: {text:"（触手拉住了路过的芙芙，Rabe 赶紧拦住它们）抱歉哦，它们有点不懂事", gesture:"catch", choices:[["没事哦","offer"]]},
       offer: {text:"受伤了，记得来找我。对了，药箱里还有除了药品之外的东西（触手拿出一封信）", gesture:"case", offer:true},
       received: {text:"（芙芙收好信封。）", gesture:"give", offer:true},
       dawn: {text:"早呀，在花园里呼吸新鲜空气对身体很好哦～（触手开心地挥舞着与你打招呼）", gesture:"wave"},

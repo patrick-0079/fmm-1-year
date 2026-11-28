@@ -1,6 +1,6 @@
 export const gardenFilm = {
   title: "芙芙的周年放映",
-  src: "https://cdn.xn--nemu-k77ja176r.space/1-year/video/fmm-1-year-video-placeholder.mp4",
+  src: "https://cdn.xn--nemu-k77ja176r.space/1-year/video/fmm-1-year-video-compressed.mp4",
 };
 // Local display coordinates. The painted TV is tilted, so its world placement
 // comes from all four inner corners, rather than an axis-aligned rectangle.

@@ -4,12 +4,15 @@ import { handedLetters } from "./resident-story.ts";
 import type { TownPage } from "./town-dialogue.ts";
 
 type Script = Record<string, TownPage>;
+const duelInvitation: NonNullable<TownPage["choices"]> = [[actionOption("与浅笑开一局牌局"), "@duel"]];
+const qianxiaoAgainA = "你来啦！有空记得来和我玩几局游戏王！";
+const qianxiaoAgainB = "我又准备了几套新的卡组，有空来和我试试呀！";
 export const guestDialogues = {
   "radio-host": {
     start: {text:"芙芙你来啦，你知道为什么我要当晚安电台的主持人嘛？", choices:[
       ["因为你梦想成为主持？", "offer-letter"], ["因为你喜欢？", "offer-letter"],
     ]},
-    "offer-letter": {text:"都不是哦，因为只有我就可以第一时间转播芙芙的直播啦，可以最快听到芙芙的声音。这里还有你的一封信哦！", letter:handedLetters["radio-host"], collectLabel:"收下信封"},
+    "offer-letter": {text:"都不是哦，因为当主持人就可以第一时间转播芙芙的直播啦，可以最快听到芙芙的声音。这里还有你的一封信哦！", letter:handedLetters["radio-host"], collectLabel:"收下信封"},
     dawn: {text:"唔，这么早就出来逛了呀，要注意休息哦。", choices:[["好哦，宝宝也是", "@close"]]},
     day: {text:"芙芙今天的午播是不是要开始啦？", choices:[["是的哦", "prepare"], ["今天应该是要咕咕咕了", "rest"]]},
     prepare: {text:"那我要赶快回去做准备了！"}, rest: {text:"没关系，那就多休息一点"},
@@ -33,7 +36,7 @@ export const guestDialogues = {
   },
   guli: {
     start: {text:"知道为什么故里要成为烘焙跑腿员嘛？", choices:[["因为故里喜欢吃甜品？","offer-letter"],["不知道哦","offer-letter"]]},
-    "offer-letter": {text:"因为故里想第一时间就把甜蜜送到芙芙手里！希望芙芙的生活能一天过的比一天甜！对了，这里有一封有着蛋糕香味的信～请芙芙收下！", letter:handedLetters.guli, collectLabel:"收下信封"},
+    "offer-letter": {text:"因为故里想第一时间就把甜蜜送到芙芙手里！希望芙芙的日子一天比一天甜！对了，这里有一封有着蛋糕香味的信～请芙芙收下！", letter:handedLetters.guli, collectLabel:"收下信封"},
     dawn: {text:"今早的蛋糕新鲜出炉了哦，我给你留了最甜的一块！", choices:[["好哦，让我尝尝","taste-cake"]]},
     "taste-cake": {text:"是不是很甜呀！和你一样甜呢！"},
     day: {text:"唔啊，到饭点了好忙碌呀，故里要开始疯狂飞奔啦！", pose:"box-run", choices:[["辛苦啦宝宝，注意休息","day-reply"]]},
@@ -45,12 +48,14 @@ export const guestDialogues = {
   qianxiao: {
     start: {text:"芙芙！快看这张我新做的卡！是不是超酷", hint:"芙芙看见新卡底下还压着一张卡片。", pose:"show-card", choices:[["很不错呢！咦，底下这张是什么呀？","photo"]]},
     photo: {text:"（慌乱）（连忙收起）这…这张是你的照片…不是卡，我想你的时候就会看看。"},
-    dawn: {text:"一大早就来和我决斗吗！看来你做好准备了呢！", choices:[[actionOption("与浅笑开一局牌局"),"@duel"]]},
-    day: {text:"开播前来和我玩一把怎么样！放松一下！", choices:[[actionOption("与浅笑开一局牌局"),"@duel"]]},
+    dawn: {text:"一大早就来和我决斗吗！看来你做好准备了呢！", choices:duelInvitation},
+    day: {text:"开播前来和我玩一把怎么样！放松一下！", choices:duelInvitation},
     night: {text:"终于下播啦！辛苦了！要和我玩一把么？", choices:[[actionOption("与浅笑开一局牌局"),"handicap"],["工作累了，想休息","rest"]]},
-    handicap: {text:"工作的那么辛苦，那我就让让你吧！", choices:[[actionOption("拿起自己的手牌"),"@duel"]]},
+    handicap: {text:"工作得那么辛苦，那我就让让你吧！", choices:[[actionOption("拿起自己的手牌"),"@duel"]]},
     rest: {text:"那就好好休息吧，我一直会在这里等着你。"},
-    "again-a": {text:"你来啦！有空记得来和我玩几局游戏王！"}, "again-b": {text:"我又准备了几套新的卡组，有空来和我试试呀！"},
+    "again-a": {text:qianxiaoAgainA}, "again-b": {text:qianxiaoAgainB},
+    "again-a-duel": {text:qianxiaoAgainA, choices:duelInvitation},
+    "again-b-duel": {text:qianxiaoAgainB, choices:duelInvitation},
   },
 } satisfies Record<string, Script>;
 
@@ -59,6 +64,10 @@ export function isGuestDialogue(id: string): id is GuestId {
   return Object.hasOwn(guestDialogues, id);
 }
 export function guestDailyPage(id: GuestId, phase: Phase, inside: boolean, pick: number) {
-  if (pick >= 0) return id === "radio-host" ? "again" : pick === 0 ? "again-a" : "again-b";
+  if (pick >= 0) {
+    if (id === "radio-host") return "again";
+    const page = pick === 0 ? "again-a" : "again-b";
+    return id === "qianxiao" && phase !== "dusk" ? page + "-duel" : page;
+  }
   return id === "radio-host" && inside ? "studio" : phase;
 }

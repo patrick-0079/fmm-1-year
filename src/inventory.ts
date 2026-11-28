@@ -49,6 +49,7 @@ export class Inventory {
   private fittingRoom: InventoryState | null = null;
   get state() { return this.fittingRoom ?? this.earned; }
   onEquip: () => void = () => {};
+  onKeepsakeCollected: () => void = () => {};
   canSave = () => true;
   notebookState: () => { astrolabe: AstrolabeState; listened: boolean } | null = () => null;
   mailbox?: () => LetterList;
@@ -128,6 +129,7 @@ export class Inventory {
     return this.earned.owned.includes(id);
   }
   hasBouquet() { return this.earned.bouquet; }
+  hasFlowerMap() { return this.earned.flowerMap; }
   hasNotebook() { return this.notebookState() !== null; }
   openMail(letterId?: string, onReturn?: () => void) {
     if (!this.mailbox || this.mailCleanups) return;
@@ -191,6 +193,7 @@ export class Inventory {
     if (this.hasBouquet()) return;
     this.earned.bouquet = true;
     this.save();
+    this.onKeepsakeCollected();
     this.render();
     sfx("match");
     this.toast("收到了青芽的洋桔梗");
@@ -199,6 +202,7 @@ export class Inventory {
     if (this.earned.flowerMap) return;
     this.earned.flowerMap = true;
     this.save();
+    this.onKeepsakeCollected();
     this.render();
     sfx("match");
     this.toast("小叶子的手绘地图已放进背包的「纪念物」");
@@ -642,8 +646,8 @@ export class Inventory {
     const item = townKeepsakeInfo[page];
     let design = "";
     if (page === "florist") design = townKeepsakeChoice(book, page) === "cream" ? "夹着一片奶白花瓣。" : "夹着一片浅紫花瓣。";
-    if (page === "post") design = townKeepsakeChoice(book, page) === "lamps" ? "片面画着池边街灯。" : "片面画着广场彩旗。";
-    if (page === "radio" && radioTrack) design = `片头底声为${radioTrackName[radioTrack]}。`;
+    if (page === "post") design = townKeepsakeChoice(book, page) === "lamps" ? "明信片上画着池边街灯。" : "明信片上画着广场彩旗。";
+    if (page === "radio" && radioTrack) design = `片头里能听见${radioTrackName[radioTrack]}声。`;
     return `<article class="bag-town-paper" tabindex="0" aria-label="${item.name}">
       <header><h4>${item.name}</h4><button type="button" data-town-keepsakes data-focus="town-back">返回小镇小物</button></header>
       <div class="bag-town-detail">${art(page)}<p>${item.note}${design}</p></div></article>`;

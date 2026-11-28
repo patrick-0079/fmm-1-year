@@ -346,7 +346,7 @@ export class Activities {
       this.action("和芙芙一起吃一块 🍰", () => this.eatSlice());
     } else if (this.cakeStage === 4) {
       this.status.textContent = "芙芙正在尝一口周年蛋糕…";
-      this.action("看完这小段 / 跳过", () => this.finishEating());
+      this.action("跳过吃蛋糕动画", () => this.finishEating());
     }
   }
   private cutCake() {

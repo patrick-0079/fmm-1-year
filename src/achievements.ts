@@ -7,6 +7,7 @@ import { rainbowFlowers } from "./rainbow-flowers.ts";
 import { producers } from "./star-catalog.ts";
 import { deliveryIds } from "./letters.generated.ts";
 import { achievementEvents, type AchievementEvent } from "./achievement-events.ts";
+import { campEncounterIds, type CampEncounterId } from "./camp-encounters.ts";
 import { townCollectionReward } from "./items.ts";
 import { townInteriorKeys } from "./town-interior-id.ts";
 import { townKeepsakeBadge, townKeepsakeChoice, townKeepsakeInfo } from "./town-keepsakes.ts";
@@ -52,6 +53,9 @@ const daily: Definition[] = [
   { id: "companions", chapter: "daily", name: "旅伴有两位", difficulty: "普通", description: "在周年花园找星星带上桃桃，找霉霉带上棉棉。两位旅伴都邀请过就能获得徽章，顺序不限。" },
   { id: "friends", chapter: "daily", name: "小路尽头都是朋友", difficulty: "挑战", description: "和下方名单里的每位朋友打过招呼。遇到小叶子时，陪它抱一会儿，等它松开才算相遇。" },
   { id: "bed-note", chapter: "daily", name: "床头留了一张便签", difficulty: "简单", description: "触发勇气花园的陷阱，回到小屋床上，看到小叶子的便签。", hint: "遇到小挫折回家时，看看枕边有没有人给你留话。" },
+  { id: "welcome-pin", chapter: "daily", name: "银铃认出你啦", difficulty: "简单", description: "叫醒小镇迎宾员银铃，问问她在等谁，收到她送的一周年纪念胸针。" },
+  { id: "qingya-bouquet", chapter: "daily", name: "青芽挑的那束花", difficulty: "简单", description: "和小镇的青芽聊聊喜欢的花，再收下她亲手挑的洋桔梗。" },
+  { id: "baker-cake", chapter: "daily", name: "给你留的第一块", difficulty: "简单", description: "尝完小镇蛋糕师栗栗送的草莓蛋糕。当场吃或请栗栗留到下次都可以。" },
 ];
 
 function letter(key: string, letterId: string, name: string, difficulty: Difficulty, description: string, hint?: string): Definition {
@@ -94,10 +98,13 @@ const explore: Definition[] = [
   { id: "star-bottle", chapter: "explore", name: "瓶里住着一片星空", difficulty: "挑战", description: "拾齐花海草地上的全部署名星。", hint: "草叶之间藏着一片可以捧在手里的夜空。" },
   { id: "camp", chapter: "explore", name: "火边多了一个座位", difficulty: "探索", description: "在花海营火旁连续坐满 30 秒，等到派大星来陪你。", hint: "这里的火，好像够两个人烤。" },
   { id: "garden-tape", chapter: "explore", name: "藏在花海的这一年", difficulty: "探索", description: "在花海篝火左边找到并收下周年录像带。", hint: "小叶子记得，芙芙这一年的影像收在了哪里。" },
+  { id: "flower-map", chapter: "explore", name: "绒爪画的小路", difficulty: "简单", description: "在周年花园向小叶子打听去花海的路，收到它的手绘地图。" },
+  { id: "guardian-notebook", chapter: "explore", name: "守护者的扉页", difficulty: "普通", description: "在回声遗迹答应守护者试试谜题，收下《遗迹手记》。已经点亮星纹砖也可以回去找她领书。" },
+  { id: "camp-encounters", chapter: "explore", name: "火光里的七次相遇", difficulty: "探索", description: "坐在花海营火旁，等七种奇遇自然出现，按 F 或点回应按钮分别回应一次。错过可以再等，分几次来也算。" },
   ...seals.map(({ id, name, hint }): Definition => ({
     id: "ruin-" + id, chapter: "explore", name,
     description: hint + "。", difficulty: id === "first" ? "简单" : id === "light" ? "挑战" : id === "radio" ? "探索" : "普通",
-    ...(id === "radio" ? { hint: "三盏石灯都亮起时，去听月泉边听一听。" } : {}),
+    ...(id === "radio" ? { hint: "三盏石灯都亮起时，听月泉的水声里好像还藏着什么。" } : {}),
   })),
   { id: "town-miko", chapter: "explore", name: "绯袴留影", difficulty: "挑战", description: "收齐七件小镇小物后，趁游戏里的白昼或黄昏去周年纪念馆找暖栗。收下绯袴巫女服就能获得徽章。" },
   ...townInteriorKeys.map((key): Definition => ({
@@ -173,11 +180,17 @@ export interface AchievementContext {
   townTalked: Iterable<string>;
   owned: readonly string[];
   wearingWreath: boolean;
+  hasBouquet: boolean;
+  hasFlowerMap: boolean;
   playSeconds: number;
   /** Remaining historical daily receipts: supply the egg IDs, not the day keys. */
   pickedEggs?: readonly string[];
 }
 const eggs = ["dew", "sunset", "firefly"] as const;
+const campNames: Record<CampEncounterId, string> = {
+  bird: "小鸟", butterfly: "火蝴蝶", jelly: "水母", marshmallow: "烤棉花糖",
+  starFawn: "星角幼鹿", moonBoat: "月牙纸舟", cloudWhale: "云鲸",
+};
 
 /** Repair independent screening evidence on every load; other historical facts are imported once. */
 export function migrateAchievementFacts(progress: Progress, context: AchievementContext): boolean {
@@ -266,6 +279,11 @@ export function reconcileAchievements(progress: Progress, context: AchievementCo
   meters.set("friends", friends);
 
   const story = progress.residents;
+  meters.set("welcome-pin", yesNo(story.welcomeReceived || context.owned.includes("anniversaryPin")));
+  meters.set("qingya-bouquet", yesNo(context.hasBouquet));
+  meters.set("baker-cake", yesNo(story.cake === "eaten"));
+  meters.set("flower-map", yesNo(context.hasFlowerMap));
+  meters.set("guardian-notebook", yesNo(story.guardianInvited));
   for (const letter of letters) {
     const id = letter.letterId!;
     const got = id === deliveryIds.post ? story.postDelivered
@@ -301,6 +319,9 @@ export function reconcileAchievements(progress: Progress, context: AchievementCo
   meters.set("day-secrets", meter(eggs.filter(id => facts.has(id)).length, eggs.length, "个秘密"));
   meters.set("star-bottle", meter(producers.filter(p => progress.creditStars.includes(p.id)).length, producers.length, "颗落星"));
   meters.set("camp", yesNo(story.patrickArrived));
+  const answered = campEncounterIds.filter(id => facts.has(`camp-response-${id}`));
+  meters.set("camp-encounters", meter(answered.length, campEncounterIds.length, "种奇遇",
+    campEncounterIds.map(id => `${campNames[id]} · ${answered.includes(id) ? "已回应" : "待回应"}`)));
   meters.set("garden-tape", yesNo(progress.gardenTape !== "missing"));
   const earnedInRuins = earnedSeals(progress.astrolabe, progress.echoes.listened);
   for (const seal of seals) meters.set("ruin-" + seal.id, yesNo(earnedInRuins.includes(seal.id)));

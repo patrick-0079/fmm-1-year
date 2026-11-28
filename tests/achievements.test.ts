@@ -4,6 +4,7 @@ import { readProgress } from "../src/core.ts";
 import { achievementChapters, achievementDefinitions, mergeAchievementProgress, migrateAchievementFacts, readAchievementMemory,
   reconcileAchievements, recordAchievementFact, type AchievementContext } from "../src/achievements.ts";
 import { achievementEvents } from "../src/achievement-events.ts";
+import { campEncounterIds } from "../src/camp-encounters.ts";
 import { townInteriorKeys } from "../src/town-interior-id.ts";
 import { collectTownKeepsake, townKeepsakeBadge } from "../src/town-keepsakes.ts";
 import { createEngine, type GameId } from "../src/arcade-engines.ts";
@@ -14,7 +15,7 @@ import { rainbowIds } from "../src/rainbow-flowers.ts";
 import { producers } from "../src/star-catalog.ts";
 import { rings } from "../src/astrolabe.ts";
 
-const empty: AchievementContext = { townTalked: [], owned: [], wearingWreath: false, playSeconds: 0 };
+const empty: AchievementContext = { townTalked: [], owned: [], wearingWreath: false, hasBouquet: false, hasFlowerMap: false, playSeconds: 0 };
 const newGame = () => readProgress(null);
 
 test("an existing badge book recovers a missing garden screening receipt but never guesses a single-photo view", () => {
@@ -64,10 +65,10 @@ test("two open books keep the highest single run and show the score that earned 
   }
 });
 
-test("the book starts with 58 unique stamps in five chapters and seals unopened public letters", () => {
+test("the book starts with 64 unique stamps in five chapters and seals unopened public letters", () => {
   const p = newGame(), { entries, fresh } = reconcileAchievements(p, empty);
-  assert.deepEqual(achievementChapters.map(c => entries.filter(e => e.chapter === c.id).length), [13, 13, 8, 18, 6]);
-  assert.equal(new Set(entries.map(e => e.id)).size, 58);
+  assert.deepEqual(achievementChapters.map(c => entries.filter(e => e.chapter === c.id).length), [16, 13, 8, 21, 6]);
+  assert.equal(new Set(entries.map(e => e.id)).size, 64);
   assert.deepEqual(fresh, []);
   assert.ok(entries.every(e => !e.earned && e.current === 0 && e.progressLabel));
   const mail = entries.filter(e => e.chapter === "letters");
@@ -223,6 +224,8 @@ test("every documented stamp can be completed and replay never duplicates receip
   for (const fact of achievementEvents) recordAchievementFact(p, fact);
   p.completed = ["gifts","cake","fireworks","balloons","courage"];
   p.bassSongPlayed = p.bedNoteUnlocked = true;
+  p.residents.welcomeReceived = p.residents.guardianInvited = true;
+  p.residents.cake = "eaten";
   p.gardenTape = "carried";
   p.rainbowFlowers = [...rainbowIds];
   p.townKeepsakes.items = [...townInteriorKeys];
@@ -232,12 +235,41 @@ test("every documented stamp can be completed and replay never duplicates receip
   grantDebugLetters(p.residents);
   for (const l of allLetters) markLetterRead(p.residents, l.id);
   for (const id of Object.keys(ARCADES) as GameId[]) p.arcadeBests[id] = 400;
-  const ctx = { ...empty, owned:["mikoOutfit"], townTalked: TOWN_NPCS.map(n => n.id), playSeconds: 7 * 24 * 60 };
-  assert.equal(reconcileAchievements(p, ctx).fresh.length, 58);
+  const ctx = { ...empty, hasBouquet:true, hasFlowerMap:true, owned:["mikoOutfit"], townTalked: TOWN_NPCS.map(n => n.id), playSeconds: 7 * 24 * 60 };
+  assert.equal(reconcileAchievements(p, ctx).fresh.length, 64);
   assert.deepEqual(reconcileAchievements(p, ctx).fresh, []);
-  assert.equal(reconcileAchievements(readProgress(JSON.stringify(p)), ctx).entries.filter(e => e.earned).length, 58);
+  assert.equal(reconcileAchievements(readProgress(JSON.stringify(p)), ctx).entries.filter(e => e.earned).length, 64);
   assert.deepEqual(readAchievementMemory({ earned: ["cake","bad","cake","gifts"] }).earned, ["cake","gifts"]);
   assert.equal(achievementDefinitions.filter(d => d.id.startsWith("ruin-")).length, 5);
+});
+
+test("persistent story and inventory receipts backfill gifts while a reserved cake and an unanswered camp stay pending", () => {
+  const original = newGame();
+  original.residents.guardianInvited = true;
+  original.residents.cake = "reserved";
+  const existing = readProgress(JSON.stringify(original));
+  const bag = { ...empty, owned: ["anniversaryPin"], hasBouquet: true, hasFlowerMap: true };
+  assert.deepEqual(reconcileAchievements(existing, bag).fresh, ["welcome-pin", "qingya-bouquet", "flower-map", "guardian-notebook"]);
+  existing.residents.cake = "eaten";
+  assert.deepEqual(reconcileAchievements(existing, bag).fresh, ["baker-cake"]);
+  const reloaded = readProgress(JSON.stringify(existing));
+  assert.deepEqual(reconcileAchievements(reloaded, bag).fresh, []);
+  assert.equal(reloaded.achievements.earned.includes("camp-encounters"), false);
+});
+
+test("camp replies from different visits and tabs count distinct encounters and produce exactly one stamp", () => {
+  const first = newGame(), other = newGame();
+  for (const id of campEncounterIds.slice(0, 3)) recordAchievementFact(first, `camp-response-${id}`);
+  for (const id of campEncounterIds.slice(2, -1)) recordAchievementFact(other, `camp-response-${id}`);
+  const later = readProgress(JSON.stringify(first));
+  mergeAchievementProgress(later, other);
+  const entry = reconcileAchievements(later, empty).entries.find(row => row.id === "camp-encounters")!;
+  assert.equal(entry.current, 6);
+  assert.equal(entry.earned, false);
+  assert.deepEqual(entry.details.filter(line => line.endsWith("待回应")), ["云鲸 · 待回应"]);
+  recordAchievementFact(later, "camp-response-cloudWhale");
+  assert.deepEqual(reconcileAchievements(later, empty).fresh, ["camp-encounters"]);
+  assert.deepEqual(reconcileAchievements(readProgress(JSON.stringify(later)), empty).fresh, []);
 });
 
 test("the miko stamp requires seven distinct keepsakes and accepting the shrine maiden outfit", () => {

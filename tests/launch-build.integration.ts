@@ -108,6 +108,27 @@ test("switching full → invitation → full cleans the deployed directory", asy
   const campSheets = (await readdir(new URL("../src/assets/", import.meta.url)))
     .filter(name => name.startsWith("meadow-camp-") && name.endsWith(".webp"));
   const packIndex = JSON.parse(await readFile(join(outDir, `game-packs-${explicit.marker.version}.json`), "utf8"));
+  const resources = new Map(entries.map(entry => [entry[0], entry]));
+  const packed = new Set<string>();
+  for (const pack of packIndex.packs) {
+    const body = await readFile(join(dir, "artifacts", "game-packs", packIndex.branch, pack.file));
+    assert.equal(createHash("sha256").update(body).digest("hex"), pack.hash, pack.file);
+    assert.equal(body.length, pack.size, pack.file);
+    let offset = 0;
+    for (const [path, start, size] of pack.entries as [string, number, number][]) {
+      const entry = resources.get(path);
+      assert.ok(entry && !packed.has(path), path);
+      packed.add(path);
+      const owners = [...entry[2]].sort();
+      const group = owners.includes("*") ? "common" : owners.length === 1 ? owners[0] : "shared-" + owners.join("-");
+      assert.equal(pack.group, group, path);
+      assert.equal(start, offset, path);
+      assert.ok(size > 0, path);
+      offset += size;
+      assert.equal(createHash("sha256").update(body.subarray(start, offset)).digest("base64"), entry[1], path);
+    }
+    assert.equal(offset, body.length, pack.file);
+  }
   for (const sheet of campSheets) {
     const digest = createHash("sha256").update(await readFile(new URL("../src/assets/" + sheet, import.meta.url))).digest("base64");
     const asset = entries.find(([, hash]) => hash === digest);
@@ -144,8 +165,12 @@ test("switching full → invitation → full cleans the deployed directory", asy
     assert.ok(devNames.includes("src/assets/" + name + ".webp?no-inline"), name);
   const developmentMedia = await Promise.all(development.map(async ([url, , scenes]) => {
     const bytes = await readFile(new URL("../" + url.split("?")[0], import.meta.url));
-    return [createHash("sha256").update(bytes).digest("base64"), scenes] as const;
+    return [createHash("sha256").update(bytes).digest("base64"), scenes, url] as const;
   }));
+  // A cursor or page image can be byte-identical to a game texture under a different source name.
+  const requiredDigests = new Set(developmentMedia.filter(([, scenes, url]) =>
+    scenes.some(scene => scene !== "page") && !url.startsWith("src/assets/fufu-cursor-")).map(([digest]) => digest));
+  for (const [path, digest] of entries) assert.equal(packed.has(path), requiredDigests.has(digest), path);
   const distinctMedia = new Map<string, Set<string>>();
   for (const [digest, scenes] of developmentMedia) {
     const owners = distinctMedia.get(digest) ?? new Set<string>();

@@ -50,9 +50,9 @@ const scripts = {
     return: { text: "你来啦。那束洋桔梗，是我亲手为你挑的哦。", choices: [[actionOption("看看那束花"), "@bouquet"]] },
   },
   baker: {
-    start: { text: "（拿出一块白板上面写着）你就是芙眠眠大人吗？", choices: [["是我哦。", "hand"]] },
-    hand: { text: "（拿出一块草莓蛋糕放在你手上）", choices: [["这是给我的吗？", "offer"]] },
-    offer: { text: "（点点头）（把白板上的字擦干净又重新写下）（这是芙妮宝让我为你做的，第一块当然是留给你的！希望你会喜欢）", choices: cakeChoices },
+    start: { text: "（举起白板，上面写着）你就是芙眠眠大人吗？", choices: [["是我哦。", "hand"]] },
+    hand: { text: "（把一块草莓蛋糕装进小碟，递到你手上）", choices: [["这是给我的吗？", "offer"]] },
+    offer: { text: "（点点头，擦去白板上的字，重新写下）这是芙妮宝让我为你做的，第一块当然是留给你的！希望你会喜欢。", choices: cakeChoices },
     covered: { text: "（栗栗给小碟盖上罩子，轻轻地点了点头。）", effect: "reserve" },
     reserved: { text: "给你留的第一块，要现在尝尝吗？", choices: cakeChoices },
     eat: { text: "（芙芙托起小碟，尝了两口草莓蛋糕。）", effect: "reserve", choices: [[actionOption("放下蛋糕碟，朝栗栗笑一笑"), "finished"]], after: { seconds: 3, next: "finished" } },
@@ -63,7 +63,7 @@ const scripts = {
     start: { text: "哇塞，大姐姐你好好看呀！你是从哪里来的呀？听说今天镇上会来一个大人物呢！你见过她了吗？", choices: [["我没见过哦", "invite"], ["我就是哦~", "reveal"]] },
     invite: { text: "好吧好吧，不知道她什么时候到呢！等她到了我们一起去接她！" },
     reveal: { text: "哇塞！！你就是传说中的芙眠眠大人吗？！难怪这么漂亮。（意识到自己说话有点直接）不好意思哦，嘿嘿。", choices: [["没关系哦，你很可爱呢", "blush"], ["有关系！", "sorry"]] },
-    blush: { text: "（脸红）谢谢，希望你可以玩的开心！" },
+    blush: { text: "（脸红）谢谢，希望你可以玩得开心！" },
     sorry: { text: "姐姐我错啦呜呜~下次不敢了！", hint: "芙芙故意板起脸逗她。" },
   },
   bunny: {

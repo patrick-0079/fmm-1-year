@@ -76,7 +76,7 @@ test("AI finds a lethal line past a guard, cannot see the opponent hand, and lea
 });
 
 test("complete games can end in a real win or loss and only the first victory earns an independent stamp",()=>{
-  const p=readProgress(null), empty={owned:[],wearingWreath:false,townTalked:[],pickedEggs:[],playSeconds:0};
+  const p=readProgress(null), empty={owned:[],wearingWreath:false,hasBouquet:false,hasFlowerMap:false,townTalked:[],pickedEggs:[],playSeconds:0};
   for(const [seed,result] of [[1,"qianxiao"],[74,"player"],[74,"player"]] as const){
     const g=startDuel(seeded(seed));let steps=0;
     while(!g.winner&&steps++<160){

@@ -21,9 +21,9 @@ export async function verifyAchievementBook(world: World, log: (message: string)
   const frame = world.canvas.getBoundingClientRect();
   button("#badges-tab").click();
   check(root.checkVisibility() && root.matches('[role="tabpanel"]') && !document.querySelector(":modal") && !world.suspended, "徽章页签未在游戏内直接展开");
-  check(root.querySelector(".achievement-count strong")?.textContent === "0 / 58", "新档的徽章数不正确");
+  check(root.querySelector(".achievement-count strong")?.textContent === "0 / " + achievementDefinitions.length, "新档的徽章数不正确");
   const position = { ...world.player };
-  for (const [chapter, count] of [["daily", 13], ["letters", 13], ["games", 8], ["explore", 18], ["advanced", 6]] as const) {
+  for (const [chapter, count] of [["daily", 16], ["letters", 13], ["games", 8], ["explore", 21], ["advanced", 6]] as const) {
     button(`[data-book-chapter="${chapter}"]`).click();
     check(root.querySelectorAll(".achievement-grid [data-book-pick]").length === count, chapter + " 徽章数量错误");
     check(document.activeElement === button(`[data-book-chapter="${chapter}"]`),
@@ -66,7 +66,7 @@ export async function verifyAchievementBook(world: World, log: (message: string)
   const rect = world.canvas.getBoundingClientRect();
   check(Math.abs(rect.width - frame.width) < 1 && Math.abs(rect.width / rect.height - 1.5) < .01, "翻册改变游戏画幅");
   check(document.documentElement.scrollWidth <= innerWidth + 1, "徽章册把页面撑宽");
-  log("新档 0/58，五章齐全，彩蛋保密。翻阅 58 条详情后仍在原地，亲手拆礼物后获得第一枚徽章。");
+  log(`新档 0/${achievementDefinitions.length}，五章齐全，逐枚翻阅仍在原地，亲手拆礼物后获得第一枚徽章。`);
 
   await wait(() => notice.hidden, "第一枚徽章的提示未收起");
   const originalStart = OscillatorNode.prototype.start;

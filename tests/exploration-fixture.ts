@@ -13,7 +13,8 @@ import { townEchoGate, ruinsExit, echoAltar, echoPool } from "../src/ruins-map";
 import { southNotebook, ringSpots, moonPlate, mirrorSpots } from "../src/ruins-map";
 import { INVENTORY_KEY, readInventory } from "../src/items";
 import { elderPlaces } from "../src/elders-data";
-import { ARCADES } from "../src/town-data";
+import { ARCADES, TOWN_NPCS } from "../src/town-data";
+import { residentTownScene } from "../src/town-routines";
 import { townInteriors } from "../src/town-interiors";
 import { verifyGuests, verifyGardenDiscovery } from "./guest-cases";
 import { verifyAchievementBook } from "./achievement-book-cases";
@@ -697,11 +698,13 @@ q("#check-bass").addEventListener("click",()=>void run(async()=>{
   dbg("map:town").click(); await wait(()=>world.scene==="town" && !world.suspended);
   const photos=q("#town-samples");photos.replaceChildren();
   const rosters=new Set<string>();
-  for(const [phase,label,count] of [["dawn","清晨",8],["day","白昼",8],["dusk","黄昏",10],["night","星夜",7]] as const) {
+  for(const [phase,label] of [["dawn","清晨"],["day","白昼"],["dusk","黄昏"],["night","星夜"]] as const) {
     openDebug();dbg("time:"+phase).click();
-    const residents=world.config.spots.map(s=>s.id).filter(id=>id.startsWith("npc-"));
-    expect(!world.suspended && !q("#game-debug-panel").hidden && residents.length===count,"打开调试面板时小镇班次未同步");
-    rosters.add(residents.sort().join(","));
+    const residents=world.config.spots.map(s=>s.id).filter(id=>id.startsWith("npc-")).sort();
+    const expected=TOWN_NPCS.filter(npc=>residentTownScene(npc.id,phase)==="town").map(npc=>"npc-"+npc.id).sort();
+    expect(!world.suspended && !q("#game-debug-panel").hidden && residents.join(",")===expected.join(","),
+      label+"小镇街面名单有误，应为 "+expected.join("、")+"，实为 "+residents.join("、"));
+    rosters.add(residents.join(","));
     q(".debug-close").click();
     await new Promise<void>(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>r())));
     const cell=document.createElement("figure"), picture=document.createElement("canvas"), cap=document.createElement("figcaption");

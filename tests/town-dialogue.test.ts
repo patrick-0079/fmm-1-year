@@ -111,6 +111,15 @@ test("revisits depend on actual delivery or gift completion even if the player h
   assert.deepEqual(townDialogues.bunny.hug.after, {seconds: 1.5, next: "intro"});
 });
 
+test("Qianxiao's repeat invitations can start another duel during the same playable shift", () => {
+  for (const phase of ["dawn", "day", "dusk", "night"] as const) {
+    for (const pick of [0, 1]) {
+      const page = townDialogues.qianxiao[guestDailyPage("qianxiao", phase, false, pick)];
+      assert.equal(page.choices?.some(([, next]) => next === "@duel") ?? false, phase !== "dusk");
+    }
+  }
+});
+
 test("town residents keep their authored shift topics and working reply routes", () => {
   const references = new Set<string>();
   assert.deepEqual([...Object.keys(townChatTopics), ...Object.keys(guestDialogues)].sort(), TOWN_NPCS.map(n => n.id).sort());

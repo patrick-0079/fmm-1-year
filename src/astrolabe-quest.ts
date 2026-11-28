@@ -73,7 +73,7 @@ export class AstrolabeQuest {
     this.menu("南阶的寻环线索 · "+hint+(hasBook ? "" : "　南阶上方的守护者珍藏着一本《遗迹手记》。"),[
       hasBook ? {title:"翻开随身的遗迹手记",run:()=>this.openNotebook()} :
         {title:"去见守护者",run:()=>{this.exit();this.world.visit(elderPlaces.ruins.id);}},
-      {title:"离开南阶的书托",run:this.exit},
+      {title:"收起寻环线索",run:this.exit},
     ]);
   }
   interact(id:string) {
@@ -104,7 +104,7 @@ export class AstrolabeQuest {
       const full=state.found.length===3;
       this.menu(full?"三枚环的刻纹与盘心的凹槽吻合。":"残缺的星盘留着三圈凹槽。你已找到 "+state.found.length+" / 3 枚环。",[
         full ? {title:"装入三枚星盘环",run:()=>{this.commit(installRings);this.plate();}} :
-          {title:"读读南阶手记里的寻环线索",run:()=>this.notebook()},
+          {title:"查看南阶书托上的寻环线索",run:()=>this.notebook()},
         {title:"离开月相星盘",run:this.exit},
       ],0,view);return;
     }

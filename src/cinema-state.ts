@@ -1,5 +1,11 @@
 import type { GardenTape } from "./core.ts";
 
+export const gardenScreeningHint: Record<GardenTape, string> = {
+  missing: "找周年花园里的小叶子打听录像带",
+  carried: "已拿到录像带，去花园大屏前放入放映机",
+  inserted: "录像带已放入放映机",
+};
+
 export type CinemaStage =
   | "idle"
   | "loading"

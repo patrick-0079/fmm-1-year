@@ -250,7 +250,8 @@ export class Town {
         return [{ title, run: () => this.answer(npc, target) }];
       });
     const delivered = page.letter && this.hooks.mail.received(page.letter);
-    this.present(npc, delivered ? "received-letter" : page.pose ?? pageId, page, options);
+    if (delivered) this.present(npc, "received-letter", {text: "（芙芙收好信封。）"}, options);
+    else this.present(npc, page.pose ?? pageId, page, options);
     if (page.effect) this.applyEffect(page.effect);
     if (!page.letter && !page.after && !page.choices?.some(([, target]) => !target.startsWith("@"))) {
       this.world.chats.introduce("npc-" + npc.id);

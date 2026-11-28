@@ -21,6 +21,7 @@ const encounterChance = .47;
 export class CampEncounters {
   private seat: RestState | null = null;
   private event: CampEncounter | null = null;
+  private previewing = false;
   private delay = rollInterval;
   private reserved = false;
   private remaining: CampEncounterId[] = [];
@@ -36,12 +37,14 @@ export class CampEncounters {
   preview(id: CampEncounterId, seat: RestState, reservedForStory: boolean) {
     this.tick(0, seat, reservedForStory);
     this.event = { id, phase: "arrival", elapsed: 0 };
+    this.previewing = true;
     this.delay = rollInterval;
   }
 
   reset() {
     this.seat = null;
     this.event = null;
+    this.previewing = false;
     this.delay = rollInterval;
     this.reserved = false;
   }
@@ -71,8 +74,10 @@ export class CampEncounters {
         if (seconds < this.delay) { this.delay -= seconds; return; }
         seconds -= this.delay;
         this.delay = rollInterval;
-        if (this.random() < encounterChance)
+        if (this.random() < encounterChance) {
           this.event = { id: this.drawVisitor(), phase: "arrival", elapsed: 0 };
+          this.previewing = false;
+        }
       } else {
         const remaining = phases[this.event.phase].seconds - this.event.elapsed;
         if (seconds < remaining) { this.event.elapsed += seconds; return; }
@@ -85,10 +90,11 @@ export class CampEncounters {
     }
   }
 
-  respond() {
+  respond(onNaturalResponse?: (id: CampEncounterId) => void) {
     if (this.reserved || this.event?.phase !== "waiting") return false;
     this.event.phase = "active";
     this.event.elapsed = 0;
+    if (!this.previewing) onNaturalResponse?.(this.event.id);
     return true;
   }
 

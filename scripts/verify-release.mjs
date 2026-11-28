@@ -27,6 +27,13 @@ const release = async full => {
   return marker;
 };
 
+async function hidePetForControlChecks(page) {
+  const pet = page.locator("fufu-pet");
+  await pet.getByRole("button", { name: /小小芙，点击设置或隐藏/ }).click();
+  await pet.getByRole("button", { name: "隐藏小小芙", exact: true }).click();
+  assert.ok(await pet.isHidden());
+}
+
 async function checkPlayViewport(page) {
   await page.waitForFunction(() => {
     const frame = document.querySelector("#world").getBoundingClientRect();
@@ -262,6 +269,7 @@ try {
   await badges.press("ArrowLeft");
   assert.equal(await maps.getAttribute("aria-selected"), "true");
   assert.ok(await book.isHidden());
+  await hidePetForControlChecks(game);
   await enter.click();
   for (const [ms, label, phase, day] of [
     [999, "08:00", "day", 1], [1000, "08:01", "day", 1],
@@ -313,6 +321,7 @@ try {
   }, { now: OPEN_AT, flowers: rainbowIds });
   await rotated.clock.setFixedTime(new Date(OPEN_AT));
   await rotated.goto(base);
+  await hidePetForControlChecks(rotated);
   await rotated.getByRole("button", { name: /开始小冒险/ }).tap();
   await checkWorldTime(rotated, "17:00", "dusk", 5);
   await rotated.clock.setFixedTime(new Date(OPEN_AT + 1000));

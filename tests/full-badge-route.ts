@@ -2,6 +2,7 @@ import { arriveOnShift, scheduledResident } from "./resident-visits";
 import { achievementDefinitions } from "../src/achievements";
 import { producers } from "../src/star-catalog";
 import { bassScore } from "../src/bass-score";
+import { campEncounterIds } from "../src/camp-encounters";
 import { SAVE_KEY, readProgress } from "../src/core";
 import { echoAltar, echoPool, ringSpots, moonPlate, mirrorSpots } from "../src/ruins-map";
 import { TOWN_NPCS } from "../src/town-data";
@@ -150,6 +151,23 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   log("放飞三色气球、同场烟花、采勇气花、戴花环、邀请两位旅伴、跨日发现三个彩蛋");
 
   await verifyLetterAndMeadowStamps(world, log);
+  expect(earned("flower-map"), "小叶子赠图后没有盖章");
+  await interactAt("meadow", "meadow-camp");
+  const response = el(".camp-respond");
+  const start = performance.now() / 1000;
+  let replies = 0;
+  for (let step = 1; step <= 3600 && !earned("camp-encounters"); step++) {
+    world.onTick(.2, start + step * .2);
+    if (!response.hidden) {
+      if (replies % 2) { key(world.canvas, "f"); key(world.canvas, "f", false); }
+      else response.click();
+      replies++;
+    }
+  }
+  expect(earned("camp-encounters") && campEncounterIds.every(id => state().achievements.facts.includes(`camp-response-${id}`)),
+    "自然出现的七种营火奇遇未能分别回应、盖章");
+  world.standUp();
+  log("实际坐在营火旁，推进游戏时钟，按 F 和按钮回应自然出现的七种奇遇，七项均已保存");
   closeActivity();
   await interactAt("meadow", "meadow-garden-tape");
   expect(state().gardenTape === "carried" && earned("garden-tape"), "篝火旁拾取录像带未立即盖章");
@@ -167,6 +185,19 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   for (const npc of TOWN_NPCS) {
     await interactAt("town", "npc-" + npc.id);
     expect(JSON.parse(localStorage.getItem(TOWN_TALKED_KEY) ?? "[]").includes(npc.id), "没有记下与 " + npc.name + " 的会面");
+    if (npc.id === "welcome") {
+      await choose("你好？"); await choose("你好？？"); await choose("你在这里干什么呀");
+      expect(earned("welcome-pin"), "银铃送胸针后未盖章");
+    } else if (npc.id === "florist") {
+      await choose("这么多花"); await choose("⌈收下洋桔梗⌋");
+      expect(earned("qingya-bouquet"), "收下青芽的花束后未盖章");
+    } else if (npc.id === "baker") {
+      await choose("是我哦"); await choose("这是给我的吗"); await choose("帮我留一下");
+      expect(!earned("baker-cake"), "请栗栗留蛋糕时提前盖章");
+      await interactAt("town", "npc-baker");
+      await choose("⌈现在尝一口⌋");
+      await wait(() => earned("baker-cake"), "回访栗栗并吃完蛋糕后未盖章");
+    }
   }
   closeActivity();
   expect(earned("friends"), "见过 25 位角色后未盖章");
@@ -183,6 +214,8 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   await choose("⌈转上镜");
   await choose("⌈转下镜");
   expect(earned("ruin-light"), "星纹砖已亮却未盖章");
+  await interactAt("ruins", "elder-guardian");
+  expect(earned("guardian-notebook"), "解谜后回访守护者未能取得手记和徽章");
   await interactAt("ruins", echoAltar.id);
   for (const name of ["叶","铃","星"]) await choose("⌈轻敲「" + name + "」");
   await interactAt("ruins", echoPool.id);

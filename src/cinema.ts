@@ -3,7 +3,7 @@ import type { GardenTape } from "./core";
 import { gardenFilm, gardenScreen, televisionSilhouette } from "./cinema-config";
 import { anniversaryPoster } from "./cinema-poster";
 import { drawGardenScreen } from "./cinema-screen";
-import { CinemaSession, mediaTime, containVideo } from "./cinema-state";
+import { CinemaSession, mediaTime, containVideo, gardenScreeningHint } from "./cinema-state";
 import { setCinemaMuted } from "./sound";
 import { FilmPreloader, downloadLabel, filmDownloadAmount } from "./film-preloader";
 import { traffic } from "./network-debug";
@@ -244,7 +244,7 @@ export class GardenCinema {
       this.session.ready();
       this.slow = false;
       if (!this.active && !this.notified && this.getTape() === "inserted") {
-        this.toast("花园小电视准备好啦，随时回来按播放继续看 ♡");
+        this.toast("花园大屏准备好啦，随时回来按播放继续看 ♡");
         this.notified = true;
       }
       update();
@@ -400,18 +400,17 @@ export class GardenCinema {
     const shortcut = document.querySelector(".cinema-shortcut small");
     if (shortcut) {
       const tape = this.getTape();
-      shortcut.textContent = tape === "missing" ? "周年海报 · 找小叶子打听录像带" :
-        tape === "carried" ? "已拿到录像带 · 去花园放入放映机" : progress;
+      shortcut.textContent = gardenScreeningHint[tape] + (tape === "inserted" ? " · " + progress : "");
     }
     if (!this.active) return;
     const v = this.video,
       s = this.session.displayStage();
     const messages: Record<typeof s, string> = {
-      idle: "正在准备花园小电视…",
+      idle: "正在准备花园大屏…",
       loading: "放映机正在加载周年录像，可以先去花园逛逛，稍后回来再看。",
       ready:
         "画面准备好了 · 按播放开始观看。离开后再回来，缓冲和观看位置都会保留。",
-      starting: "正在开始播放…",
+      starting: "即将播放…",
       playing: "正在播放 · 离开时会暂停，回来继续看。",
       paused: "已暂停 · 已保留观看位置，按播放继续。",
       buffering: "LOADING… 正在缓冲下一段画面，也可以先去花园逛逛。",
@@ -445,13 +444,12 @@ export class GardenCinema {
       else meter.removeAttribute("value");
     }
     const button = this.hud.querySelector<HTMLButtonElement>(".cinema-play")!;
-    button.textContent = this.session.wanted
-      ? "暂停 / 取消等待"
-      : s === "ended"
-        ? "再看一遍"
-        : s === "loading"
-          ? "加载并播放"
-          : "播放 / 继续";
+    const playLabels: Record<typeof s, string> = {
+      idle: "播放", loading: this.session.wanted ? "取消等待" : "加载并播放",
+      ready: "播放", starting: "取消等待", playing: "暂停", paused: "继续播放",
+      buffering: "取消等待", ended: "再看一遍", error: "播放",
+    };
+    button.textContent = playLabels[s];
     button.disabled = s === "error";
     for (const selector of [
       ".cinema-back",
@@ -511,7 +509,7 @@ export class GardenCinema {
             ? "按互动重试 · 或稍后回来"
             : downloading ? filmDownloadAmount(download) : download.state === "queued" ? "资源就绪后开始下载" : v
               ? "可以先去逛逛，回来再看"
-              : "走近小电视，按 E / 右键",
+              : "走近大屏，按 E / 右键",
           box.x + box.w / 2,
           box.y + 34,
         );

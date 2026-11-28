@@ -11,11 +11,12 @@ const sit = () => benchRest("meadow", campSeat, { x: 247, y: 184 });
 test("debug selections replay on the current seat without drawing from the random bag", () => {
   let rolls = 0;
   const visits = new CampEncounters(() => { rolls++; return 0; }), seat = sit();
+  const recorded: string[] = [];
   for (const id of [...campEncounterIds, "marshmallow"] as const) {
     visits.preview(id, seat, false);
     assert.deepEqual(visits.current, {id, phase:"arrival", elapsed:0});
     visits.tick(1.7, seat, false);
-    assert.ok(visits.respond());
+    assert.ok(visits.respond(id => recorded.push(id)));
   }
   visits.preview("jelly", seat, true);
   assert.equal(visits.current, null);
@@ -26,6 +27,10 @@ test("debug selections replay on the current seat without drawing from the rando
   visits.tick(7, seat, false);
   assert.equal(visits.current?.id, "bird");
   assert.equal(rolls, 2);
+  assert.deepEqual(recorded, []);
+  visits.tick(1.7, seat, false);
+  assert.ok(visits.respond(id => recorded.push(id)));
+  assert.deepEqual(recorded, ["bird"]);
 });
 
 test("the bird arrives, offers six seconds to respond, then naturally leaves through the passive frames", () => {

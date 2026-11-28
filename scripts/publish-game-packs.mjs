@@ -9,7 +9,7 @@ import { AwsClient } from "aws4fetch";
 import { packBranch, packCdn, packDirectory, packPrefix, sha256 } from "./game-packs.mjs";
 
 const exec = promisify(execFile);
-const sites = { main: "https://fmm.patrick0079.top/", preview: "https://preview.fmm.patrick0079.top/" };
+const sites = { main: "https://fmm.patrick0079.top/", preview: "https://preview.fmmprerelease.patrick0079.top/" };
 const leaseMs = 120_000;
 const stateKey = "published-sets.json";
 const emptyState = () => ({ format: 1, history: [], pending: {}, retired: [], lease: null });

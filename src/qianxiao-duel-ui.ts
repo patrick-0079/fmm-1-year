@@ -182,7 +182,7 @@ export function mountQianxiaoDuel(root: HTMLElement, status: HTMLElement, option
     const mine=game.turn==="player";
     status.textContent="浅笑的星牌 · 第 "+Math.ceil(game.turnNumber/2)+" 轮 · "+(mine?"芙芙的回合":"浅笑的回合");
     area.append(row("qianxiao"),row("player"));
-    const message=selection?.kind==="attack"?"点亮起的敌方怪兽或浅笑，完成这次攻击。":
+    const message=selection?.kind==="attack"?"点击发光的敌方怪兽或浅笑，完成这次攻击。":
       selection?.kind==="spell"?"点击亮起的人物或怪兽，对它使用这张法术。":game.log.at(-1)??"";
     area.append(element("p","duel-message",message));
     const header=element("div","duel-hand-heading");

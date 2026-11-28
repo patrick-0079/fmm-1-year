@@ -342,7 +342,7 @@ export const scenes: Record<SceneId, Scene> = {
       },
       {
         id: "danmaku",
-        title: "花园小电视 · 周年放映",
+        title: "花园大屏 · 周年放映",
         x: 713,
         y: 235,
         hitAreas: [{ x: 641, y: 187, w: 145, h: 86 }],

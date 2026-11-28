@@ -35,7 +35,7 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
     choose(flowerClue);
     clueIsAbsent();
     const clue = q(".activity-status").textContent ?? "";
-    for (const place of ["手绘地图", "周年花园两朵", "勇气花园两朵", "周年小镇三朵", "在我的旁边会有一个传送阵", "在篝火的旁边", "大屏幕"])
+    for (const place of ["手绘地图", "周年花园两朵", "勇气花园两朵", "周年小镇三朵", "我左下方的草坪上会出现一个传送阵", "篝火左边", "大屏幕前的放映机"])
       assert(clue.includes(place), "小叶子的录像带线索缺少" + place);
     assert(readInventory(localStorage.getItem(INVENTORY_KEY)).flowerMap, "绒爪递来的地图没有收进背包");
     choose("我们接着聊吧！");
@@ -180,6 +180,10 @@ export async function verifyLetterAndMeadowStamps(world: World, log: (line: stri
     assert(letterCount()===count && !has("letter-"+author),author+" 在实际领取前提前盖章");
     const takeAgain = author === "zhenghao" && actions().find(button => button.textContent === final);
     choose(final);
+    if (["yeshenhua", "guli", "xiaoyou"].includes(author)) {
+      assert(q(".activity-status").textContent === "（芙芙收好信封。）" &&
+        actions().some(button => button.textContent === "⌈现在读信⌋"), "小镇收信后的提示或当场读信入口错误：" + author);
+    }
     if (takeAgain) {
       takeAgain.click();
       assert(letterCount() === count + 1 && has("letter-zhenghao"), "正号的递信重复入箱或尚未盖章");

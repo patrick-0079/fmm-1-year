@@ -185,7 +185,7 @@ try {
   await interact();
   const clue = walk.getByRole("button", { name: "小叶子，你知道去花海的路怎么走吗？", exact: true });
   await clue.click();
-  assert.match(await walk.locator(".activity-status").innerText(), /周年花园两朵[\s\S]*篝火的旁边[\s\S]*大屏幕/);
+  assert.match(await walk.locator(".activity-status").innerText(), /周年花园两朵[\s\S]*篝火左边[\s\S]*大屏幕前的放映机/);
   await press(".activity-close");
   await press(".bag-toggle");
   await press('.bag-tabs [data-tab="keepsakes"]');

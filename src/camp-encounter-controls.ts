@@ -59,7 +59,7 @@ export class CampEncounterControls {
   }
 
   private respond() {
-    if (!this.canInteract() || !this.encounters.respond()) return false;
+    if (!this.canInteract() || !this.encounters.respond(id => this.world.onAchievementEvent(`camp-response-${id}`))) return false;
     this.showInvitation(null);
     return true;
   }

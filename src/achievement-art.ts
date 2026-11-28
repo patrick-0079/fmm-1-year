@@ -135,6 +135,53 @@ function ticket(c: Ink, x: number, y: number, w: number, h: number) {
   rect(c, x + 3, y + 3, w - 6, h - 6, "#fff0c4");
 }
 const art: Record<string, (c: Ink, choice?: string) => void> = {
+  "welcome-pin"(c) {
+    polygon(c, rose, [9,17],[16,19],[14,29],[10,25],[6,27]);
+    polygon(c, lilac, [16,19],[22,17],[26,27],[21,25],[19,29]);
+    oval(c, 16, 12, 9, 9, ink);
+    oval(c, 16, 12, 8, 8, gold);
+    token(c, "star", 16, 12, 12);
+  },
+  "qingya-bouquet"(c) {
+    line(c, leaf, [8,11],[17,24],[22,9]);
+    line(c, leaf, [15,9],[17,26]);
+    polygon(c, cream, [4,14],[15,17],[27,12],[19,26],[15,27]);
+    flower(c, 8, 12, lilac);
+    flower(c, 15, 8, cream);
+    flower(c, 22, 11, lilac);
+    line(c, rose, [12,21],[18,23],[22,20]);
+  },
+  "baker-cake"(c) {
+    oval(c, 15, 25, 12, 3, blue);
+    polygon(c, ink, [5,15],[19,9],[26,15],[25,22],[6,24]);
+    polygon(c, cream, [6,15],[19,10],[24,15],[6,19]);
+    line(c, rose, [7,21],[24,17]);
+    oval(c, 18, 10, 3, 3, rose);
+    line(c, leaf, [16,7],[18,8],[20,6]);
+  },
+  "flower-map"(c) {
+    polygon(c, ink, [2,8],[11,5],[20,8],[29,5],[29,24],[20,27],[11,24],[2,27]);
+    polygon(c, cream, [4,9],[11,7],[20,10],[27,7],[27,23],[20,25],[11,22],[4,25]);
+    line(c, gold, [11,8],[11,21]);
+    line(c, gold, [20,10],[20,24]);
+    line(c, leaf, [6,19],[10,16],[15,17],[21,12]);
+    flower(c, 23, 12, rose);
+  },
+  "guardian-notebook"(c) {
+    polygon(c, ink, [5,7],[23,3],[27,24],[9,28]);
+    polygon(c, cream, [8,8],[22,5],[25,23],[10,26]);
+    polygon(c, leaf, [6,7],[22,4],[25,21],[9,25]);
+    line(c, ink, [9,7],[12,23]);
+    token(c, "moon", 18, 14, 12);
+  },
+  "camp-encounters"(c) {
+    polygon(c, rose, [10,25],[8,19],[13,20],[14,13],[17,9],[17,17],[21,14],[24,21],[21,25]);
+    polygon(c, gold, [13,24],[13,20],[16,21],[18,16],[20,21],[18,24]);
+    line(c, ink, [7,26],[24,24]);
+    line(c, "#ae7b55", [9,24],[23,28]);
+    for (const [x,y] of [[4,17],[5,10],[10,6],[16,4],[22,5],[27,10],[28,17]])
+      spark(c, x, y, lilac);
+  },
   "qianxiao-duel-win"(c) {
     polygon(c, ink, [3,6],[15,3],[21,23],[9,27]);
     polygon(c, lilac, [5,7],[14,5],[19,22],[10,25]);
