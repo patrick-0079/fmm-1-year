@@ -80,7 +80,8 @@ test("responding at the end of the invitation plays one active sequence and hold
 test("replacement seats restart the delay and each bag draws every visitor without adjacent repeats", () => {
   const visits = new CampEncounters(() => .4);
   const order: string[] = [];
-  for (let i = 0; i < 12; i++) {
+  const size = campEncounterIds.length;
+  for (let i = 0; i < 3 * size; i++) {
     const seat = sit();
     visits.tick(4, seat, false);
     assert.equal(visits.current, null);
@@ -90,8 +91,8 @@ test("replacement seats restart the delay and each bag draws every visitor witho
     assert.equal(visits.current, null);
     assert.equal(visits.respond(), false);
   }
-  for (let i = 0; i < order.length; i += 4)
-    assert.deepEqual([...order.slice(i, i + 4)].sort(), [...campEncounterIds].sort());
+  for (let i = 0; i < order.length; i += size)
+    assert.deepEqual(order.slice(i, i + size).sort(), [...campEncounterIds].sort());
   assert.ok(order.every((id, i) => !i || id !== order[i - 1]));
 });
 

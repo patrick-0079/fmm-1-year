@@ -1,4 +1,3 @@
-import type { CampEncounterId } from "./camp-encounters.ts";
 import { artScale, cellWidth, cellHeight } from "./costume-frames.ts";
 
 // Landmarks are in the unaltered 144 × 184 seated drawings. The bird's toes,
@@ -17,7 +16,7 @@ const landmarks = [
 ] as const;
 const spot = {bird: 0, butterfly: 1, jelly: 2, marshmallow: 3} as const;
 
-export function campEncounterLandmark(id: CampEncounterId, outfit: number) {
+export function campEncounterLandmark(id: keyof typeof spot, outfit: number) {
   const [x, y] = landmarks[outfit][spot[id]];
   return {x: (x - cellWidth / 2) / artScale, y: (y - cellHeight) / artScale};
 }

@@ -26,6 +26,7 @@ const button = (cmd: string, label: string) =>
   `<button type="button" data-debug="${cmd}">${label}</button>`;
 const campNames: Record<CampEncounterId, string> = {
   bird: "小鸟", butterfly: "火蝴蝶", jelly: "水母", marshmallow: "烤棉花糖",
+  starFawn: "星角幼鹿", moonBoat: "月牙纸舟", cloudWhale: "云鲸",
 };
 type Travel = (
   scene: SceneId,

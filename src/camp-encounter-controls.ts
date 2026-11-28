@@ -10,6 +10,9 @@ const invitations: Record<CampEncounterId, [string, string]> = {
   butterfly: ["火蝴蝶绕着芙芙飞", "让它停一会儿"],
   jelly: ["一只水母游近了", "等它靠近"],
   marshmallow: ["棉花糖烤好了", "尝一口"],
+  starFawn: ["一只星角幼鹿停在草地上", "向它点头"],
+  moonBoat: ["月牙纸舟泊在脚边", "闭眼许愿"],
+  cloudWhale: ["一头云鲸游到营火上方", "请它吹个星泡"],
 };
 type HitTest = (point: Point, event: Readonly<CampEncounter>, frame: number, pointerType: string) => boolean;
 

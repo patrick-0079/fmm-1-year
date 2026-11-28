@@ -1,6 +1,6 @@
 import type { RestState } from "./rest.ts";
 
-export const campEncounterIds = ["bird", "butterfly", "jelly", "marshmallow"] as const;
+export const campEncounterIds = ["bird", "butterfly", "jelly", "marshmallow", "starFawn", "moonBoat", "cloudWhale"] as const;
 export type CampEncounterId = typeof campEncounterIds[number];
 const phases = {
   arrival: { seconds: 1.6, first: 0, count: 4, still: 3 },

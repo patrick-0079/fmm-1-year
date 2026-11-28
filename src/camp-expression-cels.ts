@@ -15,6 +15,9 @@ const cels = {
   butterfly:   [-1, 2, 2,-1,   2, 3, 2,-1,  -1, 2, 3, 3, 2, 2, 2,-1],
   jelly:       [-1, 4, 4,-1,   4, 5, 4,-1,  -1, 4, 5, 5, 5, 5, 4,-1],
   marshmallow: [-1, 6, 6,-1,   6, 7, 6,-1,  -1, 6, 7, 8, 9,10, 6,-1],
+  starFawn:    [-1, 4, 5,-1,   5, 7, 4,-1,   4, 6, 7, 4, 5, 5, 4,-1],
+  moonBoat:    [-1, 0, 6,-1,   6, 7, 4,-1,   6,11,12,11, 6, 0, 4,-1],
+  cloudWhale:  [-1, 4, 2,-1,   2, 3, 2,-1,   4, 5, 2, 3, 3, 2, 0,-1],
 } satisfies Record<CampEncounterId, number[]>;
 
 export function campExpressionCel(id: CampEncounterId, frame: number) {
@@ -38,6 +41,12 @@ const heads = {
     "followLead","follow","follow","nodLead","nod","followLead","follow","neutral"],
   marshmallow: ["neutral","listenLead","listen","listenLead", "listenLead","listen","listenLead","neutral",
     "listenLead","liftLead","neutral","nodLead","nod","nodLead","followLead","neutral"],
+  starFawn: ["neutral","followLead","follow","followLead", "follow","nodLead","followLead","neutral",
+    "followLead","nodLead","nod","nodLead","followLead","follow","followLead","neutral"],
+  moonBoat: ["neutral","listenLead","listen","listenLead", "listenLead","listen","followLead","neutral",
+    "listenLead","nodLead","nod","nodLead","listen","listenLead","followLead","neutral"],
+  cloudWhale: ["neutral","followLead","liftLead","liftLead", "liftLead","lift","liftLead","neutral",
+    "followLead","follow","liftLead","lift","lift","liftLead","listenLead","neutral"],
 } as const satisfies Record<CampEncounterId, readonly CampHeadPose[]>;
 
 export function campEncounterHead(id: CampEncounterId, frame: number, waiting?: number): CampHeadPose {
@@ -51,7 +60,8 @@ export function campEncounterHead(id: CampEncounterId, frame: number, waiting?: 
 const half = campExpressionDrawings.indexOf("blinkHalf");
 const shut = campExpressionDrawings.indexOf("blinkShut");
 const smile = campExpressionDrawings.indexOf("softSmile");
-const firstBlink = {bird:1.08, butterfly:1.42, jelly:1.72, marshmallow:1.28};
+const firstBlink = {bird:1.08, butterfly:1.42, jelly:1.72, marshmallow:1.28,
+  starFawn:1.53, moonBoat:1.18, cloudWhale:1.82};
 
 function blink(seconds: number) {
   if (seconds < 0 || seconds >= .33) return -1;

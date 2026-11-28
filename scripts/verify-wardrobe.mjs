@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { writeFile } from "node:fs/promises";
 import { createServer } from "vite";
 import { cellWidth, cellHeight, outfits } from "../src/costume-frames.ts";
+import { campEncounterIds } from "../src/camp-encounters.ts";
 import { ITEMS, starterItems, INVENTORY_KEY } from "../src/items.ts";
 import { SAVE_KEY } from "../src/core.ts";
 import { townInteriorKeys } from "../src/town-interior-id.ts";
@@ -34,7 +35,7 @@ try {
   const wornViews=await page.evaluate(async ()=>(await import("/tests/equipment-fixture.ts")).verifyWornViews());
   assert.equal(wornViews,outfits.length*15);
   const campFrames = await page.evaluate(async () => (await import("/tests/camp-costume-cases.ts")).verifyCampCostumes());
-  assert.equal(campFrames, outfits.length*4*16);
+  assert.equal(campFrames, outfits.length*campEncounterIds.length*16);
   console.log(`花海营火 ${campFrames} 格均通过衣装、鞋底及袖手遮挡检查。`);
   console.log(`${wornViews} 个角色姿势核对了各双鞋、胸针、发夹与尖帽，以及花环等比覆盖各款头饰的画面。`);
   const fits = await page.evaluate(async () => (await import("/tests/bag-fitting-cases.ts")).verifyBagFits());
@@ -70,9 +71,15 @@ try {
     await page.route(/^https:\/\//,route=>route.abort());
     await page.goto(base+"exploration-fixture.html");
     await page.waitForFunction(()=>window.contentQA?.ready());
+    if (options.isMobile) {
+      const mobileCamp = await page.evaluate(async () => (await import("/tests/camp-costume-cases.ts")).verifyCampCostumes());
+      assert.equal(mobileCamp, campFrames);
+      console.log(`触屏视口已逐格对照 ${mobileCamp} 个营火角色姿态。`);
+    }
     await page.getByRole("button",{name:"⚙ 调试"}).click();
     await page.locator("summary").filter({hasText:"花海营火奇遇"}).click();
-    for (const [id,verb] of [["bird","听它唱歌"],["butterfly","让它停一会儿"],["jelly","等它靠近"],["marshmallow","尝一口"],["marshmallow","尝一口"]]) {
+    for (const [id,verb] of [["bird","听它唱歌"],["butterfly","让它停一会儿"],["jelly","等它靠近"],["marshmallow","尝一口"],
+      ["starFawn","向它点头"],["moonBoat","闭眼许愿"],["cloudWhale","请它吹个星泡"],["cloudWhale","请它吹个星泡"]]) {
       await page.locator('[data-debug="camp:'+id+'"]').click();
       await page.waitForFunction(verb => {
         const b=document.querySelector(".camp-respond");
