@@ -20,7 +20,7 @@ const groups = [
   [["town", "ruins"], "arcade-props-v14"],
   [["ruins"], "echo-ruins echo-well echo-mines echo-miner echo-snake astrolabe-mechanisms astrolabe-map guardian-moonstone"],
   [["meadow"], "night-meadow-v16 meadow-life-v16 meadow-campfire-frames patrick-camp meadow-jelly-bells star-bottle-closeup"],
-  [["meadow"], "meadow-camp-encounter-visitors meadow-camp-fantasy meadow-camp-expressions meadow-camp-heads"],
+  [["meadow"], "meadow-camp-encounter-visitors meadow-camp-fantasy meadow-camp-star-fawn meadow-camp-expressions meadow-camp-heads"],
   [["*"], "fufu-footwear fufu-garments wardrobe-icons worn-jewelry qingya-bouquet stationery-sealed stationery-desk astrolabe-relics peach-walk"],
   [["*"], "stationery-album achievement-letter-seals"],
 ];

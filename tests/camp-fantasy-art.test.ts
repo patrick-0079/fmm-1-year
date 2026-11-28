@@ -1,34 +1,45 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 
-test("every fantasy visitor has sixteen complete cels and both magical responses have visible key art", async () => {
-  const file = new URL("../src/assets/meadow-camp-fantasy.webp",import.meta.url);
-  const {data,info} = await sharp(await readFile(file))
-    .ensureAlpha().raw().toBuffer({resolveWithObject:true});
-  const w=80, h=64;
-  assert.deepEqual([info.width,info.height],[16*w,6*h]);
-  for (let row=0; row<6; row++) {
-    const poses = new Set<string>();
-    for (let col=0; col<16; col++) {
+async function checkAtlas(file: string, width: number, height: number, rows: readonly string[]) {
+  const path = fileURLToPath(new URL(`../src/assets/${file}.webp`, import.meta.url));
+  const {data, info} = await sharp(path).ensureAlpha().raw().toBuffer({resolveWithObject: true});
+  assert.deepEqual([info.width, info.height], [16 * width, rows.length * height]);
+
+  for (const [row, name] of rows.entries()) {
+    const isVisitor = name === "fawn" || name === "boat" || name === "whale";
+    const drawings = new Set<string>();
+    for (let col = 0; col < 16; col++) {
       const hash = createHash("sha256");
       let visible = 0;
-      for (let y=0; y<h; y++) {
-        const start = 4*((row*h+y)*info.width+col*w);
-        const line = data.subarray(start,start+4*w);
-        if (row<3) hash.update(line);
-        for (let x=0; x<w; x++) {
-          const alpha = line[x*4+3];
-          if (x===0 || x===w-1 || y===0 || y===h-1) assert.equal(alpha,0,`cropped drawing at ${row}/${col}`);
-          if (alpha>32) visible++;
+      for (let y = 0; y < height; y++) {
+        const start = 4 * ((row * height + y) * info.width + col * width);
+        const line = data.subarray(start, start + 4 * width);
+        hash.update(line);
+        for (let x = 0; x < width; x++) {
+          const alpha = line[x * 4 + 3];
+          if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+            assert.equal(alpha, 0, `cropped drawing in ${name} cel ${col}`);
+          }
+          if (alpha > 32) visible++;
         }
       }
-      // Rows 3 and 5 are the whale's breath and the fawn's antler constellation.
-      if (row<3 || row===4 || col===12) assert.ok(visible>0,`empty cel at ${row}/${col}`);
-      if (row<3) poses.add(hash.digest("hex"));
+      if (isVisitor || name === "wake" || col === 12) {
+        assert.ok(visible > 0, `empty drawing in ${name} cel ${col}`);
+      }
+      drawings.add(hash.digest("hex"));
     }
-    if (row<3) assert.equal(poses.size,16,`missing drawing in visitor row ${row}`);
+    if (isVisitor) assert.equal(drawings.size, 16, `missing pose for ${name}`);
   }
+}
+
+test("all sixteen painted fawn poses fit the high-resolution atlas", async () => {
+  await checkAtlas("meadow-camp-star-fawn", 160, 128, ["fawn"]);
+});
+
+test("the other fantasy visitors and their effects have complete, uncropped cels", async () => {
+  await checkAtlas("meadow-camp-fantasy", 80, 64, ["boat", "whale", "ring", "wake", "antlers"]);
 });

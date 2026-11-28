@@ -12,14 +12,15 @@ const feet = benchRest("meadow", campSeat, campSeat).anchor;
 const cell = 48;
 const campAtlas = {sheet:"campEncounterVisitors", width:cell, height:cell} as const;
 const fantasyAtlas = {sheet:"campFantasy", width:80, height:64} as const;
+const fawnAtlas = {sheet:"campStarFawn", width:160, height:128} as const;
 const sprites = {
   bird:        {atlas:campAtlas, row:0, scale:.30, origin:[24,36], hit:[-.5,-4,5.3,4]},
   butterfly:   {atlas:campAtlas, row:1, scale:.21, origin:[24,26], hit:[0,-.7,4.2,3.2]},
   jelly:       {atlas:campAtlas, row:2, scale:.34, origin:[22,40], hit:[.7,-6.4,5.2,6.5]},
   marshmallow: {atlas:campAtlas, row:3, scale:.30, origin:[24,23], hit:[0,0,3.6,3]},
-  starFawn:    {atlas:fantasyAtlas, row:0, scale:.42, origin:[40,54], hit:[0,-9,12,9.5]},
-  moonBoat:    {atlas:fantasyAtlas, row:1, scale:.35, origin:[40,48], hit:[0,-3,10.8,5]},
-  cloudWhale:  {atlas:fantasyAtlas, row:2, scale:.39, origin:[40,36], hit:[0,-1,12,7]},
+  starFawn:    {atlas:fawnAtlas, row:0, scale:.21, origin:[80,108], hit:[0,-10,12,11]},
+  moonBoat:    {atlas:fantasyAtlas, row:0, scale:.35, origin:[40,48], hit:[0,-3,10.8,5]},
+  cloudWhale:  {atlas:fantasyAtlas, row:1, scale:.39, origin:[40,36], hit:[0,-1,12,7]},
 } as const;
 
 type Offset = readonly [number, number];
@@ -27,7 +28,7 @@ type Landmark = Parameters<typeof campEncounterLandmark>[0];
 // Named stops follow the outfit's painted knee, cuff, hem or mouth.
 // Coordinates are world-pixel offsets from the seated player's feet.
 const roast: Offset = [-27.5,-25.5];
-const fawnBow: Offset = [18.5,-1.2];
+const fawnBow: Offset = [21.5,-1.2];
 const paths: Record<CampEncounterId, {start: Offset; poses: readonly (Offset | Landmark)[]}> = {
   bird: {start: [-48,-30], poses: [
     [-40,-23],[-31,-15],[-23.5,-5],[-21,1],
@@ -112,29 +113,33 @@ const waitingLoops = {
   bird:      {rate:2, cels:[3,3,11,13,3,3]},
   butterfly: {rate:8, cels:[3,2,6,2,4,3]},
   jelly:     {rate:3.5, cels:[3,4,5,4,3,3]},
-  starFawn:  {rate:2, cels:[3,3,3,4,3]},
+  starFawn:  {rate:2, cels:[3,3,3,8,8,3]},
   moonBoat:  {rate:2, cels:[3,3,3,4,3]},
   cloudWhale:{rate:2.5, cels:[3,2,3,0]},
 } as const;
 
 function displayCel(event: Readonly<CampEncounter>, frame: number, still: boolean) {
-  if (still || event.phase !== "waiting") return frame;
+  if (still) return frame;
+  // Retrace the half-bow before coming upright; the seated player's timing stays in sync.
+  if (event.id === "starFawn" && event.phase === "active" && frame === 13 && event.elapsed < 2.2) return 10;
+  if (event.phase !== "waiting") return frame;
   if (event.id === "marshmallow") return event.elapsed < 3 ? frame : 8;
   const {rate,cels} = waitingLoops[event.id];
   return cels[Math.floor(event.elapsed*rate) % cels.length];
 }
 
-const antlerTips: readonly Offset[] = [[24.9,8.45],[23.3,13],[22.85,14.9],[28,4.4]];
-function drawAntlerStars(c: CanvasRenderingContext2D, frame: number, at: Point) {
+// Painted gold tip in each 160 × 128 cel, from the half-bow through the rise.
+const antlerTips: readonly Offset[] = [[41,24.5],[32,36.6],[32.2,43.2],[53.2,16.1]];
+function drawAntlerStars(c: CanvasRenderingContext2D, frame: number, deerCel: number, at: Point) {
   if (frame < 10) return;
   // The bottom star touches the painted tine until the fawn turns away.
   // The last two cels leave the broken constellation hanging over the grass.
-  const [u,v] = antlerTips[Math.min(frame-10,3)];
+  const [u,v] = antlerTips[Math.min(deerCel-10,3)];
   const deer = sprites.starFawn;
   const x = feet.x + (frame<14 ? at.x : fawnBow[0]) + (u-deer.origin[0])*deer.scale;
   const y = feet.y + (frame<14 ? at.y : fawnBow[1]) + (v-deer.origin[1])*deer.scale;
   const scale = .27;
-  c.drawImage(sceneArt.campFantasy,frame*80,5*64,80,64,x-40*scale,y-42*scale,80*scale,64*scale);
+  c.drawImage(sceneArt.campFantasy,frame*80,4*64,80,64,x-40*scale,y-42*scale,80*scale,64*scale);
 }
 
 // The first pearl appears at the painted muzzle as the whale exhales on cel 11.
@@ -157,7 +162,7 @@ function drawStarRing(c: CanvasRenderingContext2D, elapsed: number, still: boole
   const t = a === b ? 0 : (age-a.time)/(b.time-a.time);
   const x = feet.x+a.x+(b.x-a.x)*t, y = feet.y+a.y+(b.y-a.y)*t;
   const scale = .38;
-  c.drawImage(sceneArt.campFantasy,a.cel*80,3*64,80,64,x-40*scale,y-32*scale,80*scale,64*scale);
+  c.drawImage(sceneArt.campFantasy,a.cel*80,2*64,80,64,x-40*scale,y-32*scale,80*scale,64*scale);
 }
 
 function drawRoastingRack(c: CanvasRenderingContext2D) {
@@ -200,10 +205,12 @@ function drawVisitor(c: CanvasRenderingContext2D, event: Readonly<CampEncounter>
     c.beginPath(); c.ellipse(x-.4,feet.y+1.25,4.7,1.15,0,0,Math.PI*2); c.fill();
   }
   if (id === "starFawn") {
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = "high";
     c.fillStyle = "#333e4052"; c.beginPath();
     c.ellipse(x+.5,y+.4,8.6,1.45,0,0,Math.PI*2); c.fill();
   } else if (id === "moonBoat") {
-    c.drawImage(sheet,cel*width,4*height,width,height,
+    c.drawImage(sheet,cel*width,3*height,width,height,
       x-40*scale,y-32*scale+.4,width*scale,height*scale);
   }
   if (id === "butterfly") {
@@ -213,7 +220,7 @@ function drawVisitor(c: CanvasRenderingContext2D, event: Readonly<CampEncounter>
   }
   c.drawImage(sheet,cel*width,row*height,width,height,
     x-origin[0]*scale,y-origin[1]*scale,width*scale,height*scale);
-  if (id === "starFawn" && phase === "active") drawAntlerStars(c,frame,at);
+  if (id === "starFawn" && phase === "active") drawAntlerStars(c,frame,cel,at);
   if (id === "cloudWhale" && phase === "active") drawStarRing(c,event.elapsed,still);
   if (id === "marshmallow" && phase === "passive" && (frame === 5 || frame === 6)) {
     c.strokeStyle = "#ffe6bd9c"; c.lineWidth = .55; c.lineCap = "round";

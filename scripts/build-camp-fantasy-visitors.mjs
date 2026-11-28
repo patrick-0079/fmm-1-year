@@ -1,10 +1,10 @@
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
-import { starFawnCels, cloudWhaleCels, antlerStarsCels } from "./camp-fantasy-creatures.mjs";
+import { cloudWhaleCels, antlerStarsCels } from "./camp-fantasy-creatures.mjs";
 import { moonBoatCels, whaleRingCels, boatWakeCels } from "./camp-moon-boat.mjs";
 
 const width = 80, height = 64, columns = 16;
-const rows = [starFawnCels, moonBoatCels, cloudWhaleCels, whaleRingCels, boatWakeCels, antlerStarsCels];
+const rows = [moonBoatCels, cloudWhaleCels, whaleRingCels, boatWakeCels, antlerStarsCels];
 const frames = [];
 for (const [row, cels] of rows.entries()) {
   if (cels.length !== columns) throw Error("Missing fantasy visitor cels in row " + row);
