@@ -1,6 +1,7 @@
 import type { Point } from "./core";
 import { actionOption } from "./dialogue-options";
 import type { World } from "./world";
+import type { Hotspot } from "./maps";
 import { sfx } from "./sound";
 import { reservedShortcut, readingTarget } from "./input";
 import cakeUrl from "./assets/anniversary-cake.webp";
@@ -54,6 +55,7 @@ export class Activities {
   private mode = "";
   private dialogueEnd?: () => void;
   private dialogueAt?: { scene: World["scene"]; point: Point };
+  private activityLocation?: { scene: World["scene"]; spot: Hotspot };
   private workbenchHandle?: WorkbenchHandle;
   private duelHandle?: ReturnType<typeof mountQianxiaoDuel>;
   private duelExplained = false;
@@ -136,7 +138,7 @@ export class Activities {
     };
     const previousAction = world.onAction;
     world.onAction = (pressed) => {
-      if (!this.active) return previousAction(pressed);
+      if (!this.active || this.dismissIfOutOfReach()) return previousAction(pressed);
       if (world.suspended) return true;
       if (this.mode === "workbench" || this.mode === "qianxiao-duel") return true;
       if (this.mode === "cake" && this.cakeStage === 0) {
@@ -197,6 +199,7 @@ export class Activities {
     this.dialogueEnd?.();
     this.dialogueEnd = undefined;
     this.dialogueAt = undefined;
+    this.activityLocation = undefined;
     delete this.hud.dataset.dock;
     this.status.removeAttribute("tabindex");
     this.speaker.removeAttribute("data-read-more");
@@ -207,9 +210,12 @@ export class Activities {
   }
   private dismissIfOutOfReach() {
     const at = this.dialogueAt;
-    if (!at || (at.scene===this.world.scene &&
+    const location = this.activityLocation;
+    if (location) {
+      if (location.scene === this.world.scene && this.world.inInteractionRange(location.spot)) return false;
+    } else if (!at || (at.scene===this.world.scene &&
       Math.hypot(this.world.player.x-at.point.x, this.world.player.y-at.point.y)<=72)) return false;
-    // Leaving a speaker must not clear a held key, touch direction or click-to-walk route.
+    // Walking away must not clear a held key, touch direction or click-to-walk route.
     this.hidePanel();
     return true;
   }
@@ -288,7 +294,9 @@ export class Activities {
     const button = document.createElement("button");
     button.className = `map-action ${className}`;
     button.textContent = text;
-    button.addEventListener("click", run);
+    button.addEventListener("click", () => {
+      if (button.parentElement === this.controls && !this.dismissIfOutOfReach()) run();
+    });
     this.controls.append(button);
     return button;
   }
@@ -436,12 +444,13 @@ export class Activities {
   private untieGift(index: number) {
     if (this.gift.untie(index)) { sfx("flip"); this.giftControls(); }
   }
-  balloons() {
+  balloons(spot: Hotspot) {
     if (this.balloonRise !== null) {
       this.balloon = [0, 0, 0];
       this.balloonRise = null;
     }
     this.begin("balloons", "点摊位上的气球充气 · 每只四下，再一起放飞");
+    this.activityLocation = { scene: this.world.scene, spot };
     this.balloonControls();
   }
   private balloonControls() {
@@ -468,13 +477,14 @@ export class Activities {
       this.balloonControls();
     }
   }
-  fireworks() {
+  fireworks(spot: Hotspot) {
     if (this.mode === "fireworks") {
       this.launch();
       return;
     }
     this.sessionLaunches = 0;
     this.begin("fireworks", "在花园里点亮烟花 · 点击上方天空，或按 E 连续发射");
+    this.activityLocation = { scene: this.world.scene, spot };
     this.action("点燃一朵烟花", () => this.launch());
     this.action("♡ 爱心烟花", () => this.launch(undefined, 0));
     this.action("✦ 星星烟花", () => this.launch(undefined, 1));
@@ -515,6 +525,10 @@ export class Activities {
   menu(text: string, options: { title: string; run: () => void }[], point?: Point, zoom = 1) {
     this.begin("nature", text, point, zoom);
     for (const option of options) this.action(actionOption(option.title), option.run);
+  }
+  localMenu(spot: Hotspot, text: string, options: { title: string; run: () => void }[]) {
+    this.menu(text, options);
+    this.activityLocation = { scene: this.world.scene, spot };
   }
   openQianxiaoDuel() {
     this.begin("qianxiao-duel", "");
@@ -573,7 +587,7 @@ export class Activities {
       else void paint.ready.then(ok => { if (ok && this.dialogueAt === encounter) paint.draw(c); });
     }
     for (const option of options) this.action(option.title, () => {
-      if (this.dialogueAt === encounter && !this.dismissIfOutOfReach()) option.run();
+      if (this.dialogueAt === encounter) option.run();
     });
     if (content) this.controls.append(content);
     this.hud.scrollTop = 0;
@@ -583,6 +597,7 @@ export class Activities {
       this.hud.querySelector<HTMLButtonElement>(".activity-close"))?.focus({preventScroll:true});
   }
   private pointer(type: string, point: Point) {
+    if (this.dismissIfOutOfReach()) return false;
     if (this.mode === "cake") {
       if (type === "down" && this.cakeStage === 1) {
         this.cutStart = point;

@@ -247,16 +247,20 @@ export class Nature {
       );
       return true;
     }
-    this.changeGarden(() => this.harvest(id));
+    const spot = this.world.config.spots.find(s => s.id === id);
+    if (spot) this.changeGarden(() => {
+      if (this.world.inInteractionRange(spot)) this.harvest(spot);
+    });
     return true;
   }
-  private harvest(id: string) {
+  private harvest(spot: Hotspot) {
+    const { id } = spot;
     if (id === "apple") {
-      this.pickApple();
+      this.pickApple(spot);
       return;
     }
     if (id === "flowers") {
-      this.pickFlower();
+      this.pickFlower(spot);
       return;
     }
     if (!this.claim(id, 1)) {
@@ -275,7 +279,7 @@ export class Nature {
     };
     this.activities.note(words[id]);
   }
-  private pickApple() {
+  private pickApple(spot: Hotspot) {
     const remaining = this.claim("apple", 3);
     const basket = this.world.scene === "garden";
     if (remaining > 0) {
@@ -283,7 +287,7 @@ export class Nature {
       sfx("flip");
       this.save();
     }
-    this.activities.menu(
+    this.activities.localMenu(spot,
       remaining > 0
         ? `${basket ? "拿到" : "摘到"}一颗甜苹果！${basket ? "果篮里" : "树上"}还剩 ${remaining - 1} 颗`
         : basket ? "果篮里的苹果拿完啦 · 明天还会补上"
@@ -291,7 +295,7 @@ export class Nature {
       remaining > 1 ? [{ title: basket ? "再拿一颗" : "再摘一颗", run: () => this.interact("apple") }] : [],
     );
   }
-  private pickFlower() {
+  private pickFlower(spot: Hotspot) {
     const remaining = this.claim("flowers", 3);
     if (remaining > 0) {
       this.state.flower++;
@@ -300,7 +304,7 @@ export class Nature {
       sfx("match");
       this.save();
     }
-    this.activities.menu(
+    this.activities.localMenu(spot,
       remaining > 0
         ? "采到小花，编进花环里 · 按 H 戴上，或打开背包搭配花环"
         : "这片花今天采完啦，明天再来看看。",

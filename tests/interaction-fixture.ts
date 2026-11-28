@@ -549,15 +549,26 @@ await check("小游戏退出后焦点回到画布，不跳页，也不会抢走�
   outside.remove();
 });
 
-await check("夜空替我说只计算一次互动内成功发出的烟花", () => {
+await check("夜空替我说只计算在烟花摊同一次互动内成功发出的烟花", async () => {
+  await world.prepareScene("garden");
+  world.switchScene("garden");
+  const stand = world.config.spots.find(spot => spot.id === "fireworks")!;
+  world.player = { ...stand.approach };
   const settle = () => { for (let frame = 0; frame < 60; frame++) world.onTick(1 / 30, frame / 30); };
   for (let visit = 0; visit < 3; visit++) {
-    activities.fireworks();
+    activities.fireworks(stand);
     activities.close();
     settle();
   }
   assert(!completedActivities.has("fireworks"), "分三次点燃的烟花被合并计数");
-  activities.fireworks();
+  activities.fireworks(stand);
+  key("e");
+  world.player = { ...world.config.spawn };
+  world.onAction(true);
+  assert(!activities.active && !completedActivities.has("fireworks"), "离开烟花筒还能用互动键继续点火");
+  settle();
+  world.player = { ...stand.approach };
+  activities.fireworks(stand);
   key("e");
   assert(!completedActivities.has("fireworks"), "只发了两朵就发章");
   key("e");
@@ -569,6 +580,8 @@ await check("夜空替我说只计算一次互动内成功发出的烟花", () =
 await check("三只心愿气球起初系在摊前，放飞后留空，重新互动才补下一组", async () => {
   await world.prepareScene("garden");
   world.switchScene("garden");
+  const stand = world.config.spots.find(spot => spot.id === "balloons")!;
+  world.player = { ...stand.approach };
   const sample = document.createElement("canvas");
   sample.width = 270; sample.height = 282;
   const paint = sample.getContext("2d", {willReadFrequently:true})!;
@@ -579,23 +592,33 @@ await check("三只心愿气球起初系在摊前，放飞后留空，重新互�
     return centers.filter(x=>paint.getImageData(x-5,215,10,45).data.some((v,i)=>i%4===3 && v>128)).length;
   };
   assert(visible()===3, "首次打开摊位前没有展示三只气球");
-  activities.balloons();
+  activities.balloons(stand);
   for (const x of centers) world.onPointer("down",{x,y:237},"touch");
   const buttons = [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")];
   assert(buttons.length===3 && buttons.every(b=>b.textContent?.includes("1/4")), "点击球面没给对应气球充气");
   for (const x of centers) for (let i=0;i<3;i++) world.onPointer("down",{x,y:237},"touch");
+  world.player = { ...world.config.spawn };
+  [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")].find(b=>b.textContent==="一起放飞")!.click();
+  assert(!completedActivities.has("balloons") && visible()===3 && !activities.active, "离开气球摊还能远程放飞");
+  world.player = { ...stand.approach };
+  activities.balloons(stand);
   [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")].find(b=>b.textContent==="一起放飞")!.click();
   assert(completedActivities.has("balloons") && visible()===0,"放飞后系点还有气球");
   activities.close();
   world.switchScene("town"); world.switchScene("garden");
   assert(visible()===0,"重新进入花园自动补了气球");
-  activities.balloons();
+  world.player = { ...stand.approach };
+  activities.balloons(stand);
   assert(visible()===3 && document.querySelector(".activity-actions")!.textContent?.includes("紫气球 0/4"),"再次互动没有重新装好气球");
 });
 
 await check("蛋糕、礼盒、气球和烟花收起后，键盘焦点与操作立即返回地图", () => {
   for (const activity of ["cake", "gifts", "balloons", "fireworks"] as const) {
-    activities[activity]();
+    if (activity === "balloons" || activity === "fireworks") {
+      const stand = world.config.spots.find(spot => spot.id === activity)!;
+      world.player = { ...stand.approach };
+      activities[activity](stand);
+    } else activities[activity]();
     const close = document.querySelector<HTMLButtonElement>(".activity-close")!;
     close.focus({preventScroll:true});
     const top = window.scrollY;

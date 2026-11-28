@@ -163,7 +163,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
       3800,
     );
   };
-  function persist(announce = true) {
+  function persist(announce = true, editLatest?: () => void) {
     if (sharedResetPending) return;
     if (!resetInProgress) {
       try {
@@ -176,6 +176,7 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
           mergeAchievementProgress(progress, other);
         }
       } catch { /* Evaluate the local actions even if storage is unavailable. */ }
+      editLatest?.();
       refreshAchievements?.(announce);
     }
     try {
@@ -210,7 +211,13 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     const { items, radioTrack } = progress.townKeepsakes;
     const flower = townKeepsakeChoice(progress.townKeepsakes, "florist"), postcard = townKeepsakeChoice(progress.townKeepsakes, "post");
     const souvenirs = items.length;
-    mergeCollections(progress, other);
+    mergeCollections(progress, other, true);
+    if (progress.muted !== other.muted || progress.sound !== other.sound || progress.bgm !== other.bgm ||
+        progress.bassSound !== other.bassSound || progress.volume !== other.volume) {
+      const { muted, sound, bgm, bassSound, volume } = other;
+      Object.assign(progress, { muted, sound, bgm, bassSound, volume });
+      update();
+    }
     if (progress.gardenTape !== tape) inventory.refreshGardenTape();
     if (flowers !== progress.rainbowFlowers.length) flowerTrail.refresh();
     if (visited !== progress.visited.length) document.querySelector("#explored")!.textContent = String(progress.visited.length);
@@ -402,16 +409,22 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
       toast("拾得周年录像带 · 带回周年花园，放进大屏前的放映机吧。");
     });
   const starQuest = new AstrolabeQuest(world, activities, inventory, () => progress.astrolabe,
-    () => progress.echoes.listened, save);
+    () => progress.echoes.listened, move => {
+      let changed = false;
+      persist(true, () => { changed = move(progress.astrolabe); });
+      return changed;
+    });
   const ruins = new EchoRuins(world, activities, () => progress.echoes, () => { save(); starQuest.refresh(); });
   const elders = new Elders(world, activities, () => progress, save, () => starQuest.openNotebook());
   const anniversaryVisitors = new AnniversaryVisitors(world, activities, mail);
   const bass = new RoomBass(world, () => progress.bassSongPlayed, () => {
     if (!progress.bassSongPlayed) { progress.bassSongPlayed = true; save(); }
   }, () => ({ enabled: progress.bassSound, volume: progress.volume, muted: progress.muted }), () => {
-    if(progress.volume===0) { progress.volume=.45; progress.bassSound=true; }
-    else progress.bassSound=!progress.bassSound;
-    update(); save();
+    persist(true, () => {
+      if(progress.volume===0) { progress.volume=.45; progress.bassSound=true; }
+      else progress.bassSound=!progress.bassSound;
+    });
+    update();
   });
   const cinema = new GardenCinema(world, toast, () => prepareGameResources(), getGardenTape);
   const bedNote = new BedNote(world);
@@ -728,8 +741,8 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     sfx("interact");
     if (id === "cake") activities.cake();
     else if (id === "gifts") activities.gifts();
-    else if (id === "balloons") activities.balloons();
-    else if (id === "fireworks") activities.fireworks();
+    else if (id === "balloons") activities.balloons(spot);
+    else if (id === "fireworks") activities.fireworks(spot);
     else if (id === "courage") {
       complete("courage");
       activities.note(
@@ -810,9 +823,8 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     [".music-toggle", "bgm"],
   ] as const)
     document.querySelector(selector)!.addEventListener("click", () => {
-      progress[key] = !progress[key];
+      persist(true, () => { progress[key] = !progress[key]; });
       update();
-      save();
       if (progress.muted) return;
       try {
         unlockAudio();
@@ -826,12 +838,10 @@ export function mountGame(progress: ReturnType<typeof readProgress>, journey: Jo
     [".volume-up", 0.1],
   ] as const)
     document.querySelector(selector)!.addEventListener("click", () => {
-      progress.volume = Math.max(
-        0,
-        Math.min(1, Math.round((progress.volume + delta) * 100) / 100),
-      );
+      persist(true, () => {
+        progress.volume = Math.max(0, Math.min(1, Math.round((progress.volume + delta) * 100) / 100));
+      });
       update();
-      save();
     });
   document
     .querySelectorAll<HTMLButtonElement>(".scene-nav button[data-scene]")

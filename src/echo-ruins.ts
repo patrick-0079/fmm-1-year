@@ -7,6 +7,7 @@ import { townEchoGate, echoAltar, echoPool, ruinsExit, stairLintel } from "./rui
 import { motif, type PixelMotif, panel } from "./arcade-pixels";
 import { sfx } from "./sound";
 import type { Activities } from "./activities";
+import type { Hotspot } from "./maps";
 import type { World, DepthLayer } from "./world";
 import type { GameId } from "./arcade-engines";
 import { drawFlexibleCover } from "./scenery-wind";
@@ -89,8 +90,8 @@ export class EchoRuins {
     if (id === echoPool.id && this.solved) { this.listen(); return true; }
     return false;
   }
-  private menu(text: string, actions: {title:string; run:()=>void}[]) {
-    this.activities.menu(text, actions);
+  private menu(spot: Hotspot, text: string, actions: {title:string; run:()=>void}[]) {
+    this.activities.localMenu(spot, text, actions);
     document.querySelector<HTMLButtonElement>(".activity-actions button")?.focus({preventScroll:true});
   }
   private altar(feedback = "") {
@@ -103,16 +104,16 @@ export class EchoRuins {
       const notes = options.filter(n => state.found.includes(n)).map(n=>echoes[n].inscription);
       const missing = options.filter(n=>!state.found.includes(n)).map(n=>echoes[n].chamber);
       const lines = [...notes, ...(missing.length ? ["待寻："+missing.join("、")+"。"] : [])];
-      this.menu(lines.join("　"), [{title:"回到祭坛",run:()=>this.altar()}]);
+      this.menu(echoAltar, lines.join("　"), [{title:"回到祭坛",run:()=>this.altar()}]);
     };
     if (this.solved) {
-      this.menu("三盏石灯一同亮起。南阶旁的水面浮出了两只小天线，那里似乎还藏着一段声音。",[
+      this.menu(echoAltar, "三盏石灯一同亮起。南阶旁的水面浮出了两只小天线，那里似乎还藏着一段声音。",[
         {title:"重读三道铭文",run:notebook}, {title:"去水边看看",run:()=>{this.activities.close();this.world.visit(echoPool.id);}},
       ]); return;
     }
     const ready = state.found.length === melody.length;
     const prompt = ready ? "按碑文提示敲响三枚符号。" : "西、北、东三间石室各有一道铭文，触碰室里的石座即可抄录。";
-    this.menu([feedback, "中央祭坛 · 石刻 "+state.found.length+"/3。", prompt, prefix && "已经奏响："+prefix+"。"].filter(Boolean).join(" "), [
+    this.menu(echoAltar, [feedback, "中央祭坛 · 石刻 "+state.found.length+"/3。", prompt, prefix && "已经奏响："+prefix+"。"].filter(Boolean).join(" "), [
       ...(ready ? optionsForNotes : []), {title:"翻阅石刻拓本",run:notebook},
       {title:"离开祭坛",run:()=>this.activities.close()},
     ]);
@@ -121,7 +122,7 @@ export class EchoRuins {
     this.broadcastAt = this.time; sfx("echo-broadcast");
     this.nextDripAfter = this.world.ambientTime + 6;
     if (!this.memory().listened) { this.memory().listened = true; this.save(); }
-    this.menu(letter, [{title:"再听一遍收音机里的晚安",run:()=>this.listen()},{title:"离开水边的收音机",run:()=>this.activities.close()}]);
+    this.menu(echoPool, letter, [{title:"再听一遍收音机里的晚安",run:()=>this.listen()},{title:"离开水边的收音机",run:()=>this.activities.close()}]);
   }
   private layers(): DepthLayer[] {
     if (this.world.scene === "town") {

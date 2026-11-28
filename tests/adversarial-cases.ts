@@ -4,6 +4,7 @@ import { rainbowIds } from "../src/rainbow-flowers";
 import { INVENTORY_KEY, readInventory, starterItems } from "../src/items";
 import { TOWN_TALKED_KEY } from "../src/town";
 import { arriveOnShift } from "./resident-visits";
+import { moonPlate } from "../src/ruins-map";
 
 /** Exercise overlapping actions and late save notifications in the isolated QA tab. */
 export async function verifyNavigationRaces(world: World, log: (text: string) => void) {
@@ -75,6 +76,26 @@ export async function verifyNavigationRaces(world: World, log: (text: string) =>
     localStorage.setItem(key, raw);
     window.dispatchEvent(new StorageEvent("storage", {key, newValue: raw}));
   };
+  remote.astrolabe = {found: ["vine", "star", "brass"], installed: true, turns: [1, 2, 3], mirrors: ["/", "\\"]};
+  notify(SAVE_KEY, remote);
+  remote.astrolabe.turns[1] = 3;
+  remote.volume = .25;
+  localStorage.setItem(SAVE_KEY, JSON.stringify(remote));
+  q(".music-toggle").click();
+  const afterToggle = readProgress(localStorage.getItem(SAVE_KEY));
+  expect(afterToggle.astrolabe.turns[1] === 3 && afterToggle.volume === .25, "开关音乐覆盖了另一个窗口刚转过的星盘或音量");
+  expect(q<HTMLOutputElement>(".volume-value").value === "25%", "两窗口的音量显示不同步");
+  world.switchScene("ruins", moonPlate.approach);
+  world.onInteract(moonPlate.id);
+  remote.astrolabe.turns[2] = 0;
+  localStorage.setItem(SAVE_KEY, JSON.stringify(remote));
+  const innerRing = [...document.querySelectorAll<HTMLButtonElement>(".activity-actions button")]
+    .find(button => button.textContent?.includes("转内环"));
+  expect(innerRing, "星盘未显示转环选项");
+  innerRing!.click();
+  expect(readProgress(localStorage.getItem(SAVE_KEY)).astrolabe.turns.join() === "2,3,0", "本窗口转内环时覆盖了另一窗口刚转过的外环");
+  q(".activity-close").click();
+  log("另一窗口的音量与星盘角度，在当前窗口切换音乐和拨动另一枚环时仍保留");
   notify(SAVE_KEY, remote);
   expect(q(".prism-count").textContent === "7 / 7" && !q('[data-scene="meadow"]').hidden, "另一标签页集齐七色花后导航没有开放");
   log("设置保存与跨标签通知都保留个人最高分，并即时更新花谱和花海入口");
