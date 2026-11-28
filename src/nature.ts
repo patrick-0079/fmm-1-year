@@ -6,7 +6,6 @@ import { isTownInterior } from "./town-interior-id";
 import { daylightMix } from "./daylight-mix";
 import { drawGardenSurfaceLight, drawSceneDaylight, drawWindowLightOnFloor } from "./scene-daylight";
 import { sfx } from "./sound";
-import { reservedShortcut, readingTarget } from "./input";
 import type { Activities } from "./activities";
 import type { Inventory } from "./inventory";
 import type { World } from "./world";
@@ -78,19 +77,6 @@ export class Nature {
       tick(dt, t);
       this.tick();
     };
-    window.addEventListener("keydown", (e) => {
-      if (reservedShortcut(e) || this.world.suspended || readingTarget(e.target)) return;
-      if (
-        e.key.toLowerCase() === "h" &&
-        !e.repeat &&
-        !this.world.paused &&
-        !this.world.busy &&
-        !/INPUT|TEXTAREA|SELECT/.test((e.target as HTMLElement).tagName)
-      ) {
-        e.preventDefault();
-        this.toggleCrown();
-      }
-    });
     this.tick();
   }
   get elapsed() {
@@ -208,7 +194,7 @@ export class Nature {
       this.changeGarden(() => { this.state.wreath = true; this.save(); });
       sfx("match");
       this.activities.note(
-        "捡到一顶花环 · 按 H 戴上，或打开背包为芙芙搭配",
+        "捡到一顶花环 · 打开背包，在「头饰」里为芙芙戴上它",
       );
       return true;
     }
@@ -306,7 +292,7 @@ export class Nature {
     }
     this.activities.localMenu(spot,
       remaining > 0
-        ? "采到小花，编进花环里 · 按 H 戴上，或打开背包搭配花环"
+        ? "采到小花，编进花环里 · 可以在背包的「头饰」里戴上花环"
         : "这片花今天采完啦，明天再来看看。",
       [
         ...(remaining > 1
@@ -314,11 +300,6 @@ export class Nature {
           : []),
       ],
     );
-  }
-  private toggleCrown() {
-    if (!this.inventory.has("wreath") && this.inventory.state.equipped.wreath !== "wreath") return;
-    this.inventory.toggle("wreath");
-    this.changeGarden(() => { this.state.wearing = this.inventory.wearingWreath; this.save(); });
   }
   private rest(target: number) {
     // A second window may already have reached the boundary chosen on this bench.

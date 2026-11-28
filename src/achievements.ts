@@ -45,7 +45,7 @@ const daily: Definition[] = [
   { id: "balloons", chapter: "daily", name: "把愿望交给风", difficulty: "简单", description: "给粉、蓝、紫三只气球充好气，一起放飞。" },
   { id: "fireworks", chapter: "daily", name: "夜空替我说", difficulty: "简单", description: "在周年花园的同一次互动中放出三朵烟花。开场的第一朵也算，收起后重新计数。" },
   { id: "courage", chapter: "daily", name: "带一朵勇气回家", difficulty: "普通", description: "穿过勇气花园，摘下终点的勇气之花。" },
-  { id: "wreath", chapter: "daily", name: "芙芙今天戴花", difficulty: "简单", description: "捡到花环或采花编成花环后，按 H 或在背包里为芙芙戴上它。" },
+  { id: "wreath", chapter: "daily", name: "芙芙今天戴花", difficulty: "简单", description: "捡到花环或采花编成花环后，在背包的「头饰」里为芙芙戴上它。" },
   { id: "bass", chapter: "daily", name: "把晚安弹给你", difficulty: "普通", description: "在白色贝斯上跟着提示亲手弹完 16 个音，静音也可以。" },
   { id: "memories", chapter: "daily", name: "这一年有画面", difficulty: "简单", description: "在小屋相册里点开任意一张照片，并在周年花园装入录像带、打开放映界面。两件事顺序不限，影片还在载入也算。" },
   { id: "fox", chapter: "daily", name: "嗷～嗷呜", difficulty: "简单", description: "摸摸小屋狐狸，让它舒服地眯起眼睛。" },

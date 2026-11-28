@@ -22,7 +22,6 @@ export type ItemId =
   | "leafPin" | "tulipPin" | "shellPin"
   | "blueBeret" | "ginghamBand" | "strawHat";
 export const EQUIP_SLOTS = [
-  "wreath",
   "head",
   "hair",
   "clothes",
@@ -34,7 +33,6 @@ export const EQUIP_SLOTS = [
 export type EquipSlot = (typeof EQUIP_SLOTS)[number];
 export type Equipped = Partial<Record<EquipSlot, ItemId | null>>;
 export const slotNames: Record<EquipSlot, string> = {
-  wreath: "花环",
   head: "头饰",
   hair: "发夹",
   clothes: "衣服",
@@ -54,7 +52,7 @@ export const ITEMS: Record<
 > = {
   wreath: {
     name: "花园花环",
-    slot: "wreath",
+    slot: "head",
     description: "把花园里的小小喜欢，编在粉色发梢。",
     source: "在花园拾起花环，或在花丛采一朵普通小花",
   },
@@ -188,7 +186,6 @@ export const emptyInventory = (): InventoryState => ({
   bouquet: false,
   flowerMap: false,
   equipped: {
-    wreath: null,
     head: null,
     hair: "heartClip",
     clothes: null,
@@ -216,12 +213,15 @@ export function readInventory(
       if (p.equipped && Object.hasOwn(p.equipped, "hair")) state.equipped.hair = null;
       else if (["candyClip", "starWings"].includes(p.equipped?.head) && state.owned.includes(p.equipped.head))
         state.equipped.hair = p.equipped.head;
-      if (p.equipped?.head === "wreath" && !Object.hasOwn(p.equipped, "wreath") && state.owned.includes("wreath"))
-        state.equipped.wreath = "wreath";
       for (const slot of EQUIP_SLOTS) {
         const id = p.equipped?.[slot];
         if (state.owned.includes(id) && ITEMS[id as ItemId].slot === slot)
           state.equipped[slot] = id;
+      }
+      // In saves with a separate wreath slot, that slot recorded whether the wreath was worn.
+      if (p.equipped && Object.hasOwn(p.equipped, "wreath")) {
+        if (p.equipped.wreath === "wreath" && state.owned.includes("wreath")) state.equipped.head = "wreath";
+        else if (state.equipped.head === "wreath") state.equipped.head = null;
       }
       // Older versions stored the moon backpack together with chest pins.
       const oldBag = p.equipped?.body;
@@ -238,7 +238,7 @@ export function readInventory(
     const p = JSON.parse(legacy || "null");
     if (p && (p.wreath === true || p.wearing === true || p.flower > 0)) {
       state.owned.push("wreath");
-      if (p.wearing === true) state.equipped.wreath = "wreath";
+      if (p.wearing === true) state.equipped.head = "wreath";
     }
   } catch {}
   return state;

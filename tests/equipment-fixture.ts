@@ -65,15 +65,16 @@ headRow("摘下头饰和发夹",{});
 shoeRow("原鞋",{});
 for (const id of Object.keys(ITEMS) as ItemId[]) {
   const item=ITEMS[id], worn={[item.slot]:id};
-  if (item.slot==="head" || item.slot==="hair" || item.slot==="wreath") headRow(item.name,worn,id);
-  if (item.slot==="head") headRow("花环 × "+item.name,{head:id,wreath:"wreath",hair:"heartClip"});
+  if (item.slot==="head" || item.slot==="hair") headRow(item.name,worn,id);
+  if (item.slot==="hair") headRow("花环 × "+item.name,{head:"wreath",hair:id});
   if (item.slot==="backpack" || item.slot==="body") bagRow(item.name,worn,id);
   if (item.slot==="shoes") shoeRow(item.name,worn,id);
   if (item.slot==="pet") mixRow(item.name,worn,id);
 }
 for (const [i,clothes] of outfits.entries()) {
   mixRow(clothes ? ITEMS[clothes].name : "原版淡紫睡衣", {
-    clothes, hair:(["heartClip","fishClip","starClip"] as const)[i%3], head:clothes === "witchDress" ? "witchHat" : "headphones", wreath:i%2 ? "wreath" : null,
+    clothes, hair:(["heartClip","fishClip","starClip"] as const)[i%3],
+    head:clothes === "witchDress" ? "witchHat" : (["headphones","wreath"] as const)[i%2],
     backpack:(["moonBag","rabbitSatchel","berryBag"] as const)[i%3], shoes:i%2 ? "ribbonShoes" : "starShoes",
     body:i%2 ? "echoBrooch" : "anniversaryPin",
   });
@@ -93,7 +94,7 @@ export function verifyWornViews() {
     return new Uint32Array(c.getImageData(0,0,canvas.width,canvas.height).data.buffer);
   };
   const pinsAndClips = (Object.keys(ITEMS) as ItemId[]).filter(id=>["hair","body"].includes(ITEMS[id].slot));
-  const headwear = (Object.keys(ITEMS) as ItemId[]).filter(id=>ITEMS[id].slot === "head");
+  const hairClips = pinsAndClips.filter(id => ITEMS[id].slot === "hair");
   const wreathViews = ["wreathFront","wreathLeft","wreathRight","wreathRear"] as const;
   for (const clothes of outfits) for (const {pose,facing,step,name} of poses) {
     const bare=paint(pose,facing,step,{clothes});
@@ -114,10 +115,10 @@ export function verifyWornViews() {
       if (pose !== "lying") shoeViews.add(canvas.toDataURL());
     }
     if (pose !== "lying" && shoeViews.size !== footwearIds.length) throw Error(name+" · 两双鞋用了同一帧");
-    for (const head of headwear) {
-      const layers: Equipped = {clothes,head,hair:"heartClip",wreath:"wreath"};
+    for (const hair of hairClips) {
+      const layers: Equipped = {clothes,head:"wreath",hair};
       const actual = paint(pose,facing,step,layers);
-      const under = paint(pose,facing,step,{...layers,wreath:null});
+      const under = paint(pose,facing,step,{clothes,hair});
       if (pose === "lying") { check(actual.every((p,i)=>p===under[i]),"wreath"); continue; }
       const crown = equipmentParts(layers,pose,facing,step).find(part=>part.id==="wreath")!;
       const [sx,sy,sw,sh] = iconFrames[wreathViews[facing]];

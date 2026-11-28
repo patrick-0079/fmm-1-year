@@ -37,7 +37,7 @@ try {
   const campFrames = await page.evaluate(async () => (await import("/tests/camp-costume-cases.ts")).verifyCampCostumes());
   assert.equal(campFrames, outfits.length*campEncounterIds.length*16);
   console.log(`花海营火 ${campFrames} 格均通过衣装、鞋底及袖手遮挡检查。`);
-  console.log(`${wornViews} 个角色姿势核对了各双鞋、胸针、发夹与尖帽，以及花环等比覆盖各款头饰的画面。`);
+  console.log(`${wornViews} 个角色姿势核对了各双鞋、胸针、发夹与尖帽，以及花环搭配发夹时的画面和比例。`);
   const fits = await page.evaluate(async () => (await import("/tests/bag-fitting-cases.ts")).verifyBagFits());
   const bagCount = Object.values(ITEMS).filter(item => item.slot === "backpack").length;
   assert.deepEqual(fits, {frames:bagCount*outfits.length*15, angles:bagCount*outfits.length*4});
@@ -170,18 +170,18 @@ try {
   assert.deepEqual([gear.head,gear.hair,gear.clothes,gear.backpack],[null,"starWings","mintCape","moonBag"]);
   await equip("blueBeret"); await equip("starClip"); await equip("cloudPajamas");
   await equip("mintSneakers"); await equip("letterPack"); await equip("tulipPin");
+  await actual.locator("#world").press("h");
+  assert.equal((await snapshot()).equipment.head,"blueBeret");
   await equip("wreath");
   await actual.locator("#world").press("h");
-  assert.equal((await snapshot()).equipment.wreath,null);
-  assert.equal((await snapshot()).equipment.head,"blueBeret");
-  await actual.locator("#world").press("h");
+  assert.equal((await snapshot()).equipment.head,"wreath");
   await actual.reload(); await start();
   gear=(await snapshot()).equipment;
-  assert.deepEqual([gear.wreath,gear.head,gear.hair,gear.clothes,gear.shoes,gear.backpack,gear.body],
-    ["wreath","blueBeret","starClip","cloudPajamas","mintSneakers","letterPack","tulipPin"]);
+  assert.deepEqual([gear.head,gear.hair,gear.clothes,gear.shoes,gear.backpack,gear.body],
+    ["wreath","starClip","cloudPajamas","mintSneakers","letterPack","tulipPin"]);
   const bag=await actual.evaluate(key=>JSON.parse(localStorage.getItem(key)),INVENTORY_KEY);
   assert.ok(starterItems.every(id=>bag.owned.includes(id)));
-  console.log("新档、旧发饰与背包迁移、摘下发夹及叠穿后刷新均已验证。");
+  console.log("新档、旧发饰与背包迁移、花环和帽子互换、H 键保留当前头饰及刷新后的穿搭均已验证。");
 
   const setKeepsakes=async(items)=>{
     await actual.evaluate(({key,items})=>{

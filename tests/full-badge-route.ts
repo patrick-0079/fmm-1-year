@@ -139,8 +139,12 @@ export async function verifyFullBadgeRoute(world: World, log: (line: string) => 
   await interactAt("garden", "wreath");
   closeActivity();
   expect(!earned("wreath"), "捡到花环后、戴上前提前盖章");
-  key(world.canvas, "h");
-  key(world.canvas, "h", false);
+  el(".bag-toggle").click();
+  document.querySelector<HTMLButtonElement>("[data-choose-category]")?.click();
+  el('[data-category="head"]').click();
+  el('[data-select="wreath"]').click();
+  el('[data-equip="wreath"]').click();
+  el(".bag-close").click();
   expect(earned("wreath"), "正式佩戴花环未盖章");
   await interactAt("challenge", "courage");
   expect(earned("courage"), "亲手摘勇气花后未盖章");

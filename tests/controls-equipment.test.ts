@@ -87,17 +87,15 @@ test("lapel pins turn edge-on at the near shoulder and disappear with the far la
     for (const facing of [2,3] as const) assert.deepEqual(equipmentParts({body},"standing",facing,step),[]);
   }
 });
-test("the visible flower crown is drawn whole above every hat, band and fringe clip", () => {
+test("the flower crown is drawn whole above each visible fringe clip", () => {
   for (const pose of ["standing", "sitting", "bench"] as const) {
     for (const facing of [0, 1, 2, 3] as Facing[]) {
       for (const frame of [0, 1, 2]) {
-        for (const head of ["headphones","witchHat","blueBeret","ginghamBand","strawHat"] as const) {
-          const under = equipmentParts({head, hair:"heartClip"}, pose, facing, frame);
-          const layered = equipmentParts({wreath:"wreath", head, hair:"heartClip"}, pose, facing, frame);
-          assert.deepEqual(layered.slice(0, -1), under);
-          assert.equal(layered.at(-1)?.id, "wreath");
-          assert.equal(layered.at(-1)?.layer, "front");
-          assert.ok(under.some(part => part.id === head));
+        for (const hair of ["candyClip","starWings","heartClip","fishClip","starClip"] as const) {
+          const parts = equipmentParts({head:"wreath", hair}, pose, facing, frame);
+          const near = pose !== "standing" || facing <= 1;
+          assert.deepEqual(parts.map(part => part.id), near ? [hair, "wreath"] : ["wreath"]);
+          assert.equal(parts.at(-1)?.layer, "front");
         }
       }
     }
@@ -157,16 +155,16 @@ test("clips on the near temple tuck under the headphone band and cups", () => {
   for (const hair of ["candyClip","starWings","heartClip","fishClip","starClip"] as const) {
     for (const pose of ["standing","sitting","bench"] as const) for (const step of [0,1,2]) {
       for (const facing of [0,1,2,3] as const) {
-        const parts = equipmentParts({head:"headphones",hair,wreath:"wreath"}, pose, facing, step);
+        const parts = equipmentParts({head:"headphones",hair}, pose, facing, step);
         const near = pose !== "standing" || facing <= 1;
         const rear = pose === "standing" && facing === 3;
         const side = pose === "standing" && (facing === 1 || facing === 2);
         assert.deepEqual(parts.map(p => p.style ?? p.id), [
-          ...(near ? [hair] : []), ...(rear ? ["rearBand","rearEarpieces"] : side ? ["profileBand","profileCup"] : ["band","earpieces"]), "wreath",
+          ...(near ? [hair] : []), ...(rear ? ["rearBand","rearEarpieces"] : side ? ["profileBand","profileCup"] : ["band","earpieces"]),
         ]);
       }
     }
-    assert.deepEqual(equipmentParts({head:"headphones", hair, wreath:"wreath"}, "lying", 0).map(p => p.id), [hair]);
+    assert.deepEqual(equipmentParts({head:"headphones", hair}, "lying", 0).map(p => p.id), [hair]);
   }
 });
 test("crown attachments follow the sprite crown throughout a stride", () => {

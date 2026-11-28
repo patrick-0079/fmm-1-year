@@ -158,7 +158,7 @@ export function drawAvatar(c: CanvasRenderingContext2D, pose: AvatarPose, facing
   if (parts.some(part => part.layer === "underArm")) drawWornBags(c, parts, equipped.clothes, pose, facing, step);
   for (const part of parts) {
     if (part.layer !== "front") continue;
-    if (headFrame && (part.id === equipped.head || part.id === equipped.hair || part.id === equipped.wreath)) {
+    if (headFrame && (part.id === equipped.head || part.id === equipped.hair)) {
       c.save(); c.translate(dx,dy); paintPart(c,part,facing); c.restore();
     } else paintPart(c,part,facing);
   }

@@ -38,7 +38,7 @@ function categoryName(category: Category) { return category === "all" ? "全部"
 const turns: Facing[] = [0, 2, 3, 1];
 const facingNames = ["正面", "左侧", "右侧", "背面"];
 const slotArt: Record<EquipSlot, ItemId> = {
-  wreath: "wreath", head: "blueBeret", hair: "heartClip", clothes: "roseDress", shoes: "ribbonShoes",
+  head: "blueBeret", hair: "heartClip", clothes: "roseDress", shoes: "ribbonShoes",
   backpack: "berryBag", body: "anniversaryPin", pet: "petCat",
 };
 function browserStorage(): Storage | null {
@@ -250,7 +250,7 @@ export class Inventory {
     else this.changeTab("wardrobe");
   }
   get followingPet() { return this.earned.equipped.pet; }
-  get wearingWreath() { return this.earned.equipped.wreath === "wreath"; }
+  get wearingWreath() { return this.earned.equipped.head === "wreath"; }
   setCompanion(id: "petCat" | "petBunny", follow: boolean) {
     const first = follow && grantItem(this.earned,id);
     for (const outfit of [this.earned, this.fittingRoom]) {

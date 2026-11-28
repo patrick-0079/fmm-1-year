@@ -31,7 +31,7 @@ function checkHead(reference: Uint32Array, actual: Uint32Array, head: CampHeadPo
   const [dx, dy] = campHeadOffsets[head];
   const originalRGBA = new Uint8Array(reference.buffer), posedRGBA = new Uint8Array(actual.buffer);
   // Eyes, bangs, nose and lips move together. At the centre follow the original
-  // chin line down to the neck; above the eyes include the whole hat and wreath.
+  // chin line down to the neck; above the eyes include the entire headpiece.
   for (let y = -28; y <= chinY[row]; y++) {
     const [left, right] = y < 89 ? [-33, 177] : y <= 106 ? [48, 97] : y <= 111 ? [60, 86] : [70, 76];
     for (let x = left; x <= right; x++) {
@@ -72,7 +72,7 @@ export async function verifyCampCostumes() {
     if (!bare.some(Boolean)) throw Error("Missing seated costume " + clothes);
     const equipment: Equipped[] = Array.from({length: 16}, (_, frame) => ({
       clothes, shoes: footwearIds[frame % footwearIds.length], backpack: bags[frame % bags.length],
-      body: "anniversaryPin", head: "witchHat", wreath: "wreath", hair: "heartClip",
+      body: "anniversaryPin", head: frame % 2 ? "witchHat" : "wreath", hair: "heartClip",
     }));
     const dressed = equipment.map(items => render(items));
     for (const [expression, name] of campExpressionDrawings.entries())
@@ -80,7 +80,8 @@ export async function verifyCampCostumes() {
     for (const head of Object.keys(campHeadOffsets) as CampHeadPose[]) {
       const label = [clothes ?? "base", head].join("/");
       checkHead(bare, render({clothes}, {head, expression: -1}), head, row, label);
-      checkHead(dressed[0], render(equipment[0], {head, expression: -1}), head, row, label + "/equipped", true);
+      for (const i of [0, 1])
+        checkHead(dressed[i], render(equipment[i], {head, expression: -1}), head, row, label + "/" + equipment[i].head, true);
     }
     for (const id of campEncounterIds) {
       for (let frame = 0; frame < 16; frame++) {

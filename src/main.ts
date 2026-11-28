@@ -150,7 +150,7 @@ let showBadges = () => {
   const context = {
     townTalked: readTownVisits(stored(TOWN_TALKED_KEY)), owned: bag.owned,
     hasBouquet: bag.bouquet, hasFlowerMap: bag.flowerMap,
-    pickedEggs: pickedGardenEggs(readGardenBag(legacy)), wearingWreath: bag.equipped.wreath === "wreath",
+    pickedEggs: pickedGardenEggs(readGardenBag(legacy)), wearingWreath: bag.equipped.head === "wreath",
     playSeconds: Math.floor(readClock(stored(PLAYTIME_KEY)).milliseconds / 1000),
   };
   migrateAchievementFacts(saved, context);

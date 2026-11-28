@@ -160,17 +160,13 @@ export function equipmentParts(
     if (profile) addHead(crownX-5.6, -43, 11.2, 16, undefined, facing === 2);
     else if (facing === 3) addHead(-10.7, -39.5, 21.4, 13.4);
     else addHead(-10.2, -44.4, 20.4, 18.2);
+  } else if (head === "wreath") {
+    const width = profile ? 23.5 : 26;
+    addHead(crownX-width/2, -39.4, width, 9);
   } else if (cap) {
     const width = (head === "blueBeret" ? 27 : 33.5) - (profile ? 2.5 : 0);
     const height = head === "witchHat" ? width*.45 : 15.5;
     addHead(crownX-width/2, -31.1-height, width, height, "hat", facing === 2 && head !== "witchHat");
-  }
-  if (equipped.wreath === "wreath") {
-    // The artist already hid the far side of the garland behind the skull.
-    // Lay its visible flowers over every clip, band or hat in one pass.
-    const width = profile ? 23.5 : 26;
-    const top = cap ? -41.3 : -39.4;
-    add("wreath", "front", crownX-width/2, top+headShift, width, 9);
   }
   return parts;
 }

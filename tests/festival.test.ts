@@ -293,10 +293,27 @@ test("all wardrobe slots persist independently and the older moon bag migrates",
   );
   assert.equal(legacy.equipped.backpack, "moonBag");
   assert.equal(legacy.equipped.body, null);
-  assert.equal(legacy.equipped.head, null);
-  assert.equal(legacy.equipped.wreath, "wreath");
+  assert.equal(legacy.equipped.head, "wreath");
   assert.deepEqual(readInventory(JSON.stringify(legacy)), legacy);
-  assert.equal(readInventory('{"owned":["wreath"],"equipped":{"head":"wreath","wreath":null}}').equipped.wreath, null);
+});
+
+test("separate wreath slots migrate to headwear and keep both pieces of a layered outfit", () => {
+  const restore = (head: string | null, wreath: string | null, owned = ["wreath", "headphones"]) =>
+    readInventory(JSON.stringify({ owned, equipped: { head, wreath, hair: "fishClip" } }));
+  assert.equal(restore(null, "wreath").equipped.head, "wreath");
+  assert.equal(restore("headphones", null).equipped.head, "headphones");
+  assert.equal(restore("wreath", null).equipped.head, null);
+  assert.equal(restore("headphones", "wreath", ["headphones"]).equipped.head, "headphones");
+  const layered = restore("headphones", "wreath");
+  assert.equal(layered.equipped.head, "wreath");
+  assert.equal(layered.equipped.hair, "fishClip");
+  assert.deepEqual(readInventory(JSON.stringify(layered)), layered);
+  assert.ok(equipItem(layered, "headphones"));
+  assert.equal(layered.equipped.head, "headphones");
+  assert.ok(equipItem(layered, "wreath"));
+  assert.equal(layered.equipped.head, "wreath");
+  equipItem(layered, "wreath");
+  assert.equal(layered.equipped.head, null);
 });
 
 test("cake accepts each complete guide in either direction and rejects clicks or shortcuts", () => {
