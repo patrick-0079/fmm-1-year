@@ -20,6 +20,8 @@ export class CampEncounterControls {
   private reduced = matchMedia("(prefers-reduced-motion: reduce)");
   private lastInvitation: CampEncounterId | null = null;
   private seat: RestState | null = null;
+  private restElapsed = 0;
+  private storyReserved = false;
 
   constructor(private world: World, private encounters: CampEncounters, hitTest: HitTest) {
     this.button.addEventListener("click", () => this.respond());
@@ -40,6 +42,11 @@ export class CampEncounterControls {
   get visibleEncounter(): Readonly<CampEncounter> | null {
     return this.seat && this.seat === this.world.restState && this.world.scene === "meadow"
       ? this.encounters.current : null;
+  }
+
+  get quietRestElapsed() {
+    if (!this.seat || this.seat !== this.world.restState || this.world.scene !== "meadow" || this.storyReserved) return;
+    return this.restElapsed;
   }
 
   private canInteract() {
@@ -80,12 +87,17 @@ export class CampEncounterControls {
     const previousPhase = this.encounters.current?.phase;
     this.encounters.tick(available ? dt : 0, this.seat, reservedForStory);
     const event = this.visibleEncounter;
+    this.storyReserved = reservedForStory;
+    if (event || previousPhase || reservedForStory) this.restElapsed = 0;
+    else if (available) this.restElapsed += dt;
     if (previousPhase === "arrival" && event?.id === "bird" && event.phase === "waiting") sfx("camp-bird");
     this.showInvitation(available && event?.phase === "waiting" ? event.id : null);
   }
 
   reset() {
     this.seat = null;
+    this.restElapsed = 0;
+    this.storyReserved = false;
     this.encounters.reset();
     this.showInvitation(null);
   }

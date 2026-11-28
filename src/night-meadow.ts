@@ -15,6 +15,7 @@ import { creditStarTexture } from "./credit-star-art";
 import { CampGuest } from "./camp-guest";
 import { CampEncounters, type CampEncounterId } from "./camp-encounters";
 import { CampEncounterControls } from "./camp-encounter-controls";
+import { campEncounterExpression, campEncounterHead, campRestExpression } from "./camp-expression-cels";
 import { campEncounterLayers, campEncounterHit } from "./camp-encounter-art";
 import { outfitIndex } from "./costume-frames";
 import type { RestState } from "./rest";
@@ -118,8 +119,14 @@ export class NightMeadow {
       campEncounterHit(point, event, frame, this.reduced.matches, outfitIndex(world.equipment.clothes), pointerType));
     world.getCampPose = () => {
       const event = this.campControls.visibleEncounter;
-      if (!event) return;
-      return {id: event.id, frame: this.encounters.frame(this.reduced.matches)};
+      const reduced = this.reduced.matches;
+      if (event) {
+        const frame = this.encounters.frame(reduced);
+        return {expression:campEncounterExpression(event,frame,reduced),
+          head:campEncounterHead(event.id,frame,event.phase === "waiting" && !reduced ? event.elapsed : undefined)};
+      }
+      const quiet = this.campControls.quietRestElapsed;
+      if (quiet !== undefined) return {expression:campRestExpression(quiet,reduced), head:"neutral"};
     };
     this.caption.className = "star-whisper";
     this.caption.hidden = true;

@@ -7,7 +7,8 @@ import { artScale, cellWidth, cellHeight, footStripHeight, footwearIds, costumeF
 import type { Equipped, ItemId } from "./items";
 import { sceneImage } from "./texture-cache";
 import { drawWornBags } from "./worn-bags";
-import { drawCampExpression, type CampAvatarPose } from "./camp-costumes";
+import { campHeadFrame, drawCampExpression, type CampAvatarPose } from "./camp-costumes";
+import { campHeadOffsets } from "./camp-expression-cels";
 
 export const avatarUrls = [garmentUrl, footwearUrl, wardrobeUrl, jewelryUrl];
 const footwear = sceneImage(footwearUrl), garments = sceneImage(garmentUrl);
@@ -130,6 +131,10 @@ export function drawAvatar(c: CanvasRenderingContext2D, pose: AvatarPose, facing
   const f = costumeFrame(outfit,frame), w=f.w/artScale, h=f.h/artScale;
   const x=-w/2, y=pose === "lying" ? -h/2 : -h;
   const parts=equipmentParts(equipped,pose,facing,step);
+  const head = pose === "sitting" ? campPose?.head ?? "neutral" : "neutral";
+  const headFrame = campHeadFrame(head,outfit);
+  const [px,py] = campHeadOffsets[headFrame ? head : "neutral"];
+  const dx = px/artScale, dy = py/artScale;
   const shoeIndex = pose !== "lying" && footwear.naturalWidth ? footwearIds.findIndex(id => id === equipped.shoes) : -1;
   const bodyHeight = shoeIndex >= 0 ? cellHeight-footStripHeight : cellHeight;
   const hat = parts.find(p => p.style === "hat");
@@ -139,11 +144,11 @@ export function drawAvatar(c: CanvasRenderingContext2D, pose: AvatarPose, facing
     c.save();
     c.beginPath();
     c.rect(x, y, w, h);
-    c.rect(hat.x+hat.w/2-5.5, y, 11, hat.y+hat.h*.69-y);
+    c.rect(hat.x+hat.w/2-5.5+dx, y, 11, hat.y+hat.h*.69+dy-y);
     c.clip("evenodd");
   }
-  c.drawImage(garments,f.x,f.y,f.w,bodyHeight,x,y,w,bodyHeight/artScale);
-  if (pose === "sitting" && campPose) drawCampExpression(c, campPose, outfit);
+  c.drawImage(headFrame?.image ?? garments,headFrame?.x ?? f.x,headFrame?.y ?? f.y,f.w,bodyHeight,x,y,w,bodyHeight/artScale);
+  if (pose === "sitting" && campPose) drawCampExpression(c,campPose.expression,outfit,dx,dy);
   if (hat) c.restore();
   if (shoeIndex >= 0) {
     const row=outfit*footwearIds.length+shoeIndex;
@@ -151,7 +156,12 @@ export function drawAvatar(c: CanvasRenderingContext2D, pose: AvatarPose, facing
       x,-footStripHeight/artScale,w,footStripHeight/artScale);
   }
   if (parts.some(part => part.layer === "underArm")) drawWornBags(c, parts, equipped.clothes, pose, facing, step);
-  for (const part of parts) if (part.layer === "front") paintPart(c,part,facing);
+  for (const part of parts) {
+    if (part.layer !== "front") continue;
+    if (headFrame && (part.id === equipped.head || part.id === equipped.hair || part.id === equipped.wreath)) {
+      c.save(); c.translate(dx,dy); paintPart(c,part,facing); c.restore();
+    } else paintPart(c,part,facing);
+  }
   if (pose === "lying") {
     c.fillStyle = "#a999c9";
     c.font = '8px "Microsoft YaHei", sans-serif'; c.fillText("z",24,-23);

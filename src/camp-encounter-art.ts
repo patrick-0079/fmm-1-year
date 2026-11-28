@@ -1,5 +1,7 @@
 import type { CampEncounter, CampEncounterId } from "./camp-encounters";
 import { campEncounterLandmark } from "./camp-encounter-contacts";
+import { campEncounterHead, campHeadOffsets } from "./camp-expression-cels";
+import { artScale } from "./costume-frames";
 import type { Point } from "./core";
 import { campSeat } from "./meadow-ground";
 import { benchRest } from "./rest";
@@ -47,6 +49,9 @@ function posePosition(id: CampEncounterId, frame: number, outfit: number): Point
   if (id === "jelly") at.x += (22-10) * sprites.jelly.scale;
   if (id === "butterfly") at.y -= 1;
   if (id === "marshmallow") {
+    const [dx,dy] = campHeadOffsets[campEncounterHead(id,frame)];
+    at.x += dx/artScale;
+    at.y += dy/artScale;
     at.x -= frame === 12 ? 2.1 : 2.6;
     at.y += 1;
   }

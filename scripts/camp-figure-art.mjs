@@ -84,10 +84,9 @@ function lip(row) {
   return [72+4*x,184+4*y-.7];
 }
 
-// Only the bite requires painting the skin behind the original open eyes.
 // Find the upper lash column by column to follow the fringe, then sample the
 // wearer's own skin on the inner cheek to feather the small cleared aperture.
-function prepareBite(pixels, source, row) {
+function prepareEyes(pixels, source, row) {
   const [left,right,top] = features[row].eyes;
   for (const lx of [left,right]) {
     const leftEye=lx===left;
@@ -122,7 +121,9 @@ function prepareBite(pixels, source, row) {
       }
     }
   }
-  const [cx,cy]=lip(row);
+}
+
+function prepareMouth(pixels, source, cx, cy) {
   for (let y=Math.floor(cy-2);y<cy+3.65;y++) for (let x=cx-5;x<=cx+5;x++) {
     const radius=((x-cx)/5.8)**2+((y-cy-.6)/3.1)**2;
     if (radius>=1) continue;
@@ -132,13 +133,98 @@ function prepareBite(pixels, source, row) {
   }
 }
 
+// Centres of the fine smile in the nine original paintings. The marshmallow
+// meets the lips at a slightly different point on the approved bite drawing.
+const smileCenters = [
+  [73.25,109.6], [74.15,111.4], [73.25,113.45], [74.1,110.9], [73.2,111.1],
+  [75.35,111.3], [72.7,108.8], [74.35,111.85], [74.3,109.55],
+];
+
+// A relaxed blink lowers the upper lid, leaving the green and rose irises
+// visible below it on the half drawing. The lash follows a downward curve
+// on full closure. Each eye stays anchored to its own original corners.
+function restingLid(pixels,source,row,side,half) {
+  const x=features[row].eyes[side], cy=features[row].pupils[side][1]+.5;
+  const u=x+.35, w=14.55, s=side?1:-1;
+  const outerLift=t=>-s*(t-.5)*.65;
+  const lidY=t=>cy+(half?-1.35:2.4)+outerLift(t)+(half?1.7:-2.05)*(2*t-1)**2;
+  if (half) {
+    for (let px=x-2;px<=x+16;px++) {
+      const t=Math.max(0,Math.min(1,(px+.5-u)/w));
+      const limit=lidY(t)+.3;
+      for (let py=Math.ceil(limit);py<=Math.ceil(cy+10);py++) {
+        const i=offset(px,py);
+        source.copy(pixels,i,i,i+4);
+      }
+    }
+  }
+  const start=lidY(0), end=lidY(1), mid=lidY(.5);
+  const control=2*mid-(start+end)*.5;
+  const inner=side?u:u+w, outer=side?u+w:u, innerY=side?start:end, outerY=side?end:start;
+  const tail=side?.75:-.75, centre=u+w/2;
+  const ink=half?(side?"#542b38":"#4a3030"):(side?"#653743":"#4e3e3b");
+  const shape="M"+p([inner,innerY+.35])+" Q"+p([centre,control-.8])+" "+p([outer,outerY-.25])
+    +" L"+p([outer+tail,outerY-1.25])+" Q"+p([outer+tail,outerY+.7])+" "+p([outer-tail*1.4,outerY+1.05])
+    +" Q"+p([centre,control+1.45])+" "+p([inner,innerY+.65])+"Z";
+  return path(shape,ink);
+}
+
+function smileEye(pixels,source,row,side) {
+  const x=features[row].eyes[side], cy=features[row].pupils[side][1]+.5;
+  const outer=side?x+13.6:x+2.0, inner=side?x+.8:x+14;
+  const at=t=>outer+(inner-outer)*t;
+  const lidY=t=>cy+3.45+.48*t+1.65*(2*t-1)**2;
+  for (let px=x-2;px<=x+16;px++) {
+    const t=(px+.5-outer)/(inner-outer);
+    for (let py=Math.floor(cy-9);py<=Math.ceil(cy+10);py++) {
+      const i=offset(px,py);
+      const covered=t<=0 || t>=1 ? 0 : Math.min(1,Math.max(0,py+1-lidY(t)));
+      for (let k=0;k<3;k++) pixels[i+k]=clamp(source[i+k]+covered*(pixels[i+k]-source[i+k]));
+    }
+  }
+  // A tiny, warm lower-lid crease runs in from the outer corner. The iris
+  // above it and the heavy upper lash are the actual seated portrait.
+  const crease="M"+p([at(.03),lidY(.03)+.1])+" Q"+p([at(.2),lidY(.24)-.42])+" "+p([at(.4),lidY(.4)+.1]);
+  return line(crease,"#c19888",.65);
+}
+
+function softSmile(pixels,source,row) {
+  let strokes=smileEye(pixels,source,row,0)+smileEye(pixels,source,row,1);
+  const [cx,cy]=smileCenters[row];
+  for (let py=Math.floor(cy-2);py<cy+1.55;py++) {
+    const left=offset(Math.round(cx)-6,py), right=offset(Math.round(cx)+6,py);
+    for (let px=Math.floor(cx-3.8);px<=cx+3.8;px++) {
+      const i=offset(px,py), t=(px-cx+6)/12;
+      const paper=source[left+1]*(1-t)+source[right+1]*t;
+      if (paper-source[i+1]<7) continue;
+      for (let k=0;k<3;k++) pixels[i+k]=clamp(source[left+k]*(1-t)+source[right+k]*t);
+    }
+  }
+  const at=(u,v)=>p([cx+u,cy+v]);
+  const mouth="M"+at(-3.85,-1.15)+" Q"+at(-2.15,.6)+" "+at(-.65,.75)
+    +" Q"+at(1.6,1.45)+" "+at(3.9,-1.15)+" Q"+at(2.5,1.6)+" "+at(.55,1.85)
+    +" Q"+at(-1.7,2.05)+" "+at(-3.85,-1.15)+"Z";
+  strokes+=path(mouth,"#ac7665","#a57061",.62);
+  const [left,right,top]=features[row].eyes;
+  strokes+='<defs><radialGradient id="smileCheek"><stop stop-color="#e8958a" stop-opacity=".36"/><stop offset="1" stop-color="#e8958a" stop-opacity="0"/></radialGradient></defs>';
+  strokes+=ellipse(left+4.7,top+12.3,3.4,1.55,"url(#smileCheek)")
+    +ellipse(right+10.05,top+12.65,3.4,1.55,"url(#smileCheek)");
+  return strokes;
+}
+
 export function expressionDrawing(source,row,drawing) {
   const pixels=Buffer.from(source);
   if (drawing in gaze) {
     paintGaze(pixels,source,row,drawing);
     return {pixels};
   }
-  prepareBite(pixels,source,row);
+  prepareEyes(pixels,source,row);
+  if (drawing==="blinkHalf" || drawing==="blinkShut") {
+    const half=drawing==="blinkHalf";
+    return {pixels,strokes:restingLid(pixels,source,row,0,half)+restingLid(pixels,source,row,1,half)};
+  }
+  if (drawing==="softSmile") return {pixels,strokes:softSmile(pixels,source,row)};
+  prepareMouth(pixels,source,...lip(row));
   const [left,right,top]=features[row].eyes;
   const closing=drawing==="closing";
   const [mx,my]=lip(row);
